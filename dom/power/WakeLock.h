@@ -22,12 +22,10 @@ namespace dom {
 
 class ContentParent;
 
-class WakeLock final
-  : public nsIDOMEventListener
-  , public nsIObserver
-  , public nsSupportsWeakReference
-{
-public:
+class WakeLock final : public nsIDOMEventListener,
+                       public nsIObserver,
+                       public nsSupportsWeakReference {
+ public:
   NS_DECL_NSIDOMEVENTLISTENER
   NS_DECL_NSIOBSERVER
 
@@ -43,12 +41,12 @@ public:
   // Initialize this wake lock on behalf of the given window.  Null windows are
   // allowed; a lock without an associated window is always considered
   // invisible.
-  nsresult Init(const nsAString &aTopic, nsPIDOMWindowInner* aWindow);
+  nsresult Init(const nsAString& aTopic, nsPIDOMWindowInner* aWindow);
 
   // Initialize this wake lock on behalf of the given process.  If the process
   // dies, the lock is released.  A wake lock initialized via this method is
   // always considered visible.
-  nsresult Init(const nsAString &aTopic, ContentParent* aContentParent);
+  nsresult Init(const nsAString& aTopic, ContentParent* aContentParent);
 
   // WebIDL methods
 
@@ -58,28 +56,28 @@ public:
 
   void Unlock(ErrorResult& aRv);
 
-private:
+ private:
   virtual ~WakeLock();
 
-  void     DoUnlock();
-  void     DoLock();
-  void     AttachEventListener();
-  void     DetachEventListener();
+  void DoUnlock();
+  void DoLock();
+  void AttachEventListener();
+  void DetachEventListener();
 
-  bool      mLocked;
-  bool      mHidden;
+  bool mLocked;
+  bool mHidden;
 
   // The ID of the ContentParent on behalf of whom we acquired this lock, or
   // CONTENT_PROCESS_UNKNOWN_ID if this lock was acquired on behalf of the
   // current process.
-  uint64_t  mContentParentID;
-  nsString  mTopic;
+  uint64_t mContentParentID;
+  nsString mTopic;
 
   // window that this was created for.  Weak reference.
   nsWeakPtr mWindow;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_power_WakeLock_h
+#endif  // mozilla_dom_power_WakeLock_h

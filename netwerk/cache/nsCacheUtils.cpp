@@ -11,35 +11,27 @@
 using namespace mozilla;
 
 class nsDestroyThreadEvent : public Runnable {
-public:
+ public:
   explicit nsDestroyThreadEvent(nsIThread* thread)
-    : mozilla::Runnable("nsDestroyThreadEvent")
-    , mThread(thread)
-  {}
-  NS_IMETHOD Run() override
-  {
+      : mozilla::Runnable("nsDestroyThreadEvent"), mThread(thread) {}
+  NS_IMETHOD Run() override {
     mThread->Shutdown();
     return NS_OK;
   }
-private:
+
+ private:
   nsCOMPtr<nsIThread> mThread;
 };
 
 nsShutdownThread::nsShutdownThread(nsIThread* aThread)
-  : mozilla::Runnable("nsShutdownThread")
-  , mMonitor("nsShutdownThread.mMonitor")
-  , mShuttingDown(false)
-  , mThread(aThread)
-{
-}
+    : mozilla::Runnable("nsShutdownThread"),
+      mMonitor("nsShutdownThread.mMonitor"),
+      mShuttingDown(false),
+      mThread(aThread) {}
 
-nsShutdownThread::~nsShutdownThread()
-{
-}
+nsShutdownThread::~nsShutdownThread() {}
 
-nsresult
-nsShutdownThread::Shutdown(nsIThread *aThread)
-{
+nsresult nsShutdownThread::Shutdown(nsIThread* aThread) {
   nsresult rv;
   RefPtr<nsDestroyThreadEvent> ev = new nsDestroyThreadEvent(aThread);
   rv = NS_DispatchToMainThread(ev);
@@ -49,9 +41,7 @@ nsShutdownThread::Shutdown(nsIThread *aThread)
   return rv;
 }
 
-nsresult
-nsShutdownThread::BlockingShutdown(nsIThread *aThread)
-{
+nsresult nsShutdownThread::BlockingShutdown(nsIThread* aThread) {
   nsresult rv;
 
   RefPtr<nsShutdownThread> st = new nsShutdownThread(aThread);
@@ -68,7 +58,7 @@ nsShutdownThread::BlockingShutdown(nsIThread *aThread)
     rv = workerThread->Dispatch(st, NS_DISPATCH_NORMAL);
     if (NS_FAILED(rv)) {
       NS_WARNING(
-        "Dispatching event in nsShutdownThread::BlockingShutdown failed!");
+          "Dispatching event in nsShutdownThread::BlockingShutdown failed!");
     } else {
       st->mShuttingDown = true;
       while (st->mShuttingDown) {
@@ -81,8 +71,7 @@ nsShutdownThread::BlockingShutdown(nsIThread *aThread)
 }
 
 NS_IMETHODIMP
-nsShutdownThread::Run()
-{
+nsShutdownThread::Run() {
   MonitorAutoLock mon(mMonitor);
   mThread->Shutdown();
   mShuttingDown = false;

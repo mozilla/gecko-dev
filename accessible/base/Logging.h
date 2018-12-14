@@ -135,9 +135,8 @@ void SelChange(nsISelection* aSelection, DocAccessible* aDocument,
  * Log the given accessible elements info.
  */
 void TreeInfo(const char* aMsg, uint32_t aExtraFlags, ...);
-void TreeInfo(const char* aMsg, uint32_t aExtraFlags,
-              const char* aMsg1, Accessible* aAcc,
-              const char* aMsg2, nsINode* aNode);
+void TreeInfo(const char* aMsg, uint32_t aExtraFlags, const char* aMsg1,
+              Accessible* aAcc, const char* aMsg2, nsINode* aNode);
 void TreeInfo(const char* aMsg, uint32_t aExtraFlags, Accessible* aParent);
 
 /**
@@ -145,7 +144,8 @@ void TreeInfo(const char* aMsg, uint32_t aExtraFlags, Accessible* aParent);
  */
 typedef const char* (*GetTreePrefix)(void* aData, Accessible*);
 void Tree(const char* aTitle, const char* aMsgText, Accessible* aRoot,
-          GetTreePrefix aPrefixFunc = nullptr, void* aGetTreePrefixData = nullptr);
+          GetTreePrefix aPrefixFunc = nullptr,
+          void* aGetTreePrefixData = nullptr);
 void DOMTree(const char* aTitle, const char* aMsgText, DocAccessible* aDoc);
 
 /**
@@ -153,7 +153,8 @@ void DOMTree(const char* aTitle, const char* aMsgText, DocAccessible* aDoc);
  * boundaries of the message body designated by '{' and '}' (2 spaces indent for
  * body).
  */
-void MsgBegin(const char* aTitle, const char* aMsgText, ...) MOZ_FORMAT_PRINTF(2, 3);
+void MsgBegin(const char* aTitle, const char* aMsgText, ...)
+    MOZ_FORMAT_PRINTF(2, 3);
 void MsgEnd();
 
 /**
@@ -217,10 +218,9 @@ void Enable(const nsCString& aModules);
  */
 void CheckEnv();
 
-} // namespace logging
+}  // namespace logging
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif
-

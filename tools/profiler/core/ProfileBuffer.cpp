@@ -16,11 +16,7 @@
 using namespace mozilla;
 
 ProfileBuffer::ProfileBuffer(uint32_t aEntrySize)
-  : mEntryIndexMask(0)
-  , mRangeStart(0)
-  , mRangeEnd(0)
-  , mEntrySize(0)
-{
+    : mEntryIndexMask(0), mRangeStart(0), mRangeEnd(0), mEntrySize(0) {
   // Round aEntrySize up to the nearest power of two, so that we can index
   // mEntries with a simple mask and don't need to do a slow modulo operation.
   const uint32_t UINT32_MAX_POWER_OF_TWO = 1 << 31;
@@ -31,17 +27,14 @@ ProfileBuffer::ProfileBuffer(uint32_t aEntrySize)
   mEntries = MakeUnique<ProfileBufferEntry[]>(mEntrySize);
 }
 
-ProfileBuffer::~ProfileBuffer()
-{
+ProfileBuffer::~ProfileBuffer() {
   while (mStoredMarkers.peek()) {
     delete mStoredMarkers.popHead();
   }
 }
 
 // Called from signal, call only reentrant functions
-void
-ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry)
-{
+void ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry) {
   GetEntry(mRangeEnd++) = aEntry;
 
   // The distance between mRangeStart and mRangeEnd must never exceed
@@ -51,32 +44,26 @@ ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry)
   }
 }
 
-uint64_t
-ProfileBuffer::AddThreadIdEntry(int aThreadId)
-{
+uint64_t ProfileBuffer::AddThreadIdEntry(int aThreadId) {
   uint64_t pos = mRangeEnd;
   AddEntry(ProfileBufferEntry::ThreadId(aThreadId));
   return pos;
 }
 
-void
-ProfileBuffer::AddStoredMarker(ProfilerMarker *aStoredMarker)
-{
+void ProfileBuffer::AddStoredMarker(ProfilerMarker* aStoredMarker) {
   aStoredMarker->SetPositionInBuffer(mRangeEnd);
   mStoredMarkers.insert(aStoredMarker);
 }
 
-void
-ProfileBuffer::CollectCodeLocation(
-  const char* aLabel, const char* aStr, int aLineNumber,
-  const Maybe<js::ProfileEntry::Category>& aCategory)
-{
+void ProfileBuffer::CollectCodeLocation(
+    const char* aLabel, const char* aStr, int aLineNumber,
+    const Maybe<js::ProfileEntry::Category>& aCategory) {
   AddEntry(ProfileBufferEntry::Label(aLabel));
 
   if (aStr) {
     // Store the string using one or more DynamicStringFragment entries.
-    size_t strLen = strlen(aStr) + 1;   // +1 for the null terminator
-    for (size_t j = 0; j < strLen; ) {
+    size_t strLen = strlen(aStr) + 1;  // +1 for the null terminator
+    for (size_t j = 0; j < strLen;) {
       // Store up to kNumChars characters in the entry.
       char chars[ProfileBufferEntry::kNumChars];
       size_t len = ProfileBufferEntry::kNumChars;
@@ -99,9 +86,7 @@ ProfileBuffer::CollectCodeLocation(
   }
 }
 
-void
-ProfileBuffer::DeleteExpiredStoredMarkers()
-{
+void ProfileBuffer::DeleteExpiredStoredMarkers() {
   // Delete markers of samples that have been overwritten due to circular
   // buffer wraparound.
   while (mStoredMarkers.peek() &&
@@ -110,9 +95,8 @@ ProfileBuffer::DeleteExpiredStoredMarkers()
   }
 }
 
-size_t
-ProfileBuffer::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t ProfileBuffer::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = aMallocSizeOf(this);
   n += aMallocSizeOf(mEntries.get());
 
@@ -126,35 +110,26 @@ ProfileBuffer::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 
 /* ProfileBufferCollector */
 
-static bool
-IsChromeJSScript(JSScript* aScript)
-{
+static bool IsChromeJSScript(JSScript* aScript) {
   // WARNING: this function runs within the profiler's "critical section".
   auto compartment = js::GetScriptCompartment(aScript);
   return js::IsSystemCompartment(compartment);
 }
 
-void
-ProfileBufferCollector::CollectNativeLeafAddr(void* aAddr)
-{
+void ProfileBufferCollector::CollectNativeLeafAddr(void* aAddr) {
   mBuf.AddEntry(ProfileBufferEntry::NativeLeafAddr(aAddr));
 }
 
-void
-ProfileBufferCollector::CollectJitReturnAddr(void* aAddr)
-{
+void ProfileBufferCollector::CollectJitReturnAddr(void* aAddr) {
   mBuf.AddEntry(ProfileBufferEntry::JitReturnAddr(aAddr));
 }
 
-void
-ProfileBufferCollector::CollectWasmFrame(const char* aLabel)
-{
+void ProfileBufferCollector::CollectWasmFrame(const char* aLabel) {
   mBuf.CollectCodeLocation("", aLabel, -1, Nothing());
 }
 
-void
-ProfileBufferCollector::CollectPseudoEntry(const js::ProfileEntry& aEntry)
-{
+void ProfileBufferCollector::CollectPseudoEntry(
+    const js::ProfileEntry& aEntry) {
   // WARNING: this function runs within the profiler's "critical section".
 
   MOZ_ASSERT(aEntry.kind() == js::ProfileEntry::Kind::CPP_NORMAL ||

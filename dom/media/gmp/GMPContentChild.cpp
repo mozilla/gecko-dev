@@ -14,94 +14,71 @@
 namespace mozilla {
 namespace gmp {
 
-GMPContentChild::GMPContentChild(GMPChild* aChild)
-  : mGMPChild(aChild)
-{
+GMPContentChild::GMPContentChild(GMPChild* aChild) : mGMPChild(aChild) {
   MOZ_COUNT_CTOR(GMPContentChild);
 }
 
-GMPContentChild::~GMPContentChild()
-{
-  MOZ_COUNT_DTOR(GMPContentChild);
-}
+GMPContentChild::~GMPContentChild() { MOZ_COUNT_DTOR(GMPContentChild); }
 
-MessageLoop*
-GMPContentChild::GMPMessageLoop()
-{
+MessageLoop* GMPContentChild::GMPMessageLoop() {
   return mGMPChild->GMPMessageLoop();
 }
 
-void
-GMPContentChild::CheckThread()
-{
+void GMPContentChild::CheckThread() {
   MOZ_ASSERT(mGMPChild->mGMPMessageLoop == MessageLoop::current());
 }
 
-void
-GMPContentChild::ActorDestroy(ActorDestroyReason aWhy)
-{
+void GMPContentChild::ActorDestroy(ActorDestroyReason aWhy) {
   mGMPChild->GMPContentChildActorDestroy(this);
 }
 
-void
-GMPContentChild::ProcessingError(Result aCode, const char* aReason)
-{
+void GMPContentChild::ProcessingError(Result aCode, const char* aReason) {
   mGMPChild->ProcessingError(aCode, aReason);
 }
 
-PGMPVideoDecoderChild*
-GMPContentChild::AllocPGMPVideoDecoderChild(const uint32_t& aDecryptorId)
-{
+PGMPVideoDecoderChild* GMPContentChild::AllocPGMPVideoDecoderChild(
+    const uint32_t& aDecryptorId) {
   GMPVideoDecoderChild* actor = new GMPVideoDecoderChild(this);
   actor->AddRef();
   return actor;
 }
 
-bool
-GMPContentChild::DeallocPGMPVideoDecoderChild(PGMPVideoDecoderChild* aActor)
-{
+bool GMPContentChild::DeallocPGMPVideoDecoderChild(
+    PGMPVideoDecoderChild* aActor) {
   static_cast<GMPVideoDecoderChild*>(aActor)->Release();
   return true;
 }
 
-PGMPVideoEncoderChild*
-GMPContentChild::AllocPGMPVideoEncoderChild()
-{
+PGMPVideoEncoderChild* GMPContentChild::AllocPGMPVideoEncoderChild() {
   GMPVideoEncoderChild* actor = new GMPVideoEncoderChild(this);
   actor->AddRef();
   return actor;
 }
 
-bool
-GMPContentChild::DeallocPGMPVideoEncoderChild(PGMPVideoEncoderChild* aActor)
-{
+bool GMPContentChild::DeallocPGMPVideoEncoderChild(
+    PGMPVideoEncoderChild* aActor) {
   static_cast<GMPVideoEncoderChild*>(aActor)->Release();
   return true;
 }
 
-PChromiumCDMChild*
-GMPContentChild::AllocPChromiumCDMChild()
-{
+PChromiumCDMChild* GMPContentChild::AllocPChromiumCDMChild() {
   ChromiumCDMChild* actor = new ChromiumCDMChild(this);
   actor->AddRef();
   return actor;
 }
 
-bool
-GMPContentChild::DeallocPChromiumCDMChild(PChromiumCDMChild* aActor)
-{
+bool GMPContentChild::DeallocPChromiumCDMChild(PChromiumCDMChild* aActor) {
   static_cast<ChromiumCDMChild*>(aActor)->Release();
   return true;
 }
 
-mozilla::ipc::IPCResult
-GMPContentChild::RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* aActor,
-                                                 const uint32_t& aDecryptorId)
-{
+mozilla::ipc::IPCResult GMPContentChild::RecvPGMPVideoDecoderConstructor(
+    PGMPVideoDecoderChild* aActor, const uint32_t& aDecryptorId) {
   auto vdc = static_cast<GMPVideoDecoderChild*>(aActor);
 
   void* vd = nullptr;
-  GMPErr err = mGMPChild->GetAPI(GMP_API_VIDEO_DECODER, &vdc->Host(), &vd, aDecryptorId);
+  GMPErr err =
+      mGMPChild->GetAPI(GMP_API_VIDEO_DECODER, &vdc->Host(), &vd, aDecryptorId);
   if (err != GMPNoErr || !vd) {
     NS_WARNING("GMPGetAPI call failed trying to construct decoder.");
     return IPC_FAIL_NO_REASON(this);
@@ -112,9 +89,8 @@ GMPContentChild::RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* aActor,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-GMPContentChild::RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* aActor)
-{
+mozilla::ipc::IPCResult GMPContentChild::RecvPGMPVideoEncoderConstructor(
+    PGMPVideoEncoderChild* aActor) {
   auto vec = static_cast<GMPVideoEncoderChild*>(aActor);
 
   void* ve = nullptr;
@@ -129,162 +105,124 @@ GMPContentChild::RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* aActor)
   return IPC_OK();
 }
 
-
-class ChromiumCDM8BackwardsCompat : public cdm::ContentDecryptionModule_9
-{
-public:
-  explicit ChromiumCDM8BackwardsCompat(
-    cdm::Host_9* aHost,
-    cdm::ContentDecryptionModule_8* aCDM)
-      : mCDM(aCDM),
-        mHost(aHost) { }
+class ChromiumCDM8BackwardsCompat : public cdm::ContentDecryptionModule_9 {
+ public:
+  explicit ChromiumCDM8BackwardsCompat(cdm::Host_9* aHost,
+                                       cdm::ContentDecryptionModule_8* aCDM)
+      : mCDM(aCDM), mHost(aHost) {}
 
   void Initialize(bool aAllowDistinctiveIdentifier,
-                  bool aAllowPersistentState) override
-  {
+                  bool aAllowPersistentState) override {
     mCDM->Initialize(aAllowDistinctiveIdentifier, aAllowPersistentState);
   }
 
   void SetServerCertificate(uint32_t aPromiseId,
                             const uint8_t* aServerCertificateData,
-                            uint32_t aServerCertificateDataSize) override
-  {
-    mCDM->SetServerCertificate(aPromiseId,
-                               aServerCertificateData,
+                            uint32_t aServerCertificateDataSize) override {
+    mCDM->SetServerCertificate(aPromiseId, aServerCertificateData,
                                aServerCertificateDataSize);
   }
 
   void GetStatusForPolicy(uint32_t aPromiseId,
-                          const cdm::Policy& policy) override
-  {
-    //Only support on version 9 CDM, so rejecting the promise.
-    mHost->OnRejectPromise(aPromiseId,
-                           cdm::Exception::kExceptionNotSupportedError,
-                           0,
-                           nullptr,
-                           0);
-
+                          const cdm::Policy& policy) override {
+    // Only support on version 9 CDM, so rejecting the promise.
+    mHost->OnRejectPromise(
+        aPromiseId, cdm::Exception::kExceptionNotSupportedError, 0, nullptr, 0);
   }
 
   void CreateSessionAndGenerateRequest(uint32_t aPromiseId,
                                        cdm::SessionType aSessionType,
                                        cdm::InitDataType aInitDataType,
                                        const uint8_t* aInitData,
-                                       uint32_t aInitDataSize) override
-  {
+                                       uint32_t aInitDataSize) override {
     mCDM->CreateSessionAndGenerateRequest(
-      aPromiseId, aSessionType, aInitDataType, aInitData, aInitDataSize);
+        aPromiseId, aSessionType, aInitDataType, aInitData, aInitDataSize);
   }
 
-  void LoadSession(uint32_t aPromiseId,
-                   cdm::SessionType aSessionType,
-                   const char* aSessionId,
-                   uint32_t aSessionIdSize) override
-  {
+  void LoadSession(uint32_t aPromiseId, cdm::SessionType aSessionType,
+                   const char* aSessionId, uint32_t aSessionIdSize) override {
     mCDM->LoadSession(aPromiseId, aSessionType, aSessionId, aSessionIdSize);
   }
 
-  void UpdateSession(uint32_t aPromiseId,
-                     const char* aSessionId,
-                     uint32_t aSessionIdSize,
-                     const uint8_t* aResponse,
-                     uint32_t aResponseSize) override
-  {
-    mCDM->UpdateSession(aPromiseId,
-                        aSessionId,
-                        aSessionIdSize,
-                        aResponse,
+  void UpdateSession(uint32_t aPromiseId, const char* aSessionId,
+                     uint32_t aSessionIdSize, const uint8_t* aResponse,
+                     uint32_t aResponseSize) override {
+    mCDM->UpdateSession(aPromiseId, aSessionId, aSessionIdSize, aResponse,
                         aResponseSize);
   }
 
-  void CloseSession(uint32_t aPromiseId,
-                    const char* aSessionId,
-                    uint32_t aSessionIdSize) override
-  {
+  void CloseSession(uint32_t aPromiseId, const char* aSessionId,
+                    uint32_t aSessionIdSize) override {
     mCDM->CloseSession(aPromiseId, aSessionId, aSessionIdSize);
   }
 
-  void RemoveSession(uint32_t aPromiseId,
-                     const char* aSessionId,
-                     uint32_t aSessionIdSize) override
-  {
+  void RemoveSession(uint32_t aPromiseId, const char* aSessionId,
+                     uint32_t aSessionIdSize) override {
     mCDM->RemoveSession(aPromiseId, aSessionId, aSessionIdSize);
   }
 
   void TimerExpired(void* aContext) override { mCDM->TimerExpired(aContext); }
 
   cdm::Status Decrypt(const cdm::InputBuffer& aEncryptedBuffer,
-                      cdm::DecryptedBlock* aDecryptedBuffer) override
-  {
+                      cdm::DecryptedBlock* aDecryptedBuffer) override {
     return mCDM->Decrypt(aEncryptedBuffer, aDecryptedBuffer);
   }
 
   cdm::Status InitializeAudioDecoder(
-    const cdm::AudioDecoderConfig& aAudioDecoderConfig) override
-  {
+      const cdm::AudioDecoderConfig& aAudioDecoderConfig) override {
     return mCDM->InitializeAudioDecoder(aAudioDecoderConfig);
   }
 
   cdm::Status InitializeVideoDecoder(
-    const cdm::VideoDecoderConfig& aVideoDecoderConfig) override
-  {
+      const cdm::VideoDecoderConfig& aVideoDecoderConfig) override {
     return mCDM->InitializeVideoDecoder(aVideoDecoderConfig);
   }
 
-  void DeinitializeDecoder(cdm::StreamType aDecoderType) override
-  {
+  void DeinitializeDecoder(cdm::StreamType aDecoderType) override {
     mCDM->DeinitializeDecoder(aDecoderType);
   }
 
-  void ResetDecoder(cdm::StreamType aDecoderType) override
-  {
+  void ResetDecoder(cdm::StreamType aDecoderType) override {
     mCDM->ResetDecoder(aDecoderType);
   }
 
   cdm::Status DecryptAndDecodeFrame(const cdm::InputBuffer& aEncryptedBuffer,
-                                    cdm::VideoFrame* aVideoFrame) override
-  {
+                                    cdm::VideoFrame* aVideoFrame) override {
     return mCDM->DecryptAndDecodeFrame(aEncryptedBuffer, aVideoFrame);
   }
 
   cdm::Status DecryptAndDecodeSamples(const cdm::InputBuffer& aEncryptedBuffer,
-                                      cdm::AudioFrames* aAudioFrames) override
-  {
+                                      cdm::AudioFrames* aAudioFrames) override {
     return mCDM->DecryptAndDecodeSamples(aEncryptedBuffer, aAudioFrames);
   }
 
   void OnPlatformChallengeResponse(
-      const cdm::PlatformChallengeResponse& aResponse) override
-  {
+      const cdm::PlatformChallengeResponse& aResponse) override {
     mCDM->OnPlatformChallengeResponse(aResponse);
   }
 
   void OnQueryOutputProtectionStatus(cdm::QueryResult aResult,
                                      uint32_t aLinkMask,
-                                     uint32_t aOutputProtectionMask) override
-  {
-    mCDM->OnQueryOutputProtectionStatus(aResult, aLinkMask, aOutputProtectionMask);
+                                     uint32_t aOutputProtectionMask) override {
+    mCDM->OnQueryOutputProtectionStatus(aResult, aLinkMask,
+                                        aOutputProtectionMask);
   }
 
-  void OnStorageId(uint32_t aVersion,
-                   const uint8_t* aStorageId,
-                   uint32_t aStorageIdSize) override
-  {
-    //Only support on version 9 CDM.
+  void OnStorageId(uint32_t aVersion, const uint8_t* aStorageId,
+                   uint32_t aStorageIdSize) override {
+    // Only support on version 9 CDM.
   }
 
-  void Destroy() override
-  {
+  void Destroy() override {
     mCDM->Destroy();
     delete this;
   }
   cdm::ContentDecryptionModule_8* mCDM;
   cdm::Host_9* mHost;
-}; // class ChromiumCDM8BackwardsCompat
+};  // class ChromiumCDM8BackwardsCompat
 
-mozilla::ipc::IPCResult
-GMPContentChild::RecvPChromiumCDMConstructor(PChromiumCDMChild* aActor)
-{
+mozilla::ipc::IPCResult GMPContentChild::RecvPChromiumCDMConstructor(
+    PChromiumCDMChild* aActor) {
   ChromiumCDMChild* child = static_cast<ChromiumCDMChild*>(aActor);
   cdm::Host_9* host9 = child;
 
@@ -299,10 +237,8 @@ GMPContentChild::RecvPChromiumCDMConstructor(PChromiumCDMChild* aActor)
       NS_WARNING("GMPGetAPI call failed trying to get CDM.");
       return IPC_FAIL_NO_REASON(this);
     }
-    cdm =
-      new ChromiumCDM8BackwardsCompat(
-        host9,
-        static_cast<cdm::ContentDecryptionModule_8*>(cdm));
+    cdm = new ChromiumCDM8BackwardsCompat(
+        host9, static_cast<cdm::ContentDecryptionModule_8*>(cdm));
   }
 
   child->Init(static_cast<cdm::ContentDecryptionModule_9*>(cdm),
@@ -311,18 +247,16 @@ GMPContentChild::RecvPChromiumCDMConstructor(PChromiumCDMChild* aActor)
   return IPC_OK();
 }
 
-void
-GMPContentChild::CloseActive()
-{
+void GMPContentChild::CloseActive() {
   // Invalidate and remove any remaining API objects.
   const ManagedContainer<PGMPVideoDecoderChild>& videoDecoders =
-    ManagedPGMPVideoDecoderChild();
+      ManagedPGMPVideoDecoderChild();
   for (auto iter = videoDecoders.ConstIter(); !iter.Done(); iter.Next()) {
     iter.Get()->GetKey()->SendShutdown();
   }
 
   const ManagedContainer<PGMPVideoEncoderChild>& videoEncoders =
-    ManagedPGMPVideoEncoderChild();
+      ManagedPGMPVideoEncoderChild();
   for (auto iter = videoEncoders.ConstIter(); !iter.Done(); iter.Next()) {
     iter.Get()->GetKey()->SendShutdown();
   }
@@ -333,13 +267,11 @@ GMPContentChild::CloseActive()
   }
 }
 
-bool
-GMPContentChild::IsUsed()
-{
+bool GMPContentChild::IsUsed() {
   return !ManagedPGMPVideoDecoderChild().IsEmpty() ||
          !ManagedPGMPVideoEncoderChild().IsEmpty() ||
          !ManagedPChromiumCDMChild().IsEmpty();
 }
 
-} // namespace gmp
-} // namespace mozilla
+}  // namespace gmp
+}  // namespace mozilla

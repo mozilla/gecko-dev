@@ -13,20 +13,15 @@ namespace dom {
 
 using namespace mozilla::css;
 
-/* virtual */ JSObject*
-CSSMozDocumentRule::WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* CSSMozDocumentRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSMozDocumentRuleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-bool
-CSSMozDocumentRule::Match(nsIDocument* aDoc,
-                          nsIURI* aDocURI,
-                          const nsACString& aDocURISpec,
-                          const nsACString& aPattern,
-                          URLMatchingFunction aUrlMatchingFunction)
-{
+bool CSSMozDocumentRule::Match(nsIDocument* aDoc, nsIURI* aDocURI,
+                               const nsACString& aDocURISpec,
+                               const nsACString& aPattern,
+                               URLMatchingFunction aUrlMatchingFunction) {
   switch (aUrlMatchingFunction) {
     case URLMatchingFunction::eURL: {
       if (aDocURISpec == aPattern) {
@@ -49,8 +44,7 @@ CSSMozDocumentRule::Match(nsIDocument* aDoc,
           return true;
         }
       } else {
-        if (StringEndsWith(host, aPattern) &&
-            host.CharAt(lenDiff - 1) == '.') {
+        if (StringEndsWith(host, aPattern) && host.CharAt(lenDiff - 1) == '.') {
           return true;
         }
       }
@@ -67,5 +61,5 @@ CSSMozDocumentRule::Match(nsIDocument* aDoc,
   return false;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

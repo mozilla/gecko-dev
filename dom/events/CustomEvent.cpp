@@ -17,16 +17,11 @@ using namespace mozilla::dom;
 CustomEvent::CustomEvent(mozilla::dom::EventTarget* aOwner,
                          nsPresContext* aPresContext,
                          mozilla::WidgetEvent* aEvent)
-  : Event(aOwner, aPresContext, aEvent)
-  , mDetail(JS::NullValue())
-{
+    : Event(aOwner, aPresContext, aEvent), mDetail(JS::NullValue()) {
   mozilla::HoldJSObjects(this);
 }
 
-CustomEvent::~CustomEvent()
-{
-  mozilla::DropJSObjects(this);
-}
+CustomEvent::~CustomEvent() { mozilla::DropJSObjects(this); }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(CustomEvent)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(CustomEvent, Event)
@@ -48,34 +43,29 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CustomEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCustomEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
-already_AddRefed<CustomEvent>
-CustomEvent::Constructor(const GlobalObject& aGlobal,
-                         const nsAString& aType,
-                         const CustomEventInit& aParam,
-                         ErrorResult& aRv)
-{
-  nsCOMPtr<mozilla::dom::EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
+already_AddRefed<CustomEvent> CustomEvent::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aType,
+    const CustomEventInit& aParam, ErrorResult& aRv) {
+  nsCOMPtr<mozilla::dom::EventTarget> t =
+      do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<CustomEvent> e = new CustomEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   JS::Rooted<JS::Value> detail(aGlobal.Context(), aParam.mDetail);
-  e->InitCustomEvent(aGlobal.Context(), aType, aParam.mBubbles, aParam.mCancelable, detail, aRv);
+  e->InitCustomEvent(aGlobal.Context(), aType, aParam.mBubbles,
+                     aParam.mCancelable, detail, aRv);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
   return e.forget();
 }
 
-JSObject*
-CustomEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* CustomEvent::WrapObjectInternal(JSContext* aCx,
+                                          JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::CustomEventBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMETHODIMP
-CustomEvent::InitCustomEvent(const nsAString& aType,
-                             bool aCanBubble,
-                             bool aCancelable,
-                             nsIVariant* aDetail)
-{
+CustomEvent::InitCustomEvent(const nsAString& aType, bool aCanBubble,
+                             bool aCancelable, nsIVariant* aDetail) {
   NS_ENSURE_TRUE(!mEvent->mFlags.mIsBeingDispatched, NS_OK);
 
   AutoJSAPI jsapi;
@@ -96,14 +86,10 @@ CustomEvent::InitCustomEvent(const nsAString& aType,
   return NS_OK;
 }
 
-void
-CustomEvent::InitCustomEvent(JSContext* aCx,
-                             const nsAString& aType,
-                             bool aCanBubble,
-                             bool aCancelable,
-                             JS::Handle<JS::Value> aDetail,
-                             ErrorResult& aRv)
-{
+void CustomEvent::InitCustomEvent(JSContext* aCx, const nsAString& aType,
+                                  bool aCanBubble, bool aCancelable,
+                                  JS::Handle<JS::Value> aDetail,
+                                  ErrorResult& aRv) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
 
   Event::InitEvent(aType, aCanBubble, aCancelable);
@@ -111,8 +97,7 @@ CustomEvent::InitCustomEvent(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-CustomEvent::GetDetail(nsIVariant** aDetail)
-{
+CustomEvent::GetDetail(nsIVariant** aDetail) {
   if (mDetail.isNull()) {
     *aDetail = nullptr;
     return NS_OK;
@@ -131,19 +116,14 @@ CustomEvent::GetDetail(nsIVariant** aDetail)
   return xpc->JSToVariant(cx, detail, aDetail);
 }
 
-void
-CustomEvent::GetDetail(JSContext* aCx,
-                       JS::MutableHandle<JS::Value> aRetval)
-{
+void CustomEvent::GetDetail(JSContext* aCx,
+                            JS::MutableHandle<JS::Value> aRetval) {
   aRetval.set(mDetail);
 }
 
-already_AddRefed<CustomEvent>
-NS_NewDOMCustomEvent(EventTarget* aOwner,
-                     nsPresContext* aPresContext,
-                     mozilla::WidgetEvent* aEvent)
-{
-  RefPtr<CustomEvent> it =
-    new CustomEvent(aOwner, aPresContext, aEvent);
+already_AddRefed<CustomEvent> NS_NewDOMCustomEvent(
+    EventTarget* aOwner, nsPresContext* aPresContext,
+    mozilla::WidgetEvent* aEvent) {
+  RefPtr<CustomEvent> it = new CustomEvent(aOwner, aPresContext, aEvent);
   return it.forget();
 }

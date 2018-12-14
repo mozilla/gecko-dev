@@ -16,54 +16,44 @@ class AbortController;
 class AbortSignal;
 
 // This class must be implemented by objects who want to follow a AbortSignal.
-class AbortFollower
-{
-public:
+class AbortFollower {
+ public:
   virtual void Abort() = 0;
 
-  void
-  Follow(AbortSignal* aSignal);
+  void Follow(AbortSignal* aSignal);
 
-  void
-  Unfollow();
+  void Unfollow();
 
-  bool
-  IsFollowing() const;
+  bool IsFollowing() const;
 
-protected:
+ protected:
   virtual ~AbortFollower();
 
   RefPtr<AbortSignal> mFollowingSignal;
 };
 
-class AbortSignal final : public DOMEventTargetHelper
-                        , public AbortFollower
-{
-public:
+class AbortSignal final : public DOMEventTargetHelper, public AbortFollower {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AbortSignal, DOMEventTargetHelper)
 
   AbortSignal(AbortController* aController, bool aAborted);
   explicit AbortSignal(bool aAborted);
 
-  JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
-  bool
-  Aborted() const;
+  bool Aborted() const;
 
-  void
-  Abort() override;
+  void Abort() override;
 
   IMPL_EVENT_HANDLER(abort);
 
-  void
-  AddFollower(AbortFollower* aFollower);
+  void AddFollower(AbortFollower* aFollower);
 
-  void
-  RemoveFollower(AbortFollower* aFollower);
+  void RemoveFollower(AbortFollower* aFollower);
 
-private:
+ private:
   ~AbortSignal() = default;
 
   RefPtr<AbortController> mController;
@@ -74,7 +64,7 @@ private:
   bool mAborted;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_AbortSignal_h
+#endif  // mozilla_dom_AbortSignal_h

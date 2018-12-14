@@ -24,26 +24,24 @@ class DOMRect;
 class Element;
 class Event;
 
-class PopupBoxObject final : public BoxObject
-{
-public:
+class PopupBoxObject final : public BoxObject {
+ public:
   NS_INLINE_DECL_REFCOUNTING_INHERITED(PopupBoxObject, BoxObject)
 
   // also in PopupBoxObject.webidl
-  static const uint32_t ROLLUP_DEFAULT = 0;   /* widget/platform default */
-  static const uint32_t ROLLUP_CONSUME = 1;   /* consume the rollup event */
-  static const uint32_t ROLLUP_NO_CONSUME = 2; /* don't consume the rollup event */
+  static const uint32_t ROLLUP_DEFAULT = 0; /* widget/platform default */
+  static const uint32_t ROLLUP_CONSUME = 1; /* consume the rollup event */
+  static const uint32_t ROLLUP_NO_CONSUME =
+      2; /* don't consume the rollup event */
 
   PopupBoxObject();
 
   nsIContent* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  void ShowPopup(Element* aAnchorElement,
-                 Element& aPopupElement,
-                 int32_t aXPos,
-                 int32_t aYPos,
-                 const nsAString& aPopupType,
+  void ShowPopup(Element* aAnchorElement, Element& aPopupElement, int32_t aXPos,
+                 int32_t aYPos, const nsAString& aPopupType,
                  const nsAString& aAnchorAlignment,
                  const nsAString& aPopupAlignment);
 
@@ -63,23 +61,16 @@ public:
 
   void MoveTo(int32_t aLeft, int32_t aTop);
 
-  void OpenPopup(Element* aAnchorElement,
-                 const nsAString& aPosition,
-                 int32_t aXPos,
-                 int32_t aYPos,
-                 bool aIsContextMenu, bool aAttributesOverride,
-                 Event* aTriggerEvent);
+  void OpenPopup(Element* aAnchorElement, const nsAString& aPosition,
+                 int32_t aXPos, int32_t aYPos, bool aIsContextMenu,
+                 bool aAttributesOverride, Event* aTriggerEvent);
 
-  void OpenPopupAtScreen(int32_t aXPos,
-                         int32_t aYPos,
-                         bool aIsContextMenu,
+  void OpenPopupAtScreen(int32_t aXPos, int32_t aYPos, bool aIsContextMenu,
                          Event* aTriggerEvent);
 
-  void OpenPopupAtScreenRect(const nsAString& aPosition,
-                             int32_t aXPos, int32_t aYPos,
-                             int32_t aWidth, int32_t aHeight,
-                             bool aIsContextMenu,
-                             bool aAttributesOverride,
+  void OpenPopupAtScreenRect(const nsAString& aPosition, int32_t aXPos,
+                             int32_t aYPos, int32_t aWidth, int32_t aHeight,
+                             bool aIsContextMenu, bool aAttributesOverride,
                              Event* aTriggerEvent);
 
   void GetPopupState(nsString& aState);
@@ -90,11 +81,8 @@ public:
 
   already_AddRefed<DOMRect> GetOuterScreenRect();
 
-  void MoveToAnchor(Element* aAnchorElement,
-                    const nsAString& aPosition,
-                    int32_t aXPos,
-                    int32_t aYPos,
-                    bool aAttributesOverride);
+  void MoveToAnchor(Element* aAnchorElement, const nsAString& aPosition,
+                    int32_t aXPos, int32_t aYPos, bool aAttributesOverride);
 
   void GetAlignmentPosition(nsString& positionStr);
 
@@ -102,14 +90,14 @@ public:
 
   void SetConstraintRect(dom::DOMRectReadOnly& aRect);
 
-private:
+ private:
   ~PopupBoxObject();
 
-protected:
+ protected:
   nsPopupSetFrame* GetPopupSetFrame();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PopupBoxObject_h
+#endif  // mozilla_dom_PopupBoxObject_h

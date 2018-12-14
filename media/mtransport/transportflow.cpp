@@ -36,25 +36,26 @@ TransportFlow::~TransportFlow() {
   // ensures automatic destruction of the queue at exit of
   // DestroyFinal.
   if (target_) {
-    nsAutoPtr<std::deque<TransportLayer*>> layers_tmp(layers_.release());
+    nsAutoPtr<std::deque<TransportLayer *>> layers_tmp(layers_.release());
     RUN_ON_THREAD(target_,
                   WrapRunnableNM(&TransportFlow::DestroyFinal, layers_tmp),
                   NS_DISPATCH_NORMAL);
   }
 }
 
-void TransportFlow::DestroyFinal(nsAutoPtr<std::deque<TransportLayer *> > layers) {
+void TransportFlow::DestroyFinal(
+    nsAutoPtr<std::deque<TransportLayer *>> layers) {
   ClearLayers(layers.get());
 }
 
-void TransportFlow::ClearLayers(std::queue<TransportLayer *>* layers) {
+void TransportFlow::ClearLayers(std::queue<TransportLayer *> *layers) {
   while (!layers->empty()) {
     delete layers->front();
     layers->pop();
   }
 }
 
-void TransportFlow::ClearLayers(std::deque<TransportLayer *>* layers) {
+void TransportFlow::ClearLayers(std::deque<TransportLayer *> *layers) {
   while (!layers->empty()) {
     delete layers->front();
     layers->pop_front();
@@ -103,7 +104,8 @@ nsresult TransportFlow::PushLayer(TransportLayer *layer) {
 }
 
 // This is all-or-nothing.
-nsresult TransportFlow::PushLayers(nsAutoPtr<std::queue<TransportLayer *> > layers) {
+nsresult TransportFlow::PushLayers(
+    nsAutoPtr<std::queue<TransportLayer *>> layers) {
   CheckThread();
 
   MOZ_ASSERT(!layers->empty());
@@ -175,13 +177,12 @@ TransportLayer *TransportFlow::top() const {
   return layers_->empty() ? nullptr : layers_->front();
 }
 
-TransportLayer *TransportFlow::GetLayer(const std::string& id) const {
+TransportLayer *TransportFlow::GetLayer(const std::string &id) const {
   CheckThread();
 
   for (std::deque<TransportLayer *>::const_iterator it = layers_->begin();
        it != layers_->end(); ++it) {
-    if ((*it)->id() == id)
-      return *it;
+    if ((*it)->id() == id) return *it;
   }
 
   return nullptr;
@@ -205,7 +206,7 @@ TransportResult TransportFlow::SendPacket(const unsigned char *data,
 
 bool TransportFlow::Contains(TransportLayer *layer) const {
   if (layers_) {
-    for (auto& l : *layers_) {
+    for (auto &l : *layers_) {
       if (l == layer) {
         return true;
       }
@@ -214,16 +215,14 @@ bool TransportFlow::Contains(TransportLayer *layer) const {
   return false;
 }
 
-void TransportFlow::EnsureSameThread(TransportLayer *layer)  {
+void TransportFlow::EnsureSameThread(TransportLayer *layer) {
   // Enforce that if any of the layers have a thread binding,
   // they all have the same binding.
   if (target_) {
-    const nsCOMPtr<nsIEventTarget>& lthread = layer->GetThread();
+    const nsCOMPtr<nsIEventTarget> &lthread = layer->GetThread();
 
-    if (lthread && (lthread != target_))
-      MOZ_CRASH();
-  }
-  else {
+    if (lthread && (lthread != target_)) MOZ_CRASH();
+  } else {
     target_ = layer->GetThread();
   }
 }
@@ -246,12 +245,11 @@ void TransportFlow::StateChange(TransportLayer *layer,
   StateChangeInt(state);
 }
 
-void TransportFlow::PacketReceived(TransportLayer* layer,
-                                   const unsigned char *data,
-                                   size_t len) {
+void TransportFlow::PacketReceived(TransportLayer *layer,
+                                   const unsigned char *data, size_t len) {
   CheckThread();
 
   SignalPacketReceived(this, data, len);
 }
 
-}  // close namespace
+}  // namespace mozilla

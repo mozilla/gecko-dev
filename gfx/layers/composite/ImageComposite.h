@@ -7,9 +7,9 @@
 #ifndef MOZILLA_GFX_IMAGECOMPOSITE_H
 #define MOZILLA_GFX_IMAGECOMPOSITE_H
 
-#include "CompositableHost.h"           // for CompositableTextureHostRef
+#include "CompositableHost.h"  // for CompositableTextureHostRef
 #include "mozilla/gfx/2D.h"
-#include "mozilla/TimeStamp.h"          // for TimeStamp
+#include "mozilla/TimeStamp.h"  // for TimeStamp
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -18,22 +18,19 @@ namespace layers {
 /**
  * Implements Image selection logic.
  */
-class ImageComposite
-{
-public:
+class ImageComposite {
+ public:
   static const float BIAS_TIME_MS;
 
   explicit ImageComposite();
   ~ImageComposite();
 
-  int32_t GetFrameID()
-  {
+  int32_t GetFrameID() {
     const TimedImage* img = ChooseImage();
     return img ? img->mFrameID : -1;
   }
 
-  int32_t GetProducerID()
-  {
+  int32_t GetProducerID() {
     const TimedImage* img = ChooseImage();
     return img ? img->mProducerID : -1;
   }
@@ -50,12 +47,13 @@ public:
     BIAS_POSITIVE,
   };
 
-  static TimeStamp GetBiasedTime(const TimeStamp& aInput, ImageComposite::Bias aBias);
+  static TimeStamp GetBiasedTime(const TimeStamp& aInput,
+                                 ImageComposite::Bias aBias);
 
-protected:
+ protected:
   static Bias UpdateBias(const TimeStamp& aCompositionTime,
                          const TimeStamp& aCompositedImageTime,
-                         const TimeStamp& aNextImageTime, // may be null
+                         const TimeStamp& aNextImageTime,  // may be null
                          ImageComposite::Bias aBias);
 
   virtual TimeStamp GetCompositionTime() const = 0;
@@ -87,7 +85,7 @@ protected:
   Bias mBias;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // MOZILLA_GFX_IMAGECOMPOSITE_H
+#endif  // MOZILLA_GFX_IMAGECOMPOSITE_H

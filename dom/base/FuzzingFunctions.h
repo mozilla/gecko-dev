@@ -15,20 +15,16 @@ namespace dom {
 
 class GlobalObject;
 
-class FuzzingFunctions final
-{
-public:
-  static void
-  GarbageCollect(const GlobalObject&);
+class FuzzingFunctions final {
+ public:
+  static void GarbageCollect(const GlobalObject&);
 
-  static void
-  CycleCollect(const GlobalObject&);
+  static void CycleCollect(const GlobalObject&);
 
-  static void
-  EnableAccessibility(const GlobalObject&, ErrorResult& aRv);
+  static void EnableAccessibility(const GlobalObject&, ErrorResult& aRv);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FuzzingFunctions
+#endif  // mozilla_dom_FuzzingFunctions

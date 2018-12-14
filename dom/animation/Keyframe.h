@@ -23,16 +23,14 @@ enum class CompositeOperation : uint8_t;
 /**
  * A property-value pair specified on a keyframe.
  */
-struct PropertyValuePair
-{
+struct PropertyValuePair {
   explicit PropertyValuePair(nsCSSPropertyID aProperty)
-    : mProperty(aProperty) { }
+      : mProperty(aProperty) {}
   PropertyValuePair(nsCSSPropertyID aProperty, nsCSSValue&& aValue)
-    : mProperty(aProperty), mValue(Move(aValue)) { }
+      : mProperty(aProperty), mValue(Move(aValue)) {}
   PropertyValuePair(nsCSSPropertyID aProperty,
                     RefPtr<RawServoDeclarationBlock>&& aValue)
-    : mProperty(aProperty), mServoDeclarationBlock(Move(aValue))
-  {
+      : mProperty(aProperty), mServoDeclarationBlock(Move(aValue)) {
     MOZ_ASSERT(mServoDeclarationBlock, "Should be valid property value");
   }
 
@@ -70,35 +68,30 @@ struct PropertyValuePair
  * per-property arrays from the original list of keyframes objects. As a result,
  * these objects represent the master definition of the effect's values.
  */
-struct Keyframe
-{
+struct Keyframe {
   Keyframe() = default;
   Keyframe(const Keyframe& aOther) = default;
-  Keyframe(Keyframe&& aOther)
-  {
-    *this = Move(aOther);
-  }
+  Keyframe(Keyframe&& aOther) { *this = Move(aOther); }
 
   Keyframe& operator=(const Keyframe& aOther) = default;
-  Keyframe& operator=(Keyframe&& aOther)
-  {
-    mOffset         = aOther.mOffset;
+  Keyframe& operator=(Keyframe&& aOther) {
+    mOffset = aOther.mOffset;
     mComputedOffset = aOther.mComputedOffset;
     mTimingFunction = Move(aOther.mTimingFunction);
-    mComposite      = Move(aOther.mComposite);
+    mComposite = Move(aOther.mComposite);
     mPropertyValues = Move(aOther.mPropertyValues);
     return *this;
   }
 
-  Maybe<double>                 mOffset;
+  Maybe<double> mOffset;
   static constexpr double kComputedOffsetNotSet = -1.0;
-  double                        mComputedOffset = kComputedOffsetNotSet;
-  Maybe<ComputedTimingFunction> mTimingFunction; // Nothing() here means
-                                                 // "linear"
+  double mComputedOffset = kComputedOffsetNotSet;
+  Maybe<ComputedTimingFunction> mTimingFunction;  // Nothing() here means
+                                                  // "linear"
   Maybe<dom::CompositeOperation> mComposite;
-  nsTArray<PropertyValuePair>   mPropertyValues;
+  nsTArray<PropertyValuePair> mPropertyValues;
 };
 
-}
+}  // namespace mozilla
 
-#endif // mozilla_dom_Keyframe_h
+#endif  // mozilla_dom_Keyframe_h

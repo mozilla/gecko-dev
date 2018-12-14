@@ -7,11 +7,11 @@
 #include "mozilla/dom/KeyframeEffect.h"
 
 #include "mozilla/dom/KeyframeAnimationOptionsBinding.h"
-  // For UnrestrictedDoubleOrKeyframeAnimationOptions
+// For UnrestrictedDoubleOrKeyframeAnimationOptions
 #include "mozilla/dom/AnimationEffectTiming.h"
 #include "mozilla/dom/KeyframeEffectBinding.h"
-#include "nsDocument.h" // For nsDocument::IsWebAnimationsEnabled
-#include "nsDOMMutationObserver.h" // For nsAutoAnimationMutationBatch
+#include "nsDocument.h"             // For nsDocument::IsWebAnimationsEnabled
+#include "nsDOMMutationObserver.h"  // For nsAutoAnimationMutationBatch
 #include "nsStyleContext.h"
 
 namespace mozilla {
@@ -21,54 +21,42 @@ KeyframeEffect::KeyframeEffect(nsIDocument* aDocument,
                                const Maybe<OwningAnimationTarget>& aTarget,
                                const TimingParams& aTiming,
                                const KeyframeEffectParams& aOptions)
-  : KeyframeEffectReadOnly(aDocument, aTarget,
-                           new AnimationEffectTiming(aDocument, aTiming, this),
-                           aOptions)
-{
-}
+    : KeyframeEffectReadOnly(
+          aDocument, aTarget,
+          new AnimationEffectTiming(aDocument, aTiming, this), aOptions) {}
 
-JSObject*
-KeyframeEffect::WrapObject(JSContext* aCx,
-                           JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* KeyframeEffect::WrapObject(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return KeyframeEffectBinding::Wrap(aCx, this, aGivenProto);
 }
 
-/* static */ already_AddRefed<KeyframeEffect>
-KeyframeEffect::Constructor(
+/* static */ already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(
     const GlobalObject& aGlobal,
     const Nullable<ElementOrCSSPseudoElement>& aTarget,
     JS::Handle<JSObject*> aKeyframes,
     const UnrestrictedDoubleOrKeyframeEffectOptions& aOptions,
-    ErrorResult& aRv)
-{
+    ErrorResult& aRv) {
   return ConstructKeyframeEffect<KeyframeEffect>(aGlobal, aTarget, aKeyframes,
                                                  aOptions, aRv);
 }
 
-/* static */ already_AddRefed<KeyframeEffect>
-KeyframeEffect::Constructor(const GlobalObject& aGlobal,
-                            KeyframeEffectReadOnly& aSource,
-                            ErrorResult& aRv)
-{
+/* static */ already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(
+    const GlobalObject& aGlobal, KeyframeEffectReadOnly& aSource,
+    ErrorResult& aRv) {
   return ConstructKeyframeEffect<KeyframeEffect>(aGlobal, aSource, aRv);
 }
 
-/* static */ already_AddRefed<KeyframeEffect>
-KeyframeEffect::Constructor(
+/* static */ already_AddRefed<KeyframeEffect> KeyframeEffect::Constructor(
     const GlobalObject& aGlobal,
     const Nullable<ElementOrCSSPseudoElement>& aTarget,
     JS::Handle<JSObject*> aKeyframes,
     const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
-    ErrorResult& aRv)
-{
+    ErrorResult& aRv) {
   return ConstructKeyframeEffect<KeyframeEffect>(aGlobal, aTarget, aKeyframes,
                                                  aOptions, aRv);
 }
 
-void
-KeyframeEffect::NotifySpecifiedTimingUpdated()
-{
+void KeyframeEffect::NotifySpecifiedTimingUpdated() {
   // Use the same document for a pseudo element and its parent element.
   // Use nullptr if we don't have mTarget, so disable the mutation batch.
   nsAutoAnimationMutationBatch mb(mTarget ? mTarget->mElement->OwnerDoc()
@@ -85,9 +73,8 @@ KeyframeEffect::NotifySpecifiedTimingUpdated()
   }
 }
 
-void
-KeyframeEffect::SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget)
-{
+void KeyframeEffect::SetTarget(
+    const Nullable<ElementOrCSSPseudoElement>& aTarget) {
   Maybe<OwningAnimationTarget> newTarget = ConvertTarget(aTarget);
   if (mTarget == newTarget) {
     // Assign the same target, skip it.
@@ -126,11 +113,9 @@ KeyframeEffect::SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget)
   }
 }
 
-void
-KeyframeEffect::SetIterationComposite(
-  const IterationCompositeOperation& aIterationComposite,
-  CallerType aCallerType)
-{
+void KeyframeEffect::SetIterationComposite(
+    const IterationCompositeOperation& aIterationComposite,
+    CallerType aCallerType) {
   // Ignore iterationComposite if the Web Animations API is not enabled,
   // then the default value 'Replace' will be used.
   if (!nsDocument::IsWebAnimationsEnabled(aCallerType)) {
@@ -149,9 +134,7 @@ KeyframeEffect::SetIterationComposite(
   RequestRestyle(EffectCompositor::RestyleType::Layer);
 }
 
-void
-KeyframeEffect::SetComposite(const CompositeOperation& aComposite)
-{
+void KeyframeEffect::SetComposite(const CompositeOperation& aComposite) {
   if (mEffectOptions.mComposite == aComposite) {
     return;
   }
@@ -170,5 +153,5 @@ KeyframeEffect::SetComposite(const CompositeOperation& aComposite)
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

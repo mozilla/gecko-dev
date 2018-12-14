@@ -32,9 +32,11 @@
 /**
  * This is the most braindead implementation of a personal dictionary possible.
  * There is not much complexity needed, though.  It could be made much faster,
- * and probably should, but I don't see much need for more in terms of interface.
+ * and probably should, but I don't see much need for more in terms of
+ * interface.
  *
- * Allowing personal words to be associated with only certain dictionaries maybe.
+ * Allowing personal words to be associated with only certain dictionaries
+ * maybe.
  *
  * TODO:
  * Implement the suggestion record.
@@ -50,46 +52,37 @@ NS_INTERFACE_MAP_BEGIN(mozPersonalDictionary)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, mozIPersonalDictionary)
 NS_INTERFACE_MAP_END
 
-class mozPersonalDictionaryLoader final : public mozilla::Runnable
-{
-public:
-  explicit mozPersonalDictionaryLoader(mozPersonalDictionary* dict)
-    : mozilla::Runnable("mozPersonalDictionaryLoader")
-    , mDict(dict)
-  {
-  }
+class mozPersonalDictionaryLoader final : public mozilla::Runnable {
+ public:
+  explicit mozPersonalDictionaryLoader(mozPersonalDictionary *dict)
+      : mozilla::Runnable("mozPersonalDictionaryLoader"), mDict(dict) {}
 
-  NS_IMETHOD Run() override
-  {
+  NS_IMETHOD Run() override {
     mDict->SyncLoad();
 
     // Release the dictionary on the main thread
     NS_ReleaseOnMainThreadSystemGroup(
-      "mozPersonalDictionaryLoader::mDict",
-      mDict.forget().downcast<mozIPersonalDictionary>());
+        "mozPersonalDictionaryLoader::mDict",
+        mDict.forget().downcast<mozIPersonalDictionary>());
 
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<mozPersonalDictionary> mDict;
 };
 
-class mozPersonalDictionarySave final : public mozilla::Runnable
-{
-public:
-  explicit mozPersonalDictionarySave(mozPersonalDictionary* aDict,
+class mozPersonalDictionarySave final : public mozilla::Runnable {
+ public:
+  explicit mozPersonalDictionarySave(mozPersonalDictionary *aDict,
                                      nsCOMPtr<nsIFile> aFile,
-                                     nsTArray<nsString>&& aDictWords)
-    : mozilla::Runnable("mozPersonalDictionarySave")
-    , mDictWords(aDictWords)
-    , mFile(aFile)
-    , mDict(aDict)
-  {
-  }
+                                     nsTArray<nsString> &&aDictWords)
+      : mozilla::Runnable("mozPersonalDictionarySave"),
+        mDictWords(aDictWords),
+        mFile(aFile),
+        mDict(aDict) {}
 
-  NS_IMETHOD Run() override
-  {
+  NS_IMETHOD Run() override {
     nsresult res;
 
     MOZ_ASSERT(!NS_IsMainThread());
@@ -120,16 +113,18 @@ public:
         bufferedOutputStream->Write("\n", 1, &bytesWritten);
       }
       nsCOMPtr<nsISafeOutputStream> safeStream =
-        do_QueryInterface(bufferedOutputStream);
+          do_QueryInterface(bufferedOutputStream);
       NS_ASSERTION(safeStream, "expected a safe output stream!");
       if (safeStream) {
         res = safeStream->Finish();
         if (NS_FAILED(res)) {
-          NS_WARNING("failed to save personal dictionary file! possible data loss");
+          NS_WARNING(
+              "failed to save personal dictionary file! possible data loss");
         }
       }
 
-      // Save is done, reset the state variable and notify those who are waiting.
+      // Save is done, reset the state variable and notify those who are
+      // waiting.
       mDict->mSavePending = false;
       mon.Notify();
 
@@ -139,34 +134,29 @@ public:
 
     // Release the dictionary on the main thread.
     NS_ReleaseOnMainThreadSystemGroup(
-      "mozPersonalDictionarySave::mDict",
-      mDict.forget().downcast<mozIPersonalDictionary>());
+        "mozPersonalDictionarySave::mDict",
+        mDict.forget().downcast<mozIPersonalDictionary>());
 
     return NS_OK;
   }
 
-private:
+ private:
   nsTArray<nsString> mDictWords;
   nsCOMPtr<nsIFile> mFile;
   RefPtr<mozPersonalDictionary> mDict;
 };
 
 mozPersonalDictionary::mozPersonalDictionary()
- : mIsLoaded(false),
-   mSavePending(false),
-   mMonitor("mozPersonalDictionary::mMonitor"),
-   mMonitorSave("mozPersonalDictionary::mMonitorSave")
-{
-}
+    : mIsLoaded(false),
+      mSavePending(false),
+      mMonitor("mozPersonalDictionary::mMonitor"),
+      mMonitorSave("mozPersonalDictionary::mMonitorSave") {}
 
-mozPersonalDictionary::~mozPersonalDictionary()
-{
-}
+mozPersonalDictionary::~mozPersonalDictionary() {}
 
-nsresult mozPersonalDictionary::Init()
-{
+nsresult mozPersonalDictionary::Init() {
   nsCOMPtr<nsIObserverService> svc =
-    do_GetService("@mozilla.org/observer-service;1");
+      do_GetService("@mozilla.org/observer-service;1");
 
   NS_ENSURE_STATE(svc);
   // we want to reload the dictionary if the profile switches
@@ -185,8 +175,7 @@ nsresult mozPersonalDictionary::Init()
   return NS_OK;
 }
 
-void mozPersonalDictionary::WaitForLoad()
-{
+void mozPersonalDictionary::WaitForLoad() {
   // If the dictionary is already loaded, we return straight away.
   if (mIsLoaded) {
     return;
@@ -206,8 +195,7 @@ void mozPersonalDictionary::WaitForLoad()
   }
 }
 
-nsresult mozPersonalDictionary::LoadInternal()
-{
+nsresult mozPersonalDictionary::LoadInternal() {
   nsresult rv;
   mozilla::MonitorAutoLock mon(mMonitor);
 
@@ -215,7 +203,8 @@ nsresult mozPersonalDictionary::LoadInternal()
     return NS_OK;
   }
 
-  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mFile));
+  rv =
+      NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mFile));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -229,7 +218,8 @@ nsresult mozPersonalDictionary::LoadInternal()
     return rv;
   }
 
-  nsCOMPtr<nsIEventTarget> target = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
+  nsCOMPtr<nsIEventTarget> target =
+      do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -243,8 +233,7 @@ nsresult mozPersonalDictionary::LoadInternal()
   return NS_OK;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::Load()
-{
+NS_IMETHODIMP mozPersonalDictionary::Load() {
   nsresult rv = LoadInternal();
 
   if (NS_FAILED(rv)) {
@@ -254,8 +243,7 @@ NS_IMETHODIMP mozPersonalDictionary::Load()
   return rv;
 }
 
-void mozPersonalDictionary::SyncLoad()
-{
+void mozPersonalDictionary::SyncLoad() {
   MOZ_ASSERT(!NS_IsMainThread());
 
   mozilla::MonitorAutoLock mon(mMonitor);
@@ -269,11 +257,10 @@ void mozPersonalDictionary::SyncLoad()
   mon.Notify();
 }
 
-void mozPersonalDictionary::SyncLoadInternal()
-{
+void mozPersonalDictionary::SyncLoadInternal() {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  //FIXME Deinst  -- get dictionary name from prefs;
+  // FIXME Deinst  -- get dictionary name from prefs;
   nsresult rv;
   bool dictExists;
 
@@ -296,30 +283,32 @@ void mozPersonalDictionary::SyncLoadInternal()
     return;
   }
 
-  // we're rereading to get rid of the old data  -- we shouldn't have any, but...
+  // we're rereading to get rid of the old data  -- we shouldn't have any,
+  // but...
   mDictionaryTable.Clear();
 
   char16_t c;
   uint32_t nRead;
   bool done = false;
-  do{  // read each line of text into the string array.
-    if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) break;
-    while(!done && ((c == '\n') || (c == '\r'))){
-      if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = true;
+  do {  // read each line of text into the string array.
+    if ((NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) break;
+    while (!done && ((c == '\n') || (c == '\r'))) {
+      if ((NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1))
+        done = true;
     }
-    if (!done){
+    if (!done) {
       nsAutoString word;
-      while((c != '\n') && (c != '\r') && !done){
+      while ((c != '\n') && (c != '\r') && !done) {
         word.Append(c);
-        if( (NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1)) done = true;
+        if ((NS_OK != convStream->Read(&c, 1, &nRead)) || (nRead != 1))
+          done = true;
       }
       mDictionaryTable.PutEntry(word.get());
     }
-  } while(!done);
+  } while (!done);
 }
 
-void mozPersonalDictionary::WaitForSave()
-{
+void mozPersonalDictionary::WaitForSave() {
   // If no save is pending, we return straight away.
   if (!mSavePending) {
     return;
@@ -339,8 +328,7 @@ void mozPersonalDictionary::WaitForSave()
   }
 }
 
-NS_IMETHODIMP mozPersonalDictionary::Save()
-{
+NS_IMETHODIMP mozPersonalDictionary::Save() {
   nsCOMPtr<nsIFile> theFile;
   nsresult res;
 
@@ -348,28 +336,29 @@ NS_IMETHODIMP mozPersonalDictionary::Save()
 
   mSavePending = true;
 
-  //FIXME Deinst  -- get dictionary name from prefs;
-  res = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(theFile));
-  if(NS_FAILED(res)) return res;
-  if(!theFile)return NS_ERROR_FAILURE;
+  // FIXME Deinst  -- get dictionary name from prefs;
+  res = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                               getter_AddRefs(theFile));
+  if (NS_FAILED(res)) return res;
+  if (!theFile) return NS_ERROR_FAILURE;
   res = theFile->Append(NS_LITERAL_STRING(MOZ_PERSONAL_DICT_NAME));
-  if(NS_FAILED(res)) return res;
+  if (NS_FAILED(res)) return res;
 
   nsCOMPtr<nsIEventTarget> target =
-    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &res);
+      do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &res);
   if (NS_WARN_IF(NS_FAILED(res))) {
     return res;
   }
 
   nsTArray<nsString> array;
-  nsString* elems = array.AppendElements(mDictionaryTable.Count());
+  nsString *elems = array.AppendElements(mDictionaryTable.Count());
   for (auto iter = mDictionaryTable.Iter(); !iter.Done(); iter.Next()) {
     elems->Assign(iter.Get()->GetKey());
     elems++;
   }
 
   nsCOMPtr<nsIRunnable> runnable =
-    new mozPersonalDictionarySave(this, theFile, mozilla::Move(array));
+      new mozPersonalDictionarySave(this, theFile, mozilla::Move(array));
   res = target->Dispatch(runnable, NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(NS_FAILED(res))) {
     return res;
@@ -377,15 +366,14 @@ NS_IMETHODIMP mozPersonalDictionary::Save()
   return res;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords)
-{
+NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords) {
   NS_ENSURE_ARG_POINTER(aWords);
   *aWords = nullptr;
 
   WaitForLoad();
 
   nsTArray<nsString> *array = new nsTArray<nsString>();
-  nsString* elems = array->AppendElements(mDictionaryTable.Count());
+  nsString *elems = array->AppendElements(mDictionaryTable.Count());
   for (auto iter = mDictionaryTable.Iter(); !iter.Done(); iter.Next()) {
     elems->Assign(iter.Get()->GetKey());
     elems++;
@@ -396,8 +384,9 @@ NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords)
   return NS_NewAdoptingStringEnumerator(aWords, array);
 }
 
-NS_IMETHODIMP mozPersonalDictionary::Check(const char16_t *aWord, const char16_t *aLanguage, bool *aResult)
-{
+NS_IMETHODIMP mozPersonalDictionary::Check(const char16_t *aWord,
+                                           const char16_t *aLanguage,
+                                           bool *aResult) {
   NS_ENSURE_ARG_POINTER(aWord);
   NS_ENSURE_ARG_POINTER(aResult);
 
@@ -407,8 +396,8 @@ NS_IMETHODIMP mozPersonalDictionary::Check(const char16_t *aWord, const char16_t
   return NS_OK;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::AddWord(const char16_t *aWord, const char16_t *aLang)
-{
+NS_IMETHODIMP mozPersonalDictionary::AddWord(const char16_t *aWord,
+                                             const char16_t *aLang) {
   nsresult res;
   WaitForLoad();
 
@@ -417,8 +406,8 @@ NS_IMETHODIMP mozPersonalDictionary::AddWord(const char16_t *aWord, const char16
   return res;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const char16_t *aWord, const char16_t *aLang)
-{
+NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const char16_t *aWord,
+                                                const char16_t *aLang) {
   nsresult res;
   WaitForLoad();
 
@@ -427,16 +416,13 @@ NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const char16_t *aWord, const cha
   return res;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::IgnoreWord(const char16_t *aWord)
-{
+NS_IMETHODIMP mozPersonalDictionary::IgnoreWord(const char16_t *aWord) {
   // avoid adding duplicate words to the ignore list
-  if (aWord && !mIgnoreTable.GetEntry(aWord))
-    mIgnoreTable.PutEntry(aWord);
+  if (aWord && !mIgnoreTable.GetEntry(aWord)) mIgnoreTable.PutEntry(aWord);
   return NS_OK;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::EndSession()
-{
+NS_IMETHODIMP mozPersonalDictionary::EndSession() {
   WaitForLoad();
 
   WaitForSave();
@@ -444,29 +430,32 @@ NS_IMETHODIMP mozPersonalDictionary::EndSession()
   return NS_OK;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::AddCorrection(const char16_t *word, const char16_t *correction, const char16_t *lang)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
+NS_IMETHODIMP mozPersonalDictionary::AddCorrection(const char16_t *word,
+                                                   const char16_t *correction,
+                                                   const char16_t *lang) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::RemoveCorrection(const char16_t *word, const char16_t *correction, const char16_t *lang)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
+NS_IMETHODIMP mozPersonalDictionary::RemoveCorrection(
+    const char16_t *word, const char16_t *correction, const char16_t *lang) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const char16_t *word, char16_t ***words, uint32_t *count)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
+NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const char16_t *word,
+                                                   char16_t ***words,
+                                                   uint32_t *count) {
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
-{
+NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject,
+                                             const char *aTopic,
+                                             const char16_t *aData) {
   if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     // The observer is registered in Init() which calls Load and in turn
     // LoadInternal(); i.e. Observe() can't be called before Load().
     WaitForLoad();
     mIsLoaded = false;
-    Load(); // load automatically clears out the existing dictionary table
+    Load();  // load automatically clears out the existing dictionary table
   } else if (!nsCRT::strcmp(aTopic, "profile-before-change")) {
     WaitForSave();
   }

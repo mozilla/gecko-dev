@@ -1,8 +1,8 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* A vector of pointers space-optimized for a small number of elements. */
 #ifndef mozilla_SmallPointerArray_h
@@ -30,24 +30,23 @@ namespace mozilla {
 // The minimum (inline) size is 2 * sizeof(void*).
 //
 // Any modification of the array invalidates any outstanding iterators.
-template<typename T>
-class SmallPointerArray
-{
-public:
-  SmallPointerArray()
-  {
+template <typename T>
+class SmallPointerArray {
+ public:
+  SmallPointerArray() {
     mInlineElements[0] = mInlineElements[1] = nullptr;
     static_assert(sizeof(SmallPointerArray<T>) == (2 * sizeof(void*)),
-      "SmallPointerArray must compile to the size of 2 pointers");
-    static_assert(offsetof(SmallPointerArray<T>, mArray) ==
-                  offsetof(SmallPointerArray<T>, mInlineElements) + sizeof(T*),
-      "mArray and mInlineElements[1] are expected to overlap in memory");
-    static_assert(offsetof(SmallPointerArray<T>, mPadding) ==
-      offsetof(SmallPointerArray<T>, mInlineElements),
-      "mPadding and mInlineElements[0] are expected to overlap in memory");
+                  "SmallPointerArray must compile to the size of 2 pointers");
+    static_assert(
+        offsetof(SmallPointerArray<T>, mArray) ==
+            offsetof(SmallPointerArray<T>, mInlineElements) + sizeof(T*),
+        "mArray and mInlineElements[1] are expected to overlap in memory");
+    static_assert(
+        offsetof(SmallPointerArray<T>, mPadding) ==
+            offsetof(SmallPointerArray<T>, mInlineElements),
+        "mPadding and mInlineElements[0] are expected to overlap in memory");
   }
-  ~SmallPointerArray()
-  {
+  ~SmallPointerArray() {
     if (!mInlineElements[0] && mArray) {
       delete mArray;
     }
@@ -93,7 +92,8 @@ public:
       return;
     }
 
-    mArray = new std::vector<T*>({ mInlineElements[0], mInlineElements[1], aElement });
+    mArray =
+        new std::vector<T*>({mInlineElements[0], mInlineElements[1], aElement});
     mInlineElements[0] = nullptr;
   }
 
@@ -147,14 +147,13 @@ public:
     }
 
     if (mArray) {
-      return std::find(mArray->begin(), mArray->end(), aElement) != mArray->end();
+      return std::find(mArray->begin(), mArray->end(), aElement) !=
+             mArray->end();
     }
     return false;
-
   }
 
-  size_t Length() const
-  {
+  size_t Length() const {
     if (mInlineElements[0]) {
       if (!mInlineElements[1]) {
         return 1;
@@ -178,31 +177,20 @@ public:
     return (*mArray)[aIndex];
   }
 
-  T* operator[](size_t aIndex) const
-  {
-    return ElementAt(aIndex);
-  }
+  T* operator[](size_t aIndex) const { return ElementAt(aIndex); }
 
-  typedef T**                        iterator;
-  typedef const T**                  const_iterator;
+  typedef T** iterator;
+  typedef const T** const_iterator;
 
   // Methods for range-based for loops. Manipulation invalidates these.
-  iterator begin() {
-    return beginInternal();
-  }
-  const_iterator begin() const {
-    return beginInternal();
-  }
+  iterator begin() { return beginInternal(); }
+  const_iterator begin() const { return beginInternal(); }
   const_iterator cbegin() const { return begin(); }
-  iterator end() {
-    return beginInternal() + Length();
-  }
-  const_iterator end() const {
-    return beginInternal() + Length();
-  }
+  iterator end() { return beginInternal() + Length(); }
+  const_iterator end() const { return beginInternal() + Length(); }
   const_iterator cend() const { return end(); }
 
-private:
+ private:
   T** beginInternal() const {
     if (mInlineElements[0] || !mArray) {
       return const_cast<T**>(&mInlineElements[0]);
@@ -237,6 +225,6 @@ private:
   };
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_SmallPointerArray_h
+#endif  // mozilla_SmallPointerArray_h

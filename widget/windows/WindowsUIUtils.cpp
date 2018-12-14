@@ -22,7 +22,8 @@
 #include "nsString.h"
 #include "nsIWidget.h"
 
-/* mingw currently doesn't support windows.ui.viewmanagement.h, so we disable it until it's fixed. */
+/* mingw currently doesn't support windows.ui.viewmanagement.h, so we disable it
+ * until it's fixed. */
 #ifndef __MINGW32__
 
 #include <windows.ui.viewmanagement.h>
@@ -40,42 +41,44 @@ using namespace ABI::Windows::Foundation;
  * for now, so we may need to do some legwork: */
 #if WINVER_MAXVER < 0x0A00
 namespace ABI {
-  namespace Windows {
-    namespace UI {
-      namespace ViewManagement {
-        enum UserInteractionMode {
-          UserInteractionMode_Mouse = 0,
-          UserInteractionMode_Touch = 1
-        };
-      }
-    }
-  }
+namespace Windows {
+namespace UI {
+namespace ViewManagement {
+enum UserInteractionMode {
+  UserInteractionMode_Mouse = 0,
+  UserInteractionMode_Touch = 1
+};
 }
+}  // namespace UI
+}  // namespace Windows
+}  // namespace ABI
 
 #endif
 
 #ifndef RuntimeClass_Windows_UI_ViewManagement_UIViewSettings
-#define RuntimeClass_Windows_UI_ViewManagement_UIViewSettings L"Windows.UI.ViewManagement.UIViewSettings"
+#define RuntimeClass_Windows_UI_ViewManagement_UIViewSettings \
+  L"Windows.UI.ViewManagement.UIViewSettings"
 #endif
 
 #if WINVER_MAXVER < 0x0A00
 namespace ABI {
-  namespace Windows {
-    namespace UI {
-      namespace ViewManagement {
-        interface IUIViewSettings;
-        MIDL_INTERFACE("C63657F6-8850-470D-88F8-455E16EA2C26")
-          IUIViewSettings : public IInspectable
-          {
-            public:
-              virtual HRESULT STDMETHODCALLTYPE get_UserInteractionMode(UserInteractionMode *value) = 0;
-          };
+namespace Windows {
+namespace UI {
+namespace ViewManagement {
+interface IUIViewSettings;
+MIDL_INTERFACE("C63657F6-8850-470D-88F8-455E16EA2C26")
+IUIViewSettings : public IInspectable {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE get_UserInteractionMode(
+      UserInteractionMode * value) = 0;
+};
 
-        extern const __declspec(selectany) IID & IID_IUIViewSettings = __uuidof(IUIViewSettings);
-      }
-    }
-  }
-}
+extern const __declspec(selectany) IID& IID_IUIViewSettings =
+    __uuidof(IUIViewSettings);
+}  // namespace ViewManagement
+}  // namespace UI
+}  // namespace Windows
+}  // namespace ABI
 #endif
 
 #ifndef IUIViewSettingsInterop
@@ -83,33 +86,26 @@ namespace ABI {
 typedef interface IUIViewSettingsInterop IUIViewSettingsInterop;
 
 MIDL_INTERFACE("3694dbf9-8f68-44be-8ff5-195c98ede8a6")
-IUIViewSettingsInterop : public IInspectable
-{
-public:
-  virtual HRESULT STDMETHODCALLTYPE GetForWindow(HWND hwnd, REFIID riid, void **ppv) = 0;
+IUIViewSettingsInterop : public IInspectable {
+ public:
+  virtual HRESULT STDMETHODCALLTYPE GetForWindow(HWND hwnd, REFIID riid,
+                                                 void** ppv) = 0;
 };
 #endif
 
 #endif
 
-WindowsUIUtils::WindowsUIUtils() :
-  mInTabletMode(eTabletModeUnknown)
-{
-}
+WindowsUIUtils::WindowsUIUtils() : mInTabletMode(eTabletModeUnknown) {}
 
-WindowsUIUtils::~WindowsUIUtils()
-{
-}
+WindowsUIUtils::~WindowsUIUtils() {}
 
 /*
  * Implement the nsISupports methods...
  */
-NS_IMPL_ISUPPORTS(WindowsUIUtils,
-                  nsIWindowsUIUtils)
+NS_IMPL_ISUPPORTS(WindowsUIUtils, nsIWindowsUIUtils)
 
 NS_IMETHODIMP
-WindowsUIUtils::GetInTabletMode(bool* aResult)
-{
+WindowsUIUtils::GetInTabletMode(bool* aResult) {
   if (mInTabletMode == eTabletModeUnknown) {
     UpdateTabletModeState();
   }
@@ -118,14 +114,14 @@ WindowsUIUtils::GetInTabletMode(bool* aResult)
 }
 
 NS_IMETHODIMP
-WindowsUIUtils::UpdateTabletModeState()
-{
+WindowsUIUtils::UpdateTabletModeState() {
 #ifndef __MINGW32__
   if (!IsWin10OrLater()) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIAppShellService> appShell(do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+  nsCOMPtr<nsIAppShellService> appShell(
+      do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
   nsCOMPtr<nsIXULWindow> hiddenWindow;
 
   nsresult rv = appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
@@ -141,35 +137,38 @@ WindowsUIUtils::UpdateTabletModeState()
 
   nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(docShell));
 
-  if (!baseWindow)
-    return NS_ERROR_FAILURE;
+  if (!baseWindow) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIWidget> widget;
   baseWindow->GetMainWidget(getter_AddRefs(widget));
 
-  if (!widget)
-    return NS_ERROR_FAILURE;
+  if (!widget) return NS_ERROR_FAILURE;
 
   HWND winPtr = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
   ComPtr<IUIViewSettingsInterop> uiViewSettingsInterop;
 
   HRESULT hr = GetActivationFactory(
-      HStringReference(RuntimeClass_Windows_UI_ViewManagement_UIViewSettings).Get(),
+      HStringReference(RuntimeClass_Windows_UI_ViewManagement_UIViewSettings)
+          .Get(),
       &uiViewSettingsInterop);
   if (SUCCEEDED(hr)) {
     ComPtr<IUIViewSettings> uiViewSettings;
-    hr = uiViewSettingsInterop->GetForWindow(winPtr, IID_PPV_ARGS(&uiViewSettings));
+    hr = uiViewSettingsInterop->GetForWindow(winPtr,
+                                             IID_PPV_ARGS(&uiViewSettings));
     if (SUCCEEDED(hr)) {
       UserInteractionMode mode;
       hr = uiViewSettings->get_UserInteractionMode(&mode);
       if (SUCCEEDED(hr)) {
         TabletModeState oldTabletModeState = mInTabletMode;
-        mInTabletMode = (mode == UserInteractionMode_Touch) ? eTabletModeOn : eTabletModeOff;
+        mInTabletMode = (mode == UserInteractionMode_Touch) ? eTabletModeOn
+                                                            : eTabletModeOff;
         if (mInTabletMode != oldTabletModeState) {
           nsCOMPtr<nsIObserverService> observerService =
-            mozilla::services::GetObserverService();
-          observerService->NotifyObservers(nullptr, "tablet-mode-change",
-            ((mInTabletMode == eTabletModeOn) ? u"tablet-mode" : u"normal-mode"));
+              mozilla::services::GetObserverService();
+          observerService->NotifyObservers(
+              nullptr, "tablet-mode-change",
+              ((mInTabletMode == eTabletModeOn) ? u"tablet-mode"
+                                                : u"normal-mode"));
         }
       }
     }

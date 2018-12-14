@@ -28,26 +28,20 @@
 
 #define WAITFORTOPIC_TIMEOUT_SECONDS 5
 
+#define do_check_true(aCondition) EXPECT_TRUE(aCondition)
 
-#define do_check_true(aCondition) \
-  EXPECT_TRUE(aCondition)
+#define do_check_false(aCondition) EXPECT_FALSE(aCondition)
 
-#define do_check_false(aCondition) \
-  EXPECT_FALSE(aCondition)
+#define do_check_success(aResult) do_check_true(NS_SUCCEEDED(aResult))
 
-#define do_check_success(aResult) \
-  do_check_true(NS_SUCCEEDED(aResult))
+#define do_check_eq(aExpected, aActual) do_check_true(aExpected == aActual)
 
-#define do_check_eq(aExpected, aActual) \
-  do_check_true(aExpected == aActual)
-
-struct Test
-{
+struct Test {
   void (*func)(void);
   const char* const name;
 };
 #define PTEST(aName) \
-  {aName, #aName}
+  { aName, #aName }
 
 /**
  * Runs the next text.
@@ -63,17 +57,14 @@ void do_test_finished();
 /**
  * Spins current thread until a topic is received.
  */
-class WaitForTopicSpinner final : public nsIObserver
-{
-public:
+class WaitForTopicSpinner final : public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS
 
   explicit WaitForTopicSpinner(const char* const aTopic)
-  : mTopicReceived(false)
-  , mStartTime(PR_IntervalNow())
-  {
+      : mTopicReceived(false), mStartTime(PR_IntervalNow()) {
     nsCOMPtr<nsIObserverService> observerService =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+        do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     do_check_true(observerService);
     (void)observerService->AddObserver(this, aTopic, false);
   }
@@ -81,18 +72,18 @@ public:
   void Spin() {
     bool timedOut = false;
     mozilla::SpinEventLoopUntil([&]() -> bool {
-        if (mTopicReceived) {
-          return true;
-        }
+      if (mTopicReceived) {
+        return true;
+      }
 
-        if ((PR_IntervalNow() - mStartTime) >
-            (WAITFORTOPIC_TIMEOUT_SECONDS * PR_USEC_PER_SEC)) {
-          timedOut = true;
-          return true;
-        }
+      if ((PR_IntervalNow() - mStartTime) >
+          (WAITFORTOPIC_TIMEOUT_SECONDS * PR_USEC_PER_SEC)) {
+        timedOut = true;
+        return true;
+      }
 
-        return false;
-      });
+      return false;
+    });
 
     if (timedOut) {
       // Timed out waiting for the topic.
@@ -100,35 +91,29 @@ public:
     }
   }
 
-  NS_IMETHOD Observe(nsISupports* aSubject,
-                     const char* aTopic,
-                     const char16_t* aData) override
-  {
+  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
+                     const char16_t* aData) override {
     mTopicReceived = true;
     nsCOMPtr<nsIObserverService> observerService =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+        do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     do_check_true(observerService);
     (void)observerService->RemoveObserver(this, aTopic);
     return NS_OK;
   }
 
-private:
+ private:
   ~WaitForTopicSpinner() {}
 
   bool mTopicReceived;
   PRIntervalTime mStartTime;
 };
-NS_IMPL_ISUPPORTS(
-  WaitForTopicSpinner,
-  nsIObserver
-)
+NS_IMPL_ISUPPORTS(WaitForTopicSpinner, nsIObserver)
 
 /**
  * Spins current thread until an async statement is executed.
  */
-class PlacesAsyncStatementSpinner final : public mozIStorageStatementCallback
-{
-public:
+class PlacesAsyncStatementSpinner final : public mozIStorageStatementCallback {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGESTATEMENTCALLBACK
 
@@ -136,43 +121,35 @@ public:
   void SpinUntilCompleted();
   uint16_t completionReason;
 
-protected:
+ protected:
   ~PlacesAsyncStatementSpinner() {}
 
   volatile bool mCompleted;
 };
 
-NS_IMPL_ISUPPORTS(PlacesAsyncStatementSpinner,
-                  mozIStorageStatementCallback)
+NS_IMPL_ISUPPORTS(PlacesAsyncStatementSpinner, mozIStorageStatementCallback)
 
 PlacesAsyncStatementSpinner::PlacesAsyncStatementSpinner()
-: completionReason(0)
-, mCompleted(false)
-{
-}
+    : completionReason(0), mCompleted(false) {}
 
 NS_IMETHODIMP
-PlacesAsyncStatementSpinner::HandleResult(mozIStorageResultSet *aResultSet)
-{
+PlacesAsyncStatementSpinner::HandleResult(mozIStorageResultSet* aResultSet) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PlacesAsyncStatementSpinner::HandleError(mozIStorageError *aError)
-{
+PlacesAsyncStatementSpinner::HandleError(mozIStorageError* aError) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PlacesAsyncStatementSpinner::HandleCompletion(uint16_t aReason)
-{
+PlacesAsyncStatementSpinner::HandleCompletion(uint16_t aReason) {
   completionReason = aReason;
   mCompleted = true;
   return NS_OK;
 }
 
-void PlacesAsyncStatementSpinner::SpinUntilCompleted()
-{
+void PlacesAsyncStatementSpinner::SpinUntilCompleted() {
   nsCOMPtr<nsIThread> thread(::do_GetCurrentThread());
   nsresult rv = NS_OK;
   bool processed = true;
@@ -181,8 +158,7 @@ void PlacesAsyncStatementSpinner::SpinUntilCompleted()
   }
 }
 
-struct PlaceRecord
-{
+struct PlaceRecord {
   int64_t id;
   int32_t hidden;
   int32_t typed;
@@ -190,33 +166,26 @@ struct PlaceRecord
   nsCString guid;
 };
 
-struct VisitRecord
-{
+struct VisitRecord {
   int64_t id;
   int64_t lastVisitId;
   int32_t transitionType;
 };
 
-already_AddRefed<mozilla::IHistory>
-do_get_IHistory()
-{
+already_AddRefed<mozilla::IHistory> do_get_IHistory() {
   nsCOMPtr<mozilla::IHistory> history = do_GetService(NS_IHISTORY_CONTRACTID);
   do_check_true(history);
   return history.forget();
 }
 
-already_AddRefed<nsINavHistoryService>
-do_get_NavHistory()
-{
+already_AddRefed<nsINavHistoryService> do_get_NavHistory() {
   nsCOMPtr<nsINavHistoryService> serv =
-    do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
+      do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
   do_check_true(serv);
   return serv.forget();
 }
 
-already_AddRefed<mozIStorageConnection>
-do_get_db()
-{
+already_AddRefed<mozIStorageConnection> do_get_db() {
   nsCOMPtr<nsINavHistoryService> history = do_get_NavHistory();
   nsCOMPtr<nsPIPlacesDatabase> database = do_QueryInterface(history);
   do_check_true(database);
@@ -233,9 +202,7 @@ do_get_db()
  * @param aURI The unique URI of the place we are looking up
  * @param result Out parameter where the result is stored
  */
-void
-do_get_place(nsIURI* aURI, PlaceRecord& result)
-{
+void do_get_place(nsIURI* aURI, PlaceRecord& result) {
   nsCOMPtr<mozIStorageConnection> dbConn = do_get_db();
   nsCOMPtr<mozIStorageStatement> stmt;
 
@@ -243,10 +210,11 @@ do_get_place(nsIURI* aURI, PlaceRecord& result)
   nsresult rv = aURI->GetSpec(spec);
   do_check_success(rv);
 
-  rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT id, hidden, typed, visit_count, guid FROM moz_places "
-    "WHERE url_hash = hash(?1) AND url = ?1"
-  ), getter_AddRefs(stmt));
+  rv = dbConn->CreateStatement(
+      NS_LITERAL_CSTRING(
+          "SELECT id, hidden, typed, visit_count, guid FROM moz_places "
+          "WHERE url_hash = hash(?1) AND url = ?1"),
+      getter_AddRefs(stmt));
   do_check_success(rv);
 
   rv = stmt->BindUTF8StringByIndex(0, spec);
@@ -278,17 +246,16 @@ do_get_place(nsIURI* aURI, PlaceRecord& result)
  * @param placeID ID from the moz_places table
  * @param result Out parameter where visit is stored
  */
-void
-do_get_lastVisit(int64_t placeId, VisitRecord& result)
-{
+void do_get_lastVisit(int64_t placeId, VisitRecord& result) {
   nsCOMPtr<mozIStorageConnection> dbConn = do_get_db();
   nsCOMPtr<mozIStorageStatement> stmt;
 
-  nsresult rv = dbConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT id, from_visit, visit_type FROM moz_historyvisits "
-    "WHERE place_id=?1 "
-    "LIMIT 1"
-  ), getter_AddRefs(stmt));
+  nsresult rv = dbConn->CreateStatement(
+      NS_LITERAL_CSTRING(
+          "SELECT id, from_visit, visit_type FROM moz_historyvisits "
+          "WHERE place_id=?1 "
+          "LIMIT 1"),
+      getter_AddRefs(stmt));
   do_check_success(rv);
 
   rv = stmt->BindInt64ByIndex(0, placeId);
@@ -311,8 +278,7 @@ do_get_lastVisit(int64_t placeId, VisitRecord& result)
   do_check_success(rv);
 }
 
-void
-do_wait_async_updates() {
+void do_wait_async_updates() {
   nsCOMPtr<mozIStorageConnection> db = do_get_db();
   nsCOMPtr<mozIStorageAsyncStatement> stmt;
 
@@ -321,10 +287,9 @@ do_wait_async_updates() {
   nsCOMPtr<mozIStoragePendingStatement> pending;
   (void)stmt->ExecuteAsync(nullptr, getter_AddRefs(pending));
 
-  db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"),
-                           getter_AddRefs(stmt));
+  db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"), getter_AddRefs(stmt));
   RefPtr<PlacesAsyncStatementSpinner> spinner =
-    new PlacesAsyncStatementSpinner();
+      new PlacesAsyncStatementSpinner();
   (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
 
   spinner->SpinUntilCompleted();
@@ -336,9 +301,7 @@ do_wait_async_updates() {
  * @param aURI
  *        The URI to add to the database.
  */
-void
-addURI(nsIURI* aURI)
-{
+void addURI(nsIURI* aURI) {
   nsCOMPtr<mozilla::IHistory> history = do_GetService(NS_IHISTORY_CONTRACTID);
   do_check_true(history);
   nsresult rv = history->VisitURI(aURI, nullptr, mozilla::IHistory::TOP_LEVEL);
@@ -350,35 +313,32 @@ addURI(nsIURI* aURI)
 static const char TOPIC_PROFILE_CHANGE_QM[] = "profile-before-change-qm";
 static const char TOPIC_PLACES_CONNECTION_CLOSED[] = "places-connection-closed";
 
-class WaitForConnectionClosed final : public nsIObserver
-{
+class WaitForConnectionClosed final : public nsIObserver {
   RefPtr<WaitForTopicSpinner> mSpinner;
 
   ~WaitForConnectionClosed() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
 
-  WaitForConnectionClosed()
-  {
+  WaitForConnectionClosed() {
     nsCOMPtr<nsIObserverService> os =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+        do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     MOZ_ASSERT(os);
     if (os) {
       // The places-connection-closed notification happens because of things
       // that occur during profile-before-change, so we use the stage after that
       // to wait for it.
-      MOZ_ALWAYS_SUCCEEDS(os->AddObserver(this, TOPIC_PROFILE_CHANGE_QM, false));
+      MOZ_ALWAYS_SUCCEEDS(
+          os->AddObserver(this, TOPIC_PROFILE_CHANGE_QM, false));
     }
     mSpinner = new WaitForTopicSpinner(TOPIC_PLACES_CONNECTION_CLOSED);
   }
 
-  NS_IMETHOD Observe(nsISupports* aSubject,
-                     const char* aTopic,
-                     const char16_t* aData) override
-  {
+  NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
+                     const char16_t* aData) override {
     nsCOMPtr<nsIObserverService> os =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+        do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
     MOZ_ASSERT(os);
     if (os) {
       MOZ_ALWAYS_SUCCEEDS(os->RemoveObserver(this, aTopic));

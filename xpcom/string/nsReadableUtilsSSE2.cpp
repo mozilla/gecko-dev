@@ -11,16 +11,11 @@
 namespace mozilla {
 namespace SSE2 {
 
-static inline bool
-is_zero (__m128i x)
-{
-  return
-    _mm_movemask_epi8(_mm_cmpeq_epi8(x, _mm_setzero_si128())) == 0xffff;
+static inline bool is_zero(__m128i x) {
+  return _mm_movemask_epi8(_mm_cmpeq_epi8(x, _mm_setzero_si128())) == 0xffff;
 }
 
-int32_t
-FirstNonASCII(const char16_t* aBegin, const char16_t* aEnd)
-{
+int32_t FirstNonASCII(const char16_t* aBegin, const char16_t* aEnd) {
   const size_t kNumUnicharsPerVector = sizeof(__m128i) / sizeof(char16_t);
   typedef NonASCIIParameters<sizeof(size_t)> p;
   const size_t kMask = p::mask();
@@ -49,7 +44,7 @@ FirstNonASCII(const char16_t* aBegin, const char16_t* aEnd)
 
   // Check one word at a time.
   const char16_t* wordWalkEnd = aligned(aEnd, p::alignMask());
-  for(; idx != wordWalkEnd; idx += kNumUnicharsPerWord) {
+  for (; idx != wordWalkEnd; idx += kNumUnicharsPerWord) {
     const size_t word = *reinterpret_cast<const size_t*>(idx);
     if (word & kMask) {
       return idx - aBegin;
@@ -66,5 +61,5 @@ FirstNonASCII(const char16_t* aBegin, const char16_t* aEnd)
   return -1;
 }
 
-} // namespace SSE2
-} // namespace mozilla
+}  // namespace SSE2
+}  // namespace mozilla

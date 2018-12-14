@@ -25,40 +25,17 @@
 #define UTF8UTILS_WARNING(msg)
 #endif
 
-class UTF8traits
-{
-public:
-  static bool isASCII(char aChar)
-  {
-    return (aChar & 0x80) == 0x00;
-  }
-  static bool isInSeq(char aChar)
-  {
-    return (aChar & 0xC0) == 0x80;
-  }
-  static bool is2byte(char aChar)
-  {
-    return (aChar & 0xE0) == 0xC0;
-  }
-  static bool is3byte(char aChar)
-  {
-    return (aChar & 0xF0) == 0xE0;
-  }
-  static bool is4byte(char aChar)
-  {
-    return (aChar & 0xF8) == 0xF0;
-  }
-  static bool is5byte(char aChar)
-  {
-    return (aChar & 0xFC) == 0xF8;
-  }
-  static bool is6byte(char aChar)
-  {
-    return (aChar & 0xFE) == 0xFC;
-  }
+class UTF8traits {
+ public:
+  static bool isASCII(char aChar) { return (aChar & 0x80) == 0x00; }
+  static bool isInSeq(char aChar) { return (aChar & 0xC0) == 0x80; }
+  static bool is2byte(char aChar) { return (aChar & 0xE0) == 0xC0; }
+  static bool is3byte(char aChar) { return (aChar & 0xF0) == 0xE0; }
+  static bool is4byte(char aChar) { return (aChar & 0xF8) == 0xF0; }
+  static bool is5byte(char aChar) { return (aChar & 0xFC) == 0xF8; }
+  static bool is6byte(char aChar) { return (aChar & 0xFE) == 0xFC; }
   // return the number of bytes in a sequence beginning with aChar
-  static int bytes(char aChar)
-  {
+  static int bytes(char aChar) {
     if (isASCII(aChar)) {
       return 1;
     }
@@ -90,11 +67,9 @@ public:
  * that an error occurred.
  */
 
-class UTF8CharEnumerator
-{
-public:
-  static uint32_t NextChar(const char** aBuffer, const char* aEnd, bool* aErr)
-  {
+class UTF8CharEnumerator {
+ public:
+  static uint32_t NextChar(const char** aBuffer, const char* aEnd, bool* aErr) {
     NS_ASSERTION(aBuffer && *aBuffer, "null buffer!");
 
     const char* p = *aBuffer;
@@ -118,7 +93,9 @@ public:
     int32_t state = 0;
 
     if (!CalcState(c, ucs4, minUcs4, state)) {
-      NS_ERROR("Not a UTF-8 string. This code should only be used for converting from known UTF-8 strings.");
+      NS_ERROR(
+          "Not a UTF-8 string. This code should only be used for converting "
+          "from known UTF-8 strings.");
       *aErr = true;
 
       return 0;
@@ -143,8 +120,7 @@ public:
     if (ucs4 < minUcs4) {
       // Overlong sequence
       ucs4 = UCS2_REPLACEMENT_CHAR;
-    } else if (ucs4 >= 0xD800 &&
-               (ucs4 <= 0xDFFF || ucs4 >= UCS_END)) {
+    } else if (ucs4 >= 0xD800 && (ucs4 <= 0xDFFF || ucs4 >= UCS_END)) {
       // Surrogates and code points outside the Unicode range.
       ucs4 = UCS2_REPLACEMENT_CHAR;
     }
@@ -153,10 +129,9 @@ public:
     return ucs4;
   }
 
-private:
+ private:
   static bool CalcState(char aChar, uint32_t& aUcs4, uint32_t& aMinUcs4,
-                        int32_t& aState)
-  {
+                        int32_t& aState) {
     if (UTF8traits::is2byte(aChar)) {
       aUcs4 = (uint32_t(aChar) << 6) & 0x000007C0L;
       aState = 1;
@@ -184,8 +159,7 @@ private:
     return true;
   }
 
-  static bool AddByte(char aChar, int32_t aState, uint32_t& aUcs4)
-  {
+  static bool AddByte(char aChar, int32_t aState, uint32_t& aUcs4) {
     if (UTF8traits::isInSeq(aChar)) {
       int32_t shift = aState * 6;
       aUcs4 |= (uint32_t(aChar) & 0x3F) << shift;
@@ -195,7 +169,6 @@ private:
     return false;
   }
 };
-
 
 /**
  * Extract the next UCS-4 character from the buffer and return it.  The
@@ -208,13 +181,10 @@ private:
  * Any other error returns 0 and does not move the buffer position.
  */
 
-
-class UTF16CharEnumerator
-{
-public:
+class UTF16CharEnumerator {
+ public:
   static uint32_t NextChar(const char16_t** aBuffer, const char16_t* aEnd,
-                           bool* aErr = nullptr)
-  {
+                           bool* aErr = nullptr) {
     NS_ASSERTION(aBuffer && *aBuffer, "null buffer!");
 
     const char16_t* p = *aBuffer;
@@ -230,13 +200,13 @@ public:
 
     char16_t c = *p++;
 
-    if (!IS_SURROGATE(c)) { // U+0000 - U+D7FF,U+E000 - U+FFFF
+    if (!IS_SURROGATE(c)) {  // U+0000 - U+D7FF,U+E000 - U+FFFF
       if (aErr) {
         *aErr = false;
       }
       *aBuffer = p;
       return c;
-    } else if (NS_IS_HIGH_SURROGATE(c)) { // U+D800 - U+DBFF
+    } else if (NS_IS_HIGH_SURROGATE(c)) {  // U+D800 - U+DBFF
       if (p == aEnd) {
         // Found a high surrogate at the end of the buffer. Flag this
         // as an error and return the Unicode replacement
@@ -283,7 +253,7 @@ public:
         *aBuffer = p - 1;
         return 0xFFFD;
       }
-    } else { // U+DC00 - U+DFFF
+    } else {  // U+DC00 - U+DFFF
       // DC00- DFFF - Low Surrogate
 
       // Found a low surrogate w/o a preceding high surrogate. Flag
@@ -302,34 +272,23 @@ public:
   }
 };
 
-
 /**
  * A character sink (see |copy_string| in nsAlgorithm.h) for converting
  * UTF-8 to UTF-16
  */
-class ConvertUTF8toUTF16
-{
-public:
+class ConvertUTF8toUTF16 {
+ public:
   typedef char value_type;
   typedef char16_t buffer_type;
 
   explicit ConvertUTF8toUTF16(buffer_type* aBuffer)
-    : mStart(aBuffer), mBuffer(aBuffer), mErrorEncountered(false)
-  {
-  }
+      : mStart(aBuffer), mBuffer(aBuffer), mErrorEncountered(false) {}
 
-  size_t Length() const
-  {
-    return mBuffer - mStart;
-  }
+  size_t Length() const { return mBuffer - mStart; }
 
-  bool ErrorEncountered() const
-  {
-    return mErrorEncountered;
-  }
+  bool ErrorEncountered() const { return mErrorEncountered; }
 
-  void write(const value_type* aStart, uint32_t aN)
-  {
+  void write(const value_type* aStart, uint32_t aN) {
     if (mErrorEncountered) {
       return;
     }
@@ -359,12 +318,9 @@ public:
     mBuffer = out;
   }
 
-  void write_terminator()
-  {
-    *mBuffer = buffer_type(0);
-  }
+  void write_terminator() { *mBuffer = buffer_type(0); }
 
-private:
+ private:
   buffer_type* const mStart;
   buffer_type* mBuffer;
   bool mErrorEncountered;
@@ -374,23 +330,15 @@ private:
  * A character sink (see |copy_string| in nsAlgorithm.h) for computing
  * the length of the UTF-16 string equivalent to a UTF-8 string.
  */
-class CalculateUTF8Length
-{
-public:
+class CalculateUTF8Length {
+ public:
   typedef char value_type;
 
-  CalculateUTF8Length()
-    : mLength(0), mErrorEncountered(false)
-  {
-  }
+  CalculateUTF8Length() : mLength(0), mErrorEncountered(false) {}
 
-  size_t Length() const
-  {
-    return mLength;
-  }
+  size_t Length() const { return mLength; }
 
-  void write(const value_type* aStart, uint32_t aN)
-  {
+  void write(const value_type* aStart, uint32_t aN) {
     // ignore any further requests
     if (mErrorEncountered) {
       return;
@@ -442,8 +390,8 @@ public:
         // characters will be written in that case either.
 
         if (p + 4 <= end) {
-          uint32_t c = ((uint32_t)(p[0] & 0x07)) << 6 |
-                       ((uint32_t)(p[1] & 0x30));
+          uint32_t c =
+              ((uint32_t)(p[0] & 0x07)) << 6 | ((uint32_t)(p[1] & 0x30));
           if (c >= 0x010 && c < 0x110) {
             ++mLength;
           }
@@ -454,19 +402,21 @@ public:
         p += 5;
       } else if (UTF8traits::is6byte(*p)) {
         p += 6;
-      } else { // error
-        ++mLength; // to account for the decrement below
+      } else {      // error
+        ++mLength;  // to account for the decrement below
         break;
       }
     }
     if (p != end) {
-      NS_ERROR("Not a UTF-8 string. This code should only be used for converting from known UTF-8 strings.");
-      --mLength; // The last multi-byte char wasn't complete, discard it.
+      NS_ERROR(
+          "Not a UTF-8 string. This code should only be used for converting "
+          "from known UTF-8 strings.");
+      --mLength;  // The last multi-byte char wasn't complete, discard it.
       mErrorEncountered = true;
     }
   }
 
-private:
+ private:
   size_t mLength;
   bool mErrorEncountered;
 };
@@ -476,9 +426,8 @@ private:
  * converting UTF-16 to UTF-8. Treats invalid UTF-16 data as 0xFFFD
  * (0xEFBFBD in UTF-8).
  */
-class ConvertUTF16toUTF8
-{
-public:
+class ConvertUTF16toUTF8 {
+ public:
   typedef char16_t value_type;
   typedef char buffer_type;
 
@@ -487,31 +436,25 @@ public:
   // compatibility.
 
   explicit ConvertUTF16toUTF8(buffer_type* aBuffer)
-    : mStart(aBuffer), mBuffer(aBuffer)
-  {
-  }
+      : mStart(aBuffer), mBuffer(aBuffer) {}
 
-  size_t Size() const
-  {
-    return mBuffer - mStart;
-  }
+  size_t Size() const { return mBuffer - mStart; }
 
-  void write(const value_type* aStart, uint32_t aN)
-  {
-    buffer_type* out = mBuffer; // gcc isn't smart enough to do this!
+  void write(const value_type* aStart, uint32_t aN) {
+    buffer_type* out = mBuffer;  // gcc isn't smart enough to do this!
 
-    for (const value_type* p = aStart, *end = aStart + aN; p < end; ++p) {
+    for (const value_type *p = aStart, *end = aStart + aN; p < end; ++p) {
       value_type c = *p;
-      if (!(c & 0xFF80)) { // U+0000 - U+007F
+      if (!(c & 0xFF80)) {  // U+0000 - U+007F
         *out++ = (char)c;
-      } else if (!(c & 0xF800)) { // U+0100 - U+07FF
+      } else if (!(c & 0xF800)) {  // U+0100 - U+07FF
         *out++ = 0xC0 | (char)(c >> 6);
         *out++ = 0x80 | (char)(0x003F & c);
-      } else if (!IS_SURROGATE(c)) { // U+0800 - U+D7FF,U+E000 - U+FFFF
+      } else if (!IS_SURROGATE(c)) {  // U+0800 - U+D7FF,U+E000 - U+FFFF
         *out++ = 0xE0 | (char)(c >> 12);
         *out++ = 0x80 | (char)(0x003F & (c >> 6));
         *out++ = 0x80 | (char)(0x003F & c);
-      } else if (NS_IS_HIGH_SURROGATE(c)) { // U+D800 - U+DBFF
+      } else if (NS_IS_HIGH_SURROGATE(c)) {  // U+D800 - U+DBFF
         // D800- DBFF - High Surrogate
         value_type h = c;
 
@@ -559,7 +502,7 @@ public:
 
           UTF8UTILS_WARNING("got a High Surrogate but no low surrogate");
         }
-      } else { // U+DC00 - U+DFFF
+      } else {  // U+DC00 - U+DFFF
         // Treat broken characters as the Unicode replacement
         // character 0xFFFD (0xEFBFBD in UTF-8)
         *out++ = '\xEF';
@@ -574,12 +517,9 @@ public:
     mBuffer = out;
   }
 
-  void write_terminator()
-  {
-    *mBuffer = buffer_type(0);
-  }
+  void write_terminator() { *mBuffer = buffer_type(0); }
 
-private:
+ private:
   buffer_type* const mStart;
   buffer_type* mBuffer;
 };
@@ -589,33 +529,25 @@ private:
  * the number of bytes a UTF-16 would occupy in UTF-8. Treats invalid
  * UTF-16 data as 0xFFFD (0xEFBFBD in UTF-8).
  */
-class CalculateUTF8Size
-{
-public:
+class CalculateUTF8Size {
+ public:
   typedef char16_t value_type;
 
-  CalculateUTF8Size()
-    : mSize(0)
-  {
-  }
+  CalculateUTF8Size() : mSize(0) {}
 
-  size_t Size() const
-  {
-    return mSize;
-  }
+  size_t Size() const { return mSize; }
 
-  void write(const value_type* aStart, uint32_t aN)
-  {
+  void write(const value_type* aStart, uint32_t aN) {
     // Assume UCS2 surrogate pairs won't be spread across fragments.
-    for (const value_type* p = aStart, *end = aStart + aN; p < end; ++p) {
+    for (const value_type *p = aStart, *end = aStart + aN; p < end; ++p) {
       value_type c = *p;
-      if (!(c & 0xFF80)) { // U+0000 - U+007F
+      if (!(c & 0xFF80)) {  // U+0000 - U+007F
         mSize += 1;
-      } else if (!(c & 0xF800)) { // U+0100 - U+07FF
+      } else if (!(c & 0xF800)) {  // U+0100 - U+07FF
         mSize += 2;
-      } else if (0xD800 != (0xF800 & c)) { // U+0800 - U+D7FF,U+E000 - U+FFFF
+      } else if (0xD800 != (0xF800 & c)) {  // U+0800 - U+D7FF,U+E000 - U+FFFF
         mSize += 3;
-      } else if (0xD800 == (0xFC00 & c)) { // U+D800 - U+DBFF
+      } else if (0xD800 == (0xFC00 & c)) {  // U+D800 - U+DBFF
         ++p;
         if (p == end) {
           // Treat broken characters as the Unicode
@@ -648,7 +580,7 @@ public:
 
           UTF8UTILS_WARNING("got a high Surrogate but no low surrogate");
         }
-      } else { // U+DC00 - U+DFFF
+      } else {  // U+DC00 - U+DFFF
         // Treat broken characters as the Unicode replacement
         // character 0xFFFD (0xEFBFBD in UTF-8)
         mSize += 3;
@@ -658,7 +590,7 @@ public:
     }
   }
 
-private:
+ private:
   size_t mSize;
 };
 
@@ -667,22 +599,17 @@ private:
  * A character sink that performs a |reinterpret_cast|-style conversion
  * from char to char16_t.
  */
-class LossyConvertEncoding8to16
-{
-public:
+class LossyConvertEncoding8to16 {
+ public:
   typedef char value_type;
   typedef char input_type;
   typedef char16_t output_type;
 
-public:
-  explicit LossyConvertEncoding8to16(char16_t* aDestination) :
-    mDestination(aDestination)
-  {
-  }
+ public:
+  explicit LossyConvertEncoding8to16(char16_t* aDestination)
+      : mDestination(aDestination) {}
 
-  void
-  write(const char* aSource, uint32_t aSourceLength)
-  {
+  void write(const char* aSource, uint32_t aSourceLength) {
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
     if (mozilla::supports_sse2()) {
       write_sse2(aSource, aSourceLength);
@@ -701,20 +628,14 @@ public:
     }
   }
 
-  void
-  write_sse2(const char* aSource, uint32_t aSourceLength);
+  void write_sse2(const char* aSource, uint32_t aSourceLength);
 #if defined(MOZILLA_MAY_SUPPORT_NEON) && defined(MOZ_LITTLE_ENDIAN)
-  void
-  write_neon(const char* aSource, uint32_t aSourceLength);
+  void write_neon(const char* aSource, uint32_t aSourceLength);
 #endif
 
-  void
-  write_terminator()
-  {
-    *mDestination = (char16_t)(0);
-  }
+  void write_terminator() { *mDestination = (char16_t)(0); }
 
-private:
+ private:
   char16_t* mDestination;
 };
 
@@ -722,21 +643,16 @@ private:
  * A character sink that performs a |reinterpret_cast|-style conversion
  * from char16_t to char.
  */
-class LossyConvertEncoding16to8
-{
-public:
+class LossyConvertEncoding16to8 {
+ public:
   typedef char16_t value_type;
   typedef char16_t input_type;
   typedef char output_type;
 
   explicit LossyConvertEncoding16to8(char* aDestination)
-    : mDestination(aDestination)
-  {
-  }
+      : mDestination(aDestination) {}
 
-  void
-  write(const char16_t* aSource, uint32_t aSourceLength)
-  {
+  void write(const char16_t* aSource, uint32_t aSourceLength) {
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
     if (mozilla::supports_sse2()) {
       write_sse2(aSource, aSourceLength);
@@ -756,37 +672,29 @@ public:
   }
 
 #ifdef MOZILLA_MAY_SUPPORT_SSE2
-  void
-  write_sse2(const char16_t* aSource, uint32_t aSourceLength);
+  void write_sse2(const char16_t* aSource, uint32_t aSourceLength);
 #endif
 #if defined(MOZILLA_MAY_SUPPORT_NEON) && defined(MOZ_LITTLE_ENDIAN)
-  void
-  write_neon(const char16_t* aSource, uint32_t aSourceLength);
+  void write_neon(const char16_t* aSource, uint32_t aSourceLength);
 #endif
 
-  void
-  write_terminator()
-  {
-    *mDestination = '\0';
-  }
+  void write_terminator() { *mDestination = '\0'; }
 
-private:
+ private:
   char* mDestination;
 };
-#endif // MOZILLA_INTERNAL_API
+#endif  // MOZILLA_INTERNAL_API
 
-
-template<typename Char, typename UnsignedT>
-inline UnsignedT
-RewindToPriorUTF8Codepoint(const Char* utf8Chars, UnsignedT index)
-{
+template <typename Char, typename UnsignedT>
+inline UnsignedT RewindToPriorUTF8Codepoint(const Char* utf8Chars,
+                                            UnsignedT index) {
   static_assert(mozilla::IsSame<Char, char>::value ||
-                mozilla::IsSame<Char, unsigned char>::value ||
-                mozilla::IsSame<Char, signed char>::value,
+                    mozilla::IsSame<Char, unsigned char>::value ||
+                    mozilla::IsSame<Char, signed char>::value,
                 "UTF-8 data must be in 8-bit units");
-  static_assert(mozilla::IsUnsigned<UnsignedT>::value, "index type must be unsigned");
-  while (index > 0 && (utf8Chars[index] & 0xC0) == 0x80)
-    --index;
+  static_assert(mozilla::IsUnsigned<UnsignedT>::value,
+                "index type must be unsigned");
+  while (index > 0 && (utf8Chars[index] & 0xC0) == 0x80) --index;
 
   return index;
 }

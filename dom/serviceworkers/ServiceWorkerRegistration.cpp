@@ -20,11 +20,8 @@ namespace mozilla {
 namespace dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ServiceWorkerRegistration,
-                                   DOMEventTargetHelper,
-                                   mInstallingWorker,
-                                   mWaitingWorker,
-                                   mActiveWorker,
-                                   mPushManager);
+                                   DOMEventTargetHelper, mInstallingWorker,
+                                   mWaitingWorker, mActiveWorker, mPushManager);
 
 NS_IMPL_ADDREF_INHERITED(ServiceWorkerRegistration, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(ServiceWorkerRegistration, DOMEventTargetHelper)
@@ -33,97 +30,83 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServiceWorkerRegistration)
   NS_INTERFACE_MAP_ENTRY(ServiceWorkerRegistration)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-ServiceWorkerRegistration::ServiceWorkerRegistration(nsIGlobalObject* aGlobal,
-                                                     const ServiceWorkerRegistrationDescriptor& aDescriptor,
-                                                     ServiceWorkerRegistration::Inner* aInner)
-  : DOMEventTargetHelper(aGlobal)
-  , mDescriptor(aDescriptor)
-  , mInner(aInner)
-{
+ServiceWorkerRegistration::ServiceWorkerRegistration(
+    nsIGlobalObject* aGlobal,
+    const ServiceWorkerRegistrationDescriptor& aDescriptor,
+    ServiceWorkerRegistration::Inner* aInner)
+    : DOMEventTargetHelper(aGlobal), mDescriptor(aDescriptor), mInner(aInner) {
   MOZ_DIAGNOSTIC_ASSERT(mInner);
   UpdateState(mDescriptor);
   mInner->SetServiceWorkerRegistration(this);
 }
 
-ServiceWorkerRegistration::~ServiceWorkerRegistration()
-{
+ServiceWorkerRegistration::~ServiceWorkerRegistration() {
   if (mInner) {
     mInner->ClearServiceWorkerRegistration(this);
   }
 }
 
-JSObject*
-ServiceWorkerRegistration::WrapObject(JSContext* aCx,
-                                      JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ServiceWorkerRegistration::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ServiceWorkerRegistrationBinding::Wrap(aCx, this, aGivenProto);
 }
 
 /* static */ already_AddRefed<ServiceWorkerRegistration>
-ServiceWorkerRegistration::CreateForMainThread(nsPIDOMWindowInner* aWindow,
-                                               const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+ServiceWorkerRegistration::CreateForMainThread(
+    nsPIDOMWindowInner* aWindow,
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<Inner> inner = new ServiceWorkerRegistrationMainThread(aDescriptor);
 
   RefPtr<ServiceWorkerRegistration> registration =
-    new ServiceWorkerRegistration(aWindow->AsGlobal(), aDescriptor, inner);
+      new ServiceWorkerRegistration(aWindow->AsGlobal(), aDescriptor, inner);
 
   return registration.forget();
 }
 
 /* static */ already_AddRefed<ServiceWorkerRegistration>
-ServiceWorkerRegistration::CreateForWorker(WorkerPrivate* aWorkerPrivate,
-                                           nsIGlobalObject* aGlobal,
-                                           const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+ServiceWorkerRegistration::CreateForWorker(
+    WorkerPrivate* aWorkerPrivate, nsIGlobalObject* aGlobal,
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   MOZ_DIAGNOSTIC_ASSERT(aWorkerPrivate);
   MOZ_DIAGNOSTIC_ASSERT(aGlobal);
   aWorkerPrivate->AssertIsOnWorkerThread();
 
   RefPtr<Inner> inner =
-    new ServiceWorkerRegistrationWorkerThread(aWorkerPrivate, aDescriptor);
+      new ServiceWorkerRegistrationWorkerThread(aWorkerPrivate, aDescriptor);
 
   RefPtr<ServiceWorkerRegistration> registration =
-    new ServiceWorkerRegistration(aGlobal, aDescriptor, inner);
+      new ServiceWorkerRegistration(aGlobal, aDescriptor, inner);
 
   return registration.forget();
 }
 
-void
-ServiceWorkerRegistration::DisconnectFromOwner()
-{
+void ServiceWorkerRegistration::DisconnectFromOwner() {
   mInner->ClearServiceWorkerRegistration(this);
   mInner = nullptr;
   DOMEventTargetHelper::DisconnectFromOwner();
 }
 
-already_AddRefed<ServiceWorker>
-ServiceWorkerRegistration::GetInstalling() const
-{
+already_AddRefed<ServiceWorker> ServiceWorkerRegistration::GetInstalling()
+    const {
   RefPtr<ServiceWorker> ref = mInstallingWorker;
   return ref.forget();
 }
 
-already_AddRefed<ServiceWorker>
-ServiceWorkerRegistration::GetWaiting() const
-{
+already_AddRefed<ServiceWorker> ServiceWorkerRegistration::GetWaiting() const {
   RefPtr<ServiceWorker> ref = mWaitingWorker;
   return ref.forget();
 }
 
-already_AddRefed<ServiceWorker>
-ServiceWorkerRegistration::GetActive() const
-{
+already_AddRefed<ServiceWorker> ServiceWorkerRegistration::GetActive() const {
   RefPtr<ServiceWorker> ref = mActiveWorker;
   return ref.forget();
 }
 
-void
-ServiceWorkerRegistration::UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor)
-{
+void ServiceWorkerRegistration::UpdateState(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) {
   MOZ_DIAGNOSTIC_ASSERT(MatchesDescriptor(aDescriptor));
 
   mDescriptor = aDescriptor;
@@ -163,29 +146,23 @@ ServiceWorkerRegistration::UpdateState(const ServiceWorkerRegistrationDescriptor
   }
 }
 
-bool
-ServiceWorkerRegistration::MatchesDescriptor(const ServiceWorkerRegistrationDescriptor& aDescriptor) const
-{
+bool ServiceWorkerRegistration::MatchesDescriptor(
+    const ServiceWorkerRegistrationDescriptor& aDescriptor) const {
   return aDescriptor.Id() == mDescriptor.Id() &&
          aDescriptor.PrincipalInfo() == mDescriptor.PrincipalInfo() &&
          aDescriptor.Scope() == mDescriptor.Scope();
 }
 
-void
-ServiceWorkerRegistration::GetScope(nsAString& aScope) const
-{
+void ServiceWorkerRegistration::GetScope(nsAString& aScope) const {
   CopyUTF8toUTF16(mDescriptor.Scope(), aScope);
 }
 
-ServiceWorkerUpdateViaCache
-ServiceWorkerRegistration::GetUpdateViaCache(ErrorResult& aRv) const
-{
+ServiceWorkerUpdateViaCache ServiceWorkerRegistration::GetUpdateViaCache(
+    ErrorResult& aRv) const {
   return mDescriptor.UpdateViaCache();
 }
 
-already_AddRefed<Promise>
-ServiceWorkerRegistration::Update(ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
   if (!mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -193,9 +170,8 @@ ServiceWorkerRegistration::Update(ErrorResult& aRv)
   return mInner->Update(aRv);
 }
 
-already_AddRefed<Promise>
-ServiceWorkerRegistration::Unregister(ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerRegistration::Unregister(
+    ErrorResult& aRv) {
   if (!mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -203,9 +179,8 @@ ServiceWorkerRegistration::Unregister(ErrorResult& aRv)
   return mInner->Unregister(aRv);
 }
 
-already_AddRefed<PushManager>
-ServiceWorkerRegistration::GetPushManager(JSContext* aCx, ErrorResult& aRv)
-{
+already_AddRefed<PushManager> ServiceWorkerRegistration::GetPushManager(
+    JSContext* aCx, ErrorResult& aRv) {
   if (!mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -220,12 +195,9 @@ ServiceWorkerRegistration::GetPushManager(JSContext* aCx, ErrorResult& aRv)
   return ret.forget();
 }
 
-already_AddRefed<Promise>
-ServiceWorkerRegistration::ShowNotification(JSContext* aCx,
-                                            const nsAString& aTitle,
-                                            const NotificationOptions& aOptions,
-                                            ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerRegistration::ShowNotification(
+    JSContext* aCx, const nsAString& aTitle,
+    const NotificationOptions& aOptions, ErrorResult& aRv) {
   if (!mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -233,10 +205,8 @@ ServiceWorkerRegistration::ShowNotification(JSContext* aCx,
   return mInner->ShowNotification(aCx, aTitle, aOptions, aRv);
 }
 
-already_AddRefed<Promise>
-ServiceWorkerRegistration::GetNotifications(const GetNotificationOptions& aOptions,
-                                            ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerRegistration::GetNotifications(
+    const GetNotificationOptions& aOptions, ErrorResult& aRv) {
   if (!mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -244,5 +214,5 @@ ServiceWorkerRegistration::GetNotifications(const GetNotificationOptions& aOptio
   return mInner->GetNotifications(aOptions, aRv);
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

@@ -15,27 +15,20 @@ class nsAtom;
 namespace mozilla {
 namespace dom {
 
-class CSSNamespaceRule : public css::Rule
-{
-protected:
+class CSSNamespaceRule : public css::Rule {
+ protected:
   using Rule::Rule;
 
-public:
-  bool IsCCLeaf() const final {
-    return Rule::IsCCLeaf();
-  }
-  int32_t GetType() const final {
-    return Rule::NAMESPACE_RULE;
-  }
+ public:
+  bool IsCCLeaf() const final { return Rule::IsCCLeaf(); }
+  int32_t GetType() const final { return Rule::NAMESPACE_RULE; }
 
   virtual nsAtom* GetPrefix() const = 0;
   virtual void GetURLSpec(nsString& aURLSpec) const = 0;
 
   // WebIDL interfaces
   uint16_t Type() const final { return CSSRuleBinding::NAMESPACE_RULE; }
-  void GetNamespaceURI(nsString& aNamespaceURI) {
-    GetURLSpec(aNamespaceURI);
-  }
+  void GetNamespaceURI(nsString& aNamespaceURI) { GetURLSpec(aNamespaceURI); }
   void GetPrefix(DOMString& aPrefix) {
     aPrefix.SetKnownLiveAtom(GetPrefix(), DOMString::eTreatNullAsEmpty);
   }
@@ -48,7 +41,7 @@ public:
   }
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSNamespaceRule_h
+#endif  // mozilla_dom_CSSNamespaceRule_h

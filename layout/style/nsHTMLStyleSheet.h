@@ -30,10 +30,10 @@ struct RawServoDeclarationBlock;
 
 class nsHTMLStyleSheet final
 #ifdef MOZ_OLD_STYLE
-  : public nsIStyleRuleProcessor
+    : public nsIStyleRuleProcessor
 #endif
 {
-public:
+ public:
   explicit nsHTMLStyleSheet(nsIDocument* aDocument);
 
   void SetOwningDocument(nsIDocument* aDocument);
@@ -48,17 +48,20 @@ public:
 #ifdef MOZ_XUL
   virtual void RulesMatching(XULTreeRuleProcessorData* aData) override;
 #endif
-  virtual nsRestyleHint HasStateDependentStyle(StateRuleProcessorData* aData) override;
-  virtual nsRestyleHint HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData) override;
-  virtual bool HasDocumentStateDependentStyle(StateRuleProcessorData* aData) override;
-  virtual nsRestyleHint
-    HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
-                               mozilla::RestyleHintData& aRestyleHintDataResult) override;
+  virtual nsRestyleHint HasStateDependentStyle(
+      StateRuleProcessorData* aData) override;
+  virtual nsRestyleHint HasStateDependentStyle(
+      PseudoElementStateRuleProcessorData* aData) override;
+  virtual bool HasDocumentStateDependentStyle(
+      StateRuleProcessorData* aData) override;
+  virtual nsRestyleHint HasAttributeDependentStyle(
+      AttributeRuleProcessorData* aData,
+      mozilla::RestyleHintData& aRestyleHintDataResult) override;
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) override;
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE override;
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE override;
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+      MOZ_MUST_OVERRIDE override;
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+      MOZ_MUST_OVERRIDE override;
 
   nsIStyleRule* LangRuleFor(const nsAtom* aLanguage);
 #else
@@ -83,15 +86,15 @@ public:
   }
 
   // Mapped Attribute management methods
-  already_AddRefed<nsMappedAttributes>
-    UniqueMappedAttributes(nsMappedAttributes* aMapped);
+  already_AddRefed<nsMappedAttributes> UniqueMappedAttributes(
+      nsMappedAttributes* aMapped);
   void DropMappedAttributes(nsMappedAttributes* aMapped);
   // For each mapped presentation attribute in the cache, resolve
   // the attached ServoDeclarationBlock by running the mapping
   // and converting the ruledata to Servo specified values.
   void CalculateMappedServoDeclarations();
 
-private:
+ private:
   nsHTMLStyleSheet(const nsHTMLStyleSheet& aCopy) = delete;
   nsHTMLStyleSheet& operator=(const nsHTMLStyleSheet& aCopy) = delete;
 
@@ -101,12 +104,11 @@ private:
   class HTMLColorRule;
   friend class HTMLColorRule;
   class HTMLColorRule final : public nsIStyleRule {
-  private:
+   private:
     ~HTMLColorRule() {}
-  public:
-    explicit HTMLColorRule(nscolor aColor)
-      : mColor(aColor)
-    {}
+
+   public:
+    explicit HTMLColorRule(nscolor aColor) : mColor(aColor) {}
 
     NS_DECL_ISUPPORTS
 
@@ -115,9 +117,9 @@ private:
     virtual bool MightMapInheritedStyleData() override;
     virtual bool GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty,
                                                nsCSSValue* aValue) override;
-  #ifdef DEBUG
+#ifdef DEBUG
     virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
-  #endif
+#endif
 
     nscolor mColor;
   };
@@ -125,9 +127,10 @@ private:
   class GenericTableRule;
   friend class GenericTableRule;
   class GenericTableRule : public nsIStyleRule {
-  protected:
+   protected:
     virtual ~GenericTableRule() {}
-  public:
+
+   public:
     GenericTableRule() {}
 
     NS_DECL_ISUPPORTS
@@ -137,16 +140,16 @@ private:
     virtual bool MightMapInheritedStyleData() override = 0;
     virtual bool GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty,
                                                nsCSSValue* aValue) override = 0;
-  #ifdef DEBUG
+#ifdef DEBUG
     virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
-  #endif
+#endif
   };
 
   // this rule handles <th> inheritance
   class TableTHRule;
   friend class TableTHRule;
   class TableTHRule final : public GenericTableRule {
-  public:
+   public:
     TableTHRule() {}
 
     virtual void MapRuleInfoInto(nsRuleData* aRuleData) override;
@@ -157,7 +160,7 @@ private:
 
   // Rule to handle quirk table colors
   class TableQuirkColorRule final : public GenericTableRule {
-  public:
+   public:
     TableQuirkColorRule() {}
 
     virtual void MapRuleInfoInto(nsRuleData* aRuleData) override;
@@ -172,20 +175,19 @@ private:
 #ifdef MOZ_OLD_STYLE
       RefPtr<HTMLColorRule>& aRule,
 #endif
-      RefPtr<RawServoDeclarationBlock>& aDecl,
-      nscolor aColor);
+      RefPtr<RawServoDeclarationBlock>& aDecl, nscolor aColor);
 
-public: // for mLangRuleTable structures only
-
+ public:  // for mLangRuleTable structures only
 #ifdef MOZ_OLD_STYLE
-  // Rule to handle xml:lang attributes, of which we have exactly one
+          // Rule to handle xml:lang attributes, of which we have exactly one
   // per language string, maintained in mLangRuleTable.
   // We also create one extra rule for the "x-math" language string, used on
   // <math> elements.
   class LangRule final : public nsIStyleRule {
-  private:
+   private:
     ~LangRule() {}
-  public:
+
+   public:
     explicit LangRule(nsAtom* aLang) : mLang(aLang) {}
 
     NS_DECL_ISUPPORTS
@@ -195,16 +197,16 @@ public: // for mLangRuleTable structures only
     virtual bool MightMapInheritedStyleData() override;
     virtual bool GetDiscretelyAnimatedCSSValue(nsCSSPropertyID aProperty,
                                                nsCSSValue* aValue) override;
-  #ifdef DEBUG
+#ifdef DEBUG
     virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
-  #endif
+#endif
 
     RefPtr<nsAtom> mLang;
   };
 #endif
 
-private:
-  nsIDocument*            mDocument;
+ private:
+  nsIDocument* mDocument;
 #ifdef MOZ_OLD_STYLE
   RefPtr<HTMLColorRule> mLinkRule;
   RefPtr<HTMLColorRule> mVisitedRule;
@@ -215,16 +217,16 @@ private:
   RefPtr<RawServoDeclarationBlock> mServoActiveLinkDecl;
 #ifdef MOZ_OLD_STYLE
   RefPtr<TableQuirkColorRule> mTableQuirkColorRule;
-  RefPtr<TableTHRule>   mTableTHRule;
+  RefPtr<TableTHRule> mTableTHRule;
 #endif
 
-  PLDHashTable            mMappedAttrTable;
+  PLDHashTable mMappedAttrTable;
   // Whether or not the mapped attributes table
   // has been changed since the last call to
   // CalculateMappedServoDeclarations()
-  bool                    mMappedAttrsDirty;
+  bool mMappedAttrsDirty;
 #ifdef MOZ_OLD_STYLE
-  PLDHashTable            mLangRuleTable;
+  PLDHashTable mLangRuleTable;
 #endif
 };
 

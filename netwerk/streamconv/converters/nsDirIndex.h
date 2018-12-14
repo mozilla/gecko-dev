@@ -10,21 +10,20 @@
 /* CID: {f6913e2e-1dd1-11b2-84be-f455dee342af} */
 
 class nsDirIndex final : public nsIDirIndex {
+ private:
+  ~nsDirIndex();
 
-private:
-    ~nsDirIndex();
+ public:
+  nsDirIndex();
 
-public:
-    nsDirIndex();
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIDIRINDEX
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIDIRINDEX
-
-protected:
-    uint32_t mType;
-    nsCString mContentType;
-    nsCString mLocation;
-    nsString mDescription;
-    int64_t mSize;
-    PRTime mLastModified;
+ protected:
+  uint32_t mType;
+  nsCString mContentType;
+  nsCString mLocation;
+  nsString mDescription;
+  int64_t mSize;
+  PRTime mLastModified;
 };

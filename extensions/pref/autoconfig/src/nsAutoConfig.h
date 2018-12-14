@@ -25,33 +25,31 @@ class nsAutoConfig : public nsIAutoConfig,
                      public nsINamed
 
 {
-    public:
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIAUTOCONFIG
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSIOBSERVER
+  NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
-        NS_DECL_THREADSAFE_ISUPPORTS
-        NS_DECL_NSIAUTOCONFIG
-        NS_DECL_NSIREQUESTOBSERVER
-        NS_DECL_NSISTREAMLISTENER
-        NS_DECL_NSIOBSERVER
-        NS_DECL_NSITIMERCALLBACK
-        NS_DECL_NSINAMED
+  nsAutoConfig();
+  nsresult Init();
 
-        nsAutoConfig();
-        nsresult Init();
-
-    protected:
-
-        virtual ~nsAutoConfig();
-        nsresult downloadAutoConfig();
-        nsresult readOfflineFile();
-        nsresult evaluateLocalFile(nsIFile *file);
-        nsresult writeFailoverFile();
-        nsresult getEmailAddr(nsACString & emailAddr);
-        nsresult PromptForEMailAddress(nsACString &emailAddress);
-        nsCString mBuf;
-        nsCOMPtr<nsIPrefBranch> mPrefBranch;
-        bool mLoaded;
-        nsCOMPtr<nsITimer> mTimer;
-        nsCString mConfigURL;
+ protected:
+  virtual ~nsAutoConfig();
+  nsresult downloadAutoConfig();
+  nsresult readOfflineFile();
+  nsresult evaluateLocalFile(nsIFile *file);
+  nsresult writeFailoverFile();
+  nsresult getEmailAddr(nsACString &emailAddr);
+  nsresult PromptForEMailAddress(nsACString &emailAddress);
+  nsCString mBuf;
+  nsCOMPtr<nsIPrefBranch> mPrefBranch;
+  bool mLoaded;
+  nsCOMPtr<nsITimer> mTimer;
+  nsCString mConfigURL;
 };
 
 #endif

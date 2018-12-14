@@ -49,90 +49,71 @@ namespace dom {
 #define KeyValueSpliter NS_LITERAL_STRING(":")
 #define AddressLineSpliter NS_LITERAL_STRING("%")
 
-#define EncodeBasicCardProperty(aPropertyName, aPropertyValue, aResult)        \
-  do {                                                                         \
-    if (!(aPropertyValue).IsEmpty()) {                                         \
-      (aResult) += (aPropertyName)                                             \
-                 + KeyValueSpliter                                             \
-                 + (aPropertyValue)                                            \
-                 + PropertySpliter;                                            \
-    }                                                                          \
-  } while(0)
+#define EncodeBasicCardProperty(aPropertyName, aPropertyValue, aResult)   \
+  do {                                                                    \
+    if (!(aPropertyValue).IsEmpty()) {                                    \
+      (aResult) += (aPropertyName) + KeyValueSpliter + (aPropertyValue) + \
+                   PropertySpliter;                                       \
+    }                                                                     \
+  } while (0)
 
-#define EncodeAddressProperty(aAddress, aPropertyName, aResult)                \
-  do {                                                                         \
-    nsAutoString propertyValue;                                                \
-    NS_ENSURE_SUCCESS((aAddress)->Get##aPropertyName(propertyValue),           \
-                                                     NS_ERROR_FAILURE);        \
-    EncodeBasicCardProperty((aPropertyName) ,propertyValue , (aResult));       \
-  } while(0)
+#define EncodeAddressProperty(aAddress, aPropertyName, aResult)         \
+  do {                                                                  \
+    nsAutoString propertyValue;                                         \
+    NS_ENSURE_SUCCESS((aAddress)->Get##aPropertyName(propertyValue),    \
+                      NS_ERROR_FAILURE);                                \
+    EncodeBasicCardProperty((aPropertyName), propertyValue, (aResult)); \
+  } while (0)
 
-#define DecodeBasicCardProperty(aPropertyName, aPropertyValue,                 \
-                                aMatchPropertyName, aResponse)                 \
-  do {                                                                         \
-    if ((aPropertyName).Equals((aMatchPropertyName))) {                        \
-      (aResponse).m##aMatchPropertyName.Construct();                           \
-      (aResponse).m##aMatchPropertyName.Value() = (aPropertyValue);            \
-    }                                                                          \
-  } while(0)
+#define DecodeBasicCardProperty(aPropertyName, aPropertyValue,      \
+                                aMatchPropertyName, aResponse)      \
+  do {                                                              \
+    if ((aPropertyName).Equals((aMatchPropertyName))) {             \
+      (aResponse).m##aMatchPropertyName.Construct();                \
+      (aResponse).m##aMatchPropertyName.Value() = (aPropertyValue); \
+    }                                                               \
+  } while (0)
 
-#define DecodeAddressProperty(aPropertyName, aPropertyValue,                   \
-                              aMatchPropertyName, aMatchPropertyValue)         \
-  do {                                                                         \
-    if ((aPropertyName).Equals((aMatchPropertyName))) {                        \
-      (aMatchPropertyValue) = (aPropertyValue);                                \
-    }                                                                          \
-  } while(0)
+#define DecodeAddressProperty(aPropertyName, aPropertyValue,           \
+                              aMatchPropertyName, aMatchPropertyValue) \
+  do {                                                                 \
+    if ((aPropertyName).Equals((aMatchPropertyName))) {                \
+      (aMatchPropertyValue) = (aPropertyValue);                        \
+    }                                                                  \
+  } while (0)
 
 #endif
 
 namespace {
 
-bool IsValidNetwork(const nsAString& aNetwork)
-{
-  return AMEX.Equals(aNetwork) ||
-         CARTEBANCAIRE.Equals(aNetwork) ||
-         DINERS.Equals(aNetwork) ||
-         DISCOVER.Equals(aNetwork) ||
-         JCB.Equals(aNetwork) ||
-         MASTERCARD.Equals(aNetwork) ||
-         MIR.Equals(aNetwork) ||
-         UNIONPAY.Equals(aNetwork) ||
+bool IsValidNetwork(const nsAString& aNetwork) {
+  return AMEX.Equals(aNetwork) || CARTEBANCAIRE.Equals(aNetwork) ||
+         DINERS.Equals(aNetwork) || DISCOVER.Equals(aNetwork) ||
+         JCB.Equals(aNetwork) || MASTERCARD.Equals(aNetwork) ||
+         MIR.Equals(aNetwork) || UNIONPAY.Equals(aNetwork) ||
          VISA.Equals(aNetwork);
 }
 
-bool IsBasicCardKey(const nsAString& aKey)
-{
-  return CardholderName.Equals(aKey) ||
-         CardNumber.Equals(aKey) ||
-         ExpiryMonth.Equals(aKey) ||
-         ExpiryYear.Equals(aKey) ||
+bool IsBasicCardKey(const nsAString& aKey) {
+  return CardholderName.Equals(aKey) || CardNumber.Equals(aKey) ||
+         ExpiryMonth.Equals(aKey) || ExpiryYear.Equals(aKey) ||
          CardSecurityCode.Equals(aKey);
 }
 
-bool IsAddressKey(const nsAString& aKey)
-{
-  return Country.Equals(aKey) ||
-         AddressLine.Equals(aKey) ||
-         Region.Equals(aKey) ||
-         City.Equals(aKey) ||
-         DependentLocality.Equals(aKey) ||
-         PostalCode.Equals(aKey) ||
-         SortingCode.Equals(aKey) ||
-         LanguageCode.Equals(aKey) ||
-         Organization.Equals(aKey) ||
-         Recipient.Equals(aKey) ||
+bool IsAddressKey(const nsAString& aKey) {
+  return Country.Equals(aKey) || AddressLine.Equals(aKey) ||
+         Region.Equals(aKey) || City.Equals(aKey) ||
+         DependentLocality.Equals(aKey) || PostalCode.Equals(aKey) ||
+         SortingCode.Equals(aKey) || LanguageCode.Equals(aKey) ||
+         Organization.Equals(aKey) || Recipient.Equals(aKey) ||
          Phone.Equals(aKey);
 }
 
-} // end of namespace
-
+}  // end of namespace
 
 StaticRefPtr<BasicCardService> gBasicCardService;
 
-already_AddRefed<BasicCardService>
-BasicCardService::GetService()
-{
+already_AddRefed<BasicCardService> BasicCardService::GetService() {
   if (!gBasicCardService) {
     gBasicCardService = new BasicCardService();
     ClearOnShutdown(&gBasicCardService);
@@ -141,17 +122,12 @@ BasicCardService::GetService()
   return service.forget();
 }
 
-bool
-BasicCardService::IsBasicCardPayment(const nsAString& aSupportedMethods)
-{
+bool BasicCardService::IsBasicCardPayment(const nsAString& aSupportedMethods) {
   return aSupportedMethods.Equals(NS_LITERAL_STRING("basic-card"));
 }
 
-bool
-BasicCardService::IsValidBasicCardRequest(JSContext* aCx,
-                                          JSObject* aData,
-                                          nsAString& aErrorMsg)
-{
+bool BasicCardService::IsValidBasicCardRequest(JSContext* aCx, JSObject* aData,
+                                               nsAString& aErrorMsg) {
   if (!aData) {
     return true;
   }
@@ -159,14 +135,16 @@ BasicCardService::IsValidBasicCardRequest(JSContext* aCx,
 
   BasicCardRequest request;
   if (!request.Init(aCx, data)) {
-    aErrorMsg.AssignLiteral("Fail to convert methodData.data to BasicCardRequest.");
+    aErrorMsg.AssignLiteral(
+        "Fail to convert methodData.data to BasicCardRequest.");
     return false;
   }
 
   if (request.mSupportedNetworks.WasPassed()) {
     for (const nsString& network : request.mSupportedNetworks.Value()) {
       if (!IsValidNetwork(network)) {
-        aErrorMsg.Assign(network + NS_LITERAL_STRING(" is not an valid network."));
+        aErrorMsg.Assign(network +
+                         NS_LITERAL_STRING(" is not an valid network."));
         return false;
       }
     }
@@ -174,9 +152,7 @@ BasicCardService::IsValidBasicCardRequest(JSContext* aCx,
   return true;
 }
 
-bool
-BasicCardService::IsValidExpiryMonth(const nsAString& aExpiryMonth)
-{
+bool BasicCardService::IsValidExpiryMonth(const nsAString& aExpiryMonth) {
   // ExpiryMonth can only be
   //   1. empty string
   //   2. 01 ~ 12
@@ -203,9 +179,7 @@ BasicCardService::IsValidExpiryMonth(const nsAString& aExpiryMonth)
   return false;
 }
 
-bool
-BasicCardService::IsValidExpiryYear(const nsAString& aExpiryYear)
-{
+bool BasicCardService::IsValidExpiryYear(const nsAString& aExpiryYear) {
   // ExpiryYear can only be
   //   1. empty string
   //   2. 0000 ~ 9999
@@ -214,8 +188,7 @@ BasicCardService::IsValidExpiryYear(const nsAString& aExpiryYear)
       return false;
     }
     for (uint32_t index = 0; index < 4; ++index) {
-      if (aExpiryYear.CharAt(index) < '0' ||
-          aExpiryYear.CharAt(index) > '9') {
+      if (aExpiryYear.CharAt(index) < '0' || aExpiryYear.CharAt(index) > '9') {
         return false;
       }
     }
@@ -223,15 +196,11 @@ BasicCardService::IsValidExpiryYear(const nsAString& aExpiryYear)
   return true;
 }
 
-nsresult
-BasicCardService::EncodeBasicCardData(const nsAString& aCardholderName,
-                                      const nsAString& aCardNumber,
-                                      const nsAString& aExpiryMonth,
-                                      const nsAString& aExpiryYear,
-                                      const nsAString& aCardSecurityCode,
-                                      nsIPaymentAddress* aBillingAddress,
-                                      nsAString& aResult)
-{
+nsresult BasicCardService::EncodeBasicCardData(
+    const nsAString& aCardholderName, const nsAString& aCardNumber,
+    const nsAString& aExpiryMonth, const nsAString& aExpiryYear,
+    const nsAString& aCardSecurityCode, nsIPaymentAddress* aBillingAddress,
+    nsAString& aResult) {
   // aBillingAddress can be nullptr
   if (aCardNumber.IsEmpty()) {
     return NS_ERROR_FAILURE;
@@ -246,8 +215,9 @@ BasicCardService::EncodeBasicCardData(const nsAString& aCardholderName,
   }
   EncodeAddressProperty(aBillingAddress, Country, aResult);
   nsCOMPtr<nsIArray> addressLine;
-  NS_ENSURE_SUCCESS(aBillingAddress->GetAddressLine(getter_AddRefs(addressLine)),
-                                                    NS_ERROR_FAILURE);
+  NS_ENSURE_SUCCESS(
+      aBillingAddress->GetAddressLine(getter_AddRefs(addressLine)),
+      NS_ERROR_FAILURE);
   uint32_t length;
   nsAutoString addressLineString;
   NS_ENSURE_SUCCESS(addressLine->GetLength(&length), NS_ERROR_FAILURE);
@@ -258,7 +228,7 @@ BasicCardService::EncodeBasicCardData(const nsAString& aCardholderName,
     NS_ENSURE_SUCCESS(address->GetData(addressString), NS_ERROR_FAILURE);
     addressLineString += addressString + AddressLineSpliter;
   }
-  EncodeBasicCardProperty(AddressLine ,addressLineString , aResult);
+  EncodeBasicCardProperty(AddressLine, addressLineString, aResult);
   EncodeAddressProperty(aBillingAddress, Region, aResult);
   EncodeAddressProperty(aBillingAddress, City, aResult);
   EncodeAddressProperty(aBillingAddress, DependentLocality, aResult);
@@ -271,11 +241,9 @@ BasicCardService::EncodeBasicCardData(const nsAString& aCardholderName,
   return NS_OK;
 }
 
-nsresult
-BasicCardService::DecodeBasicCardData(const nsAString& aData,
-                                      nsPIDOMWindowInner* aWindow,
-                                      BasicCardResponse& aResponse)
-{
+nsresult BasicCardService::DecodeBasicCardData(const nsAString& aData,
+                                               nsPIDOMWindowInner* aWindow,
+                                               BasicCardResponse& aResponse) {
   // aWindow can be nullptr
   bool isBillingAddressPassed = false;
   nsTArray<nsString> addressLine;
@@ -293,7 +261,8 @@ BasicCardService::DecodeBasicCardData(const nsAString& aData,
   nsCharSeparatedTokenizer propertyTokenizer(aData, PropertySpliter.CharAt(0));
   while (propertyTokenizer.hasMoreTokens()) {
     nsDependentSubstring property = propertyTokenizer.nextToken();
-    nsCharSeparatedTokenizer keyValueTokenizer(property, KeyValueSpliter.CharAt(0));
+    nsCharSeparatedTokenizer keyValueTokenizer(property,
+                                               KeyValueSpliter.CharAt(0));
     MOZ_ASSERT(keyValueTokenizer.hasMoreTokens());
     nsDependentSubstring key = keyValueTokenizer.nextToken();
     nsDependentSubstring value = keyValueTokenizer.nextToken();
@@ -325,7 +294,8 @@ BasicCardService::DecodeBasicCardData(const nsAString& aData,
     DecodeAddressProperty(key, value, Phone, phone);
 
     if ((key).Equals(AddressLine)) {
-      nsCharSeparatedTokenizer addressTokenizer(value, AddressLineSpliter.CharAt(0));
+      nsCharSeparatedTokenizer addressTokenizer(value,
+                                                AddressLineSpliter.CharAt(0));
       while (addressTokenizer.hasMoreTokens()) {
         addressLine.AppendElement(addressTokenizer.nextToken());
       }
@@ -333,18 +303,9 @@ BasicCardService::DecodeBasicCardData(const nsAString& aData,
   }
   if (isBillingAddressPassed) {
     aResponse.mBillingAddress.Construct();
-    aResponse.mBillingAddress.Value() = new PaymentAddress(aWindow,
-                                                           country,
-                                                           addressLine,
-                                                           region,
-                                                           city,
-                                                           dependentLocality,
-                                                           postalCode,
-                                                           sortingCode,
-                                                           languageCode,
-                                                           organization,
-                                                           recipient,
-                                                           phone);
+    aResponse.mBillingAddress.Value() = new PaymentAddress(
+        aWindow, country, addressLine, region, city, dependentLocality,
+        postalCode, sortingCode, languageCode, organization, recipient, phone);
   }
   return NS_OK;
 }
@@ -385,5 +346,5 @@ BasicCardService::DecodeBasicCardData(const nsAString& aData,
 #undef AddressLineSpliter
 #endif
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla

@@ -17,8 +17,8 @@ typedef nsSVGElement SVGViewElementBase;
 
 class nsSVGOuterSVGFrame;
 
-nsresult NS_NewSVGViewElement(nsIContent **aResult,
-                              already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGViewElement(
+    nsIContent **aResult, already_AddRefed<mozilla::dom::NodeInfo> &&aNodeInfo);
 
 namespace mozilla {
 class SVGFragmentIdentifier;
@@ -26,31 +26,31 @@ class SVGFragmentIdentifier;
 namespace dom {
 class SVGViewportElement;
 
-class SVGViewElement : public SVGViewElementBase
-{
-protected:
+class SVGViewElement : public SVGViewElementBase {
+ protected:
   friend class mozilla::SVGFragmentIdentifier;
   friend class SVGSVGElement;
   friend class SVGViewportElement;
   friend class ::nsSVGOuterSVGFrame;
-  explicit SVGViewElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  friend nsresult (::NS_NewSVGViewElement(nsIContent **aResult,
-                                          already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+  explicit SVGViewElement(already_AddRefed<mozilla::dom::NodeInfo> &aNodeInfo);
+  friend nsresult(::NS_NewSVGViewElement(
+      nsIContent **aResult,
+      already_AddRefed<mozilla::dom::NodeInfo> &&aNodeInfo));
+  virtual JSObject *WrapNode(JSContext *cx,
+                             JS::Handle<JSObject *> aGivenProto) override;
 
-public:
+ public:
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
                          bool aPreallocateChildren) const override;
 
   // WebIDL
   uint16_t ZoomAndPan() { return mEnumAttributes[ZOOMANDPAN].GetAnimValue(); }
-  void SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv);
+  void SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult &rv);
   already_AddRefed<SVGAnimatedRect> ViewBox();
   already_AddRefed<DOMSVGAnimatedPreserveAspectRatio> PreserveAspectRatio();
   already_AddRefed<DOMSVGStringList> ViewTarget();
 
-private:
-
+ private:
   // nsSVGElement overrides
 
   virtual EnumAttributesInfo GetEnumInfo() override;
@@ -63,7 +63,7 @@ private:
   virtual nsSVGViewBox *GetViewBox() override;
   virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio() override;
 
-  nsSVGViewBox                   mViewBox;
+  nsSVGViewBox mViewBox;
   SVGAnimatedPreserveAspectRatio mPreserveAspectRatio;
 
   virtual StringListAttributesInfo GetStringListInfo() override;
@@ -73,7 +73,7 @@ private:
   static StringListInfo sStringListInfo[1];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGViewElement_h
+#endif  // mozilla_dom_SVGViewElement_h

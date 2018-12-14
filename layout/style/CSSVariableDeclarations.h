@@ -13,14 +13,13 @@
 
 namespace mozilla {
 class CSSVariableResolver;
-} // namespace mozilla
+}  // namespace mozilla
 struct nsRuleData;
 
 namespace mozilla {
 
-class CSSVariableDeclarations
-{
-public:
+class CSSVariableDeclarations {
+ public:
   CSSVariableDeclarations();
   CSSVariableDeclarations(const CSSVariableDeclarations& aOther);
 #ifdef DEBUG
@@ -126,7 +125,7 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-private:
+ private:
   /**
    * Adds all the variable declarations from aOther into this object.
    */
@@ -135,6 +134,6 @@ private:
   nsDataHashtable<nsStringHashKey, nsString> mVariables;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

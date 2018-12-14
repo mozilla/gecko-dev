@@ -10,14 +10,9 @@
 namespace mozilla {
 namespace widget {
 
-PDFiumParent::PDFiumParent(PrintTargetEMF* aTarget)
-  : mTarget(aTarget)
-{
-}
+PDFiumParent::PDFiumParent(PrintTargetEMF* aTarget) : mTarget(aTarget) {}
 
-bool
-PDFiumParent::Init(IPC::Channel* aChannel, base::ProcessId aPid)
-{
+bool PDFiumParent::Init(IPC::Channel* aChannel, base::ProcessId aPid) {
   if (NS_WARN_IF(!Open(aChannel, aPid))) {
     return false;
   }
@@ -26,9 +21,7 @@ PDFiumParent::Init(IPC::Channel* aChannel, base::ProcessId aPid)
   return true;
 }
 
-void
-PDFiumParent::ActorDestroy(ActorDestroyReason aWhy)
-{
+void PDFiumParent::ActorDestroy(ActorDestroyReason aWhy) {
   // mTarget is not nullptr, which means the print job is not done
   // (EndConversion is not called yet). The IPC channel is broken for some
   // reasons. We should tell mTarget to abort this print job.
@@ -37,10 +30,8 @@ PDFiumParent::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-mozilla::ipc::IPCResult
-PDFiumParent::RecvConvertToEMFDone(const nsresult& aResult,
-                                   mozilla::ipc::Shmem&& aEMFContents)
-{
+mozilla::ipc::IPCResult PDFiumParent::RecvConvertToEMFDone(
+    const nsresult& aResult, mozilla::ipc::Shmem&& aEMFContents) {
   MOZ_ASSERT(aEMFContents.IsReadable());
 
   if (mTarget) {
@@ -50,24 +41,15 @@ PDFiumParent::RecvConvertToEMFDone(const nsresult& aResult,
   return IPC_OK();
 }
 
-void PDFiumParent::EndConversion()
-{
+void PDFiumParent::EndConversion() {
   // The printing job is done(all pages printed, or print job cancel, or print
   // job abort), reset mTarget since it may not valid afterward.
   mTarget = nullptr;
 }
 
-void
-PDFiumParent::OnChannelConnected(int32_t pid)
-{
-  SetOtherProcessId(pid);
-}
+void PDFiumParent::OnChannelConnected(int32_t pid) { SetOtherProcessId(pid); }
 
-void
-PDFiumParent::DeallocPPDFiumParent()
-{
-  Release();
-}
+void PDFiumParent::DeallocPPDFiumParent() { Release(); }
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla

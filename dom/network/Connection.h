@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace hal {
 class NetworkInformation;
-} // namespace hal
+}  // namespace hal
 
 namespace dom {
 
@@ -25,22 +25,18 @@ class WorkerPrivate;
 
 namespace network {
 
-class Connection : public DOMEventTargetHelper
-                 , public nsINetworkProperties
-{
-public:
+class Connection : public DOMEventTargetHelper, public nsINetworkProperties {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSINETWORKPROPERTIES
   NS_DECL_OWNINGTHREAD
 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
-  static Connection*
-  CreateForWindow(nsPIDOMWindowInner* aWindow);
+  static Connection* CreateForWindow(nsPIDOMWindowInner* aWindow);
 
-  static already_AddRefed<Connection>
-  CreateForWorker(WorkerPrivate* aWorkerPrivate,
-                  ErrorResult& aRv);
+  static already_AddRefed<Connection> CreateForWorker(
+      WorkerPrivate* aWorkerPrivate, ErrorResult& aRv);
 
   void Shutdown();
 
@@ -49,15 +45,15 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  ConnectionType Type() const
-  {
-    return nsContentUtils::ShouldResistFingerprinting() ?
-             static_cast<ConnectionType>(ConnectionType::Unknown) : mType;
+  ConnectionType Type() const {
+    return nsContentUtils::ShouldResistFingerprinting()
+               ? static_cast<ConnectionType>(ConnectionType::Unknown)
+               : mType;
   }
 
   IMPL_EVENT_HANDLER(typechange)
 
-protected:
+ protected:
   Connection(nsPIDOMWindowInner* aWindow);
   virtual ~Connection();
 
@@ -66,7 +62,7 @@ protected:
 
   virtual void ShutdownInternal() = 0;
 
-private:
+ private:
   /**
    * The type of current connection.
    */
@@ -85,8 +81,8 @@ private:
   bool mBeenShutDown;
 };
 
-} // namespace network
-} // namespace dom
-} // namespace mozilla
+}  // namespace network
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_network_Connection_h
+#endif  // mozilla_dom_network_Connection_h

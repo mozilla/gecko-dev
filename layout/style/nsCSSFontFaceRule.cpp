@@ -20,24 +20,19 @@ using namespace mozilla::dom;
 //
 
 // Mapping from nsCSSFontDesc codes to CSSFontFaceDescriptors fields.
-nsCSSValue CSSFontFaceDescriptors::* const
-CSSFontFaceDescriptors::Fields[] = {
+nsCSSValue CSSFontFaceDescriptors::*const CSSFontFaceDescriptors::Fields[] = {
 #define CSS_FONT_DESC(name_, method_) &CSSFontFaceDescriptors::m##method_,
 #include "nsCSSFontDescList.h"
 #undef CSS_FONT_DESC
 };
 
-const nsCSSValue&
-CSSFontFaceDescriptors::Get(nsCSSFontDesc aFontDescID) const
-{
+const nsCSSValue& CSSFontFaceDescriptors::Get(nsCSSFontDesc aFontDescID) const {
   MOZ_ASSERT(aFontDescID > eCSSFontDesc_UNKNOWN &&
              aFontDescID < eCSSFontDesc_COUNT);
   return this->*CSSFontFaceDescriptors::Fields[aFontDescID];
 }
 
-nsCSSValue&
-CSSFontFaceDescriptors::Get(nsCSSFontDesc aFontDescID)
-{
+nsCSSValue& CSSFontFaceDescriptors::Get(nsCSSFontDesc aFontDescID) {
   MOZ_ASSERT(aFontDescID > eCSSFontDesc_UNKNOWN &&
              aFontDescID < eCSSFontDesc_COUNT);
   return this->*CSSFontFaceDescriptors::Fields[aFontDescID];
@@ -53,24 +48,20 @@ NS_INTERFACE_MAP_BEGIN(nsCSSFontFaceStyleDecl)
   if (aIID.Equals(NS_GET_IID(nsCycleCollectionISupports)) ||
       aIID.Equals(NS_GET_IID(nsXPCOMCycleCollectionParticipant))) {
     return ContainingRule()->QueryInterface(aIID, aInstancePtr);
-  }
-  else
+  } else
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF_USING_AGGREGATOR(nsCSSFontFaceStyleDecl, ContainingRule())
 NS_IMPL_RELEASE_USING_AGGREGATOR(nsCSSFontFaceStyleDecl, ContainingRule())
 
 // helper for string GetPropertyValue and RemovePropertyValue
-nsresult
-nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
-                                         nsAString & aResult) const
-{
+nsresult nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
+                                                  nsAString& aResult) const {
   NS_ENSURE_ARG_RANGE(aFontDescID, eCSSFontDesc_UNKNOWN,
                       eCSSFontDesc_COUNT - 1);
 
   aResult.Truncate();
-  if (aFontDescID == eCSSFontDesc_UNKNOWN)
-    return NS_OK;
+  if (aFontDescID == eCSSFontDesc_UNKNOWN) return NS_OK;
 
   const nsCSSValue& val = mDescriptors.Get(aFontDescID);
 
@@ -80,7 +71,7 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
   }
 
   switch (aFontDescID) {
-  case eCSSFontDesc_Family: {
+    case eCSSFontDesc_Family: {
       // we don't use nsCSSValue::AppendToString here because it doesn't
       // canonicalize the way we want, and anyway it's overkill when
       // we know we have eCSSUnit_String
@@ -90,70 +81,65 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
       return NS_OK;
     }
 
-  case eCSSFontDesc_Style:
-    val.AppendToString(eCSSProperty_font_style, aResult);
-    return NS_OK;
+    case eCSSFontDesc_Style:
+      val.AppendToString(eCSSProperty_font_style, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_Weight:
-    val.AppendToString(eCSSProperty_font_weight, aResult);
-    return NS_OK;
+    case eCSSFontDesc_Weight:
+      val.AppendToString(eCSSProperty_font_weight, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_Stretch:
-    val.AppendToString(eCSSProperty_font_stretch, aResult);
-    return NS_OK;
+    case eCSSFontDesc_Stretch:
+      val.AppendToString(eCSSProperty_font_stretch, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_FontFeatureSettings:
-    nsStyleUtil::AppendFontFeatureSettings(val, aResult);
-    return NS_OK;
+    case eCSSFontDesc_FontFeatureSettings:
+      nsStyleUtil::AppendFontFeatureSettings(val, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_FontVariationSettings:
-    nsStyleUtil::AppendFontVariationSettings(val, aResult);
-    return NS_OK;
+    case eCSSFontDesc_FontVariationSettings:
+      nsStyleUtil::AppendFontVariationSettings(val, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_FontLanguageOverride:
-    val.AppendToString(eCSSProperty_font_language_override, aResult);
-    return NS_OK;
+    case eCSSFontDesc_FontLanguageOverride:
+      val.AppendToString(eCSSProperty_font_language_override, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_Display:
-    NS_ASSERTION(val.GetUnit() == eCSSUnit_Enumerated,
-                 "unknown unit for font-display descriptor");
-    AppendASCIItoUTF16(nsCSSProps::ValueToKeyword(val.GetIntValue(),
-                                       nsCSSProps::kFontDisplayKTable), aResult);
-    return NS_OK;
+    case eCSSFontDesc_Display:
+      NS_ASSERTION(val.GetUnit() == eCSSUnit_Enumerated,
+                   "unknown unit for font-display descriptor");
+      AppendASCIItoUTF16(nsCSSProps::ValueToKeyword(
+                             val.GetIntValue(), nsCSSProps::kFontDisplayKTable),
+                         aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_Src:
-    nsStyleUtil::AppendSerializedFontSrc(val, aResult);
-    return NS_OK;
+    case eCSSFontDesc_Src:
+      nsStyleUtil::AppendSerializedFontSrc(val, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_UnicodeRange:
-    nsStyleUtil::AppendUnicodeRange(val, aResult);
-    return NS_OK;
+    case eCSSFontDesc_UnicodeRange:
+      nsStyleUtil::AppendUnicodeRange(val, aResult);
+      return NS_OK;
 
-  case eCSSFontDesc_UNKNOWN:
-  case eCSSFontDesc_COUNT:
-    ;
+    case eCSSFontDesc_UNKNOWN:
+    case eCSSFontDesc_COUNT:;
   }
-  NS_NOTREACHED("nsCSSFontFaceStyleDecl::GetPropertyValue: "
-                "out-of-range value got to the switch");
+  NS_NOTREACHED(
+      "nsCSSFontFaceStyleDecl::GetPropertyValue: "
+      "out-of-range value got to the switch");
   return NS_ERROR_INVALID_ARG;
 }
 
-
-void
-nsCSSFontFaceStyleDecl::GetCssText(nsAString & aCssText)
-{
+void nsCSSFontFaceStyleDecl::GetCssText(nsAString& aCssText) {
   GetCssTextImpl(aCssText);
 }
 
-void
-nsCSSFontFaceStyleDecl::GetCssTextImpl(nsAString& aCssText) const
-{
+void nsCSSFontFaceStyleDecl::GetCssTextImpl(nsAString& aCssText) const {
   nsAutoString descStr;
 
   aCssText.Truncate();
   for (nsCSSFontDesc id = nsCSSFontDesc(eCSSFontDesc_UNKNOWN + 1);
-       id < eCSSFontDesc_COUNT;
-       id = nsCSSFontDesc(id + 1)) {
+       id < eCSSFontDesc_COUNT; id = nsCSSFontDesc(id + 1)) {
     if (mDescriptors.Get(id).GetUnit() != eCSSUnit_Null &&
         NS_SUCCEEDED(GetPropertyValue(id, descStr))) {
       NS_ASSERTION(descStr.Length() > 0,
@@ -167,37 +153,30 @@ nsCSSFontFaceStyleDecl::GetCssTextImpl(nsAString& aCssText) const
   }
 }
 
-void
-nsCSSFontFaceStyleDecl::SetCssText(const nsAString& aCssText,
-                                   nsIPrincipal* aSubjectPrincipal,
-                                   ErrorResult& aRv)
-{
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED); // bug 443978
+void nsCSSFontFaceStyleDecl::SetCssText(const nsAString& aCssText,
+                                        nsIPrincipal* aSubjectPrincipal,
+                                        ErrorResult& aRv) {
+  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);  // bug 443978
 }
 
 NS_IMETHODIMP
-nsCSSFontFaceStyleDecl::GetPropertyValue(const nsAString & propertyName,
-                                         nsAString & aResult)
-{
+nsCSSFontFaceStyleDecl::GetPropertyValue(const nsAString& propertyName,
+                                         nsAString& aResult) {
   return GetPropertyValue(nsCSSProps::LookupFontDesc(propertyName), aResult);
 }
 
-already_AddRefed<dom::CSSValue>
-nsCSSFontFaceStyleDecl::GetPropertyCSSValue(const nsAString & propertyName,
-                                            ErrorResult& aRv)
-{
+already_AddRefed<dom::CSSValue> nsCSSFontFaceStyleDecl::GetPropertyCSSValue(
+    const nsAString& propertyName, ErrorResult& aRv) {
   // ??? nsDOMCSSDeclaration returns null/NS_OK, but that seems wrong.
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
   return nullptr;
 }
 
 NS_IMETHODIMP
-nsCSSFontFaceStyleDecl::RemoveProperty(const nsAString & propertyName,
-                                       nsAString & aResult)
-{
+nsCSSFontFaceStyleDecl::RemoveProperty(const nsAString& propertyName,
+                                       nsAString& aResult) {
   nsCSSFontDesc descID = nsCSSProps::LookupFontDesc(propertyName);
-  NS_ASSERTION(descID >= eCSSFontDesc_UNKNOWN &&
-               descID < eCSSFontDesc_COUNT,
+  NS_ASSERTION(descID >= eCSSFontDesc_UNKNOWN && descID < eCSSFontDesc_COUNT,
                "LookupFontDesc returned value out of range");
 
   if (descID == eCSSFontDesc_UNKNOWN) {
@@ -210,10 +189,8 @@ nsCSSFontFaceStyleDecl::RemoveProperty(const nsAString & propertyName,
   return NS_OK;
 }
 
-void
-nsCSSFontFaceStyleDecl::GetPropertyPriority(const nsAString & propertyName,
-                                            nsAString & aResult)
-{
+void nsCSSFontFaceStyleDecl::GetPropertyPriority(const nsAString& propertyName,
+                                                 nsAString& aResult) {
   // font descriptors do not have priorities at present
   aResult.Truncate();
 }
@@ -222,21 +199,17 @@ NS_IMETHODIMP
 nsCSSFontFaceStyleDecl::SetProperty(const nsAString& propertyName,
                                     const nsAString& value,
                                     const nsAString& priority,
-                                    nsIPrincipal* aSubjectPrincipal)
-{
+                                    nsIPrincipal* aSubjectPrincipal) {
   // FIXME(heycam): If we are changing unicode-range, then a FontFace object
   // representing this rule must have its mUnicodeRange value invalidated.
 
-  return NS_ERROR_NOT_IMPLEMENTED; // bug 443978
+  return NS_ERROR_NOT_IMPLEMENTED;  // bug 443978
 }
 
-uint32_t
-nsCSSFontFaceStyleDecl::Length()
-{
+uint32_t nsCSSFontFaceStyleDecl::Length() {
   uint32_t len = 0;
   for (nsCSSFontDesc id = nsCSSFontDesc(eCSSFontDesc_UNKNOWN + 1);
-       id < eCSSFontDesc_COUNT;
-       id = nsCSSFontDesc(id + 1)) {
+       id < eCSSFontDesc_COUNT; id = nsCSSFontDesc(id + 1)) {
     if (mDescriptors.Get(id).GetUnit() != eCSSUnit_Null) {
       len++;
     }
@@ -245,13 +218,11 @@ nsCSSFontFaceStyleDecl::Length()
   return len;
 }
 
-void
-nsCSSFontFaceStyleDecl::IndexedGetter(uint32_t index, bool& aFound, nsAString & aResult)
-{
+void nsCSSFontFaceStyleDecl::IndexedGetter(uint32_t index, bool& aFound,
+                                           nsAString& aResult) {
   int32_t nset = -1;
   for (nsCSSFontDesc id = nsCSSFontDesc(eCSSFontDesc_UNKNOWN + 1);
-       id < eCSSFontDesc_COUNT;
-       id = nsCSSFontDesc(id + 1)) {
+       id < eCSSFontDesc_COUNT; id = nsCSSFontDesc(id + 1)) {
     if (mDescriptors.Get(id).GetUnit() != eCSSUnit_Null) {
       nset++;
       if (nset == int32_t(index)) {
@@ -264,21 +235,14 @@ nsCSSFontFaceStyleDecl::IndexedGetter(uint32_t index, bool& aFound, nsAString & 
   aFound = false;
 }
 
-css::Rule*
-nsCSSFontFaceStyleDecl::GetParentRule()
-{
-  return ContainingRule();
-}
+css::Rule* nsCSSFontFaceStyleDecl::GetParentRule() { return ContainingRule(); }
 
-nsINode*
-nsCSSFontFaceStyleDecl::GetParentObject()
-{
+nsINode* nsCSSFontFaceStyleDecl::GetParentObject() {
   return ContainingRule()->GetDocument();
 }
 
-JSObject*
-nsCSSFontFaceStyleDecl::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* nsCSSFontFaceStyleDecl::WrapObject(
+    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::CSSStyleDeclarationBinding::Wrap(cx, this, aGivenProto);
 }
 
@@ -286,9 +250,7 @@ nsCSSFontFaceStyleDecl::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenPr
 // nsCSSFontFaceRule
 //
 
-/* virtual */ already_AddRefed<css::Rule>
-nsCSSFontFaceRule::Clone() const
-{
+/* virtual */ already_AddRefed<css::Rule> nsCSSFontFaceRule::Clone() const {
   RefPtr<css::Rule> clone = new nsCSSFontFaceRule(*this);
   return clone.forget();
 }
@@ -320,9 +282,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsCSSFontFaceRule,
   // Keep this in sync with IsCCLeaf.
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-bool
-nsCSSFontFaceRule::IsCCLeaf() const
-{
+bool nsCSSFontFaceRule::IsCCLeaf() const {
   if (!Rule::IsCCLeaf()) {
     return false;
   }
@@ -330,14 +290,13 @@ nsCSSFontFaceRule::IsCCLeaf() const
   return !mDecl.PreservingWrapper();
 }
 
-NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(nsCSSFontFaceRule, mozilla::css::Rule)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(nsCSSFontFaceRule,
+                                               mozilla::css::Rule)
 
 #ifdef DEBUG
-void
-nsCSSFontFaceRule::List(FILE* out, int32_t aIndent) const
-{
+void nsCSSFontFaceRule::List(FILE* out, int32_t aIndent) const {
   nsCString baseInd, descInd;
-  for (int32_t indent = aIndent; --indent >= 0; ) {
+  for (int32_t indent = aIndent; --indent >= 0;) {
     baseInd.AppendLiteral("  ");
     descInd.AppendLiteral("  ");
   }
@@ -347,36 +306,29 @@ nsCSSFontFaceRule::List(FILE* out, int32_t aIndent) const
 
   fprintf_stderr(out, "%s@font-face {\n", baseInd.get());
   for (nsCSSFontDesc id = nsCSSFontDesc(eCSSFontDesc_UNKNOWN + 1);
-       id < eCSSFontDesc_COUNT;
-       id = nsCSSFontDesc(id + 1))
+       id < eCSSFontDesc_COUNT; id = nsCSSFontDesc(id + 1))
     if (mDecl.mDescriptors.Get(id).GetUnit() != eCSSUnit_Null) {
       if (NS_FAILED(mDecl.GetPropertyValue(id, descStr)))
         descStr.AssignLiteral("#<serialization error>");
       else if (descStr.Length() == 0)
         descStr.AssignLiteral("#<serialization missing>");
-      fprintf_stderr(out, "%s%s: %s\n",
-                     descInd.get(), nsCSSProps::GetStringValue(id).get(),
+      fprintf_stderr(out, "%s%s: %s\n", descInd.get(),
+                     nsCSSProps::GetStringValue(id).get(),
                      NS_ConvertUTF16toUTF8(descStr).get());
     }
   fprintf_stderr(out, "%s}\n", baseInd.get());
 }
 #endif
 
-/* virtual */ int32_t
-nsCSSFontFaceRule::GetType() const
-{
+/* virtual */ int32_t nsCSSFontFaceRule::GetType() const {
   return Rule::FONT_FACE_RULE;
 }
 
-uint16_t
-nsCSSFontFaceRule::Type() const
-{
+uint16_t nsCSSFontFaceRule::Type() const {
   return CSSRuleBinding::FONT_FACE_RULE;
 }
 
-void
-nsCSSFontFaceRule::GetCssText(nsAString& aCssText) const
-{
+void nsCSSFontFaceRule::GetCssText(nsAString& aCssText) const {
   nsAutoString propText;
   mDecl.GetCssTextImpl(propText);
 
@@ -385,19 +337,14 @@ nsCSSFontFaceRule::GetCssText(nsAString& aCssText) const
   aCssText.Append('}');
 }
 
-nsICSSDeclaration*
-nsCSSFontFaceRule::Style()
-{
-  return &mDecl;
-}
+nsICSSDeclaration* nsCSSFontFaceRule::Style() { return &mDecl; }
 
 // Arguably these should forward to nsCSSFontFaceStyleDecl methods.
-void
-nsCSSFontFaceRule::SetDesc(nsCSSFontDesc aDescID, nsCSSValue const & aValue)
-{
-  NS_PRECONDITION(aDescID > eCSSFontDesc_UNKNOWN &&
-                  aDescID < eCSSFontDesc_COUNT,
-                  "aDescID out of range in nsCSSFontFaceRule::SetDesc");
+void nsCSSFontFaceRule::SetDesc(nsCSSFontDesc aDescID,
+                                nsCSSValue const& aValue) {
+  NS_PRECONDITION(
+      aDescID > eCSSFontDesc_UNKNOWN && aDescID < eCSSFontDesc_COUNT,
+      "aDescID out of range in nsCSSFontFaceRule::SetDesc");
 
   // FIXME: handle dynamic changes
 
@@ -407,19 +354,16 @@ nsCSSFontFaceRule::SetDesc(nsCSSFontDesc aDescID, nsCSSValue const & aValue)
   mDecl.mDescriptors.Get(aDescID) = aValue;
 }
 
-void
-nsCSSFontFaceRule::GetDesc(nsCSSFontDesc aDescID, nsCSSValue & aValue)
-{
-  NS_PRECONDITION(aDescID > eCSSFontDesc_UNKNOWN &&
-                  aDescID < eCSSFontDesc_COUNT,
-                  "aDescID out of range in nsCSSFontFaceRule::GetDesc");
+void nsCSSFontFaceRule::GetDesc(nsCSSFontDesc aDescID, nsCSSValue& aValue) {
+  NS_PRECONDITION(
+      aDescID > eCSSFontDesc_UNKNOWN && aDescID < eCSSFontDesc_COUNT,
+      "aDescID out of range in nsCSSFontFaceRule::GetDesc");
 
   aValue = mDecl.mDescriptors.Get(aDescID);
 }
 
-/* virtual */ size_t
-nsCSSFontFaceRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
+/* virtual */ size_t nsCSSFontFaceRule::SizeOfIncludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this);
 
   // Measurement of the following members may be added later if DMD finds it is
@@ -427,9 +371,7 @@ nsCSSFontFaceRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   // - mDecl
 }
 
-/* virtual */ JSObject*
-nsCSSFontFaceRule::WrapObject(JSContext* aCx,
-                              JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* nsCSSFontFaceRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSFontFaceRuleBinding::Wrap(aCx, this, aGivenProto);
 }

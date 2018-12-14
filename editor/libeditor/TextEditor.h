@@ -33,25 +33,23 @@ enum class EditAction : int32_t;
 
 namespace dom {
 class Selection;
-} // namespace dom
+}  // namespace dom
 
 /**
  * The text editor implementation.
  * Use to edit text document represented as a DOM tree.
  */
-class TextEditor : public EditorBase
-                 , public nsIPlaintextEditor
-                 , public nsIEditorMailSupport
-{
-public:
+class TextEditor : public EditorBase,
+                   public nsIPlaintextEditor,
+                   public nsIEditorMailSupport {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TextEditor, EditorBase)
 
-  enum ETypingAction
-  {
-    eTypedText,  /* user typed text */
-    eTypedBR,    /* user typed shift-enter to get a br */
-    eTypedBreak  /* user typed enter */
+  enum ETypingAction {
+    eTypedText, /* user typed text */
+    eTypedBR,   /* user typed shift-enter to get a br */
+    eTypedBreak /* user typed enter */
   };
 
   TextEditor();
@@ -64,9 +62,8 @@ public:
 
   // Overrides of EditorBase
   virtual nsresult RemoveAttributeOrEquivalent(
-                     Element* aElement,
-                     nsAtom* aAttribute,
-                     bool aSuppressTransaction) override;
+      Element* aElement, nsAtom* aAttribute,
+      bool aSuppressTransaction) override;
   virtual nsresult SetAttributeOrEquivalent(Element* aElement,
                                             nsAtom* aAttribute,
                                             const nsAString& aValue,
@@ -100,8 +97,7 @@ public:
   NS_IMETHOD CanPasteTransferable(nsITransferable* aTransferable,
                                   bool* aCanPaste) override;
 
-  NS_IMETHOD OutputToString(const nsAString& aFormatType,
-                            uint32_t aFlags,
+  NS_IMETHOD OutputToString(const nsAString& aFormatType, uint32_t aFlags,
                             nsAString& aOutputString) override;
 
   NS_IMETHOD OutputToStream(nsIOutputStream* aOutputStream,
@@ -128,13 +124,13 @@ public:
   virtual nsresult SelectEntireDocument(Selection* aSelection) override;
 
   virtual nsresult HandleKeyPressEvent(
-                     WidgetKeyboardEvent* aKeyboardEvent) override;
+      WidgetKeyboardEvent* aKeyboardEvent) override;
 
   virtual dom::EventTarget* GetDOMEventTarget() override;
 
   virtual nsresult BeginIMEComposition(WidgetCompositionEvent* aEvent) override;
   virtual nsresult UpdateIMEComposition(
-                     WidgetCompositionEvent* aCompositionChangeEvet) override;
+      WidgetCompositionEvent* aCompositionChangeEvet) override;
 
   virtual already_AddRefed<nsIContent> GetInputEventTargetContent() override;
 
@@ -142,8 +138,7 @@ public:
   NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction);
 
   nsresult InsertTextAt(const nsAString& aStringToInsert,
-                        nsIDOMNode* aDestinationNode,
-                        int32_t aDestOffset,
+                        nsIDOMNode* aDestinationNode, int32_t aDestOffset,
                         bool aDoDeleteSelection);
 
   virtual nsresult InsertFromDataTransfer(dom::DataTransfer* aDataTransfer,
@@ -174,9 +169,9 @@ public:
                                     int32_t& aCaretStyle);
 
   /**
-    * The maximum number of characters allowed.
-    *   default: -1 (unlimited).
-    */
+   * The maximum number of characters allowed.
+   *   default: -1 (unlimited).
+   */
   int32_t MaxTextLength() const { return mMaxTextLength; }
   void SetMaxTextLength(int32_t aLength) { mMaxTextLength = aLength; }
 
@@ -188,7 +183,7 @@ public:
    */
   nsresult SetText(const nsAString& aString);
 
-protected:
+ protected:
   virtual ~TextEditor();
 
   NS_IMETHOD InitRules();
@@ -196,9 +191,8 @@ protected:
   nsresult EndEditorInit();
 
   already_AddRefed<nsIDocumentEncoder> GetAndInitDocEncoder(
-                                         const nsAString& aFormatType,
-                                         uint32_t aFlags,
-                                         const nsACString& aCharset);
+      const nsAString& aFormatType, uint32_t aFlags,
+      const nsACString& aCharset);
 
   /**
    * CreateBR() creates new <br> element and inserts it before aPointToInsert,
@@ -233,10 +227,9 @@ protected:
    * @return                    The new <br> node.  If failed to create new
    *                            <br> node, returns nullptr.
    */
-  already_AddRefed<Element>
-  CreateBRImpl(Selection& aSelection,
-               const EditorRawDOMPoint& aPointToInsert,
-               EDirection aSelect);
+  already_AddRefed<Element> CreateBRImpl(
+      Selection& aSelection, const EditorRawDOMPoint& aPointToInsert,
+      EDirection aSelect);
 
   /**
    * Factored methods for handling insertion of data from transferables
@@ -255,20 +248,15 @@ protected:
   nsresult SharedOutputString(uint32_t aFlags, bool* aIsCollapsed,
                               nsAString& aResult);
 
-  enum PasswordFieldAllowed
-  {
-    ePasswordFieldAllowed,
-    ePasswordFieldNotAllowed
-  };
+  enum PasswordFieldAllowed { ePasswordFieldAllowed, ePasswordFieldNotAllowed };
   bool CanCutOrCopy(PasswordFieldAllowed aPasswordFieldAllowed);
-  bool FireClipboardEvent(EventMessage aEventMessage,
-                          int32_t aSelectionType,
+  bool FireClipboardEvent(EventMessage aEventMessage, int32_t aSelectionType,
                           bool* aActionTaken = nullptr);
 
   bool UpdateMetaCharset(nsIDocument& aDocument,
                          const nsACString& aCharacterSet);
 
-protected:
+ protected:
   nsCOMPtr<nsIDocumentEncoder> mCachedDocumentEncoder;
   nsString mCachedDocumentEncoderType;
   int32_t mWrapColumn;
@@ -282,18 +270,14 @@ protected:
   friend class TextEditRules;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-mozilla::TextEditor*
-nsIEditor::AsTextEditor()
-{
+mozilla::TextEditor* nsIEditor::AsTextEditor() {
   return static_cast<mozilla::TextEditor*>(this);
 }
 
-const mozilla::TextEditor*
-nsIEditor::AsTextEditor() const
-{
+const mozilla::TextEditor* nsIEditor::AsTextEditor() const {
   return static_cast<const mozilla::TextEditor*>(this);
 }
 
-#endif // #ifndef mozilla_TextEditor_h
+#endif  // #ifndef mozilla_TextEditor_h

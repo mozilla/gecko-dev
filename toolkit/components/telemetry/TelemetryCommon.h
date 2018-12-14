@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,39 +19,38 @@ namespace Telemetry {
 namespace Common {
 
 enum class RecordedProcessType : uint32_t {
-  Main         = (1 << GeckoProcessType_Default),  // Also known as "parent process"
-  Content      = (1 << GeckoProcessType_Content),
-  Gpu          = (1 << GeckoProcessType_GPU),
-  AllChildren  = 0xFFFFFFFF - 1,  // All the child processes (i.e. content, gpu, ...)
-  All          = 0xFFFFFFFF       // All the processes
+  Main = (1 << GeckoProcessType_Default),  // Also known as "parent process"
+  Content = (1 << GeckoProcessType_Content),
+  Gpu = (1 << GeckoProcessType_GPU),
+  AllChildren =
+      0xFFFFFFFF - 1,  // All the child processes (i.e. content, gpu, ...)
+  All = 0xFFFFFFFF     // All the processes
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(RecordedProcessType);
 
-template<class EntryType>
-class AutoHashtable : public nsTHashtable<EntryType>
-{
-public:
-  explicit AutoHashtable(uint32_t initLength =
-                         PLDHashTable::kDefaultInitialLength);
-  typedef bool (*ReflectEntryFunc)(EntryType *entry, JSContext *cx, JS::Handle<JSObject*> obj);
-  bool ReflectIntoJS(ReflectEntryFunc entryFunc, JSContext *cx, JS::Handle<JSObject*> obj);
+template <class EntryType>
+class AutoHashtable : public nsTHashtable<EntryType> {
+ public:
+  explicit AutoHashtable(
+      uint32_t initLength = PLDHashTable::kDefaultInitialLength);
+  typedef bool (*ReflectEntryFunc)(EntryType* entry, JSContext* cx,
+                                   JS::Handle<JSObject*> obj);
+  bool ReflectIntoJS(ReflectEntryFunc entryFunc, JSContext* cx,
+                     JS::Handle<JSObject*> obj);
 };
 
-template<class EntryType>
+template <class EntryType>
 AutoHashtable<EntryType>::AutoHashtable(uint32_t initLength)
-  : nsTHashtable<EntryType>(initLength)
-{
-}
+    : nsTHashtable<EntryType>(initLength) {}
 
 /**
  * Reflect the individual entries of table into JS, usually by defining
  * some property and value of obj.  entryFunc is called for each entry.
  */
-template<typename EntryType>
-bool
-AutoHashtable<EntryType>::ReflectIntoJS(ReflectEntryFunc entryFunc,
-                                        JSContext *cx, JS::Handle<JSObject*> obj)
-{
+template <typename EntryType>
+bool AutoHashtable<EntryType>::ReflectIntoJS(ReflectEntryFunc entryFunc,
+                                             JSContext* cx,
+                                             JS::Handle<JSObject*> obj) {
   for (auto iter = this->Iter(); !iter.Done(); iter.Next()) {
     if (!entryFunc(iter.Get(), cx, obj)) {
       return false;
@@ -61,23 +61,26 @@ AutoHashtable<EntryType>::ReflectIntoJS(ReflectEntryFunc entryFunc,
 
 bool IsExpiredVersion(const char* aExpiration);
 bool IsInDataset(uint32_t aDataset, uint32_t aContainingDataset);
-bool CanRecordDataset(uint32_t aDataset, bool aCanRecordBase, bool aCanRecordExtended);
-bool CanRecordInProcess(RecordedProcessType aProcesses, GeckoProcessType aProcess);
+bool CanRecordDataset(uint32_t aDataset, bool aCanRecordBase,
+                      bool aCanRecordExtended);
+bool CanRecordInProcess(RecordedProcessType aProcesses,
+                        GeckoProcessType aProcess);
 bool CanRecordInProcess(RecordedProcessType aProcesses, ProcessID aProcess);
 
 /**
  * Return the number of milliseconds since process start using monotonic
  * timestamps (unaffected by system clock changes).
  *
- * @return NS_OK on success, NS_ERROR_NOT_AVAILABLE if TimeStamp doesn't have the data.
+ * @return NS_OK on success, NS_ERROR_NOT_AVAILABLE if TimeStamp doesn't have
+ * the data.
  */
 nsresult MsSinceProcessStart(double* aResult);
 
 /**
  * Dumps a log message to the Browser Console using the provided level.
  *
- * @param aLogLevel The level to use when displaying the message in the browser console
- *        (e.g. nsIScriptError::warningFlag, ...).
+ * @param aLogLevel The level to use when displaying the message in the browser
+ * console (e.g. nsIScriptError::warningFlag, ...).
  * @param aMsg The text message to print to the console.
  */
 void LogToBrowserConsole(uint32_t aLogLevel, const nsAString& aMsg);
@@ -104,9 +107,9 @@ GeckoProcessType GetGeckoProcessType(ProcessID process);
  * @param aAllowInfixUnderscore Whether or not to allow infix underscores.
  * @returns true if the string validates correctly, false otherwise.
  */
-bool
-IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
-                        const bool aAllowInfixPeriod, const bool aAllowInfixUnderscore);
+bool IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
+                             const bool aAllowInfixPeriod,
+                             const bool aAllowInfixUnderscore);
 
 /**
  * Convert the given UTF16 string to a JavaScript string.
@@ -115,11 +118,10 @@ IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
  * @param aStr The UTF16 string.
  * @returns a JavaScript string.
  */
-JSString*
-ToJSString(JSContext* cx, const nsAString& aStr);
+JSString* ToJSString(JSContext* cx, const nsAString& aStr);
 
-} // namespace Common
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Common
+}  // namespace Telemetry
+}  // namespace mozilla
 
-#endif // TelemetryCommon_h__
+#endif  // TelemetryCommon_h__

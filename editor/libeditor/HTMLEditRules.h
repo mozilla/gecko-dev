@@ -7,7 +7,7 @@
 #define HTMLEditRules_h
 
 #include "TypeInState.h"
-#include "mozilla/EditorDOMPoint.h" // for EditorDOMPoint
+#include "mozilla/EditorDOMPoint.h"  // for EditorDOMPoint
 #include "mozilla/SelectionState.h"
 #include "mozilla/TextEditRules.h"
 #include "nsCOMPtr.h"
@@ -38,47 +38,30 @@ enum class EditAction : int32_t;
 namespace dom {
 class Element;
 class Selection;
-} // namespace dom
+}  // namespace dom
 
-struct StyleCache final : public PropItem
-{
+struct StyleCache final : public PropItem {
   bool mPresent;
 
-  StyleCache()
-    : PropItem()
-    , mPresent(false)
-  {
+  StyleCache() : PropItem(), mPresent(false) { MOZ_COUNT_CTOR(StyleCache); }
+
+  StyleCache(nsAtom* aTag, nsAtom* aAttr, const nsAString& aValue)
+      : PropItem(aTag, aAttr, aValue), mPresent(false) {
     MOZ_COUNT_CTOR(StyleCache);
   }
 
-  StyleCache(nsAtom* aTag,
-             nsAtom* aAttr,
-             const nsAString& aValue)
-    : PropItem(aTag, aAttr, aValue)
-    , mPresent(false)
-  {
+  StyleCache(nsAtom* aTag, nsAtom* aAttr)
+      : PropItem(aTag, aAttr, EmptyString()), mPresent(false) {
     MOZ_COUNT_CTOR(StyleCache);
   }
 
-  StyleCache(nsAtom* aTag,
-             nsAtom* aAttr)
-    : PropItem(aTag, aAttr, EmptyString())
-    , mPresent(false)
-  {
-    MOZ_COUNT_CTOR(StyleCache);
-  }
-
-  ~StyleCache()
-  {
-    MOZ_COUNT_DTOR(StyleCache);
-  }
+  ~StyleCache() { MOZ_COUNT_DTOR(StyleCache); }
 };
 
 #define SIZE_STYLE_TABLE 19
 
-class HTMLEditRules : public TextEditRules
-{
-public:
+class HTMLEditRules : public TextEditRules {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLEditRules, TextEditRules)
 
@@ -91,12 +74,9 @@ public:
                               nsIEditor::EDirection aDirection) override;
   virtual nsresult AfterEdit(EditAction aAction,
                              nsIEditor::EDirection aDirection) override;
-  virtual nsresult WillDoAction(Selection* aSelection,
-                                RulesInfo* aInfo,
-                                bool* aCancel,
-                                bool* aHandled) override;
-  virtual nsresult DidDoAction(Selection* aSelection,
-                               RulesInfo* aInfo,
+  virtual nsresult WillDoAction(Selection* aSelection, RulesInfo* aInfo,
+                                bool* aCancel, bool* aHandled) override;
+  virtual nsresult DidDoAction(Selection* aSelection, RulesInfo* aInfo,
                                nsresult aResult) override;
   virtual bool DocumentIsEmpty() override;
   virtual nsresult DocumentModified() override;
@@ -111,8 +91,7 @@ public:
   void DidCreateNode(Element* aNewElement);
   void DidInsertNode(nsIContent& aNode);
   void WillDeleteNode(nsINode* aChild);
-  void DidSplitNode(nsINode* aExistingRightNode,
-                    nsINode* aNewLeftNode);
+  void DidSplitNode(nsINode* aExistingRightNode, nsINode* aNewLeftNode);
   void WillJoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
   void DidJoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
   void DidInsertText(nsINode* aTextNode, int32_t aOffset,
@@ -125,24 +104,17 @@ public:
   void StartToListenToEditActions() { mListenerEnabled = true; }
   void EndListeningToEditActions() { mListenerEnabled = false; }
 
-protected:
+ protected:
   virtual ~HTMLEditRules();
 
-  enum RulesEndpoint
-  {
-    kStart,
-    kEnd
-  };
+  enum RulesEndpoint { kStart, kEnd };
 
   void InitFields();
 
   void WillInsert(Selection& aSelection, bool* aCancel);
-  nsresult WillInsertText(EditAction aAction,
-                          Selection* aSelection,
-                          bool* aCancel,
-                          bool* aHandled,
-                          const nsAString* inString,
-                          nsAString* outString,
+  nsresult WillInsertText(EditAction aAction, Selection* aSelection,
+                          bool* aCancel, bool* aHandled,
+                          const nsAString* inString, nsAString* outString,
                           int32_t aMaxLength);
   nsresult WillLoadHTML(Selection* aSelection, bool* aCancel);
   nsresult WillInsertBreak(Selection& aSelection, bool* aCancel,
@@ -164,8 +136,7 @@ protected:
                                nsIEditor::EDirection aAction,
                                nsIEditor::EStripWrappers aStripWrappers,
                                bool* aCancel, bool* aHandled);
-  nsresult DidDeleteSelection(Selection* aSelection,
-                              nsIEditor::EDirection aDir,
+  nsresult DidDeleteSelection(Selection* aSelection, nsIEditor::EDirection aDir,
                               nsresult aResult);
   nsresult InsertBRIfNeeded(Selection* aSelection);
 
@@ -246,18 +217,15 @@ protected:
                                 int32_t* aInOutDestOffset);
 
   nsresult DeleteNonTableElements(nsINode* aNode);
-  nsresult WillMakeList(Selection* aSelection,
-                        const nsAString* aListType,
-                        bool aEntireList,
-                        const nsAString* aBulletType,
+  nsresult WillMakeList(Selection* aSelection, const nsAString* aListType,
+                        bool aEntireList, const nsAString* aBulletType,
                         bool* aCancel, bool* aHandled,
                         const nsAString* aItemType = nullptr);
   nsresult WillRemoveList(Selection* aSelection, bool aOrdered, bool* aCancel,
                           bool* aHandled);
   nsresult WillIndent(Selection* aSelection, bool* aCancel, bool* aHandled);
   nsresult WillCSSIndent(Selection* aSelection, bool* aCancel, bool* aHandled);
-  nsresult WillHTMLIndent(Selection* aSelection, bool* aCancel,
-                          bool* aHandled);
+  nsresult WillHTMLIndent(Selection* aSelection, bool* aCancel, bool* aHandled);
   nsresult WillOutdent(Selection& aSelection, bool* aCancel, bool* aHandled);
   nsresult WillAlign(Selection& aSelection, const nsAString& aAlignType,
                      bool* aCancel, bool* aHandled);
@@ -271,8 +239,8 @@ protected:
                                const nsAString* aBlockType, bool aEntireList,
                                bool* aCancel, bool* aHandled);
   nsresult WillMakeBasicBlock(Selection& aSelection,
-                              const nsAString& aBlockType,
-                              bool* aCancel, bool* aHandled);
+                              const nsAString& aBlockType, bool* aCancel,
+                              bool* aHandled);
   nsresult MakeBasicBlock(Selection& aSelection, nsAtom& aBlockType);
   nsresult DidMakeBasicBlock(Selection* aSelection, RulesInfo* aInfo,
                              nsresult aResult);
@@ -281,7 +249,7 @@ protected:
   nsresult AlignBlockContents(nsIDOMNode* aNode, const nsAString* alignType);
   nsresult AppendInnerFormatNodes(nsTArray<OwningNonNull<nsINode>>& aArray,
                                   nsINode* aNode);
-  nsresult GetFormatString(nsINode* aNode, nsAString &outFormat);
+  nsresult GetFormatString(nsINode* aNode, nsAString& outFormat);
   enum class Lists { no, yes };
   enum class Tables { no, yes };
   void GetInnerContent(nsINode& aNode,
@@ -322,25 +290,20 @@ protected:
    *                            If this is not nullptr, the <br> node may be
    *                            removed.
    */
-  nsresult SplitParagraph(Selection& aSelection,
-                          Element& aParentDivOrP,
+  nsresult SplitParagraph(Selection& aSelection, Element& aParentDivOrP,
                           const EditorRawDOMPoint& aStartOfRightNode,
                           nsIContent* aBRNode);
 
   nsresult ReturnInListItem(Selection& aSelection, Element& aHeader,
                             nsINode& aNode, int32_t aOffset);
-  nsresult AfterEditInner(EditAction action,
-                          nsIEditor::EDirection aDirection);
+  nsresult AfterEditInner(EditAction action, nsIEditor::EDirection aDirection);
   nsresult RemovePartOfBlock(Element& aBlock, nsIContent& aStartChild,
                              nsIContent& aEndChild);
-  void SplitBlock(Element& aBlock,
-                  nsIContent& aStartChild,
-                  nsIContent& aEndChild,
-                  nsIContent** aOutLeftNode = nullptr,
+  void SplitBlock(Element& aBlock, nsIContent& aStartChild,
+                  nsIContent& aEndChild, nsIContent** aOutLeftNode = nullptr,
                   nsIContent** aOutRightNode = nullptr,
                   nsIContent** aOutMiddleNode = nullptr);
-  nsresult OutdentPartOfBlock(Element& aBlock,
-                              nsIContent& aStartChild,
+  nsresult OutdentPartOfBlock(Element& aBlock, nsIContent& aStartChild,
                               nsIContent& aEndChild,
                               bool aIsBlockIndentedWithCSS,
                               nsIContent** aOutLeftNode,
@@ -355,13 +318,8 @@ protected:
    * IsEmptyBlockElement() returns true if aElement is a block level element
    * and it doesn't have any visible content.
    */
-  enum class IgnoreSingleBR
-  {
-    eYes,
-    eNo
-  };
-  bool IsEmptyBlockElement(Element& aElement,
-                           IgnoreSingleBR aIgnoreSingleBR);
+  enum class IgnoreSingleBR { eYes, eNo };
+  bool IsEmptyBlockElement(Element& aElement, IgnoreSingleBR aIgnoreSingleBR);
 
   nsresult CheckForEmptyBlock(nsINode* aStartNode, Element* aBodyNode,
                               Selection* aSelection,
@@ -381,36 +339,32 @@ protected:
   void PromoteRange(nsRange& aRange, EditAction inOperationType);
   enum class TouchContent { no, yes };
   nsresult GetNodesForOperation(
-             nsTArray<RefPtr<nsRange>>& aArrayOfRanges,
-             nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes,
-             EditAction aOperationType,
-             TouchContent aTouchContent = TouchContent::yes);
+      nsTArray<RefPtr<nsRange>>& aArrayOfRanges,
+      nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes,
+      EditAction aOperationType,
+      TouchContent aTouchContent = TouchContent::yes);
   void GetChildNodesForOperation(
-         nsINode& aNode,
-         nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes);
+      nsINode& aNode, nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes);
   nsresult GetNodesFromPoint(const EditorDOMPoint& aPoint,
                              EditAction aOperation,
                              nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
                              TouchContent aTouchContent);
   nsresult GetNodesFromSelection(
-             Selection& aSelection,
-             EditAction aOperation,
-             nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
-             TouchContent aTouchContent = TouchContent::yes);
+      Selection& aSelection, EditAction aOperation,
+      nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
+      TouchContent aTouchContent = TouchContent::yes);
   enum class EntireList { no, yes };
   nsresult GetListActionNodes(
-             nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes,
-             EntireList aEntireList,
-             TouchContent aTouchContent = TouchContent::yes);
+      nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes,
+      EntireList aEntireList, TouchContent aTouchContent = TouchContent::yes);
   void GetDefinitionListItemTypes(Element* aElement, bool* aDT, bool* aDD);
   nsresult GetParagraphFormatNodes(
-             nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
-             TouchContent aTouchContent = TouchContent::yes);
+      nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
+      TouchContent aTouchContent = TouchContent::yes);
   void LookInsideDivBQandList(nsTArray<OwningNonNull<nsINode>>& aNodeArray);
   nsresult BustUpInlinesAtRangeEndpoints(RangeItem& inRange);
   nsresult BustUpInlinesAtBRs(
-             nsIContent& aNode,
-             nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes);
+      nsIContent& aNode, nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes);
   /**
    * GetHiestInlineParent() returns the highest inline node parent between
    * aNode and the editing host.  Even if the editing host is an inline
@@ -460,12 +414,10 @@ protected:
    *                                    the point to insert the element.
    */
   SplitNodeResult MaybeSplitAncestorsForInsert(
-                    nsAtom& aTag,
-                    const EditorRawDOMPoint& aStartOfDeepestRightNode);
+      nsAtom& aTag, const EditorRawDOMPoint& aStartOfDeepestRightNode);
 
-  nsresult AddTerminatingBR(nsIDOMNode *aBlock);
-  EditorDOMPoint JoinNodesSmart(nsIContent& aNodeLeft,
-                                nsIContent& aNodeRight);
+  nsresult AddTerminatingBR(nsIDOMNode* aBlock);
+  EditorDOMPoint JoinNodesSmart(nsIContent& aNodeLeft, nsIContent& aNodeRight);
   Element* GetTopEnclosingMailCite(nsINode& aNode);
   nsresult PopListItem(nsIContent& aListItem, bool* aOutOfList = nullptr);
   nsresult RemoveListStructure(Element& aList);
@@ -512,8 +464,7 @@ protected:
    * Insert normal <br> element into aNode when aNode is a block and it has
    * no children.
    */
-  nsresult InsertBRIfNeeded(nsINode& aNode)
-  {
+  nsresult InsertBRIfNeeded(nsINode& aNode) {
     return InsertBRIfNeededInternal(aNode, false);
   }
 
@@ -521,8 +472,7 @@ protected:
    * Insert moz-<br> element (<br type="_moz">) into aNode when aNode is a
    * block and it has no children.
    */
-  nsresult InsertMozBRIfNeeded(nsINode& aNode)
-  {
+  nsresult InsertMozBRIfNeeded(nsINode& aNode) {
     return InsertBRIfNeededInternal(aNode, true);
   }
 
@@ -532,8 +482,8 @@ protected:
                            bool aChildrenOnly);
   nsresult MakeSureElemStartsOrEndsOnCR(nsINode& aNode, bool aStarts);
   enum class ContentsOnly { no, yes };
-  nsresult AlignBlock(Element& aElement,
-                      const nsAString& aAlignType, ContentsOnly aContentsOnly);
+  nsresult AlignBlock(Element& aElement, const nsAString& aAlignType,
+                      ContentsOnly aContentsOnly);
   enum class Change { minus, plus };
   nsresult ChangeIndentation(Element& aElement, Change aChange);
   void DocumentModifiedWorker();
@@ -551,7 +501,7 @@ protected:
   nsresult GetInlineStyles(nsINode* aNode,
                            StyleCache aStyleCache[SIZE_STYLE_TABLE]);
 
-protected:
+ protected:
   HTMLEditor* mHTMLEditor;
   RefPtr<nsRange> mDocChangeRange;
   bool mListenerEnabled;
@@ -572,7 +522,6 @@ protected:
   StyleCache mCachedStyles[SIZE_STYLE_TABLE];
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef HTMLEditRules_h
-
+#endif  // #ifndef HTMLEditRules_h

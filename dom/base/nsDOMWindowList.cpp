@@ -18,34 +18,28 @@
 
 using namespace mozilla;
 
-nsDOMWindowList::nsDOMWindowList(nsIDocShell *aDocShell)
-{
+nsDOMWindowList::nsDOMWindowList(nsIDocShell* aDocShell) {
   SetDocShell(aDocShell);
 }
 
-nsDOMWindowList::~nsDOMWindowList()
-{
-}
+nsDOMWindowList::~nsDOMWindowList() {}
 
 NS_IMPL_ADDREF(nsDOMWindowList)
 NS_IMPL_RELEASE(nsDOMWindowList)
 
 NS_INTERFACE_MAP_BEGIN(nsDOMWindowList)
-   NS_INTERFACE_MAP_ENTRY(nsIDOMWindowCollection)
-   NS_INTERFACE_MAP_ENTRY(nsISupports)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMWindowCollection)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
-nsDOMWindowList::SetDocShell(nsIDocShell* aDocShell)
-{
-  mDocShellNode = aDocShell; // Weak Reference
+nsDOMWindowList::SetDocShell(nsIDocShell* aDocShell) {
+  mDocShellNode = aDocShell;  // Weak Reference
 
   return NS_OK;
 }
 
-void
-nsDOMWindowList::EnsureFresh()
-{
+void nsDOMWindowList::EnsureFresh() {
   nsCOMPtr<nsIWebNavigation> shellAsNav = do_QueryInterface(mDocShellNode);
 
   if (shellAsNav) {
@@ -60,9 +54,7 @@ nsDOMWindowList::EnsureFresh()
   }
 }
 
-uint32_t
-nsDOMWindowList::GetLength()
-{
+uint32_t nsDOMWindowList::GetLength() {
   EnsureFresh();
 
   NS_ENSURE_TRUE(mDocShellNode, 0);
@@ -75,15 +67,13 @@ nsDOMWindowList::GetLength()
 }
 
 NS_IMETHODIMP
-nsDOMWindowList::GetLength(uint32_t* aLength)
-{
+nsDOMWindowList::GetLength(uint32_t* aLength) {
   *aLength = GetLength();
   return NS_OK;
 }
 
-already_AddRefed<nsPIDOMWindowOuter>
-nsDOMWindowList::IndexedGetter(uint32_t aIndex)
-{
+already_AddRefed<nsPIDOMWindowOuter> nsDOMWindowList::IndexedGetter(
+    uint32_t aIndex) {
   nsCOMPtr<nsIDocShellTreeItem> item = GetDocShellTreeItemAt(aIndex);
   if (!item) {
     return nullptr;
@@ -96,16 +86,15 @@ nsDOMWindowList::IndexedGetter(uint32_t aIndex)
 }
 
 NS_IMETHODIMP
-nsDOMWindowList::Item(uint32_t aIndex, mozIDOMWindowProxy** aReturn)
-{
+nsDOMWindowList::Item(uint32_t aIndex, mozIDOMWindowProxy** aReturn) {
   nsCOMPtr<nsPIDOMWindowOuter> window = IndexedGetter(aIndex);
   window.forget(aReturn);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowList::NamedItem(const nsAString& aName, mozIDOMWindowProxy** aReturn)
-{
+nsDOMWindowList::NamedItem(const nsAString& aName,
+                           mozIDOMWindowProxy** aReturn) {
   nsCOMPtr<nsIDocShellTreeItem> item;
 
   *aReturn = nullptr;
@@ -113,8 +102,8 @@ nsDOMWindowList::NamedItem(const nsAString& aName, mozIDOMWindowProxy** aReturn)
   EnsureFresh();
 
   if (mDocShellNode) {
-    mDocShellNode->FindChildWithName(aName, false, false, nullptr,
-                                     nullptr, getter_AddRefs(item));
+    mDocShellNode->FindChildWithName(aName, false, false, nullptr, nullptr,
+                                     getter_AddRefs(item));
 
     nsCOMPtr<nsIScriptGlobalObject> globalObject(do_GetInterface(item));
     if (globalObject) {

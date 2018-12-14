@@ -12,19 +12,15 @@
 namespace mozilla {
 namespace dom {
 
-bool
-CSSImportRule::IsCCLeaf() const
-{
+bool CSSImportRule::IsCCLeaf() const {
   // We're not a leaf.
   return false;
 }
 
-/* virtual */ JSObject*
-CSSImportRule::WrapObject(JSContext* aCx,
-                          JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* CSSImportRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSImportRuleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

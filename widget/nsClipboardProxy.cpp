@@ -18,16 +18,12 @@ using namespace mozilla::dom;
 
 NS_IMPL_ISUPPORTS(nsClipboardProxy, nsIClipboard, nsIClipboardProxy)
 
-nsClipboardProxy::nsClipboardProxy()
-  : mClipboardCaps(false, false)
-{
-}
+nsClipboardProxy::nsClipboardProxy() : mClipboardCaps(false, false) {}
 
 NS_IMETHODIMP
 nsClipboardProxy::SetData(nsITransferable *aTransferable,
-                          nsIClipboardOwner *anOwner, int32_t aWhichClipboard)
-{
-  ContentChild* child = ContentChild::GetSingleton();
+                          nsIClipboardOwner *anOwner, int32_t aWhichClipboard) {
+  ContentChild *child = ContentChild::GetSingleton();
 
   IPCDataTransfer ipcDataTransfer;
   nsContentUtils::TransferableToIPCTransferable(aTransferable, &ipcDataTransfer,
@@ -47,10 +43,10 @@ nsClipboardProxy::SetData(nsITransferable *aTransferable,
 }
 
 NS_IMETHODIMP
-nsClipboardProxy::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
-{
-   nsTArray<nsCString> types;
-  
+nsClipboardProxy::GetData(nsITransferable *aTransferable,
+                          int32_t aWhichClipboard) {
+  nsTArray<nsCString> types;
+
   nsCOMPtr<nsIArray> flavorList;
   aTransferable->FlavorsTransferableCanImport(getter_AddRefs(flavorList));
   if (flavorList) {
@@ -70,15 +66,16 @@ nsClipboardProxy::GetData(nsITransferable *aTransferable, int32_t aWhichClipboar
 
   nsresult rv;
   IPCDataTransfer dataTransfer;
-  ContentChild::GetSingleton()->SendGetClipboard(types, aWhichClipboard, &dataTransfer);
+  ContentChild::GetSingleton()->SendGetClipboard(types, aWhichClipboard,
+                                                 &dataTransfer);
 
-  auto& items = dataTransfer.items();
+  auto &items = dataTransfer.items();
   for (uint32_t j = 0; j < items.Length(); ++j) {
-    const IPCDataTransferItem& item = items[j];
+    const IPCDataTransferItem &item = items[j];
 
     if (item.data().type() == IPCDataTransferData::TnsString) {
       nsCOMPtr<nsISupportsString> dataWrapper =
-        do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv);
+          do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
       nsString data = item.data().get_nsString();
@@ -98,19 +95,22 @@ nsClipboardProxy::GetData(nsITransferable *aTransferable, int32_t aWhichClipboar
           flavor.EqualsLiteral(kGIFImageMime)) {
         nsCOMPtr<nsIInputStream> stream;
 
-        NS_NewCStringInputStream(getter_AddRefs(stream),
-                                 nsDependentCSubstring(data.get<char>(), data.Size<char>()));
+        NS_NewCStringInputStream(
+            getter_AddRefs(stream),
+            nsDependentCSubstring(data.get<char>(), data.Size<char>()));
 
-        rv = aTransferable->SetTransferData(flavor.get(), stream, sizeof(nsISupports*));
+        rv = aTransferable->SetTransferData(flavor.get(), stream,
+                                            sizeof(nsISupports *));
         NS_ENSURE_SUCCESS(rv, rv);
       } else if (flavor.EqualsLiteral(kNativeHTMLMime) ||
                  flavor.EqualsLiteral(kRTFMime) ||
                  flavor.EqualsLiteral(kCustomTypesMime)) {
         nsCOMPtr<nsISupportsCString> dataWrapper =
-          do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID, &rv);
+            do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID, &rv);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = dataWrapper->SetData(nsDependentCSubstring(data.get<char>(), data.Size<char>()));
+        rv = dataWrapper->SetData(
+            nsDependentCSubstring(data.get<char>(), data.Size<char>()));
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = aTransferable->SetTransferData(item.flavor().get(), dataWrapper,
@@ -126,47 +126,43 @@ nsClipboardProxy::GetData(nsITransferable *aTransferable, int32_t aWhichClipboar
 }
 
 NS_IMETHODIMP
-nsClipboardProxy::EmptyClipboard(int32_t aWhichClipboard)
-{
+nsClipboardProxy::EmptyClipboard(int32_t aWhichClipboard) {
   ContentChild::GetSingleton()->SendEmptyClipboard(aWhichClipboard);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsClipboardProxy::HasDataMatchingFlavors(const char **aFlavorList,
-                                         uint32_t aLength, int32_t aWhichClipboard,
-                                         bool *aHasType)
-{
+                                         uint32_t aLength,
+                                         int32_t aWhichClipboard,
+                                         bool *aHasType) {
   *aHasType = false;
 
   nsTArray<nsCString> types;
-  nsCString* t = types.AppendElements(aLength);
+  nsCString *t = types.AppendElements(aLength);
   for (uint32_t j = 0; j < aLength; ++j) {
     t[j].Rebind(aFlavorList[j], nsCharTraits<char>::length(aFlavorList[j]));
   }
 
-  ContentChild::GetSingleton()->SendClipboardHasType(types, aWhichClipboard, aHasType);
+  ContentChild::GetSingleton()->SendClipboardHasType(types, aWhichClipboard,
+                                                     aHasType);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsClipboardProxy::SupportsSelectionClipboard(bool *aIsSupported)
-{
+nsClipboardProxy::SupportsSelectionClipboard(bool *aIsSupported) {
   *aIsSupported = mClipboardCaps.supportsSelectionClipboard();
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-nsClipboardProxy::SupportsFindClipboard(bool *aIsSupported)
-{
+nsClipboardProxy::SupportsFindClipboard(bool *aIsSupported) {
   *aIsSupported = mClipboardCaps.supportsFindClipboard();
   return NS_OK;
 }
 
-void
-nsClipboardProxy::SetCapabilities(const ClipboardCapabilities& aClipboardCaps)
-{
+void nsClipboardProxy::SetCapabilities(
+    const ClipboardCapabilities &aClipboardCaps) {
   mClipboardCaps = aClipboardCaps;
 }

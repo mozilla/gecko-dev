@@ -13,57 +13,59 @@
 namespace mozilla {
 namespace wr {
 
-static CGLError
-CreateTextureForPlane(uint8_t aPlaneID, gl::GLContext* aGL, MacIOSurface* aSurface, GLuint* aTexture)
-{
+static CGLError CreateTextureForPlane(uint8_t aPlaneID, gl::GLContext* aGL,
+                                      MacIOSurface* aSurface,
+                                      GLuint* aTexture) {
   MOZ_ASSERT(aGL && aSurface && aTexture);
 
   aGL->fGenTextures(1, aTexture);
   aGL->fActiveTexture(LOCAL_GL_TEXTURE0);
   aGL->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, *aTexture);
-  aGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-  aGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
+  aGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_T,
+                      LOCAL_GL_CLAMP_TO_EDGE);
+  aGL->fTexParameteri(LOCAL_GL_TEXTURE_RECTANGLE_ARB, LOCAL_GL_TEXTURE_WRAP_S,
+                      LOCAL_GL_CLAMP_TO_EDGE);
 
   CGLError result = kCGLNoError;
   gfx::SurfaceFormat readFormat = gfx::SurfaceFormat::UNKNOWN;
-  result = aSurface->CGLTexImageIOSurface2D(aGL,
-                                            gl::GLContextCGL::Cast(aGL)->GetCGLContext(),
-                                            aPlaneID,
-                                            &readFormat);
-  // If this is a yuv format, the Webrender only supports YUV422 interleaving format.
-  MOZ_ASSERT(aSurface->GetFormat() != gfx::SurfaceFormat::YUV422 || readFormat == gfx::SurfaceFormat::YUV422);
+  result = aSurface->CGLTexImageIOSurface2D(
+      aGL, gl::GLContextCGL::Cast(aGL)->GetCGLContext(), aPlaneID, &readFormat);
+  // If this is a yuv format, the Webrender only supports YUV422 interleaving
+  // format.
+  MOZ_ASSERT(aSurface->GetFormat() != gfx::SurfaceFormat::YUV422 ||
+             readFormat == gfx::SurfaceFormat::YUV422);
 
   return result;
 }
 
-RenderMacIOSurfaceTextureHostOGL::RenderMacIOSurfaceTextureHostOGL(MacIOSurface* aSurface)
-  : mSurface(aSurface)
-  , mTextureHandles{ 0, 0, 0 }
-{
-  MOZ_COUNT_CTOR_INHERITED(RenderMacIOSurfaceTextureHostOGL, RenderTextureHostOGL);
+RenderMacIOSurfaceTextureHostOGL::RenderMacIOSurfaceTextureHostOGL(
+    MacIOSurface* aSurface)
+    : mSurface(aSurface), mTextureHandles{0, 0, 0} {
+  MOZ_COUNT_CTOR_INHERITED(RenderMacIOSurfaceTextureHostOGL,
+                           RenderTextureHostOGL);
 }
 
-RenderMacIOSurfaceTextureHostOGL::~RenderMacIOSurfaceTextureHostOGL()
-{
-  MOZ_COUNT_DTOR_INHERITED(RenderMacIOSurfaceTextureHostOGL, RenderTextureHostOGL);
+RenderMacIOSurfaceTextureHostOGL::~RenderMacIOSurfaceTextureHostOGL() {
+  MOZ_COUNT_DTOR_INHERITED(RenderMacIOSurfaceTextureHostOGL,
+                           RenderTextureHostOGL);
   DeleteTextureHandle();
 }
 
-GLuint
-RenderMacIOSurfaceTextureHostOGL::GetGLHandle(uint8_t aChannelIndex) const
-{
+GLuint RenderMacIOSurfaceTextureHostOGL::GetGLHandle(
+    uint8_t aChannelIndex) const {
   MOZ_ASSERT(mSurface);
-  MOZ_ASSERT((mSurface->GetPlaneCount() == 0) ? (aChannelIndex == mSurface->GetPlaneCount())
-                                              : (aChannelIndex < mSurface->GetPlaneCount()));
+  MOZ_ASSERT((mSurface->GetPlaneCount() == 0)
+                 ? (aChannelIndex == mSurface->GetPlaneCount())
+                 : (aChannelIndex < mSurface->GetPlaneCount()));
   return mTextureHandles[aChannelIndex];
 }
 
-gfx::IntSize
-RenderMacIOSurfaceTextureHostOGL::GetSize(uint8_t aChannelIndex) const
-{
+gfx::IntSize RenderMacIOSurfaceTextureHostOGL::GetSize(
+    uint8_t aChannelIndex) const {
   MOZ_ASSERT(mSurface);
-  MOZ_ASSERT((mSurface->GetPlaneCount() == 0) ? (aChannelIndex == mSurface->GetPlaneCount())
-                                              : (aChannelIndex < mSurface->GetPlaneCount()));
+  MOZ_ASSERT((mSurface->GetPlaneCount() == 0)
+                 ? (aChannelIndex == mSurface->GetPlaneCount())
+                 : (aChannelIndex < mSurface->GetPlaneCount()));
 
   if (!mSurface) {
     return gfx::IntSize();
@@ -72,9 +74,8 @@ RenderMacIOSurfaceTextureHostOGL::GetSize(uint8_t aChannelIndex) const
                       mSurface->GetDevicePixelHeight(aChannelIndex));
 }
 
-wr::WrExternalImage
-RenderMacIOSurfaceTextureHostOGL::Lock(uint8_t aChannelIndex, gl::GLContext* aGL)
-{
+wr::WrExternalImage RenderMacIOSurfaceTextureHostOGL::Lock(
+    uint8_t aChannelIndex, gl::GLContext* aGL) {
   if (mGL.get() != aGL) {
     // release the texture handle in the previous gl context
     DeleteTextureHandle();
@@ -102,15 +103,9 @@ RenderMacIOSurfaceTextureHostOGL::Lock(uint8_t aChannelIndex, gl::GLContext* aGL
                                         size.width, size.height);
 }
 
-void
-RenderMacIOSurfaceTextureHostOGL::Unlock()
-{
+void RenderMacIOSurfaceTextureHostOGL::Unlock() {}
 
-}
-
-void
-RenderMacIOSurfaceTextureHostOGL::DeleteTextureHandle()
-{
+void RenderMacIOSurfaceTextureHostOGL::DeleteTextureHandle() {
   if (mTextureHandles[0] != 0 && mGL && mGL->MakeCurrent()) {
     // Calling glDeleteTextures on 0 isn't an error. So, just make them a single
     // call.
@@ -121,5 +116,5 @@ RenderMacIOSurfaceTextureHostOGL::DeleteTextureHandle()
   }
 }
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla

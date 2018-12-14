@@ -19,9 +19,8 @@ class DocAccessible;
 /**
  * Manage the accessible focus. Used to fire and process accessible events.
  */
-class FocusManager
-{
-public:
+class FocusManager {
+ public:
   virtual ~FocusManager();
 
   /**
@@ -38,14 +37,16 @@ public:
    * Return true if the given accessible is an active item, i.e. an item that
    * is current within the active widget.
    */
-  inline bool IsActiveItem(const Accessible* aAccessible)
-    { return aAccessible == mActiveItem; }
+  inline bool IsActiveItem(const Accessible* aAccessible) {
+    return aAccessible == mActiveItem;
+  }
 
   /**
    * Return true if given DOM node has DOM focus.
    */
-  inline bool HasDOMFocus(const nsINode* aNode) const
-    { return aNode == FocusedDOMNode(); }
+  inline bool HasDOMFocus(const nsINode* aNode) const {
+    return aNode == FocusedDOMNode();
+  }
 
   /**
    * Return true if focused accessible is within the given container.
@@ -56,12 +57,7 @@ public:
    * Return whether the given accessible is focused or contains the focus or
    * contained by focused accessible.
    */
-  enum FocusDisposition {
-    eNone,
-    eFocused,
-    eContainsFocus,
-    eContainedByFocus
-  };
+  enum FocusDisposition { eNone, eFocused, eContainsFocus, eContainedByFocus };
   FocusDisposition IsInOrContainsFocus(const Accessible* aAccessible) const;
 
   //////////////////////////////////////////////////////////////////////////////
@@ -104,12 +100,12 @@ public:
    */
   void ProcessFocusEvent(AccEvent* aEvent);
 
-protected:
+ protected:
   FocusManager();
 
-private:
+ private:
   FocusManager(const FocusManager&);
-  FocusManager& operator =(const FocusManager&);
+  FocusManager& operator=(const FocusManager&);
 
   /**
    * Return DOM node having DOM focus.
@@ -121,12 +117,12 @@ private:
    */
   nsIDocument* FocusedDOMDocument() const;
 
-private:
+ private:
   RefPtr<Accessible> mActiveItem;
   RefPtr<Accessible> mActiveARIAMenubar;
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

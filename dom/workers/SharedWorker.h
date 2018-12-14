@@ -31,8 +31,7 @@ namespace workerinternals {
 class RuntimeService;
 }
 
-class SharedWorker final : public DOMEventTargetHelper
-{
+class SharedWorker final : public DOMEventTargetHelper {
   friend class workerinternals::RuntimeService;
 
   typedef mozilla::ErrorResult ErrorResult;
@@ -43,65 +42,50 @@ class SharedWorker final : public DOMEventTargetHelper
   nsTArray<nsCOMPtr<nsIDOMEvent>> mFrozenEvents;
   bool mFrozen;
 
-public:
-  static already_AddRefed<SharedWorker>
-  Constructor(const GlobalObject& aGlobal, const nsAString& aScriptURL,
-              const StringOrWorkerOptions& aOptions, ErrorResult& aRv);
+ public:
+  static already_AddRefed<SharedWorker> Constructor(
+      const GlobalObject& aGlobal, const nsAString& aScriptURL,
+      const StringOrWorkerOptions& aOptions, ErrorResult& aRv);
 
-  MessagePort*
-  Port();
+  MessagePort* Port();
 
-  bool
-  IsFrozen() const
-  {
-    return mFrozen;
-  }
+  bool IsFrozen() const { return mFrozen; }
 
-  void
-  Freeze();
+  void Freeze();
 
-  void
-  Thaw();
+  void Thaw();
 
-  void
-  QueueEvent(nsIDOMEvent* aEvent);
+  void QueueEvent(nsIDOMEvent* aEvent);
 
-  void
-  Close();
+  void Close();
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SharedWorker, DOMEventTargetHelper)
 
   IMPL_EVENT_HANDLER(error)
 
-  virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual nsresult
-  GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
+  virtual nsresult GetEventTargetParent(
+      EventChainPreVisitor& aVisitor) override;
 
-  WorkerPrivate*
-  GetWorkerPrivate() const
-  {
-    return mWorkerPrivate;
-  }
+  WorkerPrivate* GetWorkerPrivate() const { return mWorkerPrivate; }
 
-private:
+ private:
   // This class can only be created from the RuntimeService.
-  SharedWorker(nsPIDOMWindowInner* aWindow,
-               WorkerPrivate* aWorkerPrivate,
+  SharedWorker(nsPIDOMWindowInner* aWindow, WorkerPrivate* aWorkerPrivate,
                MessagePort* aMessagePort);
 
   // This class is reference-counted and will be destroyed from Release().
   ~SharedWorker();
 
   // Only called by MessagePort.
-  void
-  PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-              const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
+  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+                   const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_workers_sharedworker_h__
+#endif  // mozilla_dom_workers_sharedworker_h__

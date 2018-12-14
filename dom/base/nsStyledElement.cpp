@@ -35,13 +35,10 @@ NS_IMPL_QUERY_INTERFACE_CYCLE_COLLECTION_INHERITED(nsStyledElement,
 //----------------------------------------------------------------------
 // nsIContent methods
 
-bool
-nsStyledElement::ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult)
-{
+bool nsStyledElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                                     const nsAString& aValue,
+                                     nsIPrincipal* aMaybeScriptedPrincipal,
+                                     nsAttrValue& aResult) {
   if (aAttribute == nsGkAtoms::style && aNamespaceID == kNameSpaceID_None) {
     ParseStyleAttribute(aValue, aMaybeScriptedPrincipal, aResult, false);
     return true;
@@ -51,10 +48,9 @@ nsStyledElement::ParseAttribute(int32_t aNamespaceID,
                                              aMaybeScriptedPrincipal, aResult);
 }
 
-nsresult
-nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                               const nsAttrValueOrString* aValue, bool aNotify)
-{
+nsresult nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                        const nsAttrValueOrString* aValue,
+                                        bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::style) {
       if (aValue) {
@@ -67,20 +63,17 @@ nsStyledElement::BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                             aNotify);
 }
 
-nsresult
-nsStyledElement::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
-                                           const nsAString* aSerialized,
-                                           bool aNotify)
-{
+nsresult nsStyledElement::SetInlineStyleDeclaration(
+    DeclarationBlock* aDeclaration, const nsAString* aSerialized,
+    bool aNotify) {
   SetMayHaveStyle();
   bool modification = false;
   nsAttrValue oldValue;
   bool oldValueSet = false;
 
-  bool hasListeners = aNotify &&
-    nsContentUtils::HasMutationListeners(this,
-                                         NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
-                                         this);
+  bool hasListeners =
+      aNotify && nsContentUtils::HasMutationListeners(
+                     this, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
 
   // There's no point in comparing the stylerule pointers since we're always
   // getting a new stylerule here. And we can't compare the stringvalues of
@@ -89,40 +82,35 @@ nsStyledElement::SetInlineStyleDeclaration(DeclarationBlock* aDeclaration,
   if (hasListeners || GetCustomElementData()) {
     // save the old attribute so we can set up the mutation event properly
     nsAutoString oldValueStr;
-    modification = GetAttr(kNameSpaceID_None, nsGkAtoms::style,
-                           oldValueStr);
+    modification = GetAttr(kNameSpaceID_None, nsGkAtoms::style, oldValueStr);
     if (modification) {
       oldValue.SetTo(oldValueStr);
       oldValueSet = true;
     }
-  }
-  else if (aNotify && IsInUncomposedDoc()) {
+  } else if (aNotify && IsInUncomposedDoc()) {
     modification = !!mAttrsAndChildren.GetAttr(nsGkAtoms::style);
   }
 
   nsAttrValue attrValue(do_AddRef(aDeclaration), aSerialized);
 
   // XXXbz do we ever end up with ADDITION here?  I doubt it.
-  uint8_t modType = modification ?
-    static_cast<uint8_t>(MutationEventBinding::MODIFICATION) :
-    static_cast<uint8_t>(MutationEventBinding::ADDITION);
+  uint8_t modType =
+      modification ? static_cast<uint8_t>(MutationEventBinding::MODIFICATION)
+                   : static_cast<uint8_t>(MutationEventBinding::ADDITION);
 
   nsIDocument* document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
   return SetAttrAndNotify(kNameSpaceID_None, nsGkAtoms::style, nullptr,
-                          oldValueSet ? &oldValue : nullptr, attrValue,
-                          nullptr, modType,
-                          hasListeners, aNotify, kDontCallAfterSetAttr,
+                          oldValueSet ? &oldValue : nullptr, attrValue, nullptr,
+                          modType, hasListeners, aNotify, kDontCallAfterSetAttr,
                           document, updateBatch);
 }
 
 // ---------------------------------------------------------------
 // Others and helpers
 
-nsICSSDeclaration*
-nsStyledElement::Style()
-{
-  Element::nsDOMSlots *slots = DOMSlots();
+nsICSSDeclaration* nsStyledElement::Style() {
+  Element::nsDOMSlots* slots = DOMSlots();
 
   if (!slots->mStyle) {
     // Just in case...
@@ -135,14 +123,14 @@ nsStyledElement::Style()
   return slots->mStyle;
 }
 
-nsresult
-nsStyledElement::ReparseStyleAttribute(bool aForceInDataDoc, bool aForceIfAlreadyParsed)
-{
+nsresult nsStyledElement::ReparseStyleAttribute(bool aForceInDataDoc,
+                                                bool aForceIfAlreadyParsed) {
   if (!MayHaveStyle()) {
     return NS_OK;
   }
   const nsAttrValue* oldVal = mAttrsAndChildren.GetAttr(nsGkAtoms::style);
-  if (oldVal && (aForceIfAlreadyParsed || oldVal->Type() != nsAttrValue::eCSSDeclaration)) {
+  if (oldVal && (aForceIfAlreadyParsed ||
+                 oldVal->Type() != nsAttrValue::eCSSDeclaration)) {
     nsAttrValue attrValue;
     nsAutoString stringValue;
     oldVal->ToString(stringValue);
@@ -158,18 +146,14 @@ nsStyledElement::ReparseStyleAttribute(bool aForceInDataDoc, bool aForceIfAlread
   return NS_OK;
 }
 
-void
-nsStyledElement::NodeInfoChanged(nsIDocument* aOldDoc)
-{
+void nsStyledElement::NodeInfoChanged(nsIDocument* aOldDoc) {
   nsStyledElementBase::NodeInfoChanged(aOldDoc);
   if (OwnerDoc()->GetStyleBackendType() != aOldDoc->GetStyleBackendType()) {
     ReparseStyleAttribute(false, /* aForceIfAlreadyParsed */ true);
   }
 }
 
-nsICSSDeclaration*
-nsStyledElement::GetExistingStyle()
-{
+nsICSSDeclaration* nsStyledElement::GetExistingStyle() {
   Element::nsDOMSlots* slots = GetExistingDOMSlots();
   if (!slots) {
     return nullptr;
@@ -178,39 +162,34 @@ nsStyledElement::GetExistingStyle()
   return slots->mStyle;
 }
 
-void
-nsStyledElement::ParseStyleAttribute(const nsAString& aValue,
-                                     nsIPrincipal* aMaybeScriptedPrincipal,
-                                     nsAttrValue& aResult,
-                                     bool aForceInDataDoc)
-{
+void nsStyledElement::ParseStyleAttribute(const nsAString& aValue,
+                                          nsIPrincipal* aMaybeScriptedPrincipal,
+                                          nsAttrValue& aResult,
+                                          bool aForceInDataDoc) {
   nsIDocument* doc = OwnerDoc();
   bool isNativeAnon = IsInNativeAnonymousSubtree();
 
-  if (!isNativeAnon &&
-      !nsStyleUtil::CSPAllowsInlineStyle(nullptr, NodePrincipal(),
-                                         aMaybeScriptedPrincipal,
-                                         doc->GetDocumentURI(), 0, aValue,
-                                         nullptr))
+  if (!isNativeAnon && !nsStyleUtil::CSPAllowsInlineStyle(
+                           nullptr, NodePrincipal(), aMaybeScriptedPrincipal,
+                           doc->GetDocumentURI(), 0, aValue, nullptr))
     return;
 
-  if (aForceInDataDoc ||
-      !doc->IsLoadedAsData() ||
-      GetExistingStyle() ||
+  if (aForceInDataDoc || !doc->IsLoadedAsData() || GetExistingStyle() ||
       doc->IsStaticDocument()) {
-    bool isCSS = true; // assume CSS until proven otherwise
+    bool isCSS = true;  // assume CSS until proven otherwise
 
     if (!isNativeAnon) {  // native anonymous content always assumes CSS
       nsAutoString styleType;
       doc->GetHeaderData(nsGkAtoms::headerContentStyleType, styleType);
       if (!styleType.IsEmpty()) {
         static const char textCssStr[] = "text/css";
-        isCSS = (styleType.EqualsIgnoreCase(textCssStr, sizeof(textCssStr) - 1));
+        isCSS =
+            (styleType.EqualsIgnoreCase(textCssStr, sizeof(textCssStr) - 1));
       }
     }
 
-    if (isCSS && aResult.ParseStyleAttribute(aValue, aMaybeScriptedPrincipal,
-                                             this)) {
+    if (isCSS &&
+        aResult.ParseStyleAttribute(aValue, aMaybeScriptedPrincipal, this)) {
       return;
     }
   }

@@ -36,14 +36,14 @@ namespace net {
 // set MOZ_LOG=nsSocketTransport:5
 //
 extern LazyLogModule gSocketTransportLog;
-#define SOCKET_LOG(args)     MOZ_LOG(gSocketTransportLog, LogLevel::Debug, args)
+#define SOCKET_LOG(args) MOZ_LOG(gSocketTransportLog, LogLevel::Debug, args)
 #define SOCKET_LOG_ENABLED() MOZ_LOG_TEST(gSocketTransportLog, LogLevel::Debug)
 
 //
 // set MOZ_LOG=UDPSocket:5
 //
 extern LazyLogModule gUDPSocketLog;
-#define UDPSOCKET_LOG(args)     MOZ_LOG(gUDPSocketLog, LogLevel::Debug, args)
+#define UDPSOCKET_LOG(args) MOZ_LOG(gUDPSocketLog, LogLevel::Debug, args)
 #define UDPSOCKET_LOG_ENABLED() MOZ_LOG_TEST(gUDPSocketLog, LogLevel::Debug)
 
 //-----------------------------------------------------------------------------
@@ -53,229 +53,222 @@ extern LazyLogModule gUDPSocketLog;
 //-----------------------------------------------------------------------------
 
 // These maximums are borrowed from the linux kernel.
-static const int32_t kMaxTCPKeepIdle  = 32767; // ~9 hours.
+static const int32_t kMaxTCPKeepIdle = 32767;  // ~9 hours.
 static const int32_t kMaxTCPKeepIntvl = 32767;
-static const int32_t kMaxTCPKeepCount   = 127;
+static const int32_t kMaxTCPKeepCount = 127;
 static const int32_t kDefaultTCPKeepCount =
-#if defined (XP_WIN)
-                                              10; // Hardcoded in Windows.
-#elif defined (XP_MACOSX)
-                                              8;  // Hardcoded in OSX.
+#if defined(XP_WIN)
+    10;  // Hardcoded in Windows.
+#elif defined(XP_MACOSX)
+    8;  // Hardcoded in OSX.
 #else
-                                              4;  // Specifiable in Linux.
+    4;  // Specifiable in Linux.
 #endif
 
-class LinkedRunnableEvent final : public LinkedListElement<LinkedRunnableEvent>
-{
-public:
+class LinkedRunnableEvent final
+    : public LinkedListElement<LinkedRunnableEvent> {
+ public:
   explicit LinkedRunnableEvent(nsIRunnable *event) : mEvent(event) {}
   ~LinkedRunnableEvent() {}
 
-  already_AddRefed<nsIRunnable> TakeEvent()
-  {
-    return mEvent.forget();
-  }
-private:
-    nsCOMPtr<nsIRunnable> mEvent;
+  already_AddRefed<nsIRunnable> TakeEvent() { return mEvent.forget(); }
+
+ private:
+  nsCOMPtr<nsIRunnable> mEvent;
 };
 
 //-----------------------------------------------------------------------------
 
-class nsSocketTransportService final : public nsPISocketTransportService
-                                     , public nsIEventTarget
-                                     , public nsIThreadObserver
-                                     , public nsIRunnable
-                                     , public nsIObserver
-{
-public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSPISOCKETTRANSPORTSERVICE
-    NS_DECL_NSISOCKETTRANSPORTSERVICE
-    NS_DECL_NSIROUTEDSOCKETTRANSPORTSERVICE
-    NS_DECL_NSIEVENTTARGET_FULL
-    NS_DECL_NSITHREADOBSERVER
-    NS_DECL_NSIRUNNABLE
-    NS_DECL_NSIOBSERVER
+class nsSocketTransportService final : public nsPISocketTransportService,
+                                       public nsIEventTarget,
+                                       public nsIThreadObserver,
+                                       public nsIRunnable,
+                                       public nsIObserver {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSPISOCKETTRANSPORTSERVICE
+  NS_DECL_NSISOCKETTRANSPORTSERVICE
+  NS_DECL_NSIROUTEDSOCKETTRANSPORTSERVICE
+  NS_DECL_NSIEVENTTARGET_FULL
+  NS_DECL_NSITHREADOBSERVER
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSIOBSERVER
 
-    nsSocketTransportService();
+  nsSocketTransportService();
 
-    // Max Socket count may need to get initialized/used by nsHttpHandler
-    // before this class is initialized.
-    static uint32_t gMaxCount;
-    static PRCallOnceType gMaxCountInitOnce;
-    static PRStatus DiscoverMaxCount();
+  // Max Socket count may need to get initialized/used by nsHttpHandler
+  // before this class is initialized.
+  static uint32_t gMaxCount;
+  static PRCallOnceType gMaxCountInitOnce;
+  static PRStatus DiscoverMaxCount();
 
-    bool CanAttachSocket();
+  bool CanAttachSocket();
 
-    // Called by the networking dashboard on the socket thread only
-    // Fills the passed array with socket information
-    void GetSocketConnections(nsTArray<SocketInfo> *);
-    uint64_t GetSentBytes() { return mSentBytesCount; }
-    uint64_t GetReceivedBytes() { return mReceivedBytesCount; }
+  // Called by the networking dashboard on the socket thread only
+  // Fills the passed array with socket information
+  void GetSocketConnections(nsTArray<SocketInfo> *);
+  uint64_t GetSentBytes() { return mSentBytesCount; }
+  uint64_t GetReceivedBytes() { return mReceivedBytesCount; }
 
-    // Returns true if keepalives are enabled in prefs.
-    bool IsKeepaliveEnabled() { return mKeepaliveEnabledPref; }
+  // Returns true if keepalives are enabled in prefs.
+  bool IsKeepaliveEnabled() { return mKeepaliveEnabledPref; }
 
-    bool IsTelemetryEnabledAndNotSleepPhase() { return mTelemetryEnabledPref &&
-                                                       !mSleepPhase; }
-    PRIntervalTime MaxTimeForPrClosePref() {return mMaxTimeForPrClosePref; }
+  bool IsTelemetryEnabledAndNotSleepPhase() {
+    return mTelemetryEnabledPref && !mSleepPhase;
+  }
+  PRIntervalTime MaxTimeForPrClosePref() { return mMaxTimeForPrClosePref; }
 
-protected:
+ protected:
+  virtual ~nsSocketTransportService();
 
-    virtual ~nsSocketTransportService();
+ private:
+  //-------------------------------------------------------------------------
+  // misc (any thread)
+  //-------------------------------------------------------------------------
 
-private:
+  nsCOMPtr<nsIThread> mThread;  // protected by mLock
+  UniquePtr<PollableEvent> mPollableEvent;
 
-    //-------------------------------------------------------------------------
-    // misc (any thread)
-    //-------------------------------------------------------------------------
+  // Returns mThread, protecting the get-and-addref with mLock
+  already_AddRefed<nsIThread> GetThreadSafely();
 
-    nsCOMPtr<nsIThread>      mThread;    // protected by mLock
-    UniquePtr<PollableEvent> mPollableEvent;
+  //-------------------------------------------------------------------------
+  // initialization and shutdown (any thread)
+  //-------------------------------------------------------------------------
 
-    // Returns mThread, protecting the get-and-addref with mLock
-    already_AddRefed<nsIThread> GetThreadSafely();
+  Mutex mLock;
+  bool mInitialized;
+  bool mShuttingDown;
+  // indicates whether we are currently in the
+  // process of shutting down
+  bool mOffline;
+  bool mGoingOffline;
 
-    //-------------------------------------------------------------------------
-    // initialization and shutdown (any thread)
-    //-------------------------------------------------------------------------
+  // Detaches all sockets.
+  void Reset(bool aGuardLocals);
 
-    Mutex         mLock;
-    bool          mInitialized;
-    bool          mShuttingDown;
-                            // indicates whether we are currently in the
-                            // process of shutting down
-    bool          mOffline;
-    bool          mGoingOffline;
+  nsresult ShutdownThread();
 
-    // Detaches all sockets.
-    void Reset(bool aGuardLocals);
+  //-------------------------------------------------------------------------
+  // socket lists (socket thread only)
+  //
+  // only "active" sockets are on the poll list.  the active list is kept
+  // in sync with the poll list such that:
+  //
+  //   mActiveList[k].mFD == mPollList[k+1].fd
+  //
+  // where k=0,1,2,...
+  //-------------------------------------------------------------------------
 
-    nsresult ShutdownThread();
+  struct SocketContext {
+    PRFileDesc *mFD;
+    nsASocketHandler *mHandler;
+    uint16_t mElapsedTime;  // time elapsed w/o activity
+  };
 
-    //-------------------------------------------------------------------------
-    // socket lists (socket thread only)
-    //
-    // only "active" sockets are on the poll list.  the active list is kept
-    // in sync with the poll list such that:
-    //
-    //   mActiveList[k].mFD == mPollList[k+1].fd
-    //
-    // where k=0,1,2,...
-    //-------------------------------------------------------------------------
+  SocketContext *mActiveList; /* mListSize entries */
+  SocketContext *mIdleList;   /* mListSize entries */
+  nsIThread *mRawThread;
 
-    struct SocketContext
-    {
-        PRFileDesc       *mFD;
-        nsASocketHandler *mHandler;
-        uint16_t          mElapsedTime;  // time elapsed w/o activity
-    };
+  uint32_t mActiveListSize;
+  uint32_t mIdleListSize;
+  uint32_t mActiveCount;
+  uint32_t mIdleCount;
 
-    SocketContext *mActiveList;                   /* mListSize entries */
-    SocketContext *mIdleList;                     /* mListSize entries */
-    nsIThread     *mRawThread;
+  nsresult DetachSocket(SocketContext *, SocketContext *);
+  nsresult AddToIdleList(SocketContext *);
+  nsresult AddToPollList(SocketContext *);
+  void RemoveFromIdleList(SocketContext *);
+  void RemoveFromPollList(SocketContext *);
+  void MoveToIdleList(SocketContext *sock);
+  void MoveToPollList(SocketContext *sock);
 
-    uint32_t mActiveListSize;
-    uint32_t mIdleListSize;
-    uint32_t mActiveCount;
-    uint32_t mIdleCount;
+  bool GrowActiveList();
+  bool GrowIdleList();
+  void InitMaxCount();
 
-    nsresult DetachSocket(SocketContext *, SocketContext *);
-    nsresult AddToIdleList(SocketContext *);
-    nsresult AddToPollList(SocketContext *);
-    void RemoveFromIdleList(SocketContext *);
-    void RemoveFromPollList(SocketContext *);
-    void MoveToIdleList(SocketContext *sock);
-    void MoveToPollList(SocketContext *sock);
+  // Total bytes number transfered through all the sockets except active ones
+  uint64_t mSentBytesCount;
+  uint64_t mReceivedBytesCount;
+  //-------------------------------------------------------------------------
+  // poll list (socket thread only)
+  //
+  // first element of the poll list is mPollableEvent (or null if the pollable
+  // event cannot be created).
+  //-------------------------------------------------------------------------
 
-    bool GrowActiveList();
-    bool GrowIdleList();
-    void   InitMaxCount();
+  PRPollDesc *mPollList; /* mListSize + 1 entries */
 
-    // Total bytes number transfered through all the sockets except active ones
-    uint64_t mSentBytesCount;
-    uint64_t mReceivedBytesCount;
-    //-------------------------------------------------------------------------
-    // poll list (socket thread only)
-    //
-    // first element of the poll list is mPollableEvent (or null if the pollable
-    // event cannot be created).
-    //-------------------------------------------------------------------------
+  PRIntervalTime PollTimeout();  // computes ideal poll timeout
+  nsresult DoPollIteration(TimeDuration *pollDuration);
+  // perfoms a single poll iteration
+  int32_t Poll(uint32_t *interval, TimeDuration *pollDuration);
+  // calls PR_Poll.  the out param
+  // interval indicates the poll
+  // duration in seconds.
+  // pollDuration is used only for
+  // telemetry
 
-    PRPollDesc *mPollList;                        /* mListSize + 1 entries */
+  //-------------------------------------------------------------------------
+  // pending socket queue - see NotifyWhenCanAttachSocket
+  //-------------------------------------------------------------------------
+  AutoCleanLinkedList<LinkedRunnableEvent> mPendingSocketQueue;
 
-    PRIntervalTime PollTimeout();            // computes ideal poll timeout
-    nsresult       DoPollIteration(TimeDuration *pollDuration);
-                                             // perfoms a single poll iteration
-    int32_t        Poll(uint32_t *interval,
-                        TimeDuration *pollDuration);
-                                             // calls PR_Poll.  the out param
-                                             // interval indicates the poll
-                                             // duration in seconds.
-                                             // pollDuration is used only for
-                                             // telemetry
+  // Preference Monitor for SendBufferSize and Keepalive prefs.
+  nsresult UpdatePrefs();
+  void UpdateSendBufferPref(nsIPrefBranch *);
+  int32_t mSendBufferSize;
+  // Number of seconds of connection is idle before first keepalive ping.
+  int32_t mKeepaliveIdleTimeS;
+  // Number of seconds between retries should keepalive pings fail.
+  int32_t mKeepaliveRetryIntervalS;
+  // Number of keepalive probes to send.
+  int32_t mKeepaliveProbeCount;
+  // True if TCP keepalive is enabled globally.
+  bool mKeepaliveEnabledPref;
 
-    //-------------------------------------------------------------------------
-    // pending socket queue - see NotifyWhenCanAttachSocket
-    //-------------------------------------------------------------------------
-    AutoCleanLinkedList<LinkedRunnableEvent> mPendingSocketQueue;
+  Atomic<bool> mServingPendingQueue;
+  Atomic<int32_t, Relaxed> mMaxTimePerPollIter;
+  Atomic<bool, Relaxed> mTelemetryEnabledPref;
+  Atomic<PRIntervalTime, Relaxed> mMaxTimeForPrClosePref;
 
-    // Preference Monitor for SendBufferSize and Keepalive prefs.
-    nsresult    UpdatePrefs();
-    void        UpdateSendBufferPref(nsIPrefBranch *);
-    int32_t     mSendBufferSize;
-    // Number of seconds of connection is idle before first keepalive ping.
-    int32_t     mKeepaliveIdleTimeS;
-    // Number of seconds between retries should keepalive pings fail.
-    int32_t     mKeepaliveRetryIntervalS;
-    // Number of keepalive probes to send.
-    int32_t     mKeepaliveProbeCount;
-    // True if TCP keepalive is enabled globally.
-    bool        mKeepaliveEnabledPref;
+  // Between a computer going to sleep and waking up the PR_*** telemetry
+  // will be corrupted - so do not record it.
+  Atomic<bool, Relaxed> mSleepPhase;
+  nsCOMPtr<nsITimer> mAfterWakeUpTimer;
 
-    Atomic<bool>                    mServingPendingQueue;
-    Atomic<int32_t, Relaxed>        mMaxTimePerPollIter;
-    Atomic<bool, Relaxed>           mTelemetryEnabledPref;
-    Atomic<PRIntervalTime, Relaxed> mMaxTimeForPrClosePref;
+  void OnKeepaliveEnabledPrefChange();
+  void NotifyKeepaliveEnabledPrefChange(SocketContext *sock);
 
-    // Between a computer going to sleep and waking up the PR_*** telemetry
-    // will be corrupted - so do not record it.
-    Atomic<bool, Relaxed>           mSleepPhase;
-    nsCOMPtr<nsITimer>              mAfterWakeUpTimer;
-
-    void OnKeepaliveEnabledPrefChange();
-    void NotifyKeepaliveEnabledPrefChange(SocketContext *sock);
-
-    // Socket thread only for dynamically adjusting max socket size
+  // Socket thread only for dynamically adjusting max socket size
 #if defined(XP_WIN)
-    void ProbeMaxCount();
+  void ProbeMaxCount();
 #endif
-    bool mProbedMaxCount;
+  bool mProbedMaxCount;
 
-    void AnalyzeConnection(nsTArray<SocketInfo> *data,
-                           SocketContext *context, bool aActive);
+  void AnalyzeConnection(nsTArray<SocketInfo> *data, SocketContext *context,
+                         bool aActive);
 
-    void ClosePrivateConnections();
-    void DetachSocketWithGuard(bool aGuardLocals,
-                               SocketContext *socketList,
-                               int32_t index);
+  void ClosePrivateConnections();
+  void DetachSocketWithGuard(bool aGuardLocals, SocketContext *socketList,
+                             int32_t index);
 
-    void MarkTheLastElementOfPendingQueue();
+  void MarkTheLastElementOfPendingQueue();
 
 #if defined(XP_WIN)
-    Atomic<bool> mPolling;
-    nsCOMPtr<nsITimer> mPollRepairTimer;
-    void StartPollWatchdog();
-    void DoPollRepair();
-    void StartPolling();
-    void EndPolling();
+  Atomic<bool> mPolling;
+  nsCOMPtr<nsITimer> mPollRepairTimer;
+  void StartPollWatchdog();
+  void DoPollRepair();
+  void StartPolling();
+  void EndPolling();
 #endif
 };
 
 extern nsSocketTransportService *gSocketTransportService;
 bool OnSocketThread();
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
-#endif // !nsSocketTransportService_h__
+#endif  // !nsSocketTransportService_h__

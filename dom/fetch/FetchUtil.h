@@ -24,36 +24,32 @@ namespace dom {
 class InternalRequest;
 class WorkerPrivate;
 
-class FetchUtil final
-{
-private:
+class FetchUtil final {
+ private:
   FetchUtil() = delete;
 
-public:
+ public:
   /**
-  * Sets outMethod to a valid HTTP request method string based on an input method.
-  * Implements checks and normalization as specified by the Fetch specification.
-  * Returns NS_ERROR_DOM_SECURITY_ERR if the method is invalid.
-  * Otherwise returns NS_OK and the normalized method via outMethod.
-  */
-  static nsresult
-  GetValidRequestMethod(const nsACString& aMethod, nsCString& outMethod);
+   * Sets outMethod to a valid HTTP request method string based on an input
+   * method. Implements checks and normalization as specified by the Fetch
+   * specification. Returns NS_ERROR_DOM_SECURITY_ERR if the method is invalid.
+   * Otherwise returns NS_OK and the normalized method via outMethod.
+   */
+  static nsresult GetValidRequestMethod(const nsACString& aMethod,
+                                        nsCString& outMethod);
 
   /**
    * Extracts an HTTP header from a substring range.
    */
-  static bool
-  ExtractHeader(nsACString::const_iterator& aStart,
-                nsACString::const_iterator& aEnd,
-                nsCString& aHeaderName,
-                nsCString& aHeaderValue,
-                bool* aWasEmptyHeader);
+  static bool ExtractHeader(nsACString::const_iterator& aStart,
+                            nsACString::const_iterator& aEnd,
+                            nsCString& aHeaderName, nsCString& aHeaderValue,
+                            bool* aWasEmptyHeader);
 
-  static nsresult
-  SetRequestReferrer(nsIPrincipal* aPrincipal,
-                     nsIDocument* aDoc,
-                     nsIHttpChannel* aChannel,
-                     InternalRequest* aRequest);
+  static nsresult SetRequestReferrer(nsIPrincipal* aPrincipal,
+                                     nsIDocument* aDoc,
+                                     nsIHttpChannel* aChannel,
+                                     InternalRequest* aRequest);
 
   /**
    * Check that the given object is a Response and, if so, stream to the given
@@ -61,14 +57,12 @@ public:
    * given JSContext before returning false. If executing in a worker, the
    * WorkerPrivate must be given.
    */
-  static bool
-  StreamResponseToJS(JSContext* aCx,
-                     JS::HandleObject aObj,
-                     JS::MimeType aMimeType,
-                     JS::StreamConsumer* aConsumer,
-                     WorkerPrivate* aMaybeWorker);
+  static bool StreamResponseToJS(JSContext* aCx, JS::HandleObject aObj,
+                                 JS::MimeType aMimeType,
+                                 JS::StreamConsumer* aConsumer,
+                                 WorkerPrivate* aMaybeWorker);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 #endif

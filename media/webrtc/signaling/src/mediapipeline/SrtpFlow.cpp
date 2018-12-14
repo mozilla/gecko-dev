@@ -13,7 +13,7 @@
 
 #include "mozilla/RefPtr.h"
 
-static const char* sfLogTag = "SrtpFlow";
+static const char *sfLogTag = "SrtpFlow";
 #ifdef LOGTAG
 #undef LOGTAG
 #endif
@@ -31,13 +31,10 @@ SrtpFlow::~SrtpFlow() {
   }
 }
 
-RefPtr<SrtpFlow> SrtpFlow::Create(int cipher_suite,
-                                           bool inbound,
-                                           const void *key,
-                                           size_t key_len) {
+RefPtr<SrtpFlow> SrtpFlow::Create(int cipher_suite, bool inbound,
+                                  const void *key, size_t key_len) {
   nsresult res = Init();
-  if (!NS_SUCCEEDED(res))
-    return nullptr;
+  if (!NS_SUCCEEDED(res)) return nullptr;
 
   RefPtr<SrtpFlow> flow = new SrtpFlow();
 
@@ -67,20 +64,22 @@ RefPtr<SrtpFlow> SrtpFlow::Create(int cipher_suite,
       CSFLogDebug(LOGTAG,
                   "Setting SRTP cipher suite SRTP_AES128_CM_HMAC_SHA1_32");
       srtp_crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtp);
-      srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp); // 80-bit per RFC 5764
-      break;                                                   // S 4.1.2.
+      srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(
+          &policy.rtcp);  // 80-bit per RFC 5764
+      break;              // S 4.1.2.
     default:
       CSFLogError(LOGTAG, "Request to set unknown SRTP cipher suite");
       return nullptr;
   }
   // This key is copied into the srtp_t object, so we don't
   // need to keep it.
-  policy.key = const_cast<unsigned char *>(
-      static_cast<const unsigned char *>(key));
+  policy.key =
+      const_cast<unsigned char *>(static_cast<const unsigned char *>(key));
   policy.ssrc.type = inbound ? ssrc_any_inbound : ssrc_any_outbound;
   policy.ssrc.value = 0;
   policy.ekt = nullptr;
-  policy.window_size = 1024;   // Use the Chrome value.  Needs to be revisited.  Default is 128
+  policy.window_size =
+      1024;  // Use the Chrome value.  Needs to be revisited.  Default is 128
   policy.allow_repeat_tx = 1;  // Use Chrome value; needed for NACK mode to work
   policy.next = nullptr;
 
@@ -94,9 +93,8 @@ RefPtr<SrtpFlow> SrtpFlow::Create(int cipher_suite,
   return flow;
 }
 
-
-nsresult SrtpFlow::CheckInputs(bool protect, void *in, int in_len,
-                               int max_len, int *out_len) {
+nsresult SrtpFlow::CheckInputs(bool protect, void *in, int in_len, int max_len,
+                               int *out_len) {
   MOZ_ASSERT(in);
   if (!in) {
     CSFLogError(LOGTAG, "NULL input value");
@@ -119,8 +117,7 @@ nsresult SrtpFlow::CheckInputs(bool protect, void *in, int in_len,
       CSFLogError(LOGTAG, "Output too short");
       return NS_ERROR_ILLEGAL_VALUE;
     }
-  }
-  else {
+  } else {
     if (in_len > max_len) {
       CSFLogError(LOGTAG, "Output too short");
       return NS_ERROR_ILLEGAL_VALUE;
@@ -130,11 +127,9 @@ nsresult SrtpFlow::CheckInputs(bool protect, void *in, int in_len,
   return NS_OK;
 }
 
-nsresult SrtpFlow::ProtectRtp(void *in, int in_len,
-                              int max_len, int *out_len) {
+nsresult SrtpFlow::ProtectRtp(void *in, int in_len, int max_len, int *out_len) {
   nsresult res = CheckInputs(true, in, in_len, max_len, out_len);
-  if (NS_FAILED(res))
-    return res;
+  if (NS_FAILED(res)) return res;
 
   int len = in_len;
   srtp_err_status_t r = srtp_protect(session_, in, &len);
@@ -147,18 +142,16 @@ nsresult SrtpFlow::ProtectRtp(void *in, int in_len,
   MOZ_ASSERT(len <= max_len);
   *out_len = len;
 
-
   CSFLogDebug(LOGTAG, "Successfully protected an SRTP packet of len %d",
               *out_len);
 
   return NS_OK;
 }
 
-nsresult SrtpFlow::UnprotectRtp(void *in, int in_len,
-                                int max_len, int *out_len) {
+nsresult SrtpFlow::UnprotectRtp(void *in, int in_len, int max_len,
+                                int *out_len) {
   nsresult res = CheckInputs(false, in, in_len, max_len, out_len);
-  if (NS_FAILED(res))
-    return res;
+  if (NS_FAILED(res)) return res;
 
   int len = in_len;
   srtp_err_status_t r = srtp_unprotect(session_, in, &len);
@@ -177,11 +170,10 @@ nsresult SrtpFlow::UnprotectRtp(void *in, int in_len,
   return NS_OK;
 }
 
-nsresult SrtpFlow::ProtectRtcp(void *in, int in_len,
-                               int max_len, int *out_len) {
+nsresult SrtpFlow::ProtectRtcp(void *in, int in_len, int max_len,
+                               int *out_len) {
   nsresult res = CheckInputs(true, in, in_len, max_len, out_len);
-  if (NS_FAILED(res))
-    return res;
+  if (NS_FAILED(res)) return res;
 
   int len = in_len;
   srtp_err_status_t r = srtp_protect_rtcp(session_, in, &len);
@@ -200,11 +192,10 @@ nsresult SrtpFlow::ProtectRtcp(void *in, int in_len,
   return NS_OK;
 }
 
-nsresult SrtpFlow::UnprotectRtcp(void *in, int in_len,
-                                 int max_len, int *out_len) {
+nsresult SrtpFlow::UnprotectRtcp(void *in, int in_len, int max_len,
+                                 int *out_len) {
   nsresult res = CheckInputs(false, in, in_len, max_len, out_len);
-  if (NS_FAILED(res))
-    return res;
+  if (NS_FAILED(res)) return res;
 
   int len = in_len;
   srtp_err_status_t r = srtp_unprotect_rtcp(session_, in, &len);
@@ -251,5 +242,4 @@ nsresult SrtpFlow::Init() {
   return NS_OK;
 }
 
-}  // end of namespace
-
+}  // namespace mozilla

@@ -33,15 +33,13 @@ NS_INTERFACE_MAP_BEGIN(nsHostObjectURI)
     // nsSimplURI::QueryInterface and finding something for this CID.
     *aInstancePtr = nullptr;
     return NS_NOINTERFACE;
-  }
-  else
+  } else
 NS_INTERFACE_MAP_END_INHERITING(mozilla::net::nsSimpleURI)
 
 // nsIURIWithBlobImpl methods:
 
 NS_IMETHODIMP
-nsHostObjectURI::GetBlobImpl(nsISupports** aBlobImpl)
-{
+nsHostObjectURI::GetBlobImpl(nsISupports** aBlobImpl) {
   RefPtr<mozilla::dom::BlobImpl> blobImpl(mBlobImpl);
   blobImpl.forget(aBlobImpl);
   return NS_OK;
@@ -50,20 +48,17 @@ nsHostObjectURI::GetBlobImpl(nsISupports** aBlobImpl)
 // nsIURIWithPrincipal methods:
 
 NS_IMETHODIMP
-nsHostObjectURI::GetPrincipal(nsIPrincipal** aPrincipal)
-{
+nsHostObjectURI::GetPrincipal(nsIPrincipal** aPrincipal) {
   NS_IF_ADDREF(*aPrincipal = mPrincipal);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetPrincipalUri(nsIURI** aUri)
-{
+nsHostObjectURI::GetPrincipalUri(nsIURI** aUri) {
   if (mPrincipal) {
     mPrincipal->GetURI(aUri);
-  }
-  else {
+  } else {
     *aUri = nullptr;
   }
 
@@ -73,8 +68,7 @@ nsHostObjectURI::GetPrincipalUri(nsIURI** aUri)
 // nsISerializable methods:
 
 NS_IMETHODIMP
-nsHostObjectURI::Read(nsIObjectInputStream* aStream)
-{
+nsHostObjectURI::Read(nsIObjectInputStream* aStream) {
   nsresult rv = mozilla::net::nsSimpleURI::Read(aStream);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -87,20 +81,16 @@ nsHostObjectURI::Read(nsIObjectInputStream* aStream)
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::Write(nsIObjectOutputStream* aStream)
-{
+nsHostObjectURI::Write(nsIObjectOutputStream* aStream) {
   nsresult rv = mozilla::net::nsSimpleURI::Write(aStream);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_WriteOptionalCompoundObject(aStream, mPrincipal,
-                                        NS_GET_IID(nsIPrincipal),
-                                        true);
+                                        NS_GET_IID(nsIPrincipal), true);
 }
 
 // nsIIPCSerializableURI methods:
-void
-nsHostObjectURI::Serialize(mozilla::ipc::URIParams& aParams)
-{
+void nsHostObjectURI::Serialize(mozilla::ipc::URIParams& aParams) {
   using namespace mozilla::ipc;
 
   HostObjectURIParams hostParams;
@@ -124,14 +114,12 @@ nsHostObjectURI::Serialize(mozilla::ipc::URIParams& aParams)
   aParams = hostParams;
 }
 
-bool
-nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams)
-{
+bool nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams) {
   using namespace mozilla::ipc;
 
   if (aParams.type() != URIParams::THostObjectURIParams) {
-      NS_ERROR("Received unknown parameters from the other process!");
-      return false;
+    NS_ERROR("Received unknown parameters from the other process!");
+    return false;
   }
 
   const HostObjectURIParams& hostParams = aParams.get_HostObjectURIParams();
@@ -144,7 +132,8 @@ nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams)
     return true;
   }
 
-  mPrincipal = PrincipalInfoToPrincipal(hostParams.principal().get_PrincipalInfo());
+  mPrincipal =
+      PrincipalInfoToPrincipal(hostParams.principal().get_PrincipalInfo());
   if (!mPrincipal) {
     return false;
   }
@@ -156,9 +145,7 @@ nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams)
   return true;
 }
 
-nsresult
-nsHostObjectURI::SetScheme(const nsACString& aScheme)
-{
+nsresult nsHostObjectURI::SetScheme(const nsACString& aScheme) {
   // Disallow setting the scheme, since that could cause us to be associated
   // with a different protocol handler that doesn't expect us to be carrying
   // around a principal with nsIURIWithPrincipal.
@@ -166,14 +153,12 @@ nsHostObjectURI::SetScheme(const nsACString& aScheme)
 }
 
 // nsIURI methods:
-nsresult
-nsHostObjectURI::CloneInternal(mozilla::net::nsSimpleURI::RefHandlingEnum aRefHandlingMode,
-                               const nsACString& newRef,
-                               nsIURI** aClone)
-{
+nsresult nsHostObjectURI::CloneInternal(
+    mozilla::net::nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+    const nsACString& newRef, nsIURI** aClone) {
   nsCOMPtr<nsIURI> simpleClone;
-  nsresult rv =
-    mozilla::net::nsSimpleURI::CloneInternal(aRefHandlingMode, newRef, getter_AddRefs(simpleClone));
+  nsresult rv = mozilla::net::nsSimpleURI::CloneInternal(
+      aRefHandlingMode, newRef, getter_AddRefs(simpleClone));
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef DEBUG
@@ -193,11 +178,9 @@ nsHostObjectURI::CloneInternal(mozilla::net::nsSimpleURI::RefHandlingEnum aRefHa
   return NS_OK;
 }
 
-/* virtual */ nsresult
-nsHostObjectURI::EqualsInternal(nsIURI* aOther,
-                                mozilla::net::nsSimpleURI::RefHandlingEnum aRefHandlingMode,
-                                bool* aResult)
-{
+/* virtual */ nsresult nsHostObjectURI::EqualsInternal(
+    nsIURI* aOther, mozilla::net::nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+    bool* aResult) {
   if (!aOther) {
     *aResult = false;
     return NS_OK;
@@ -229,39 +212,36 @@ nsHostObjectURI::EqualsInternal(nsIURI* aOther,
   return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(nsHostObjectURI::Mutator, nsIURISetters, nsIURIMutator, nsIBlobURIMutator, nsIPrincipalURIMutator)
+NS_IMPL_ISUPPORTS(nsHostObjectURI::Mutator, nsIURISetters, nsIURIMutator,
+                  nsIBlobURIMutator, nsIPrincipalURIMutator)
 
 NS_IMETHODIMP
-nsHostObjectURI::Mutate(nsIURIMutator** aMutator)
-{
-    RefPtr<nsHostObjectURI::Mutator> mutator = new nsHostObjectURI::Mutator();
-    nsresult rv = mutator->InitFromURI(this);
-    if (NS_FAILED(rv)) {
-        return rv;
-    }
-    mutator.forget(aMutator);
-    return NS_OK;
+nsHostObjectURI::Mutate(nsIURIMutator** aMutator) {
+  RefPtr<nsHostObjectURI::Mutator> mutator = new nsHostObjectURI::Mutator();
+  nsresult rv = mutator->InitFromURI(this);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  mutator.forget(aMutator);
+  return NS_OK;
 }
 
 // nsIClassInfo methods:
 NS_IMETHODIMP
-nsHostObjectURI::GetInterfaces(uint32_t *count, nsIID * **array)
-{
+nsHostObjectURI::GetInterfaces(uint32_t* count, nsIID*** array) {
   *count = 0;
   *array = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetScriptableHelper(nsIXPCScriptable **_retval)
-{
+nsHostObjectURI::GetScriptableHelper(nsIXPCScriptable** _retval) {
   *_retval = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetContractID(nsACString& aContractID)
-{
+nsHostObjectURI::GetContractID(nsACString& aContractID) {
   // Make sure to modify any subclasses as needed if this ever
   // changes.
   aContractID.SetIsVoid(true);
@@ -269,40 +249,34 @@ nsHostObjectURI::GetContractID(nsACString& aContractID)
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetClassDescription(nsACString& aClassDescription)
-{
+nsHostObjectURI::GetClassDescription(nsACString& aClassDescription) {
   aClassDescription.SetIsVoid(true);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetClassID(nsCID * *aClassID)
-{
+nsHostObjectURI::GetClassID(nsCID** aClassID) {
   // Make sure to modify any subclasses as needed if this ever
   // changes to not call the virtual GetClassIDNoAlloc.
-  *aClassID = (nsCID*) moz_xmalloc(sizeof(nsCID));
+  *aClassID = (nsCID*)moz_xmalloc(sizeof(nsCID));
   NS_ENSURE_TRUE(*aClassID, NS_ERROR_OUT_OF_MEMORY);
 
   return GetClassIDNoAlloc(*aClassID);
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetFlags(uint32_t *aFlags)
-{
+nsHostObjectURI::GetFlags(uint32_t* aFlags) {
   *aFlags = nsIClassInfo::MAIN_THREAD_ONLY;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHostObjectURI::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
-{
+nsHostObjectURI::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
   *aClassIDNoAlloc = kHOSTOBJECTURICID;
   return NS_OK;
 }
 
-void
-nsHostObjectURI::ForgetBlobImpl()
-{
+void nsHostObjectURI::ForgetBlobImpl() {
   MOZ_ASSERT(mBlobImpl);
   mBlobImpl = nullptr;
 }

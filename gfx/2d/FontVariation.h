@@ -11,8 +11,7 @@ namespace mozilla {
 namespace gfx {
 
 // An OpenType variation tag and value pair
-struct FontVariation
-{
+struct FontVariation {
   uint32_t mTag;
   float mValue;
 
@@ -21,7 +20,7 @@ struct FontVariation
   }
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_FONTVARIATION_H_ */

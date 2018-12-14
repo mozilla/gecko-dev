@@ -20,68 +20,64 @@
 namespace js {
 namespace jit {
 
-class CacheIRSpewer
-{
-    Mutex outputLock;
-    Fprinter output;
-    mozilla::Maybe<JSONPrinter> json;
-    static CacheIRSpewer cacheIRspewer;
+class CacheIRSpewer {
+  Mutex outputLock;
+  Fprinter output;
+  mozilla::Maybe<JSONPrinter> json;
+  static CacheIRSpewer cacheIRspewer;
 
-    CacheIRSpewer();
-    ~CacheIRSpewer();
+  CacheIRSpewer();
+  ~CacheIRSpewer();
 
-    bool enabled() { return json.isSome(); }
+  bool enabled() { return json.isSome(); }
 
-    // These methods can only be called when enabled() is true.
-    Mutex& lock() { MOZ_ASSERT(enabled()); return outputLock; }
+  // These methods can only be called when enabled() is true.
+  Mutex& lock() {
+    MOZ_ASSERT(enabled());
+    return outputLock;
+  }
 
-    void beginCache(const IRGenerator& generator);
-    void valueProperty(const char* name, const Value& v);
-    void attached(const char* name);
-    void endCache();
+  void beginCache(const IRGenerator& generator);
+  void valueProperty(const char* name, const Value& v);
+  void attached(const char* name);
+  void endCache();
 
-  public:
-    static CacheIRSpewer& singleton() { return cacheIRspewer; }
-    bool init();
+ public:
+  static CacheIRSpewer& singleton() { return cacheIRspewer; }
+  bool init();
 
-    class MOZ_RAII Guard {
-        CacheIRSpewer& sp_;
-        const IRGenerator& gen_;
-        const char* name_;
+  class MOZ_RAII Guard {
+    CacheIRSpewer& sp_;
+    const IRGenerator& gen_;
+    const char* name_;
 
-      public:
-        Guard(const IRGenerator& gen, const char* name)
-          : sp_(CacheIRSpewer::singleton()),
-            gen_(gen),
-            name_(name)
-        {
-          if (sp_.enabled()) {
-            sp_.lock().lock();
-            sp_.beginCache(gen_);
-          }
-        }
+   public:
+    Guard(const IRGenerator& gen, const char* name)
+        : sp_(CacheIRSpewer::singleton()), gen_(gen), name_(name) {
+      if (sp_.enabled()) {
+        sp_.lock().lock();
+        sp_.beginCache(gen_);
+      }
+    }
 
-        ~Guard() {
-          if (sp_.enabled()) {
-            if (name_ != nullptr)
-              sp_.attached(name_);
-            sp_.endCache();
-            sp_.lock().unlock();
-          }
-        }
+    ~Guard() {
+      if (sp_.enabled()) {
+        if (name_ != nullptr) sp_.attached(name_);
+        sp_.endCache();
+        sp_.lock().unlock();
+      }
+    }
 
-        void valueProperty(const char* name, const Value& v) const {
-          sp_.valueProperty(name, v);
-        }
+    void valueProperty(const char* name, const Value& v) const {
+      sp_.valueProperty(name, v);
+    }
 
-        explicit operator bool() const {
-          return sp_.enabled();
-        }
-    };
+    explicit operator bool() const { return sp_.enabled(); }
+  };
 };
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* JS_CACHEIR_SPEW */
 

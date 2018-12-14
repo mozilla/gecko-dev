@@ -33,19 +33,17 @@ struct UndisplayedNode;
  * FIXME(emilio): The comment above doesn't make any sense, there's no "frame
  * model lock" of any sort afaict.
  */
-class nsFrameManager
-{
+class nsFrameManager {
   typedef mozilla::layout::FrameChildListID ChildListID;
   typedef mozilla::UndisplayedNode UndisplayedNode;
 
-public:
+ public:
   explicit nsFrameManager(nsIPresShell* aPresShell)
-    : mPresShell(aPresShell)
-    , mRootFrame(nullptr)
-    , mDisplayNoneMap(nullptr)
-    , mDisplayContentsMap(nullptr)
-    , mIsDestroyingFrames(false)
-  {
+      : mPresShell(aPresShell),
+        mRootFrame(nullptr),
+        mDisplayNoneMap(nullptr),
+        mDisplayContentsMap(nullptr),
+        mIsDestroyingFrames(false) {
     MOZ_ASSERT(mPresShell, "need a pres shell");
   }
   ~nsFrameManager();
@@ -58,8 +56,7 @@ public:
    * destroyed, it destroys the entire frame hierarchy.
    */
   nsIFrame* GetRootFrame() const { return mRootFrame; }
-  void SetRootFrame(nsIFrame* aRootFrame)
-  {
+  void SetRootFrame(nsIFrame* aRootFrame) {
     NS_ASSERTION(!mRootFrame, "already have a root frame");
     mRootFrame = aRootFrame;
   }
@@ -70,7 +67,6 @@ public:
    * manager is no longer being displayed.
    */
   void Destroy();
-
 
   // display:none and display:contents content does not get an nsIFrame.  To
   // enable the style context for such content to be obtained we store the
@@ -93,8 +89,7 @@ public:
    * Change the style context for the display:none content, aContent.
    */
   void ChangeRegisteredDisplayNoneStyleFor(nsIContent* aContent,
-                                           nsStyleContext* aStyleContext)
-  {
+                                           nsStyleContext* aStyleContext) {
     ChangeStyleContextInMap(mDisplayNoneMap, aContent, aStyleContext);
   }
 
@@ -102,16 +97,14 @@ public:
    * Change the style context for the display:contents content, aContent.
    */
   void ChangeRegisteredDisplayContentsStyleFor(nsIContent* aContent,
-                                               nsStyleContext* aStyleContext)
-  {
+                                               nsStyleContext* aStyleContext) {
     ChangeStyleContextInMap(mDisplayContentsMap, aContent, aStyleContext);
   }
 
   /**
    * Get the style context for the display:none content, aContent, if any.
    */
-  nsStyleContext* GetDisplayNoneStyleFor(const nsIContent* aContent)
-  {
+  nsStyleContext* GetDisplayNoneStyleFor(const nsIContent* aContent) {
     if (!mDisplayNoneMap) {
       return nullptr;
     }
@@ -121,8 +114,7 @@ public:
   /**
    * Get the style context for the display:contents content, aContent, if any.
    */
-  nsStyleContext* GetDisplayContentsStyleFor(const nsIContent* aContent)
-  {
+  nsStyleContext* GetDisplayContentsStyleFor(const nsIContent* aContent) {
     if (!mDisplayContentsMap) {
       return nullptr;
     }
@@ -134,16 +126,16 @@ public:
    * that have been registered for the display:none children of
    * aParentContent.
    */
-  UndisplayedNode*
-  GetAllRegisteredDisplayNoneStylesIn(nsIContent* aParentContent);
+  UndisplayedNode* GetAllRegisteredDisplayNoneStylesIn(
+      nsIContent* aParentContent);
 
   /**
    * Return the linked list of UndisplayedNodes that contain the style contexts
    * that have been registered for the display:contents children of
    * aParentContent.
    */
-  UndisplayedNode*
-  GetAllRegisteredDisplayContentsStylesIn(nsIContent* aParentContent);
+  UndisplayedNode* GetAllRegisteredDisplayContentsStylesIn(
+      nsIContent* aParentContent);
 
   /**
    * Unregister the style context for the display:none content, aContent,
@@ -161,16 +153,12 @@ public:
   void UnregisterDisplayContentsStyleFor(nsIContent* aContent,
                                          nsIContent* aParentContent);
 
-
   // Functions for manipulating the frame model
-  void AppendFrames(nsContainerFrame* aParentFrame,
-                    ChildListID aListID,
+  void AppendFrames(nsContainerFrame* aParentFrame, ChildListID aListID,
                     nsFrameList& aFrameList);
 
-  void InsertFrames(nsContainerFrame* aParentFrame,
-                    ChildListID aListID,
-                    nsIFrame* aPrevFrame,
-                    nsFrameList& aFrameList);
+  void InsertFrames(nsContainerFrame* aParentFrame, ChildListID aListID,
+                    nsIFrame* aPrevFrame, nsFrameList& aFrameList);
 
   void RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame);
 
@@ -204,7 +192,7 @@ public:
 
   void AddSizeOfIncludingThis(nsWindowSizes& aSizes) const;
 
-protected:
+ protected:
   class UndisplayedMap;
 
   static nsIContent* ParentForUndisplayedMap(const nsIContent* aContent);
@@ -213,12 +201,11 @@ protected:
 
   static nsStyleContext* GetStyleContextInMap(UndisplayedMap* aMap,
                                               const nsIContent* aContent);
-  static UndisplayedNode* GetUndisplayedNodeInMapFor(UndisplayedMap* aMap,
-                                                     const nsIContent* aContent);
-  static UndisplayedNode* GetAllUndisplayedNodesInMapFor(UndisplayedMap* aMap,
-                                                         nsIContent* aParentContent);
-  static void SetStyleContextInMap(UndisplayedMap* aMap,
-                                   nsIContent* aContent,
+  static UndisplayedNode* GetUndisplayedNodeInMapFor(
+      UndisplayedMap* aMap, const nsIContent* aContent);
+  static UndisplayedNode* GetAllUndisplayedNodesInMapFor(
+      UndisplayedMap* aMap, nsIContent* aParentContent);
+  static void SetStyleContextInMap(UndisplayedMap* aMap, nsIContent* aContent,
                                    nsStyleContext* aStyleContext);
   static void ChangeStyleContextInMap(UndisplayedMap* aMap,
                                       nsIContent* aContent,

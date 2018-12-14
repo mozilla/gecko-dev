@@ -18,44 +18,34 @@ namespace ctypes {
 ** JSAPI function prototypes
 *******************************************************************************/
 
-namespace Library
-{
-  static void Finalize(JSFreeOp* fop, JSObject* obj);
+namespace Library {
+static void Finalize(JSFreeOp* fop, JSObject* obj);
 
-  static bool Close(JSContext* cx, unsigned argc, Value* vp);
-  static bool Declare(JSContext* cx, unsigned argc, Value* vp);
-} // namespace Library
+static bool Close(JSContext* cx, unsigned argc, Value* vp);
+static bool Declare(JSContext* cx, unsigned argc, Value* vp);
+}  // namespace Library
 
 /*******************************************************************************
 ** JSObject implementation
 *******************************************************************************/
 
-typedef Rooted<JSFlatString*>    RootedFlatString;
+typedef Rooted<JSFlatString*> RootedFlatString;
 
 static const JSClassOps sLibraryClassOps = {
-  nullptr, nullptr, nullptr, nullptr,
-  nullptr, nullptr, Library::Finalize
-};
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, Library::Finalize};
 
 static const JSClass sLibraryClass = {
-  "Library",
-  JSCLASS_HAS_RESERVED_SLOTS(LIBRARY_SLOTS) |
-  JSCLASS_FOREGROUND_FINALIZE,
-  &sLibraryClassOps
-};
+    "Library",
+    JSCLASS_HAS_RESERVED_SLOTS(LIBRARY_SLOTS) | JSCLASS_FOREGROUND_FINALIZE,
+    &sLibraryClassOps};
 
-#define CTYPESFN_FLAGS \
-  (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)
+#define CTYPESFN_FLAGS (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT)
 
 static const JSFunctionSpec sLibraryFunctions[] = {
-  JS_FN("close",   Library::Close,   0, CTYPESFN_FLAGS),
-  JS_FN("declare", Library::Declare, 0, CTYPESFN_FLAGS),
-  JS_FS_END
-};
+    JS_FN("close", Library::Close, 0, CTYPESFN_FLAGS),
+    JS_FN("declare", Library::Declare, 0, CTYPESFN_FLAGS), JS_FS_END};
 
-bool
-Library::Name(JSContext* cx, unsigned argc, Value* vp)
-{
+bool Library::Name(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() != 1) {
     JS_ReportErrorASCII(cx, "libraryName takes one argument");
@@ -76,28 +66,24 @@ Library::Name(JSContext* cx, unsigned argc, Value* vp)
   AppendString(resultString, str);
   AppendString(resultString, DLL_SUFFIX);
 
-  JSString* result = JS_NewUCStringCopyN(cx, resultString.begin(),
-                                         resultString.length());
-  if (!result)
-    return false;
+  JSString* result =
+      JS_NewUCStringCopyN(cx, resultString.begin(), resultString.length());
+  if (!result) return false;
 
   args.rval().setString(result);
   return true;
 }
 
-JSObject*
-Library::Create(JSContext* cx, HandleValue path, const JSCTypesCallbacks* callbacks)
-{
+JSObject* Library::Create(JSContext* cx, HandleValue path,
+                          const JSCTypesCallbacks* callbacks) {
   RootedObject libraryObj(cx, JS_NewObject(cx, &sLibraryClass));
-  if (!libraryObj)
-    return nullptr;
+  if (!libraryObj) return nullptr;
 
   // initialize the library
   JS_SetReservedSlot(libraryObj, SLOT_LIBRARY, PrivateValue(nullptr));
 
   // attach API functions
-  if (!JS_DefineFunctions(cx, libraryObj, sLibraryFunctions))
-    return nullptr;
+  if (!JS_DefineFunctions(cx, libraryObj, sLibraryFunctions)) return nullptr;
 
   if (!path.isString()) {
     JS_ReportErrorASCII(cx, "open takes a string argument");
@@ -106,11 +92,9 @@ Library::Create(JSContext* cx, HandleValue path, const JSCTypesCallbacks* callba
 
   PRLibSpec libSpec;
   RootedFlatString pathStr(cx, JS_FlattenString(cx, path.toString()));
-  if (!pathStr)
-    return nullptr;
+  if (!pathStr) return nullptr;
   AutoStableStringChars pathStrChars(cx);
-  if (!pathStrChars.initTwoByte(cx, pathStr))
-    return nullptr;
+  if (!pathStrChars.initTwoByte(cx, pathStr)) return nullptr;
 #ifdef XP_WIN
   // On Windows, converting to native charset may corrupt path string.
   // So, we have to use Unicode path directly.
@@ -122,25 +106,22 @@ Library::Create(JSContext* cx, HandleValue path, const JSCTypesCallbacks* callba
   // provided.
   char* pathBytes;
   if (callbacks && callbacks->unicodeToNative) {
-    pathBytes =
-      callbacks->unicodeToNative(cx, pathStrChars.twoByteChars(), pathStr->length());
-    if (!pathBytes)
-      return nullptr;
+    pathBytes = callbacks->unicodeToNative(cx, pathStrChars.twoByteChars(),
+                                           pathStr->length());
+    if (!pathBytes) return nullptr;
 
   } else {
     // Fallback: assume the platform native charset is UTF-8. This is true
     // for Mac OS X, Android, and probably Linux.
-    size_t nbytes =
-      GetDeflatedUTF8StringLength(cx, pathStrChars.twoByteChars(), pathStr->length());
-    if (nbytes == (size_t) -1)
-      return nullptr;
+    size_t nbytes = GetDeflatedUTF8StringLength(cx, pathStrChars.twoByteChars(),
+                                                pathStr->length());
+    if (nbytes == (size_t)-1) return nullptr;
 
     pathBytes = static_cast<char*>(JS_malloc(cx, nbytes + 1));
-    if (!pathBytes)
-      return nullptr;
+    if (!pathBytes) return nullptr;
 
     ASSERT_OK(DeflateStringToUTF8Buffer(cx, pathStrChars.twoByteChars(),
-                pathStr->length(), pathBytes, &nbytes));
+                                        pathStr->length(), pathBytes, &nbytes));
     pathBytes[nbytes] = 0;
   }
 
@@ -158,18 +139,19 @@ Library::Create(JSContext* cx, HandleValue path, const JSCTypesCallbacks* callba
 #define MAX_ERROR_LEN 1024
     char error[MAX_ERROR_LEN] = "Cannot get error from NSPR.";
     uint32_t errorLen = PR_GetErrorTextLength();
-    if (errorLen && errorLen < MAX_ERROR_LEN)
-      PR_GetErrorText(error);
+    if (errorLen && errorLen < MAX_ERROR_LEN) PR_GetErrorText(error);
 #undef MAX_ERROR_LEN
 
     if (JS::StringIsASCII(error)) {
       JSAutoByteString pathCharsUTF8;
       if (pathCharsUTF8.encodeUtf8(cx, pathStr))
-        JS_ReportErrorUTF8(cx, "couldn't open library %s: %s", pathCharsUTF8.ptr(), error);
+        JS_ReportErrorUTF8(cx, "couldn't open library %s: %s",
+                           pathCharsUTF8.ptr(), error);
     } else {
       JSAutoByteString pathCharsLatin1;
       if (pathCharsLatin1.encodeLatin1(cx, pathStr))
-        JS_ReportErrorLatin1(cx, "couldn't open library %s: %s", pathCharsLatin1.ptr(), error);
+        JS_ReportErrorLatin1(cx, "couldn't open library %s: %s",
+                             pathCharsLatin1.ptr(), error);
     }
     return nullptr;
   }
@@ -180,42 +162,28 @@ Library::Create(JSContext* cx, HandleValue path, const JSCTypesCallbacks* callba
   return libraryObj;
 }
 
-bool
-Library::IsLibrary(JSObject* obj)
-{
+bool Library::IsLibrary(JSObject* obj) {
   return JS_GetClass(obj) == &sLibraryClass;
 }
 
-PRLibrary*
-Library::GetLibrary(JSObject* obj)
-{
+PRLibrary* Library::GetLibrary(JSObject* obj) {
   MOZ_ASSERT(IsLibrary(obj));
 
   Value slot = JS_GetReservedSlot(obj, SLOT_LIBRARY);
   return static_cast<PRLibrary*>(slot.toPrivate());
 }
 
-static void
-UnloadLibrary(JSObject* obj)
-{
+static void UnloadLibrary(JSObject* obj) {
   PRLibrary* library = Library::GetLibrary(obj);
-  if (library)
-    PR_UnloadLibrary(library);
+  if (library) PR_UnloadLibrary(library);
 }
 
-void
-Library::Finalize(JSFreeOp* fop, JSObject* obj)
-{
-  UnloadLibrary(obj);
-}
+void Library::Finalize(JSFreeOp* fop, JSObject* obj) { UnloadLibrary(obj); }
 
-bool
-Library::Open(JSContext* cx, unsigned argc, Value* vp)
-{
+bool Library::Open(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   JSObject* ctypesObj = JS_THIS_OBJECT(cx, vp);
-  if (!ctypesObj)
-    return false;
+  if (!ctypesObj) return false;
   if (!IsCTypesGlobal(ctypesObj)) {
     JS_ReportErrorASCII(cx, "not a ctypes object");
     return false;
@@ -227,21 +195,17 @@ Library::Open(JSContext* cx, unsigned argc, Value* vp)
   }
 
   JSObject* library = Create(cx, args[0], GetCallbacks(ctypesObj));
-  if (!library)
-    return false;
+  if (!library) return false;
 
   args.rval().setObject(*library);
   return true;
 }
 
-bool
-Library::Close(JSContext* cx, unsigned argc, Value* vp)
-{
+bool Library::Close(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   RootedObject obj(cx);
-  if (args.thisv().isObject())
-    obj = &args.thisv().toObject();
+  if (args.thisv().isObject()) obj = &args.thisv().toObject();
   if (!obj || !IsLibrary(obj)) {
     JS_ReportErrorASCII(cx, "not a library");
     return false;
@@ -260,13 +224,10 @@ Library::Close(JSContext* cx, unsigned argc, Value* vp)
   return true;
 }
 
-bool
-Library::Declare(JSContext* cx, unsigned argc, Value* vp)
-{
+bool Library::Declare(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   RootedObject obj(cx, JS_THIS_OBJECT(cx, vp));
-  if (!obj)
-    return false;
+  if (!obj) return false;
   if (!IsLibrary(obj)) {
     JS_ReportErrorASCII(cx, "not a library");
     return false;
@@ -304,19 +265,17 @@ Library::Declare(JSContext* cx, unsigned argc, Value* vp)
   if (isFunction) {
     // Case 1).
     // Create a FunctionType representing the function.
-    fnObj = FunctionType::CreateInternal(cx, args[1], args[2],
-                                         HandleValueArray::subarray(args, 3, args.length() - 3));
-    if (!fnObj)
-      return false;
+    fnObj = FunctionType::CreateInternal(
+        cx, args[1], args[2],
+        HandleValueArray::subarray(args, 3, args.length() - 3));
+    if (!fnObj) return false;
 
     // Make a function pointer type.
     typeObj = PointerType::CreateInternal(cx, fnObj);
-    if (!typeObj)
-      return false;
+    if (!typeObj) return false;
   } else {
     // Case 2).
-    if (args[1].isPrimitive() ||
-        !CType::IsCType(args[1].toObjectOrNull()) ||
+    if (args[1].isPrimitive() || !CType::IsCType(args[1].toObjectOrNull()) ||
         !CType::IsSizeDefined(args[1].toObjectOrNull())) {
       JS_ReportErrorASCII(cx, "second argument must be a type of defined size");
       return false;
@@ -359,8 +318,7 @@ Library::Declare(JSContext* cx, unsigned argc, Value* vp)
   }
 
   RootedObject result(cx, CData::Create(cx, typeObj, obj, data, isFunction));
-  if (!result)
-    return false;
+  if (!result) return false;
 
   if (isFunction)
     JS_SetReservedSlot(result, SLOT_FUNNAME, StringValue(nameStr));
@@ -373,12 +331,10 @@ Library::Declare(JSContext* cx, unsigned argc, Value* vp)
   // change the pointer value.
   // XXX This will need to change when bug 541212 is fixed -- CData::ValueSetter
   // could be called on a sealed object.
-  if (isFunction && !JS_FreezeObject(cx, result))
-    return false;
+  if (isFunction && !JS_FreezeObject(cx, result)) return false;
 
   return true;
 }
 
-} // namespace ctypes
-} // namespace js
-
+}  // namespace ctypes
+}  // namespace js

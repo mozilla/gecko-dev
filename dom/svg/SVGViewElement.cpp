@@ -15,47 +15,35 @@ namespace dom {
 
 using namespace SVGViewElementBinding;
 
-JSObject*
-SVGViewElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGViewElement::WrapNode(JSContext* aCx,
+                                   JS::Handle<JSObject*> aGivenProto) {
   return SVGViewElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::StringListInfo SVGViewElement::sStringListInfo[1] =
-{
-  { &nsGkAtoms::viewTarget }
-};
+nsSVGElement::StringListInfo SVGViewElement::sStringListInfo[1] = {
+    {&nsGkAtoms::viewTarget}};
 
 nsSVGEnumMapping SVGViewElement::sZoomAndPanMap[] = {
-  {&nsGkAtoms::disable, SVG_ZOOMANDPAN_DISABLE},
-  {&nsGkAtoms::magnify, SVG_ZOOMANDPAN_MAGNIFY},
-  {nullptr, 0}
-};
+    {&nsGkAtoms::disable, SVG_ZOOMANDPAN_DISABLE},
+    {&nsGkAtoms::magnify, SVG_ZOOMANDPAN_MAGNIFY},
+    {nullptr, 0}};
 
-nsSVGElement::EnumInfo SVGViewElement::sEnumInfo[1] =
-{
-  { &nsGkAtoms::zoomAndPan,
-    sZoomAndPanMap,
-    SVG_ZOOMANDPAN_MAGNIFY
-  }
-};
+nsSVGElement::EnumInfo SVGViewElement::sEnumInfo[1] = {
+    {&nsGkAtoms::zoomAndPan, sZoomAndPanMap, SVG_ZOOMANDPAN_MAGNIFY}};
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGViewElement::SVGViewElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGViewElementBase(aNodeInfo)
-{
-}
+SVGViewElement::SVGViewElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : SVGViewElementBase(aNodeInfo) {}
 
 //----------------------------------------------------------------------
 // nsIDOMNode methods
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGViewElement)
 
-void
-SVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv)
-{
+void SVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv) {
   if (aZoomAndPan == SVG_ZOOMANDPAN_DISABLE ||
       aZoomAndPan == SVG_ZOOMANDPAN_MAGNIFY) {
     mEnumAttributes[ZOOMANDPAN].SetBaseValue(aZoomAndPan, this);
@@ -67,55 +55,39 @@ SVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv)
 
 //----------------------------------------------------------------------
 
-already_AddRefed<SVGAnimatedRect>
-SVGViewElement::ViewBox()
-{
+already_AddRefed<SVGAnimatedRect> SVGViewElement::ViewBox() {
   return mViewBox.ToSVGAnimatedRect(this);
 }
 
 already_AddRefed<DOMSVGAnimatedPreserveAspectRatio>
-SVGViewElement::PreserveAspectRatio()
-{
+SVGViewElement::PreserveAspectRatio() {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(this);
 }
 
 //----------------------------------------------------------------------
 
-already_AddRefed<DOMSVGStringList>
-SVGViewElement::ViewTarget()
-{
-  return DOMSVGStringList::GetDOMWrapper(
-           &mStringListAttributes[VIEW_TARGET], this, false, VIEW_TARGET);
+already_AddRefed<DOMSVGStringList> SVGViewElement::ViewTarget() {
+  return DOMSVGStringList::GetDOMWrapper(&mStringListAttributes[VIEW_TARGET],
+                                         this, false, VIEW_TARGET);
 }
 
 //----------------------------------------------------------------------
 // nsSVGElement methods
 
-nsSVGElement::EnumAttributesInfo
-SVGViewElement::GetEnumInfo()
-{
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
-                            ArrayLength(sEnumInfo));
+nsSVGElement::EnumAttributesInfo SVGViewElement::GetEnumInfo() {
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
-nsSVGViewBox *
-SVGViewElement::GetViewBox()
-{
-  return &mViewBox;
-}
+nsSVGViewBox* SVGViewElement::GetViewBox() { return &mViewBox; }
 
-SVGAnimatedPreserveAspectRatio *
-SVGViewElement::GetPreserveAspectRatio()
-{
+SVGAnimatedPreserveAspectRatio* SVGViewElement::GetPreserveAspectRatio() {
   return &mPreserveAspectRatio;
 }
 
-nsSVGElement::StringListAttributesInfo
-SVGViewElement::GetStringListInfo()
-{
+nsSVGElement::StringListAttributesInfo SVGViewElement::GetStringListInfo() {
   return StringListAttributesInfo(mStringListAttributes, sStringListInfo,
                                   ArrayLength(sStringListInfo));
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

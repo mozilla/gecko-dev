@@ -42,23 +42,24 @@ class PCompositorBridgeChild;
 class WebRenderBridgeChild;
 class WebRenderParentCommand;
 
-class WebRenderLayerManager final : public LayerManager
-{
-  typedef nsTArray<RefPtr<Layer> > LayerRefArray;
-  typedef nsTHashtable<nsRefPtrHashKey<WebRenderUserData>> WebRenderUserDataRefTable;
+class WebRenderLayerManager final : public LayerManager {
+  typedef nsTArray<RefPtr<Layer>> LayerRefArray;
+  typedef nsTHashtable<nsRefPtrHashKey<WebRenderUserData>>
+      WebRenderUserDataRefTable;
 
-public:
+ public:
   explicit WebRenderLayerManager(nsIWidget* aWidget);
-  bool Initialize(PCompositorBridgeChild* aCBChild, wr::PipelineId aLayersId, TextureFactoryIdentifier* aTextureFactoryIdentifier);
+  bool Initialize(PCompositorBridgeChild* aCBChild, wr::PipelineId aLayersId,
+                  TextureFactoryIdentifier* aTextureFactoryIdentifier);
 
   virtual void Destroy() override;
 
   void DoDestroy(bool aIsSync);
 
-protected:
+ protected:
   virtual ~WebRenderLayerManager();
 
-public:
+ public:
   virtual KnowsCompositor* AsKnowsCompositor() override;
   WebRenderLayerManager* AsWebRenderLayerManager() override { return this; }
   virtual CompositorBridgeChild* GetCompositorBridgeChild() override;
@@ -67,22 +68,31 @@ public:
 
   virtual bool BeginTransactionWithTarget(gfxContext* aTarget) override;
   virtual bool BeginTransaction() override;
-  virtual bool EndEmptyTransaction(EndTransactionFlags aFlags = END_DEFAULT) override;
-  void EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
-                                  nsDisplayListBuilder* aDisplayListBuilder,
-                                  const nsTArray<wr::WrFilterOp>& aFilters = nsTArray<wr::WrFilterOp>());
-  virtual void EndTransaction(DrawPaintedLayerCallback aCallback,
-                              void* aCallbackData,
-                              EndTransactionFlags aFlags = END_DEFAULT) override;
+  virtual bool EndEmptyTransaction(
+      EndTransactionFlags aFlags = END_DEFAULT) override;
+  void EndTransactionWithoutLayer(
+      nsDisplayList* aDisplayList, nsDisplayListBuilder* aDisplayListBuilder,
+      const nsTArray<wr::WrFilterOp>& aFilters = nsTArray<wr::WrFilterOp>());
+  virtual void EndTransaction(
+      DrawPaintedLayerCallback aCallback, void* aCallbackData,
+      EndTransactionFlags aFlags = END_DEFAULT) override;
 
-  virtual LayersBackend GetBackendType() override { return LayersBackend::LAYERS_WR; }
-  virtual void GetBackendName(nsAString& name) override { name.AssignLiteral("WebRender"); }
+  virtual LayersBackend GetBackendType() override {
+    return LayersBackend::LAYERS_WR;
+  }
+  virtual void GetBackendName(nsAString& name) override {
+    name.AssignLiteral("WebRender");
+  }
   virtual const char* Name() const override { return "WebRender"; }
 
   virtual void SetRoot(Layer* aLayer) override;
 
-  already_AddRefed<PaintedLayer> CreatePaintedLayer() override { return nullptr; }
-  already_AddRefed<ContainerLayer> CreateContainerLayer() override { return nullptr; }
+  already_AddRefed<PaintedLayer> CreatePaintedLayer() override {
+    return nullptr;
+  }
+  already_AddRefed<ContainerLayer> CreateContainerLayer() override {
+    return nullptr;
+  }
   already_AddRefed<ImageLayer> CreateImageLayer() override { return nullptr; }
   already_AddRefed<ColorLayer> CreateColorLayer() override { return nullptr; }
   already_AddRefed<BorderLayer> CreateBorderLayer() override { return nullptr; }
@@ -97,13 +107,17 @@ public:
                             const mozilla::TimeStamp& aCompositeEnd) override;
 
   virtual void ClearCachedResources(Layer* aSubtree = nullptr) override;
-  virtual void UpdateTextureFactoryIdentifier(const TextureFactoryIdentifier& aNewIdentifier) override;
+  virtual void UpdateTextureFactoryIdentifier(
+      const TextureFactoryIdentifier& aNewIdentifier) override;
   virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() override;
 
-  virtual void SetTransactionIdAllocator(TransactionIdAllocator* aAllocator) override;
+  virtual void SetTransactionIdAllocator(
+      TransactionIdAllocator* aAllocator) override;
 
-  virtual void AddDidCompositeObserver(DidCompositeObserver* aObserver) override;
-  virtual void RemoveDidCompositeObserver(DidCompositeObserver* aObserver) override;
+  virtual void AddDidCompositeObserver(
+      DidCompositeObserver* aObserver) override;
+  virtual void RemoveDidCompositeObserver(
+      DidCompositeObserver* aObserver) override;
 
   virtual void FlushRendering() override;
   virtual void WaitOnTransactionProcessed() override;
@@ -112,8 +126,7 @@ public:
 
   virtual void ScheduleComposite() override;
 
-  virtual void SetNeedsComposite(bool aNeedsComposite) override
-  {
+  virtual void SetNeedsComposite(bool aNeedsComposite) override {
     mNeedsComposite = aNeedsComposite;
   }
   virtual bool NeedsComposite() const override { return mNeedsComposite; }
@@ -121,7 +134,8 @@ public:
   virtual void SetFocusTarget(const FocusTarget& aFocusTarget) override;
 
   virtual already_AddRefed<PersistentBufferProvider>
-  CreatePersistentBufferProvider(const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat) override;
+  CreatePersistentBufferProvider(const gfx::IntSize& aSize,
+                                 gfx::SurfaceFormat aFormat) override;
 
   bool AsyncPanZoomEnabled() const override;
 
@@ -145,17 +159,20 @@ public:
                                   const std::string& aKey,
                                   const std::string& aValue) {
     MOZ_ASSERT(gfxPrefs::APZTestLoggingEnabled(), "don't call me");
-    mApzTestData.LogTestDataForPaint(mPaintSequenceNumber, aScrollId, aKey, aValue);
+    mApzTestData.LogTestDataForPaint(mPaintSequenceNumber, aScrollId, aKey,
+                                     aValue);
   }
   // See equivalent function in ClientLayerManager
-  const APZTestData& GetAPZTestData() const
-  { return mApzTestData; }
+  const APZTestData& GetAPZTestData() const { return mApzTestData; }
 
-  bool SetPendingScrollUpdateForNextTransaction(FrameMetrics::ViewID aScrollId,
-                                                const ScrollUpdateInfo& aUpdateInfo) override;
+  bool SetPendingScrollUpdateForNextTransaction(
+      FrameMetrics::ViewID aScrollId,
+      const ScrollUpdateInfo& aUpdateInfo) override;
 
   WebRenderCommandBuilder& CommandBuilder() { return mWebRenderCommandBuilder; }
-  WebRenderUserDataRefTable* GetWebRenderUserDataTable() { return mWebRenderCommandBuilder.GetWebRenderUserDataTable(); }
+  WebRenderUserDataRefTable* GetWebRenderUserDataTable() {
+    return mWebRenderCommandBuilder.GetWebRenderUserDataTable();
+  }
   WebRenderScrollData& GetScrollData() { return mScrollData; }
 
   void WrUpdated();
@@ -164,14 +181,14 @@ public:
 
   dom::TabGroup* GetTabGroup();
 
-private:
+ private:
   /**
    * Take a snapshot of the parent context, and copy
    * it into mTarget.
    */
   void MakeSnapshotIfRequired(LayoutDeviceIntSize aSize);
 
-private:
+ private:
   nsIWidget* MOZ_NON_OWNING_REF mWidget;
   nsTArray<wr::ImageKey> mImageKeysToDelete;
   // TODO - This is needed because we have some code that creates image keys
@@ -222,7 +239,7 @@ private:
   size_t mLastDisplayListSize;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* GFX_WEBRENDERLAYERMANAGER_H */

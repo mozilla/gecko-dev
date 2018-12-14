@@ -23,18 +23,17 @@ namespace subtle {
 
 extern Lock gAtomicsMutex;
 
-template<typename T>
+template <typename T>
 T Locked_CAS(volatile T* ptr, T old_value, T new_value) {
   AutoLock _(gAtomicsMutex);
 
   T current_value = *ptr;
-  if (current_value == old_value)
-    *ptr = new_value;
+  if (current_value == old_value) *ptr = new_value;
 
   return current_value;
 }
 
-template<typename T>
+template <typename T>
 T Locked_AtomicExchange(volatile T* ptr, T new_value) {
   AutoLock _(gAtomicsMutex);
 
@@ -43,19 +42,19 @@ T Locked_AtomicExchange(volatile T* ptr, T new_value) {
   return current_value;
 }
 
-template<typename T>
+template <typename T>
 T Locked_AtomicIncrement(volatile T* ptr, T increment) {
   AutoLock _(gAtomicsMutex);
   return *ptr += increment;
 }
 
-template<typename T>
+template <typename T>
 void Locked_Store(volatile T* ptr, T value) {
   AutoLock _(gAtomicsMutex);
   *ptr = value;
 }
 
-template<typename T>
+template <typename T>
 T Locked_Load(volatile const T* ptr) {
   AutoLock _(gAtomicsMutex);
   return *ptr;
@@ -83,14 +82,12 @@ inline Atomic32 Barrier_AtomicIncrement(volatile Atomic32* ptr,
 }
 
 inline Atomic32 Acquire_CompareAndSwap(volatile Atomic32* ptr,
-                                       Atomic32 old_value,
-                                       Atomic32 new_value) {
+                                       Atomic32 old_value, Atomic32 new_value) {
   return Locked_CAS(ptr, old_value, new_value);
 }
 
 inline Atomic32 Release_CompareAndSwap(volatile Atomic32* ptr,
-                                       Atomic32 old_value,
-                                       Atomic32 new_value) {
+                                       Atomic32 old_value, Atomic32 new_value) {
   return Locked_CAS(ptr, old_value, new_value);
 }
 
@@ -151,8 +148,7 @@ inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
 }
 
 inline Atomic64 Acquire_CompareAndSwap(volatile Atomic64* ptr,
-                                       Atomic64 old_value,
-                                       Atomic64 new_value) {
+                                       Atomic64 old_value, Atomic64 new_value) {
   return Locked_CAS(ptr, old_value, new_value);
 }
 
@@ -219,7 +215,7 @@ inline AtomicWord Release_CompareAndSwap(volatile AtomicWord* ptr,
   return Locked_CAS(ptr, old_value, new_value);
 }
 
-inline void NoBarrier_Store(volatile AtomicWord *ptr, AtomicWord value) {
+inline void NoBarrier_Store(volatile AtomicWord* ptr, AtomicWord value) {
   return Locked_Store(ptr, value);
 }
 
@@ -231,7 +227,7 @@ inline void Release_Store(volatile AtomicWord* ptr, AtomicWord value) {
   return Locked_Store(ptr, value);
 }
 
-inline AtomicWord NoBarrier_Load(volatile const AtomicWord *ptr) {
+inline AtomicWord NoBarrier_Load(volatile const AtomicWord* ptr) {
   return Locked_Load(ptr);
 }
 

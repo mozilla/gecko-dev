@@ -19,26 +19,25 @@ class nsISHEntry;
 class nsIURI;
 class nsIDocShell;
 
-class nsDocShellLoadInfo : public nsIDocShellLoadInfo
-{
-public:
+class nsDocShellLoadInfo : public nsIDocShellLoadInfo {
+ public:
   nsDocShellLoadInfo();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOCSHELLLOADINFO
-protected:
+ protected:
   virtual ~nsDocShellLoadInfo();
 
-protected:
+ protected:
   nsCOMPtr<nsIURI> mReferrer;
   nsCOMPtr<nsIURI> mOriginalURI;
   nsCOMPtr<nsIURI> mResultPrincipalURI;
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   bool mResultPrincipalURIIsSome;
-  bool mKeepResultPrincipalURIIfSet; // if http-equiv="refresh" cause reload we
-                                     // do not want to replace
-                                     // ResultPrinicpalURI if it was already
-                                     // set.
+  bool mKeepResultPrincipalURIIfSet;  // if http-equiv="refresh" cause reload we
+                                      // do not want to replace
+                                      // ResultPrinicpalURI if it was already
+                                      // set.
   bool mLoadReplace;
   bool mInheritPrincipal;
   bool mPrincipalIsExplicit;

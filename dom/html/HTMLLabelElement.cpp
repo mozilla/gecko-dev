@@ -24,13 +24,10 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Label)
 namespace mozilla {
 namespace dom {
 
-HTMLLabelElement::~HTMLLabelElement()
-{
-}
+HTMLLabelElement::~HTMLLabelElement() {}
 
-JSObject*
-HTMLLabelElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLLabelElement::WrapNode(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLLabelElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -38,9 +35,7 @@ HTMLLabelElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 
 NS_IMPL_ELEMENT_CLONE(HTMLLabelElement)
 
-HTMLFormElement*
-HTMLLabelElement::GetForm() const
-{
+HTMLFormElement* HTMLLabelElement::GetForm() const {
   nsGenericHTMLElement* control = GetControl();
   if (!control) {
     return nullptr;
@@ -55,21 +50,16 @@ HTMLLabelElement::GetForm() const
   return static_cast<HTMLFormElement*>(formControl->GetFormElement());
 }
 
-void
-HTMLLabelElement::Focus(ErrorResult& aError)
-{
+void HTMLLabelElement::Focus(ErrorResult& aError) {
   // retarget the focus method at the for content
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
     nsCOMPtr<nsIDOMElement> elem = do_QueryObject(GetLabeledElement());
-    if (elem)
-      fm->SetFocus(elem, 0);
+    if (elem) fm->SetFocus(elem, 0);
   }
 }
 
-static bool
-InInteractiveHTMLContent(nsIContent* aContent, nsIContent* aStop)
-{
+static bool InInteractiveHTMLContent(nsIContent* aContent, nsIContent* aStop) {
   nsIContent* content = aContent;
   while (content && content != aStop) {
     if (content->IsElement() &&
@@ -81,9 +71,7 @@ InInteractiveHTMLContent(nsIContent* aContent, nsIContent* aStop)
   return false;
 }
 
-nsresult
-HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
-{
+nsresult HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
   WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
   if (mHandlingEvent ||
       (!(mouseEvent && mouseEvent->IsLeftClickEvent()) &&
@@ -111,7 +99,7 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
           // We reset the mouse-down point on every event because there is
           // no guarantee we will reach the eMouseClick code below.
           LayoutDeviceIntPoint* curPoint =
-            new LayoutDeviceIntPoint(mouseEvent->mRefPoint);
+              new LayoutDeviceIntPoint(mouseEvent->mRefPoint);
           SetProperty(nsGkAtoms::labelMouseDownPtProperty,
                       static_cast<void*>(curPoint),
                       nsINode::DeleteProperty<LayoutDeviceIntPoint>);
@@ -121,8 +109,8 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
       case eMouseClick:
         if (mouseEvent->IsLeftClickEvent()) {
           LayoutDeviceIntPoint* mouseDownPoint =
-            static_cast<LayoutDeviceIntPoint*>(
-              GetProperty(nsGkAtoms::labelMouseDownPtProperty));
+              static_cast<LayoutDeviceIntPoint*>(
+                  GetProperty(nsGkAtoms::labelMouseDownPtProperty));
 
           bool dragSelect = false;
           if (mouseDownPoint) {
@@ -157,11 +145,14 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
               // but we don't want to pass FLAG_BYMOUSE if this click event was
               // caused by the user pressing an accesskey.
               nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
-              bool byMouse = (mouseEvent->inputSource != nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD);
-              bool byTouch = (mouseEvent->inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
-              fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS |
-                                 (byMouse ? nsIFocusManager::FLAG_BYMOUSE : 0) |
-                                 (byTouch ? nsIFocusManager::FLAG_BYTOUCH : 0));
+              bool byMouse = (mouseEvent->inputSource !=
+                              nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD);
+              bool byTouch = (mouseEvent->inputSource ==
+                              nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
+              fm->SetFocus(elem,
+                           nsIFocusManager::FLAG_BYMOVEFOCUS |
+                               (byMouse ? nsIFocusManager::FLAG_BYMOUSE : 0) |
+                               (byTouch ? nsIFocusManager::FLAG_BYTOUCH : 0));
             }
           }
           // Dispatch a new click event to |content|
@@ -175,8 +166,8 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
           // will actually create a new event.
           EventFlags eventFlags;
           eventFlags.mMultipleActionsPrevented = true;
-          DispatchClickEvent(aVisitor.mPresContext, mouseEvent,
-                             content, false, &eventFlags, &status);
+          DispatchClickEvent(aVisitor.mPresContext, mouseEvent, content, false,
+                             &eventFlags, &status);
           // Do we care about the status this returned?  I don't think we do...
           // Don't run another <label> off of this click
           mouseEvent->mFlags.mMultipleActionsPrevented = true;
@@ -191,28 +182,26 @@ HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
   return NS_OK;
 }
 
-bool
-HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
-                                   bool aIsTrustedEvent)
-{
+bool HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
+                                        bool aIsTrustedEvent) {
   if (!aKeyCausesActivation) {
     RefPtr<Element> element = GetLabeledElement();
     if (element) {
       return element->PerformAccesskey(aKeyCausesActivation, aIsTrustedEvent);
     }
   } else {
-    nsPresContext *presContext = GetPresContext(eForUncomposedDoc);
+    nsPresContext* presContext = GetPresContext(eForUncomposedDoc);
     if (!presContext) {
       return false;
     }
 
     // Click on it if the users prefs indicate to do so.
-    WidgetMouseEvent event(aIsTrustedEvent, eMouseClick,
-                           nullptr, WidgetMouseEvent::eReal);
+    WidgetMouseEvent event(aIsTrustedEvent, eMouseClick, nullptr,
+                           WidgetMouseEvent::eReal);
     event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
 
-    nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
-                                            openAllowed : openAbused);
+    nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ? openAllowed
+                                                            : openAbused);
 
     EventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
                               &event);
@@ -221,9 +210,7 @@ HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
   return aKeyCausesActivation;
 }
 
-nsGenericHTMLElement*
-HTMLLabelElement::GetLabeledElement() const
-{
+nsGenericHTMLElement* HTMLLabelElement::GetLabeledElement() const {
   nsAutoString elementId;
 
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::_for, elementId)) {
@@ -241,7 +228,8 @@ HTMLLabelElement::GetLabeledElement() const
   } else if (nsIDocument* doc = GetUncomposedDoc()) {
     element = doc->GetElementById(elementId);
   } else {
-    element = nsContentUtils::MatchElementId(SubtreeRoot()->AsContent(), elementId);
+    element =
+        nsContentUtils::MatchElementId(SubtreeRoot()->AsContent(), elementId);
   }
 
   if (element && element->IsLabelable()) {
@@ -251,9 +239,7 @@ HTMLLabelElement::GetLabeledElement() const
   return nullptr;
 }
 
-nsGenericHTMLElement*
-HTMLLabelElement::GetFirstLabelableDescendant() const
-{
+nsGenericHTMLElement* HTMLLabelElement::GetFirstLabelableDescendant() const {
   for (nsIContent* cur = nsINode::GetFirstChild(); cur;
        cur = cur->GetNextNode(this)) {
     Element* element = cur->IsElement() ? cur->AsElement() : nullptr;
@@ -265,5 +251,5 @@ HTMLLabelElement::GetFirstLabelableDescendant() const
   return nullptr;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

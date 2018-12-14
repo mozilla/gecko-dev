@@ -94,7 +94,6 @@ extern "C" {
 #undef cip_mmgr_MediaDefinitions_MEDIA_TYPE_OPUS
 #define cip_mmgr_MediaDefinitions_MEDIA_TYPE_OPUS 109L
 
-
 #undef cip_mmgr_MediaDefinitions_BANDWIDTH_NARROWBAND
 #define cip_mmgr_MediaDefinitions_BANDWIDTH_NARROWBAND 200L
 #undef cip_mmgr_MediaDefinitions_BANDWIDTH_WIDEBAND

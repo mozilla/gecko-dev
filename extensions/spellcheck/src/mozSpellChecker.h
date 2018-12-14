@@ -19,11 +19,10 @@
 
 namespace mozilla {
 class RemoteSpellcheckEngineChild;
-} // namespace mozilla
+}  // namespace mozilla
 
-class mozSpellChecker : public nsISpellChecker
-{
-public:
+class mozSpellChecker : public nsISpellChecker {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(mozSpellChecker)
 
@@ -32,11 +31,14 @@ public:
   nsresult Init();
 
   // nsISpellChecker
-  NS_IMETHOD SetDocument(mozilla::TextServicesDocument* aTextServicesDocument,
+  NS_IMETHOD SetDocument(mozilla::TextServicesDocument *aTextServicesDocument,
                          bool aFromStartofDoc) override;
-  NS_IMETHOD NextMisspelledWord(nsAString &aWord, nsTArray<nsString> *aSuggestions) override;
-  NS_IMETHOD CheckWord(const nsAString &aWord, bool *aIsMisspelled, nsTArray<nsString> *aSuggestions) override;
-  NS_IMETHOD Replace(const nsAString &aOldWord, const nsAString &aNewWord, bool aAllOccurrences) override;
+  NS_IMETHOD NextMisspelledWord(nsAString &aWord,
+                                nsTArray<nsString> *aSuggestions) override;
+  NS_IMETHOD CheckWord(const nsAString &aWord, bool *aIsMisspelled,
+                       nsTArray<nsString> *aSuggestions) override;
+  NS_IMETHOD Replace(const nsAString &aOldWord, const nsAString &aNewWord,
+                     bool aAllOccurrences) override;
   NS_IMETHOD IgnoreAll(const nsAString &aWord) override;
 
   NS_IMETHOD AddWordToPersonalDictionary(const nsAString &aWord) override;
@@ -47,22 +49,20 @@ public:
   NS_IMETHOD GetCurrentDictionary(nsAString &aDictionary) override;
   NS_IMETHOD SetCurrentDictionary(const nsAString &aDictionary) override;
   NS_IMETHOD_(RefPtr<mozilla::GenericPromise>)
-    SetCurrentDictionaryFromList(const nsTArray<nsString>& aList) override;
+  SetCurrentDictionaryFromList(const nsTArray<nsString> &aList) override;
 
-  void DeleteRemoteEngine() {
-    mEngine = nullptr;
-  }
+  void DeleteRemoteEngine() { mEngine = nullptr; }
 
-  mozilla::TextServicesDocument* GetTextServicesDocument();
+  mozilla::TextServicesDocument *GetTextServicesDocument();
 
-protected:
+ protected:
   virtual ~mozSpellChecker();
 
   nsCOMPtr<mozISpellI18NUtil> mConverter;
   RefPtr<mozilla::TextServicesDocument> mTextServicesDocument;
   nsCOMPtr<mozIPersonalDictionary> mPersonalDictionary;
 
-  nsCOMPtr<mozISpellCheckingEngine>  mSpellCheckingEngine;
+  nsCOMPtr<mozISpellCheckingEngine> mSpellCheckingEngine;
   bool mFromStart;
 
   nsString mCurrentDictionary;
@@ -70,8 +70,8 @@ protected:
   nsresult SetupDoc(int32_t *outBlockOffset);
 
   nsresult GetCurrentBlockIndex(
-             mozilla::TextServicesDocument* aTextServicesDocument,
-             int32_t* aOutBlockIndex);
+      mozilla::TextServicesDocument *aTextServicesDocument,
+      int32_t *aOutBlockIndex);
 
   nsresult GetEngineList(nsCOMArray<mozISpellCheckingEngine> *aDictionaryList);
 
@@ -79,4 +79,4 @@ protected:
 
   friend class mozilla::RemoteSpellcheckEngineChild;
 };
-#endif // mozSpellChecker_h__
+#endif  // mozSpellChecker_h__

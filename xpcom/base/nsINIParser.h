@@ -21,9 +21,8 @@
 
 class nsIFile;
 
-class nsINIParser
-{
-public:
+class nsINIParser {
+ public:
   nsINIParser() {}
   ~nsINIParser() {}
 
@@ -57,8 +56,8 @@ public:
    * Enumerate the strings within a section. If the section does
    * not exist, this function will silently return.
    */
-  nsresult GetStrings(const char* aSection,
-                      INIStringCallback aCB, void* aClosure);
+  nsresult GetStrings(const char* aSection, INIStringCallback aCB,
+                      void* aClosure);
 
   /**
    * Get the value of the specified key in the specified section
@@ -84,17 +83,12 @@ public:
    *
    * @see GetString [1]
    */
-  nsresult GetString(const char* aSection, const char* aKey,
-                     char* aResult, uint32_t aResultLen);
+  nsresult GetString(const char* aSection, const char* aKey, char* aResult,
+                     uint32_t aResultLen);
 
-private:
-  struct INIValue
-  {
-    INIValue(const char* aKey, const char* aValue)
-      : key(aKey)
-      , value(aValue)
-    {
-    }
+ private:
+  struct INIValue {
+    INIValue(const char* aKey, const char* aValue) : key(aKey), value(aValue) {}
 
     const char* key;
     const char* value;

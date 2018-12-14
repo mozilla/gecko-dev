@@ -8,146 +8,121 @@
 
 #include "xpt_xdr.h"
 #include "nscore.h"
-#include <string.h>             /* strchr */
+#include <string.h> /* strchr */
 #include "mozilla/Assertions.h"
 #include "mozilla/EndianUtils.h"
 
-static size_t
-CursPoolOffsetRaw(NotNull<XPTCursor*> cursor)
-{
-    if (cursor->pool == XPT_HEADER) {
-        return cursor->offset;
-    }
-    MOZ_ASSERT(cursor->state->data_offset);
-    return cursor->offset + cursor->state->data_offset;
+static size_t CursPoolOffsetRaw(NotNull<XPTCursor *> cursor) {
+  if (cursor->pool == XPT_HEADER) {
+    return cursor->offset;
+  }
+  MOZ_ASSERT(cursor->state->data_offset);
+  return cursor->offset + cursor->state->data_offset;
 }
 
-static size_t
-CursPoolOffset(NotNull<XPTCursor*> cursor)
-{
-    return CursPoolOffsetRaw(cursor) - 1;
+static size_t CursPoolOffset(NotNull<XPTCursor *> cursor) {
+  return CursPoolOffsetRaw(cursor) - 1;
 }
 
-static char*
-CursPoint(NotNull<XPTCursor*> cursor)
-{
-    return &cursor->state->pool_data[CursPoolOffset(cursor)];
+static char *CursPoint(NotNull<XPTCursor *> cursor) {
+  return &cursor->state->pool_data[CursPoolOffset(cursor)];
 }
 
-static bool
-CheckCount(NotNull<XPTCursor*> cursor, uint32_t space)
-{
-    // Fail if we're in the data area and about to exceed the allocation.
-    // XXX Also fail if we're in the data area and !state->data_offset
-    if (cursor->pool == XPT_DATA &&
-        (CursPoolOffset(cursor) + space > cursor->state->pool_allocated)) {
-        MOZ_ASSERT(false);
-        fprintf(stderr, "FATAL: no room for %u in cursor\n", space);
-        return false;
-    }
+static bool CheckCount(NotNull<XPTCursor *> cursor, uint32_t space) {
+  // Fail if we're in the data area and about to exceed the allocation.
+  // XXX Also fail if we're in the data area and !state->data_offset
+  if (cursor->pool == XPT_DATA &&
+      (CursPoolOffset(cursor) + space > cursor->state->pool_allocated)) {
+    MOZ_ASSERT(false);
+    fprintf(stderr, "FATAL: no room for %u in cursor\n", space);
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
-void
-XPT_InitXDRState(XPTState* state, char *data, uint32_t len)
-{
-    state->next_cursor[0] = state->next_cursor[1] = 1;
-    state->pool_data = data;
-    state->pool_allocated = len;
+void XPT_InitXDRState(XPTState *state, char *data, uint32_t len) {
+  state->next_cursor[0] = state->next_cursor[1] = 1;
+  state->pool_data = data;
+  state->pool_allocated = len;
 }
 
 /* All offsets are 1-based */
-void
-XPT_SetDataOffset(XPTState *state, uint32_t data_offset)
-{
-   state->data_offset = data_offset;
+void XPT_SetDataOffset(XPTState *state, uint32_t data_offset) {
+  state->data_offset = data_offset;
 }
 
-bool
-XPT_MakeCursor(XPTState *state, XPTPool pool, uint32_t len,
-               NotNull<XPTCursor*> cursor)
-{
-    cursor->state = state;
-    cursor->pool = pool;
-    cursor->bits = 0;
-    cursor->offset = state->next_cursor[pool];
+bool XPT_MakeCursor(XPTState *state, XPTPool pool, uint32_t len,
+                    NotNull<XPTCursor *> cursor) {
+  cursor->state = state;
+  cursor->pool = pool;
+  cursor->bits = 0;
+  cursor->offset = state->next_cursor[pool];
 
-    if (!(CheckCount(cursor, len)))
-        return false;
+  if (!(CheckCount(cursor, len))) return false;
 
-    /* this check should be in CHECK_CURSOR */
-    if (pool == XPT_DATA && !state->data_offset) {
-        fprintf(stderr, "no data offset for XPT_DATA cursor!\n");
-        return false;
-    }
+  /* this check should be in CHECK_CURSOR */
+  if (pool == XPT_DATA && !state->data_offset) {
+    fprintf(stderr, "no data offset for XPT_DATA cursor!\n");
+    return false;
+  }
 
-    state->next_cursor[pool] += len;
+  state->next_cursor[pool] += len;
 
-    return true;
+  return true;
 }
 
-bool
-XPT_SeekTo(NotNull<XPTCursor*> cursor, uint32_t offset)
-{
-    /* XXX do some real checking and update len and stuff */
-    cursor->offset = offset;
-    return true;
+bool XPT_SeekTo(NotNull<XPTCursor *> cursor, uint32_t offset) {
+  /* XXX do some real checking and update len and stuff */
+  cursor->offset = offset;
+  return true;
 }
 
-bool
-XPT_SkipStringInline(NotNull<XPTCursor*> cursor)
-{
-    uint16_t length;
-    if (!XPT_Do16(cursor, &length))
-        return false;
+bool XPT_SkipStringInline(NotNull<XPTCursor *> cursor) {
+  uint16_t length;
+  if (!XPT_Do16(cursor, &length)) return false;
 
-    uint8_t byte;
-    for (uint16_t i = 0; i < length; i++)
-        if (!XPT_Do8(cursor, &byte))
-            return false;
+  uint8_t byte;
+  for (uint16_t i = 0; i < length; i++)
+    if (!XPT_Do8(cursor, &byte)) return false;
 
-    return true;
+  return true;
 }
 
-bool
-XPT_DoCString(XPTArena *arena, NotNull<XPTCursor*> cursor, const char **identp,
-              bool ignore)
-{
-    uint32_t offset = 0;
-    if (!XPT_Do32(cursor, &offset))
-        return false;
+bool XPT_DoCString(XPTArena *arena, NotNull<XPTCursor *> cursor,
+                   const char **identp, bool ignore) {
+  uint32_t offset = 0;
+  if (!XPT_Do32(cursor, &offset)) return false;
 
-    if (!offset) {
-        *identp = NULL;
-        return true;
-    }
-
-    XPTCursor my_cursor;
-    my_cursor.pool = XPT_DATA;
-    my_cursor.offset = offset;
-    my_cursor.state = cursor->state;
-    char* start = CursPoint(WrapNotNull(&my_cursor));
-
-    char* end = strchr(start, 0); /* find the end of the string */
-    if (!end) {
-        fprintf(stderr, "didn't find end of string on decode!\n");
-        return false;
-    }
-    int len = end - start;
-    MOZ_ASSERT(len > 0);
-
-    if (!ignore) {
-        char *ident = (char*)XPT_CALLOC1(arena, len + 1u);
-        if (!ident)
-            return false;
-
-        memcpy(ident, start, (size_t)len);
-        ident[len] = 0;
-        *identp = ident;
-    }
-
+  if (!offset) {
+    *identp = NULL;
     return true;
+  }
+
+  XPTCursor my_cursor;
+  my_cursor.pool = XPT_DATA;
+  my_cursor.offset = offset;
+  my_cursor.state = cursor->state;
+  char *start = CursPoint(WrapNotNull(&my_cursor));
+
+  char *end = strchr(start, 0); /* find the end of the string */
+  if (!end) {
+    fprintf(stderr, "didn't find end of string on decode!\n");
+    return false;
+  }
+  int len = end - start;
+  MOZ_ASSERT(len > 0);
+
+  if (!ignore) {
+    char *ident = (char *)XPT_CALLOC1(arena, len + 1u);
+    if (!ident) return false;
+
+    memcpy(ident, start, (size_t)len);
+    ident[len] = 0;
+    *identp = ident;
+  }
+
+  return true;
 }
 
 /*
@@ -163,43 +138,37 @@ XPT_DoCString(XPTArena *arena, NotNull<XPTCursor*> cursor, const char **identp,
  *
  * (http://www.mozilla.org/scriptable/typelib_file.html#iid)
  */
-bool
-XPT_DoIID(NotNull<XPTCursor*> cursor, nsID *iidp)
-{
-    int i;
+bool XPT_DoIID(NotNull<XPTCursor *> cursor, nsID *iidp) {
+  int i;
 
-    if (!XPT_Do32(cursor, &iidp->m0) ||
-        !XPT_Do16(cursor, &iidp->m1) ||
-        !XPT_Do16(cursor, &iidp->m2))
-        return false;
+  if (!XPT_Do32(cursor, &iidp->m0) || !XPT_Do16(cursor, &iidp->m1) ||
+      !XPT_Do16(cursor, &iidp->m2))
+    return false;
 
-    for (i = 0; i < 8; i++)
-        if (!XPT_Do8(cursor, (uint8_t *)&iidp->m3[i]))
-            return false;
+  for (i = 0; i < 8; i++)
+    if (!XPT_Do8(cursor, (uint8_t *)&iidp->m3[i])) return false;
 
-    return true;
+  return true;
 }
 
-// MSVC apparently cannot handle functions as template parameters very well,
-// so we need to use a macro approach here.
+  // MSVC apparently cannot handle functions as template parameters very well,
+  // so we need to use a macro approach here.
 
-#define XPT_DOINT(T, func, valuep)                \
-    do {                                          \
-        const size_t sz = sizeof(T);              \
-                                                  \
-        if (!CheckCount(cursor, sz)) {            \
-            return false;                         \
-        }                                         \
-                                                  \
-        *valuep = func(CursPoint(cursor));        \
-        cursor->offset += sz;                     \
-        return true;                              \
-    } while(0)
+#define XPT_DOINT(T, func, valuep)     \
+  do {                                 \
+    const size_t sz = sizeof(T);       \
+                                       \
+    if (!CheckCount(cursor, sz)) {     \
+      return false;                    \
+    }                                  \
+                                       \
+    *valuep = func(CursPoint(cursor)); \
+    cursor->offset += sz;              \
+    return true;                       \
+  } while (0)
 
-bool
-XPT_Do64(NotNull<XPTCursor*> cursor, int64_t *u64p)
-{
-    XPT_DOINT(int64_t, mozilla::BigEndian::readInt64, u64p);
+bool XPT_Do64(NotNull<XPTCursor *> cursor, int64_t *u64p) {
+  XPT_DOINT(int64_t, mozilla::BigEndian::readInt64, u64p);
 }
 
 /*
@@ -208,31 +177,22 @@ XPT_Do64(NotNull<XPTCursor*> cursor, int64_t *u64p)
  * well-aligned cases and do a single store, if they cared.  I might care
  * later.
  */
-bool
-XPT_Do32(NotNull<XPTCursor*> cursor, uint32_t *u32p)
-{
-    XPT_DOINT(uint32_t, mozilla::BigEndian::readUint32, u32p);
+bool XPT_Do32(NotNull<XPTCursor *> cursor, uint32_t *u32p) {
+  XPT_DOINT(uint32_t, mozilla::BigEndian::readUint32, u32p);
 }
 
-bool
-XPT_Do16(NotNull<XPTCursor*> cursor, uint16_t *u16p)
-{
-    XPT_DOINT(uint16_t, mozilla::BigEndian::readUint16, u16p);
+bool XPT_Do16(NotNull<XPTCursor *> cursor, uint16_t *u16p) {
+  XPT_DOINT(uint16_t, mozilla::BigEndian::readUint16, u16p);
 }
 
 #undef XPT_DOINT
 
-bool
-XPT_Do8(NotNull<XPTCursor*> cursor, uint8_t *u8p)
-{
-    if (!CheckCount(cursor, 1))
-        return false;
+bool XPT_Do8(NotNull<XPTCursor *> cursor, uint8_t *u8p) {
+  if (!CheckCount(cursor, 1)) return false;
 
-    *u8p = *CursPoint(cursor);
+  *u8p = *CursPoint(cursor);
 
-    cursor->offset++;
+  cursor->offset++;
 
-    return true;
+  return true;
 }
-
-

@@ -21,218 +21,190 @@
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(
-  XPTInterfaceInfoManager,
-  nsIInterfaceInfoManager,
-  nsIMemoryReporter)
+NS_IMPL_ISUPPORTS(XPTInterfaceInfoManager, nsIInterfaceInfoManager,
+                  nsIMemoryReporter)
 
 static StaticRefPtr<XPTInterfaceInfoManager> gInterfaceInfoManager;
 
-size_t
-XPTInterfaceInfoManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-{
-    size_t n = aMallocSizeOf(this);
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    // The entries themselves are allocated out of an arena accounted
-    // for elsewhere, so don't measure them
-    n += mWorkingSet.mIIDTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
-    n += mWorkingSet.mNameTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
-    return n;
+size_t XPTInterfaceInfoManager::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) {
+  size_t n = aMallocSizeOf(this);
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  // The entries themselves are allocated out of an arena accounted
+  // for elsewhere, so don't measure them
+  n += mWorkingSet.mIIDTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  n += mWorkingSet.mNameTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  return n;
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(XPTIMallocSizeOf)
 
 NS_IMETHODIMP
 XPTInterfaceInfoManager::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                        nsISupports* aData, bool aAnonymize)
-{
-    size_t amount = SizeOfIncludingThis(XPTIMallocSizeOf);
+                                        nsISupports* aData, bool aAnonymize) {
+  size_t amount = SizeOfIncludingThis(XPTIMallocSizeOf);
 
-    // Measure gXPTIStructArena here, too.  This is a bit grotty because it
-    // doesn't belong to the XPTIInterfaceInfoManager, but there's no
-    // obviously better place to measure it.
-    amount += XPT_SizeOfArenaIncludingThis(gXPTIStructArena, XPTIMallocSizeOf);
+  // Measure gXPTIStructArena here, too.  This is a bit grotty because it
+  // doesn't belong to the XPTIInterfaceInfoManager, but there's no
+  // obviously better place to measure it.
+  amount += XPT_SizeOfArenaIncludingThis(gXPTIStructArena, XPTIMallocSizeOf);
 
-    MOZ_COLLECT_REPORT(
-        "explicit/xpti-working-set", KIND_HEAP, UNITS_BYTES, amount,
-        "Memory used by the XPCOM typelib system.");
+  MOZ_COLLECT_REPORT("explicit/xpti-working-set", KIND_HEAP, UNITS_BYTES,
+                     amount, "Memory used by the XPCOM typelib system.");
 
-    return NS_OK;
+  return NS_OK;
 }
 
 // static
-XPTInterfaceInfoManager*
-XPTInterfaceInfoManager::GetSingleton()
-{
-    if (!gInterfaceInfoManager) {
-        gInterfaceInfoManager = new XPTInterfaceInfoManager();
-        gInterfaceInfoManager->InitMemoryReporter();
-    }
-    return gInterfaceInfoManager;
+XPTInterfaceInfoManager* XPTInterfaceInfoManager::GetSingleton() {
+  if (!gInterfaceInfoManager) {
+    gInterfaceInfoManager = new XPTInterfaceInfoManager();
+    gInterfaceInfoManager->InitMemoryReporter();
+  }
+  return gInterfaceInfoManager;
 }
 
-void
-XPTInterfaceInfoManager::FreeInterfaceInfoManager()
-{
-    gInterfaceInfoManager = nullptr;
+void XPTInterfaceInfoManager::FreeInterfaceInfoManager() {
+  gInterfaceInfoManager = nullptr;
 }
 
 XPTInterfaceInfoManager::XPTInterfaceInfoManager()
-    :   mWorkingSet(),
-        mResolveLock("XPTInterfaceInfoManager.mResolveLock")
-{
+    : mWorkingSet(), mResolveLock("XPTInterfaceInfoManager.mResolveLock") {}
+
+XPTInterfaceInfoManager::~XPTInterfaceInfoManager() {
+  // We only do this on shutdown of the service.
+  mWorkingSet.InvalidateInterfaceInfos();
+
+  UnregisterWeakMemoryReporter(this);
 }
 
-XPTInterfaceInfoManager::~XPTInterfaceInfoManager()
-{
-    // We only do this on shutdown of the service.
-    mWorkingSet.InvalidateInterfaceInfos();
-
-    UnregisterWeakMemoryReporter(this);
+void XPTInterfaceInfoManager::InitMemoryReporter() {
+  RegisterWeakMemoryReporter(this);
 }
 
-void
-XPTInterfaceInfoManager::InitMemoryReporter()
-{
-    RegisterWeakMemoryReporter(this);
+void XPTInterfaceInfoManager::RegisterBuffer(char* buf, uint32_t length) {
+  XPTState state;
+  XPT_InitXDRState(&state, buf, length);
+
+  XPTCursor curs;
+  NotNull<XPTCursor*> cursor = WrapNotNull(&curs);
+  if (!XPT_MakeCursor(&state, XPT_HEADER, 0, cursor)) {
+    return;
+  }
+
+  XPTHeader* header = nullptr;
+  if (XPT_DoHeader(gXPTIStructArena, cursor, &header)) {
+    RegisterXPTHeader(header);
+  }
 }
 
-void
-XPTInterfaceInfoManager::RegisterBuffer(char *buf, uint32_t length)
-{
-    XPTState state;
-    XPT_InitXDRState(&state, buf, length);
+void XPTInterfaceInfoManager::RegisterXPTHeader(const XPTHeader* aHeader) {
+  if (aHeader->mMajorVersion >= XPT_MAJOR_INCOMPATIBLE_VERSION) {
+    MOZ_ASSERT(!aHeader->mNumInterfaces, "bad libxpt");
+  }
 
-    XPTCursor curs;
-    NotNull<XPTCursor*> cursor = WrapNotNull(&curs);
-    if (!XPT_MakeCursor(&state, XPT_HEADER, 0, cursor)) {
-        return;
-    }
+  xptiTypelibGuts* typelib = xptiTypelibGuts::Create(aHeader);
 
-    XPTHeader *header = nullptr;
-    if (XPT_DoHeader(gXPTIStructArena, cursor, &header)) {
-        RegisterXPTHeader(header);
-    }
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  for (uint16_t k = 0; k < aHeader->mNumInterfaces; k++)
+    VerifyAndAddEntryIfNew(aHeader->mInterfaceDirectory + k, k, typelib);
 }
 
-void
-XPTInterfaceInfoManager::RegisterXPTHeader(const XPTHeader* aHeader)
-{
-    if (aHeader->mMajorVersion >= XPT_MAJOR_INCOMPATIBLE_VERSION) {
-        MOZ_ASSERT(!aHeader->mNumInterfaces, "bad libxpt");
-    }
+void XPTInterfaceInfoManager::VerifyAndAddEntryIfNew(
+    const XPTInterfaceDirectoryEntry* iface, uint16_t idx,
+    xptiTypelibGuts* typelib) {
+  if (!iface->mInterfaceDescriptor) return;
 
-    xptiTypelibGuts* typelib = xptiTypelibGuts::Create(aHeader);
+  // The number of maximum methods is not arbitrary. It is the same value as
+  // in xpcom/reflect/xptcall/genstubs.pl; do not change this value
+  // without changing that one or you WILL see problems.
+  if (iface->mInterfaceDescriptor->mNumMethods > 250 &&
+      !iface->mInterfaceDescriptor->IsBuiltinClass()) {
+    NS_ASSERTION(0, "Too many methods to handle for the stub, cannot load");
+    fprintf(stderr, "ignoring too large interface: %s\n", iface->mName);
+    return;
+  }
 
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    for(uint16_t k = 0; k < aHeader->mNumInterfaces; k++)
-        VerifyAndAddEntryIfNew(aHeader->mInterfaceDirectory + k, k, typelib);
-}
+  mWorkingSet.mTableReentrantMonitor.AssertCurrentThreadIn();
+  xptiInterfaceEntry* entry = mWorkingSet.mIIDTable.Get(iface->mIID);
+  if (entry) {
+    // XXX validate this info to find possible inconsistencies
+    return;
+  }
 
-void
-XPTInterfaceInfoManager::VerifyAndAddEntryIfNew(const XPTInterfaceDirectoryEntry* iface,
-                                                uint16_t idx,
-                                                xptiTypelibGuts* typelib)
-{
-    if (!iface->mInterfaceDescriptor)
-        return;
+  // Build a new xptiInterfaceEntry object and hook it up.
 
-    // The number of maximum methods is not arbitrary. It is the same value as
-    // in xpcom/reflect/xptcall/genstubs.pl; do not change this value
-    // without changing that one or you WILL see problems.
-    if (iface->mInterfaceDescriptor->mNumMethods > 250 &&
-            !iface->mInterfaceDescriptor->IsBuiltinClass()) {
-        NS_ASSERTION(0, "Too many methods to handle for the stub, cannot load");
-        fprintf(stderr, "ignoring too large interface: %s\n", iface->mName);
-        return;
-    }
+  entry = xptiInterfaceEntry::Create(iface->mName, iface->mIID,
+                                     iface->mInterfaceDescriptor, typelib);
+  if (!entry) return;
 
-    mWorkingSet.mTableReentrantMonitor.AssertCurrentThreadIn();
-    xptiInterfaceEntry* entry = mWorkingSet.mIIDTable.Get(iface->mIID);
-    if (entry) {
-        // XXX validate this info to find possible inconsistencies
-        return;
-    }
-
-    // Build a new xptiInterfaceEntry object and hook it up.
-
-    entry = xptiInterfaceEntry::Create(iface->mName,
-                                       iface->mIID,
-                                       iface->mInterfaceDescriptor,
-                                       typelib);
-    if (!entry)
-        return;
-
-    //XXX  We should SetHeader too as part of the validation, no?
-    entry->SetScriptableFlag(iface->mInterfaceDescriptor->IsScriptable());
-    entry->SetBuiltinClassFlag(iface->mInterfaceDescriptor->IsBuiltinClass());
-    entry->SetMainProcessScriptableOnlyFlag(
+  // XXX  We should SetHeader too as part of the validation, no?
+  entry->SetScriptableFlag(iface->mInterfaceDescriptor->IsScriptable());
+  entry->SetBuiltinClassFlag(iface->mInterfaceDescriptor->IsBuiltinClass());
+  entry->SetMainProcessScriptableOnlyFlag(
       iface->mInterfaceDescriptor->IsMainProcessScriptableOnly());
 
-    mWorkingSet.mIIDTable.Put(entry->IID(), entry);
-    mWorkingSet.mNameTable.Put(entry->GetTheName(), entry);
+  mWorkingSet.mIIDTable.Put(entry->IID(), entry);
+  mWorkingSet.mNameTable.Put(entry->GetTheName(), entry);
 
-    typelib->SetEntryAt(idx, entry);
+  typelib->SetEntryAt(idx, entry);
 }
 
 // this is a private helper
-static nsresult
-EntryToInfo(xptiInterfaceEntry* entry, nsIInterfaceInfo **_retval)
-{
-    if (!entry) {
-        *_retval = nullptr;
-        return NS_ERROR_FAILURE;
-    }
+static nsresult EntryToInfo(xptiInterfaceEntry* entry,
+                            nsIInterfaceInfo** _retval) {
+  if (!entry) {
+    *_retval = nullptr;
+    return NS_ERROR_FAILURE;
+  }
 
-    RefPtr<xptiInterfaceInfo> info = entry->InterfaceInfo();
-    info.forget(_retval);
-    return NS_OK;
+  RefPtr<xptiInterfaceInfo> info = entry->InterfaceInfo();
+  info.forget(_retval);
+  return NS_OK;
 }
 
-xptiInterfaceEntry*
-XPTInterfaceInfoManager::GetInterfaceEntryForIID(const nsIID *iid)
-{
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    return mWorkingSet.mIIDTable.Get(*iid);
-}
-
-NS_IMETHODIMP
-XPTInterfaceInfoManager::GetInfoForIID(const nsIID * iid, nsIInterfaceInfo **_retval)
-{
-    NS_ASSERTION(iid, "bad param");
-    NS_ASSERTION(_retval, "bad param");
-
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    xptiInterfaceEntry* entry = mWorkingSet.mIIDTable.Get(*iid);
-    return EntryToInfo(entry, _retval);
+xptiInterfaceEntry* XPTInterfaceInfoManager::GetInterfaceEntryForIID(
+    const nsIID* iid) {
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  return mWorkingSet.mIIDTable.Get(*iid);
 }
 
 NS_IMETHODIMP
-XPTInterfaceInfoManager::GetInfoForName(const char *name, nsIInterfaceInfo **_retval)
-{
-    NS_ASSERTION(name, "bad param");
-    NS_ASSERTION(_retval, "bad param");
+XPTInterfaceInfoManager::GetInfoForIID(const nsIID* iid,
+                                       nsIInterfaceInfo** _retval) {
+  NS_ASSERTION(iid, "bad param");
+  NS_ASSERTION(_retval, "bad param");
 
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    xptiInterfaceEntry* entry = mWorkingSet.mNameTable.Get(name);
-    return EntryToInfo(entry, _retval);
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  xptiInterfaceEntry* entry = mWorkingSet.mIIDTable.Get(*iid);
+  return EntryToInfo(entry, _retval);
 }
 
-void
-XPTInterfaceInfoManager::GetScriptableInterfaces(nsCOMArray<nsIInterfaceInfo>& aInterfaces)
-{
-    // I didn't want to incur the size overhead of using nsHashtable just to
-    // make building an enumerator easier. So, this code makes a snapshot of
-    // the table using an nsCOMArray and builds an enumerator for that.
-    // We can afford this transient cost.
+NS_IMETHODIMP
+XPTInterfaceInfoManager::GetInfoForName(const char* name,
+                                        nsIInterfaceInfo** _retval) {
+  NS_ASSERTION(name, "bad param");
+  NS_ASSERTION(_retval, "bad param");
 
-    ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
-    aInterfaces.SetCapacity(mWorkingSet.mNameTable.Count());
-    for (auto iter = mWorkingSet.mNameTable.Iter(); !iter.Done(); iter.Next()) {
-        xptiInterfaceEntry* entry = iter.UserData();
-        if (entry->GetScriptableFlag()) {
-            nsCOMPtr<nsIInterfaceInfo> ii = entry->InterfaceInfo();
-            aInterfaces.AppendElement(ii);
-        }
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  xptiInterfaceEntry* entry = mWorkingSet.mNameTable.Get(name);
+  return EntryToInfo(entry, _retval);
+}
+
+void XPTInterfaceInfoManager::GetScriptableInterfaces(
+    nsCOMArray<nsIInterfaceInfo>& aInterfaces) {
+  // I didn't want to incur the size overhead of using nsHashtable just to
+  // make building an enumerator easier. So, this code makes a snapshot of
+  // the table using an nsCOMArray and builds an enumerator for that.
+  // We can afford this transient cost.
+
+  ReentrantMonitorAutoEnter monitor(mWorkingSet.mTableReentrantMonitor);
+  aInterfaces.SetCapacity(mWorkingSet.mNameTable.Count());
+  for (auto iter = mWorkingSet.mNameTable.Iter(); !iter.Done(); iter.Next()) {
+    xptiInterfaceEntry* entry = iter.UserData();
+    if (entry->GetScriptableFlag()) {
+      nsCOMPtr<nsIInterfaceInfo> ii = entry->InterfaceInfo();
+      aInterfaces.AppendElement(ii);
     }
+  }
 }

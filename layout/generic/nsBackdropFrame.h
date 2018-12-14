@@ -11,35 +11,28 @@
 
 #include "nsFrame.h"
 
-class nsBackdropFrame final : public nsFrame
-{
-public:
+class nsBackdropFrame final : public nsFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsBackdropFrame)
 
   explicit nsBackdropFrame(nsStyleContext* aContext)
-    : nsFrame(aContext, kClassID)
-  {}
+      : nsFrame(aContext, kClassID) {}
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
-  virtual nsStyleContext*
-    GetParentStyleContext(nsIFrame** aProviderFrame) const override;
+  virtual nsStyleContext* GetParentStyleContext(
+      nsIFrame** aProviderFrame) const override;
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
-  virtual mozilla::LogicalSize
-    ComputeAutoSize(gfxContext*                 aRenderingContext,
-                    mozilla::WritingMode        aWM,
-                    const mozilla::LogicalSize& aCBSize,
-                    nscoord                     aAvailableISize,
-                    const mozilla::LogicalSize& aMargin,
-                    const mozilla::LogicalSize& aBorder,
-                    const mozilla::LogicalSize& aPadding,
-                    ComputeSizeFlags            aFlags) override;
-  virtual void Reflow(nsPresContext* aPresContext,
-                      ReflowOutput& aDesiredSize,
+  virtual mozilla::LogicalSize ComputeAutoSize(
+      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
+      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
+      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
+      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 };
 
-#endif // nsBackdropFrame_h___
+#endif  // nsBackdropFrame_h___

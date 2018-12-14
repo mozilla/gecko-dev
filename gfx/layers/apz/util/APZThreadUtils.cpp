@@ -14,27 +14,22 @@ namespace layers {
 static bool sThreadAssertionsEnabled = true;
 static MessageLoop* sControllerThread;
 
-/*static*/ void
-APZThreadUtils::SetThreadAssertionsEnabled(bool aEnabled) {
+/*static*/ void APZThreadUtils::SetThreadAssertionsEnabled(bool aEnabled) {
   sThreadAssertionsEnabled = aEnabled;
 }
 
-/*static*/ bool
-APZThreadUtils::GetThreadAssertionsEnabled() {
+/*static*/ bool APZThreadUtils::GetThreadAssertionsEnabled() {
   return sThreadAssertionsEnabled;
 }
 
-/*static*/ void
-APZThreadUtils::SetControllerThread(MessageLoop* aLoop)
-{
+/*static*/ void APZThreadUtils::SetControllerThread(MessageLoop* aLoop) {
   // We must either be setting the initial controller thread, or removing it,
   // or re-using an existing controller thread.
   MOZ_ASSERT(!sControllerThread || !aLoop || sControllerThread == aLoop);
   sControllerThread = aLoop;
 }
 
-/*static*/ void
-APZThreadUtils::AssertOnControllerThread() {
+/*static*/ void APZThreadUtils::AssertOnControllerThread() {
   if (!GetThreadAssertionsEnabled()) {
     return;
   }
@@ -42,17 +37,14 @@ APZThreadUtils::AssertOnControllerThread() {
   MOZ_ASSERT(sControllerThread == MessageLoop::current());
 }
 
-/*static*/ void
-APZThreadUtils::AssertOnSamplerThread()
-{
+/*static*/ void APZThreadUtils::AssertOnSamplerThread() {
   if (GetThreadAssertionsEnabled()) {
     MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   }
 }
 
-/*static*/ void
-APZThreadUtils::RunOnControllerThread(already_AddRefed<Runnable> aTask)
-{
+/*static*/ void APZThreadUtils::RunOnControllerThread(
+    already_AddRefed<Runnable> aTask) {
   RefPtr<Runnable> task = aTask;
 
   if (!sControllerThread) {
@@ -68,13 +60,11 @@ APZThreadUtils::RunOnControllerThread(already_AddRefed<Runnable> aTask)
   }
 }
 
-/*static*/ bool
-APZThreadUtils::IsControllerThread()
-{
+/*static*/ bool APZThreadUtils::IsControllerThread() {
   return sControllerThread == MessageLoop::current();
 }
 
 NS_IMPL_ISUPPORTS(GenericNamedTimerCallbackBase, nsITimerCallback, nsINamed)
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

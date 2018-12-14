@@ -8,12 +8,11 @@
 #include "mozilla/Logging.h"
 
 extern mozilla::LazyLogModule gWifiMonitorLog;
-#define LOG(args)     MOZ_LOG(gWifiMonitorLog, mozilla::LogLevel::Debug, args)
+#define LOG(args) MOZ_LOG(gWifiMonitorLog, mozilla::LogLevel::Debug, args)
 
 NS_IMPL_ISUPPORTS(nsWifiAccessPoint, nsIWifiAccessPoint)
 
-nsWifiAccessPoint::nsWifiAccessPoint()
-{
+nsWifiAccessPoint::nsWifiAccessPoint() {
   // make sure these are null terminated (because we are paranoid)
   mMac[0] = '\0';
   mSsid[0] = '\0';
@@ -21,33 +20,26 @@ nsWifiAccessPoint::nsWifiAccessPoint()
   mSignal = -1000;
 }
 
-nsWifiAccessPoint::~nsWifiAccessPoint()
-{
-}
+nsWifiAccessPoint::~nsWifiAccessPoint() {}
 
-NS_IMETHODIMP nsWifiAccessPoint::GetMac(nsACString& aMac)
-{
+NS_IMETHODIMP nsWifiAccessPoint::GetMac(nsACString& aMac) {
   aMac.Assign(mMac);
   return NS_OK;
 }
 
-NS_IMETHODIMP nsWifiAccessPoint::GetSsid(nsAString& aSsid)
-{
+NS_IMETHODIMP nsWifiAccessPoint::GetSsid(nsAString& aSsid) {
   // just assign and embedded nulls will truncate resulting
   // in a displayable string.
   CopyASCIItoUTF16(mSsid, aSsid);
   return NS_OK;
 }
 
-
-NS_IMETHODIMP nsWifiAccessPoint::GetRawSSID(nsACString& aRawSsid)
-{
-  aRawSsid.Assign(mSsid, mSsidLen); // SSIDs are 32 chars long
+NS_IMETHODIMP nsWifiAccessPoint::GetRawSSID(nsACString& aRawSsid) {
+  aRawSsid.Assign(mSsid, mSsidLen);  // SSIDs are 32 chars long
   return NS_OK;
 }
 
-NS_IMETHODIMP nsWifiAccessPoint::GetSignal(int32_t *aSignal)
-{
+NS_IMETHODIMP nsWifiAccessPoint::GetSignal(int32_t* aSignal) {
   NS_ENSURE_ARG(aSignal);
   *aSignal = mSignal;
   return NS_OK;
@@ -55,8 +47,8 @@ NS_IMETHODIMP nsWifiAccessPoint::GetSignal(int32_t *aSignal)
 
 // Helper functions:
 
-bool AccessPointsEqual(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccessPoint>& b)
-{
+bool AccessPointsEqual(nsCOMArray<nsWifiAccessPoint>& a,
+                       nsCOMArray<nsWifiAccessPoint>& b) {
   if (a.Count() != b.Count()) {
     LOG(("AccessPoint lists have different lengths\n"));
     return false;
@@ -66,22 +58,21 @@ bool AccessPointsEqual(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccess
     LOG(("++ Looking for %s\n", a[i]->mSsid));
     bool found = false;
     for (int32_t j = 0; j < b.Count(); j++) {
-      LOG(("   %s->%s | %s->%s\n", a[i]->mSsid, b[j]->mSsid, a[i]->mMac, b[j]->mMac));
+      LOG(("   %s->%s | %s->%s\n", a[i]->mSsid, b[j]->mSsid, a[i]->mMac,
+           b[j]->mMac));
       if (!strcmp(a[i]->mSsid, b[j]->mSsid) &&
-          !strcmp(a[i]->mMac, b[j]->mMac) &&
-          a[i]->mSignal == b[j]->mSignal) {
+          !strcmp(a[i]->mMac, b[j]->mMac) && a[i]->mSignal == b[j]->mSignal) {
         found = true;
       }
     }
-    if (!found)
-      return false;
+    if (!found) return false;
   }
   LOG(("   match!\n"));
   return true;
 }
 
-void ReplaceArray(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccessPoint>& b)
-{
+void ReplaceArray(nsCOMArray<nsWifiAccessPoint>& a,
+                  nsCOMArray<nsWifiAccessPoint>& b) {
   a.Clear();
 
   // better way to copy?
@@ -91,5 +82,3 @@ void ReplaceArray(nsCOMArray<nsWifiAccessPoint>& a, nsCOMArray<nsWifiAccessPoint
 
   b.Clear();
 }
-
-

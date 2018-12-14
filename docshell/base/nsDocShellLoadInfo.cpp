@@ -14,9 +14,8 @@
 
 namespace mozilla {
 
-void
-GetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo, Maybe<nsCOMPtr<nsIURI>>& aRPURI)
-{
+void GetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo,
+                                Maybe<nsCOMPtr<nsIURI>>& aRPURI) {
   if (!aLoadInfo) {
     return;
   }
@@ -44,9 +43,8 @@ GetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo, Maybe<nsCOMPtr<nsIURI
   aRPURI.emplace(Move(uri));
 }
 
-void
-SetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo, Maybe<nsCOMPtr<nsIURI>> const& aRPURI)
-{
+void SetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo,
+                                Maybe<nsCOMPtr<nsIURI>> const& aRPURI) {
   if (!aLoadInfo) {
     return;
   }
@@ -60,27 +58,23 @@ SetMaybeResultPrincipalURI(nsIDocShellLoadInfo* aLoadInfo, Maybe<nsCOMPtr<nsIURI
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 
-} // mozilla
+}  // namespace mozilla
 
 nsDocShellLoadInfo::nsDocShellLoadInfo()
-  : mResultPrincipalURIIsSome(false)
-  , mKeepResultPrincipalURIIfSet(false)
-  , mLoadReplace(false)
-  , mInheritPrincipal(false)
-  , mPrincipalIsExplicit(false)
-  , mForceAllowDataURI(false)
-  , mOriginalFrameSrc(false)
-  , mSendReferrer(true)
-  , mReferrerPolicy(mozilla::net::RP_Unset)
-  , mLoadType(nsIDocShellLoadInfo::loadNormal)
-  , mIsSrcdocLoad(false)
-  , mIsFromProcessingFrameAttributes(false)
-{
-}
+    : mResultPrincipalURIIsSome(false),
+      mKeepResultPrincipalURIIfSet(false),
+      mLoadReplace(false),
+      mInheritPrincipal(false),
+      mPrincipalIsExplicit(false),
+      mForceAllowDataURI(false),
+      mOriginalFrameSrc(false),
+      mSendReferrer(true),
+      mReferrerPolicy(mozilla::net::RP_Unset),
+      mLoadType(nsIDocShellLoadInfo::loadNormal),
+      mIsSrcdocLoad(false),
+      mIsFromProcessingFrameAttributes(false) {}
 
-nsDocShellLoadInfo::~nsDocShellLoadInfo()
-{
-}
+nsDocShellLoadInfo::~nsDocShellLoadInfo() {}
 
 NS_IMPL_ADDREF(nsDocShellLoadInfo)
 NS_IMPL_RELEASE(nsDocShellLoadInfo)
@@ -91,8 +85,7 @@ NS_INTERFACE_MAP_BEGIN(nsDocShellLoadInfo)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetReferrer(nsIURI** aReferrer)
-{
+nsDocShellLoadInfo::GetReferrer(nsIURI** aReferrer) {
   NS_ENSURE_ARG_POINTER(aReferrer);
 
   *aReferrer = mReferrer;
@@ -101,15 +94,13 @@ nsDocShellLoadInfo::GetReferrer(nsIURI** aReferrer)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetReferrer(nsIURI* aReferrer)
-{
+nsDocShellLoadInfo::SetReferrer(nsIURI* aReferrer) {
   mReferrer = aReferrer;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetOriginalURI(nsIURI** aOriginalURI)
-{
+nsDocShellLoadInfo::GetOriginalURI(nsIURI** aOriginalURI) {
   NS_ENSURE_ARG_POINTER(aOriginalURI);
 
   *aOriginalURI = mOriginalURI;
@@ -118,15 +109,13 @@ nsDocShellLoadInfo::GetOriginalURI(nsIURI** aOriginalURI)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetOriginalURI(nsIURI* aOriginalURI)
-{
+nsDocShellLoadInfo::SetOriginalURI(nsIURI* aOriginalURI) {
   mOriginalURI = aOriginalURI;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetResultPrincipalURI(nsIURI** aResultPrincipalURI)
-{
+nsDocShellLoadInfo::GetResultPrincipalURI(nsIURI** aResultPrincipalURI) {
   NS_ENSURE_ARG_POINTER(aResultPrincipalURI);
 
   *aResultPrincipalURI = mResultPrincipalURI;
@@ -135,130 +124,112 @@ nsDocShellLoadInfo::GetResultPrincipalURI(nsIURI** aResultPrincipalURI)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetResultPrincipalURI(nsIURI* aResultPrincipalURI)
-{
+nsDocShellLoadInfo::SetResultPrincipalURI(nsIURI* aResultPrincipalURI) {
   mResultPrincipalURI = aResultPrincipalURI;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetResultPrincipalURIIsSome(bool* aIsSome)
-{
+nsDocShellLoadInfo::GetResultPrincipalURIIsSome(bool* aIsSome) {
   *aIsSome = mResultPrincipalURIIsSome;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetResultPrincipalURIIsSome(bool aIsSome)
-{
+nsDocShellLoadInfo::SetResultPrincipalURIIsSome(bool aIsSome) {
   mResultPrincipalURIIsSome = aIsSome;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetKeepResultPrincipalURIIfSet(bool* aKeep)
-{
+nsDocShellLoadInfo::GetKeepResultPrincipalURIIfSet(bool* aKeep) {
   *aKeep = mKeepResultPrincipalURIIfSet;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetKeepResultPrincipalURIIfSet(bool aKeep)
-{
+nsDocShellLoadInfo::SetKeepResultPrincipalURIIfSet(bool aKeep) {
   mKeepResultPrincipalURIIfSet = aKeep;
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetLoadReplace(bool* aLoadReplace)
-{
+nsDocShellLoadInfo::GetLoadReplace(bool* aLoadReplace) {
   *aLoadReplace = mLoadReplace;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetLoadReplace(bool aLoadReplace)
-{
+nsDocShellLoadInfo::SetLoadReplace(bool aLoadReplace) {
   mLoadReplace = aLoadReplace;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetTriggeringPrincipal(nsIPrincipal** aTriggeringPrincipal)
-{
+nsDocShellLoadInfo::GetTriggeringPrincipal(
+    nsIPrincipal** aTriggeringPrincipal) {
   NS_ENSURE_ARG_POINTER(aTriggeringPrincipal);
   NS_IF_ADDREF(*aTriggeringPrincipal = mTriggeringPrincipal);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetTriggeringPrincipal(nsIPrincipal* aTriggeringPrincipal)
-{
+nsDocShellLoadInfo::SetTriggeringPrincipal(nsIPrincipal* aTriggeringPrincipal) {
   mTriggeringPrincipal = aTriggeringPrincipal;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetInheritPrincipal(bool* aInheritPrincipal)
-{
+nsDocShellLoadInfo::GetInheritPrincipal(bool* aInheritPrincipal) {
   NS_ENSURE_ARG_POINTER(aInheritPrincipal);
   *aInheritPrincipal = mInheritPrincipal;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetInheritPrincipal(bool aInheritPrincipal)
-{
+nsDocShellLoadInfo::SetInheritPrincipal(bool aInheritPrincipal) {
   mInheritPrincipal = aInheritPrincipal;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetPrincipalIsExplicit(bool* aPrincipalIsExplicit)
-{
+nsDocShellLoadInfo::GetPrincipalIsExplicit(bool* aPrincipalIsExplicit) {
   *aPrincipalIsExplicit = mPrincipalIsExplicit;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetPrincipalIsExplicit(bool aPrincipalIsExplicit)
-{
+nsDocShellLoadInfo::SetPrincipalIsExplicit(bool aPrincipalIsExplicit) {
   mPrincipalIsExplicit = aPrincipalIsExplicit;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetForceAllowDataURI(bool* aForceAllowDataURI)
-{
+nsDocShellLoadInfo::GetForceAllowDataURI(bool* aForceAllowDataURI) {
   *aForceAllowDataURI = mForceAllowDataURI;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetForceAllowDataURI(bool aForceAllowDataURI)
-{
+nsDocShellLoadInfo::SetForceAllowDataURI(bool aForceAllowDataURI) {
   mForceAllowDataURI = aForceAllowDataURI;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetOriginalFrameSrc(bool* aOriginalFrameSrc)
-{
+nsDocShellLoadInfo::GetOriginalFrameSrc(bool* aOriginalFrameSrc) {
   *aOriginalFrameSrc = mOriginalFrameSrc;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetOriginalFrameSrc(bool aOriginalFrameSrc)
-{
+nsDocShellLoadInfo::SetOriginalFrameSrc(bool aOriginalFrameSrc) {
   mOriginalFrameSrc = aOriginalFrameSrc;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetLoadType(nsDocShellInfoLoadType* aLoadType)
-{
+nsDocShellLoadInfo::GetLoadType(nsDocShellInfoLoadType* aLoadType) {
   NS_ENSURE_ARG_POINTER(aLoadType);
 
   *aLoadType = mLoadType;
@@ -266,15 +237,13 @@ nsDocShellLoadInfo::GetLoadType(nsDocShellInfoLoadType* aLoadType)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetLoadType(nsDocShellInfoLoadType aLoadType)
-{
+nsDocShellLoadInfo::SetLoadType(nsDocShellInfoLoadType aLoadType) {
   mLoadType = aLoadType;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetSHEntry(nsISHEntry** aSHEntry)
-{
+nsDocShellLoadInfo::GetSHEntry(nsISHEntry** aSHEntry) {
   NS_ENSURE_ARG_POINTER(aSHEntry);
 
   *aSHEntry = mSHEntry;
@@ -283,15 +252,13 @@ nsDocShellLoadInfo::GetSHEntry(nsISHEntry** aSHEntry)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetSHEntry(nsISHEntry* aSHEntry)
-{
+nsDocShellLoadInfo::SetSHEntry(nsISHEntry* aSHEntry) {
   mSHEntry = aSHEntry;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetTarget(char16_t** aTarget)
-{
+nsDocShellLoadInfo::GetTarget(char16_t** aTarget) {
   NS_ENSURE_ARG_POINTER(aTarget);
 
   *aTarget = ToNewUnicode(mTarget);
@@ -300,15 +267,13 @@ nsDocShellLoadInfo::GetTarget(char16_t** aTarget)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetTarget(const char16_t* aTarget)
-{
+nsDocShellLoadInfo::SetTarget(const char16_t* aTarget) {
   mTarget.Assign(aTarget);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetPostDataStream(nsIInputStream** aResult)
-{
+nsDocShellLoadInfo::GetPostDataStream(nsIInputStream** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
 
   *aResult = mPostDataStream;
@@ -318,30 +283,26 @@ nsDocShellLoadInfo::GetPostDataStream(nsIInputStream** aResult)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetPostDataStream(nsIInputStream* aStream)
-{
+nsDocShellLoadInfo::SetPostDataStream(nsIInputStream* aStream) {
   mPostDataStream = aStream;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetHeadersStream(nsIInputStream** aHeadersStream)
-{
+nsDocShellLoadInfo::GetHeadersStream(nsIInputStream** aHeadersStream) {
   NS_ENSURE_ARG_POINTER(aHeadersStream);
   *aHeadersStream = mHeadersStream;
   NS_IF_ADDREF(*aHeadersStream);
   return NS_OK;
 }
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetHeadersStream(nsIInputStream* aHeadersStream)
-{
+nsDocShellLoadInfo::SetHeadersStream(nsIInputStream* aHeadersStream) {
   mHeadersStream = aHeadersStream;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetSendReferrer(bool* aSendReferrer)
-{
+nsDocShellLoadInfo::GetSendReferrer(bool* aSendReferrer) {
   NS_ENSURE_ARG_POINTER(aSendReferrer);
 
   *aSendReferrer = mSendReferrer;
@@ -349,53 +310,46 @@ nsDocShellLoadInfo::GetSendReferrer(bool* aSendReferrer)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetSendReferrer(bool aSendReferrer)
-{
+nsDocShellLoadInfo::SetSendReferrer(bool aSendReferrer) {
   mSendReferrer = aSendReferrer;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShellLoadInfo::GetReferrerPolicy(
-    nsDocShellInfoReferrerPolicy* aReferrerPolicy)
-{
+    nsDocShellInfoReferrerPolicy* aReferrerPolicy) {
   *aReferrerPolicy = mReferrerPolicy;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShellLoadInfo::SetReferrerPolicy(
-    nsDocShellInfoReferrerPolicy aReferrerPolicy)
-{
+    nsDocShellInfoReferrerPolicy aReferrerPolicy) {
   mReferrerPolicy = aReferrerPolicy;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetIsSrcdocLoad(bool* aIsSrcdocLoad)
-{
+nsDocShellLoadInfo::GetIsSrcdocLoad(bool* aIsSrcdocLoad) {
   *aIsSrcdocLoad = mIsSrcdocLoad;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetSrcdocData(nsAString& aSrcdocData)
-{
+nsDocShellLoadInfo::GetSrcdocData(nsAString& aSrcdocData) {
   aSrcdocData = mSrcdocData;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetSrcdocData(const nsAString& aSrcdocData)
-{
+nsDocShellLoadInfo::SetSrcdocData(const nsAString& aSrcdocData) {
   mSrcdocData = aSrcdocData;
   mIsSrcdocLoad = true;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetSourceDocShell(nsIDocShell** aSourceDocShell)
-{
+nsDocShellLoadInfo::GetSourceDocShell(nsIDocShell** aSourceDocShell) {
   MOZ_ASSERT(aSourceDocShell);
   nsCOMPtr<nsIDocShell> result = mSourceDocShell;
   result.forget(aSourceDocShell);
@@ -403,15 +357,13 @@ nsDocShellLoadInfo::GetSourceDocShell(nsIDocShell** aSourceDocShell)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetSourceDocShell(nsIDocShell* aSourceDocShell)
-{
+nsDocShellLoadInfo::SetSourceDocShell(nsIDocShell* aSourceDocShell) {
   mSourceDocShell = aSourceDocShell;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetBaseURI(nsIURI** aBaseURI)
-{
+nsDocShellLoadInfo::GetBaseURI(nsIURI** aBaseURI) {
   NS_ENSURE_ARG_POINTER(aBaseURI);
 
   *aBaseURI = mBaseURI;
@@ -420,15 +372,14 @@ nsDocShellLoadInfo::GetBaseURI(nsIURI** aBaseURI)
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetBaseURI(nsIURI* aBaseURI)
-{
+nsDocShellLoadInfo::SetBaseURI(nsIURI* aBaseURI) {
   mBaseURI = aBaseURI;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::GetIsFromProcessingFrameAttributes(bool* aIsFromProcessingFrameAttributes)
-{
+nsDocShellLoadInfo::GetIsFromProcessingFrameAttributes(
+    bool* aIsFromProcessingFrameAttributes) {
   NS_ENSURE_ARG_POINTER(aIsFromProcessingFrameAttributes);
 
   *aIsFromProcessingFrameAttributes = mIsFromProcessingFrameAttributes;
@@ -436,8 +387,8 @@ nsDocShellLoadInfo::GetIsFromProcessingFrameAttributes(bool* aIsFromProcessingFr
 }
 
 NS_IMETHODIMP
-nsDocShellLoadInfo::SetIsFromProcessingFrameAttributes(bool aIsFromProcessingFrameAttributes)
-{
+nsDocShellLoadInfo::SetIsFromProcessingFrameAttributes(
+    bool aIsFromProcessingFrameAttributes) {
   mIsFromProcessingFrameAttributes = aIsFromProcessingFrameAttributes;
   return NS_OK;
 }

@@ -35,10 +35,9 @@ namespace intl {
  *   client
  *     in the client mode, LocaleService is not responsible for collecting
  *     or reacting to any system changes. It still distributes information
- *     about locales, but internally, it gets information from the server instance
- *     instead of collecting it on its own.
- *     This prevents any data desynchronization and minimizes the cost
- *     of running the service.
+ *     about locales, but internally, it gets information from the server
+ * instance instead of collecting it on its own. This prevents any data
+ * desynchronization and minimizes the cost of running the service.
  *
  *   In both modes, all get* methods should work the same way and all
  *   static methods are available.
@@ -70,9 +69,8 @@ namespace intl {
  */
 class LocaleService final : public mozILocaleService,
                             public nsIObserver,
-                            public nsSupportsWeakReference
-{
-public:
+                            public nsSupportsWeakReference {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
   NS_DECL_MOZILOCALESERVICE
@@ -83,11 +81,7 @@ public:
    * See the mozILocaleService.idl for detailed description of the
    * strategies.
    */
-  enum class LangNegStrategy {
-    Filtering,
-    Matching,
-    Lookup
-  };
+  enum class LangNegStrategy { Filtering, Matching, Lookup };
 
   explicit LocaleService(bool aIsServer);
 
@@ -104,8 +98,7 @@ public:
    * Return an addRef'd pointer to the singleton instance. This is used by the
    * XPCOM constructor that exists to support usage from JS.
    */
-  static already_AddRefed<LocaleService> GetInstanceAddRefed()
-  {
+  static already_AddRefed<LocaleService> GetInstanceAddRefed() {
     return RefPtr<LocaleService>(GetInstance()).forget();
   }
 
@@ -127,7 +120,6 @@ public:
    */
   void GetAppLocalesAsLangTags(nsTArray<nsCString>& aRetVal);
   void GetAppLocalesAsBCP47(nsTArray<nsCString>& aRetVal);
-
 
   /**
    * Returns a list of locales to use for any regional specific operations
@@ -259,11 +251,10 @@ public:
 
   bool IsServer();
 
-private:
+ private:
   void FilterMatches(const nsTArray<nsCString>& aRequested,
                      const nsTArray<nsCString>& aAvailable,
-                     LangNegStrategy aStrategy,
-                     nsTArray<nsCString>& aRetVal);
+                     LangNegStrategy aStrategy, nsTArray<nsCString>& aRetVal);
 
   void NegotiateAppLocales(nsTArray<nsCString>& aRetVal);
 
@@ -271,7 +262,7 @@ private:
 
   virtual ~LocaleService();
 
-  nsAutoCStringN<16>  mDefaultLocale;
+  nsAutoCStringN<16> mDefaultLocale;
   nsTArray<nsCString> mAppLocales;
   nsTArray<nsCString> mRequestedLocales;
   nsTArray<nsCString> mAvailableLocales;
@@ -280,7 +271,7 @@ private:
 
   static StaticRefPtr<LocaleService> sInstance;
 };
-} // intl
-} // namespace mozilla
+}  // namespace intl
+}  // namespace mozilla
 
 #endif /* mozilla_intl_LocaleService_h__ */

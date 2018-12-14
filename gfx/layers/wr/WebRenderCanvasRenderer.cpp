@@ -16,26 +16,18 @@
 namespace mozilla {
 namespace layers {
 
-CompositableForwarder*
-WebRenderCanvasRenderer::GetForwarder()
-{
+CompositableForwarder* WebRenderCanvasRenderer::GetForwarder() {
   return mManager->WrBridge();
 }
 
-void
-WebRenderCanvasRenderer::Initialize(const CanvasInitializeData& aData)
-{
+void WebRenderCanvasRenderer::Initialize(const CanvasInitializeData& aData) {
   ShareableCanvasRenderer::Initialize(aData);
 }
 
-WebRenderCanvasRendererSync::~WebRenderCanvasRendererSync()
-{
-  Destroy();
-}
+WebRenderCanvasRendererSync::~WebRenderCanvasRendererSync() { Destroy(); }
 
-void
-WebRenderCanvasRendererSync::Initialize(const CanvasInitializeData& aData)
-{
+void WebRenderCanvasRendererSync::Initialize(
+    const CanvasInitializeData& aData) {
   WebRenderCanvasRenderer::Initialize(aData);
 
   if (mExternalImageId.isSome()) {
@@ -44,9 +36,7 @@ WebRenderCanvasRendererSync::Initialize(const CanvasInitializeData& aData)
   }
 }
 
-bool
-WebRenderCanvasRendererSync::CreateCompositable()
-{
+bool WebRenderCanvasRendererSync::CreateCompositable() {
   if (!mCanvasClient) {
     TextureFlags flags = TextureFlags::DEFAULT;
     if (mOriginPos == gl::OriginPos::BottomLeft) {
@@ -58,8 +48,7 @@ WebRenderCanvasRendererSync::CreateCompositable()
     }
 
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
-                                                     GetForwarder(),
-                                                     flags);
+                                                     GetForwarder(), flags);
     if (!mCanvasClient) {
       return false;
     }
@@ -68,38 +57,32 @@ WebRenderCanvasRendererSync::CreateCompositable()
   }
 
   if (mExternalImageId.isNothing()) {
-    mExternalImageId = Some(mManager->WrBridge()->AllocExternalImageIdForCompositable(mCanvasClient));
+    mExternalImageId =
+        Some(mManager->WrBridge()->AllocExternalImageIdForCompositable(
+            mCanvasClient));
   }
 
   return true;
 }
 
-void
-WebRenderCanvasRendererSync::ClearCachedResources()
-{
+void WebRenderCanvasRendererSync::ClearCachedResources() {
   if (mExternalImageId.isSome()) {
     mManager->WrBridge()->DeallocExternalImageId(mExternalImageId.ref());
     mExternalImageId.reset();
   }
 }
 
-void
-WebRenderCanvasRendererSync::Destroy()
-{
+void WebRenderCanvasRendererSync::Destroy() {
   if (mExternalImageId.isSome()) {
     mManager->WrBridge()->DeallocExternalImageId(mExternalImageId.ref());
     mExternalImageId.reset();
   }
 }
 
-WebRenderCanvasRendererAsync::~WebRenderCanvasRendererAsync()
-{
-  Destroy();
-}
+WebRenderCanvasRendererAsync::~WebRenderCanvasRendererAsync() { Destroy(); }
 
-void
-WebRenderCanvasRendererAsync::Initialize(const CanvasInitializeData& aData)
-{
+void WebRenderCanvasRendererAsync::Initialize(
+    const CanvasInitializeData& aData) {
   WebRenderCanvasRenderer::Initialize(aData);
 
   if (mPipelineId.isSome()) {
@@ -108,9 +91,7 @@ WebRenderCanvasRendererAsync::Initialize(const CanvasInitializeData& aData)
   }
 }
 
-bool
-WebRenderCanvasRendererAsync::CreateCompositable()
-{
+bool WebRenderCanvasRendererAsync::CreateCompositable() {
   if (!mCanvasClient) {
     TextureFlags flags = TextureFlags::DEFAULT;
     if (mOriginPos == gl::OriginPos::BottomLeft) {
@@ -122,8 +103,7 @@ WebRenderCanvasRendererAsync::CreateCompositable()
     }
 
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
-                                                     GetForwarder(),
-                                                     flags);
+                                                     GetForwarder(), flags);
     if (!mCanvasClient) {
       return false;
     }
@@ -133,31 +113,28 @@ WebRenderCanvasRendererAsync::CreateCompositable()
 
   if (!mPipelineId) {
     // Alloc async image pipeline id.
-    mPipelineId = Some(mManager->WrBridge()->GetCompositorBridgeChild()->GetNextPipelineId());
-    mManager->WrBridge()->AddPipelineIdForCompositable(mPipelineId.ref(),
-                                                       mCanvasClient->GetIPCHandle());
+    mPipelineId = Some(
+        mManager->WrBridge()->GetCompositorBridgeChild()->GetNextPipelineId());
+    mManager->WrBridge()->AddPipelineIdForCompositable(
+        mPipelineId.ref(), mCanvasClient->GetIPCHandle());
   }
 
   return true;
 }
 
-void
-WebRenderCanvasRendererAsync::ClearCachedResources()
-{
+void WebRenderCanvasRendererAsync::ClearCachedResources() {
   if (mPipelineId.isSome()) {
     mManager->WrBridge()->RemovePipelineIdForCompositable(mPipelineId.ref());
     mPipelineId.reset();
   }
 }
 
-void
-WebRenderCanvasRendererAsync::Destroy()
-{
+void WebRenderCanvasRendererAsync::Destroy() {
   if (mPipelineId.isSome()) {
     mManager->WrBridge()->RemovePipelineIdForCompositable(mPipelineId.ref());
     mPipelineId.reset();
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

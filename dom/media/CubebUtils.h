@@ -33,10 +33,7 @@ uint32_t PreferredSampleRate();
 // Get the bit mask of the connected audio device's preferred layout.
 uint32_t PreferredChannelMap(uint32_t aChannels);
 
-enum Side {
-  Input,
-  Output
-};
+enum Side { Input, Output };
 
 double GetVolumeScale();
 bool GetFirstStream();
@@ -44,20 +41,21 @@ cubeb* GetCubebContext();
 void ReportCubebStreamInitFailure(bool aIsFirstStream);
 void ReportCubebBackendUsed();
 uint32_t GetCubebPlaybackLatencyInMilliseconds();
-uint32_t GetCubebMSGLatencyInFrames(cubeb_stream_params * params);
+uint32_t GetCubebMSGLatencyInFrames(cubeb_stream_params* params);
 bool CubebLatencyPrefSet();
 cubeb_channel_layout ConvertChannelMapToCubebLayout(uint32_t aChannelMap);
 void GetCurrentBackend(nsAString& aBackend);
 void GetPreferredChannelLayout(nsAString& aLayout);
 void GetDeviceCollection(nsTArray<RefPtr<AudioDeviceInfo>>& aDeviceInfos,
                          Side aSide);
-cubeb_channel_layout GetPreferredChannelLayoutOrSMPTE(cubeb* context, uint32_t aChannels);
+cubeb_channel_layout GetPreferredChannelLayoutOrSMPTE(cubeb* context,
+                                                      uint32_t aChannels);
 
 #ifdef MOZ_WIDGET_ANDROID
 uint32_t AndroidGetAudioOutputSampleRate();
 uint32_t AndroidGetAudioOutputFramesPerBuffer();
 #endif
-} // namespace CubebUtils
-} // namespace mozilla
+}  // namespace CubebUtils
+}  // namespace mozilla
 
-#endif // CubebUtils_h_
+#endif  // CubebUtils_h_

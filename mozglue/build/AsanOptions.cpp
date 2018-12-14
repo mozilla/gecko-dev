@@ -5,7 +5,7 @@
 
 #include "mozilla/Attributes.h"
 
-#ifndef _MSC_VER // Not supported by clang-cl yet
+#ifndef _MSC_VER  // Not supported by clang-cl yet
 
 // When running with AddressSanitizer, we need to explicitly set some
 // options specific to our codebase to prevent errors during runtime.
@@ -56,15 +56,14 @@
 //   are 0xe4 and 0xe5 to match the kAllocPoison and kAllocJunk constants used
 //   by mozjemalloc.
 //
-extern "C" MOZ_ASAN_BLACKLIST
-const char* __asan_default_options() {
-    return "allow_user_segv_handler=1:alloc_dealloc_mismatch=0:detect_leaks=0"
-           ":max_free_fill_size=268435456:max_malloc_fill_size=268435456"
-           ":malloc_fill_byte=228:free_fill_byte=229"
+extern "C" MOZ_ASAN_BLACKLIST const char* __asan_default_options() {
+  return "allow_user_segv_handler=1:alloc_dealloc_mismatch=0:detect_leaks=0"
+         ":max_free_fill_size=268435456:max_malloc_fill_size=268435456"
+         ":malloc_fill_byte=228:free_fill_byte=229"
 #ifdef MOZ_ASAN_REPORTER
-           ":log_path=/tmp/ff_asan_log"
+         ":log_path=/tmp/ff_asan_log"
 #endif
-           ":allocator_may_return_null=1";
+         ":allocator_may_return_null=1";
 }
 
 #endif

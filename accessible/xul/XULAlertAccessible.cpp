@@ -15,32 +15,21 @@ using namespace mozilla::a11y;
 // XULAlertAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULAlertAccessible::
-  XULAlertAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
+XULAlertAccessible::XULAlertAccessible(nsIContent* aContent,
+                                       DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {
   mGenericTypes |= eAlert;
 }
 
-XULAlertAccessible::~XULAlertAccessible()
-{
-}
+XULAlertAccessible::~XULAlertAccessible() {}
 
-role
-XULAlertAccessible::NativeRole()
-{
-  return roles::ALERT;
-}
+role XULAlertAccessible::NativeRole() { return roles::ALERT; }
 
-uint64_t
-XULAlertAccessible::NativeState()
-{
+uint64_t XULAlertAccessible::NativeState() {
   return Accessible::NativeState() | states::ALERT;
 }
 
-ENameValueFlag
-XULAlertAccessible::Name(nsString& aName)
-{
+ENameValueFlag XULAlertAccessible::Name(nsString& aName) {
   // Screen readers need to read contents of alert, not the accessible name.
   // If we have both some screen readers will read the alert twice.
   aName.Truncate();
@@ -50,17 +39,10 @@ XULAlertAccessible::Name(nsString& aName)
 ////////////////////////////////////////////////////////////////////////////////
 // Widgets
 
-bool
-XULAlertAccessible::IsWidget() const
-{
-  return true;
-}
+bool XULAlertAccessible::IsWidget() const { return true; }
 
-Accessible*
-XULAlertAccessible::ContainerWidget() const
-{
+Accessible* XULAlertAccessible::ContainerWidget() const {
   // If a part of colorpicker widget.
-  if (mParent && mParent->IsMenuButton())
-    return mParent;
+  if (mParent && mParent->IsMenuButton()) return mParent;
   return nullptr;
 }

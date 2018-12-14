@@ -35,7 +35,7 @@ class DocManager;
 class NotificationController;
 class DocAccessibleChild;
 class RelatedAccIterator;
-template<class Class, class ... Args>
+template <class Class, class... Args>
 class TNotification;
 
 class DocAccessible : public HyperTextAccessibleWrap,
@@ -43,16 +43,14 @@ class DocAccessible : public HyperTextAccessibleWrap,
                       public nsIObserver,
                       public nsIScrollPositionListener,
                       public nsSupportsWeakReference,
-                      public nsIAccessiblePivotObserver
-{
+                      public nsIAccessiblePivotObserver {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, Accessible)
 
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIACCESSIBLEPIVOTOBSERVER
 
-public:
-
+ public:
   DocAccessible(nsIDocument* aDocument, nsIPresShell* aPresShell);
 
   // nsIScrollPositionListener
@@ -105,7 +103,9 @@ public:
   /**
    * Return DOM document mime type.
    */
-  void MimeType(nsAString& aType) const { mDocumentNode->GetContentType(aType); }
+  void MimeType(nsAString& aType) const {
+    mDocumentNode->GetContentType(aType);
+  }
 
   /**
    * Return DOM document type.
@@ -130,19 +130,15 @@ public:
   /**
    * Return true if associated DOM document was loaded and isn't unloading.
    */
-  bool IsContentLoaded() const
-  {
+  bool IsContentLoaded() const {
     // eDOMLoaded flag check is used for error pages as workaround to make this
     // method return correct result since error pages do not receive 'pageshow'
     // event and as consequence nsIDocument::IsShowing() returns false.
     return mDocumentNode && mDocumentNode->IsVisible() &&
-      (mDocumentNode->IsShowing() || HasLoadState(eDOMLoaded));
+           (mDocumentNode->IsShowing() || HasLoadState(eDOMLoaded));
   }
 
-  bool IsHidden() const
-  {
-    return mDocumentNode->Hidden();
-  }
+  bool IsHidden() const { return mDocumentNode->Hidden(); }
 
   /**
    * Document load states.
@@ -163,9 +159,10 @@ public:
   /**
    * Return true if the document has given document state.
    */
-  bool HasLoadState(LoadState aState) const
-    { return (mLoadState & static_cast<uint32_t>(aState)) ==
-        static_cast<uint32_t>(aState); }
+  bool HasLoadState(LoadState aState) const {
+    return (mLoadState & static_cast<uint32_t>(aState)) ==
+           static_cast<uint32_t>(aState);
+  }
 
   /**
    * Return a native window handler or pointer depending on platform.
@@ -175,20 +172,21 @@ public:
   /**
    * Return the parent document.
    */
-  DocAccessible* ParentDocument() const
-    { return mParent ? mParent->Document() : nullptr; }
+  DocAccessible* ParentDocument() const {
+    return mParent ? mParent->Document() : nullptr;
+  }
 
   /**
    * Return the child document count.
    */
-  uint32_t ChildDocumentCount() const
-    { return mChildDocuments.Length(); }
+  uint32_t ChildDocumentCount() const { return mChildDocuments.Length(); }
 
   /**
    * Return the child document at the given index.
    */
-  DocAccessible* GetChildDocumentAt(uint32_t aIndex) const
-    { return mChildDocuments.SafeElementAt(aIndex, nullptr); }
+  DocAccessible* GetChildDocumentAt(uint32_t aIndex) const {
+    return mChildDocuments.SafeElementAt(aIndex, nullptr);
+  }
 
   /**
    * Fire accessible event asynchronously.
@@ -205,11 +203,9 @@ public:
   /**
    * Get/set the anchor jump.
    */
-  Accessible* AnchorJump()
-    { return GetAccessibleOrContainer(mAnchorJumpElm); }
+  Accessible* AnchorJump() { return GetAccessibleOrContainer(mAnchorJumpElm); }
 
-  void SetAnchorJump(nsIContent* aTargetNode)
-    { mAnchorJumpElm = aTargetNode; }
+  void SetAnchorJump(nsIContent* aTargetNode) { mAnchorJumpElm = aTargetNode; }
 
   /**
    * Bind the child document to the tree.
@@ -223,7 +219,7 @@ public:
    *          notification is processed.
    * @see   NotificationController::HandleNotification
    */
-  template<class Class, class Arg>
+  template <class Class, class Arg>
   void HandleNotification(Class* aInstance,
                           typename TNotification<Class, Arg>::Callback aMethod,
                           Arg* aArg);
@@ -234,10 +230,9 @@ public:
    *
    * @return the accessible object
    */
-  Accessible* GetAccessible(nsINode* aNode) const
-  {
-    return aNode == mDocumentNode ?
-      const_cast<DocAccessible*>(this) : mNodeToAccessibleMap.Get(aNode);
+  Accessible* GetAccessible(nsINode* aNode) const {
+    return aNode == mDocumentNode ? const_cast<DocAccessible*>(this)
+                                  : mNodeToAccessibleMap.Get(aNode);
   }
 
   /**
@@ -252,8 +247,7 @@ public:
   /**
    * Return whether the given DOM node has an accessible or not.
    */
-  bool HasAccessible(nsINode* aNode) const
-    { return GetAccessible(aNode); }
+  bool HasAccessible(nsINode* aNode) const { return GetAccessible(aNode); }
 
   /**
    * Return the cached accessible by the given unique ID within this document.
@@ -262,10 +256,8 @@ public:
    *
    * @param  aUniqueID  [in] the unique ID used to cache the node.
    */
-  Accessible* GetAccessibleByUniqueID(void* aUniqueID)
-  {
-    return UniqueID() == aUniqueID ?
-      this : mAccessibleCache.GetWeak(aUniqueID);
+  Accessible* GetAccessibleByUniqueID(void* aUniqueID) {
+    return UniqueID() == aUniqueID ? this : mAccessibleCache.GetWeak(aUniqueID);
   }
 
   /**
@@ -283,8 +275,7 @@ public:
   /**
    * Return a container accessible for the given DOM node.
    */
-  Accessible* GetContainerAccessible(nsINode* aNode) const
-  {
+  Accessible* GetContainerAccessible(nsINode* aNode) const {
     return aNode ? GetAccessibleOrContainer(aNode->GetParentNode()) : nullptr;
   }
 
@@ -302,17 +293,15 @@ public:
   /**
    * Returns aria-owns seized child at the given index.
    */
-  Accessible* ARIAOwnedAt(Accessible* aParent, uint32_t aIndex) const
-  {
-    nsTArray<RefPtr<Accessible> >* children = mARIAOwnsHash.Get(aParent);
+  Accessible* ARIAOwnedAt(Accessible* aParent, uint32_t aIndex) const {
+    nsTArray<RefPtr<Accessible>>* children = mARIAOwnsHash.Get(aParent);
     if (children) {
       return children->SafeElementAt(aIndex);
     }
     return nullptr;
   }
-  uint32_t ARIAOwnedCount(Accessible* aParent) const
-  {
-    nsTArray<RefPtr<Accessible> >* children = mARIAOwnsHash.Get(aParent);
+  uint32_t ARIAOwnedCount(Accessible* aParent) const {
+    nsTArray<RefPtr<Accessible>>* children = mARIAOwnsHash.Get(aParent);
     return children ? children->Length() : 0;
   }
 
@@ -323,15 +312,16 @@ public:
    *       XBL bindings. Be careful the result of this method may be  senseless
    *       while it's called for XUL elements (where XBL is used widely).
    */
-  bool IsDependentID(const nsAString& aID) const
-    { return mDependentIDsHash.Get(aID, nullptr); }
+  bool IsDependentID(const nsAString& aID) const {
+    return mDependentIDsHash.Get(aID, nullptr);
+  }
 
   /**
    * Initialize the newly created accessible and put it into document caches.
    *
    * @param  aAccessible    [in] created accessible
-   * @param  aRoleMapEntry  [in] the role map entry role the ARIA role or nullptr
-   *                          if none
+   * @param  aRoleMapEntry  [in] the role map entry role the ARIA role or
+   * nullptr if none
    */
   void BindToDocument(Accessible* aAccessible,
                       const nsRoleMapEntry* aRoleMapEntry);
@@ -344,8 +334,7 @@ public:
   /**
    * Notify the document accessible that content was inserted.
    */
-  void ContentInserted(nsIContent* aContainerNode,
-                       nsIContent* aStartChildNode,
+  void ContentInserted(nsIContent* aContainerNode, nsIContent* aStartChildNode,
                        nsIContent* aEndChildNode);
 
   /**
@@ -381,7 +370,7 @@ public:
    */
   DocAccessibleChild* IPCDoc() const { return mIPCDoc; }
 
-protected:
+ protected:
   virtual ~DocAccessible();
 
   void LastRelease();
@@ -425,8 +414,7 @@ protected:
    * Append the given document accessible to this document's child document
    * accessibles.
    */
-  bool AppendChildDocument(DocAccessible* aChildDocument)
-  {
+  bool AppendChildDocument(DocAccessible* aChildDocument) {
     return mChildDocuments.AppendElement(aChildDocument);
   }
 
@@ -434,8 +422,7 @@ protected:
    * Remove the given document accessible from this document's child document
    * accessibles.
    */
-  void RemoveChildDocument(DocAccessible* aChildDocument)
-  {
+  void RemoveChildDocument(DocAccessible* aChildDocument) {
     mChildDocuments.RemoveElement(aChildDocument);
   }
 
@@ -447,8 +434,7 @@ protected:
    * @param aRelProvider [in] accessible that element has relation attribute
    * @param aRelAttr     [in, optional] relation attribute
    */
-  void AddDependentIDsFor(Accessible* aRelProvider,
-                          nsAtom* aRelAttr = nullptr);
+  void AddDependentIDsFor(Accessible* aRelProvider, nsAtom* aRelAttr = nullptr);
 
   /**
    * Remove dependent IDs pointed by accessible element by relation attribute
@@ -478,8 +464,8 @@ protected:
    * @param aNameSpaceID  [in] namespace of changed attribute
    * @param aAttribute    [in] changed attribute
    */
-  void AttributeChangedImpl(Accessible* aAccessible,
-                            int32_t aNameSpaceID, nsAtom* aAttribute);
+  void AttributeChangedImpl(Accessible* aAccessible, int32_t aNameSpaceID,
+                            nsAtom* aAttribute);
 
   /**
    * Fire accessible events when ARIA attribute is changed.
@@ -497,8 +483,9 @@ protected:
   /**
    * Update the accessible tree for inserted content.
    */
-  void ProcessContentInserted(Accessible* aContainer,
-                              const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent);
+  void ProcessContentInserted(
+      Accessible* aContainer,
+      const nsTArray<nsCOMPtr<nsIContent>>* aInsertedContent);
   void ProcessContentInserted(Accessible* aContainer,
                               nsIContent* aInsertedContent);
 
@@ -519,7 +506,7 @@ protected:
   /**
    * Moves children back under their original parents.
    */
-  void PutChildrenBack(nsTArray<RefPtr<Accessible> >* aChildren,
+  void PutChildrenBack(nsTArray<RefPtr<Accessible>>* aChildren,
                        uint32_t aStartIdx);
 
   bool MoveChild(Accessible* aChild, Accessible* aNewParent,
@@ -576,8 +563,7 @@ protected:
    */
   static void ScrollTimerCallback(nsITimer* aTimer, void* aClosure);
 
-protected:
-
+ protected:
   /**
    * State and property flags, kept by mDocFlags.
    */
@@ -594,11 +580,11 @@ protected:
    */
   AccessibleHashtable mAccessibleCache;
   nsDataHashtable<nsPtrHashKey<const nsINode>, Accessible*>
-    mNodeToAccessibleMap;
+      mNodeToAccessibleMap;
 
   nsIDocument* mDocumentNode;
-    nsCOMPtr<nsITimer> mScrollWatchTimer;
-    uint16_t mScrollPositionChangedTicks; // Used for tracking scroll events
+  nsCOMPtr<nsITimer> mScrollWatchTimer;
+  uint16_t mScrollPositionChangedTicks;  // Used for tracking scroll events
 
   /**
    * Bit mask of document load states (@see LoadState).
@@ -632,7 +618,7 @@ protected:
     bool mStateBitWasOn;
   };
 
-  nsTArray<RefPtr<DocAccessible> > mChildDocuments;
+  nsTArray<RefPtr<DocAccessible>> mChildDocuments;
 
   /**
    * The virtual cursor of the document.
@@ -642,27 +628,25 @@ protected:
   /**
    * A storage class for pairing content with one of its relation attributes.
    */
-  class AttrRelProvider
-  {
-  public:
-    AttrRelProvider(nsAtom* aRelAttr, nsIContent* aContent) :
-      mRelAttr(aRelAttr), mContent(aContent) { }
+  class AttrRelProvider {
+   public:
+    AttrRelProvider(nsAtom* aRelAttr, nsIContent* aContent)
+        : mRelAttr(aRelAttr), mContent(aContent) {}
 
     nsAtom* mRelAttr;
     nsCOMPtr<nsIContent> mContent;
 
-  private:
+   private:
     AttrRelProvider();
     AttrRelProvider(const AttrRelProvider&);
-    AttrRelProvider& operator =(const AttrRelProvider&);
+    AttrRelProvider& operator=(const AttrRelProvider&);
   };
 
   /**
    * The cache of IDs pointed by relation attributes.
    */
-  typedef nsTArray<nsAutoPtr<AttrRelProvider> > AttrRelProviderArray;
-  nsClassHashtable<nsStringHashKey, AttrRelProviderArray>
-    mDependentIDsHash;
+  typedef nsTArray<nsAutoPtr<AttrRelProvider>> AttrRelProviderArray;
+  nsClassHashtable<nsStringHashKey, AttrRelProviderArray> mDependentIDsHash;
 
   friend class RelatedAccIterator;
 
@@ -677,8 +661,8 @@ protected:
   /**
    * Holds a list of aria-owns relocations.
    */
-  nsClassHashtable<nsPtrHashKey<Accessible>, nsTArray<RefPtr<Accessible> > >
-    mARIAOwnsHash;
+  nsClassHashtable<nsPtrHashKey<Accessible>, nsTArray<RefPtr<Accessible>>>
+      mARIAOwnsHash;
 
   /**
    * Used to process notification from core and accessible events.
@@ -687,21 +671,18 @@ protected:
   friend class EventTree;
   friend class NotificationController;
 
-private:
-
+ private:
   nsIPresShell* mPresShell;
 
   // Exclusively owned by IPDL so don't manually delete it!
   DocAccessibleChild* mIPCDoc;
 };
 
-inline DocAccessible*
-Accessible::AsDoc()
-{
+inline DocAccessible* Accessible::AsDoc() {
   return IsDoc() ? static_cast<DocAccessible*>(this) : nullptr;
 }
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

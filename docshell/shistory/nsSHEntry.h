@@ -21,9 +21,8 @@ class nsIURI;
 
 class nsSHEntry final : public nsISHEntry,
                         public nsISHContainer,
-                        public nsISHEntryInternal
-{
-public:
+                        public nsISHEntryInternal {
+ public:
   nsSHEntry();
   nsSHEntry(const nsSHEntry& aOther);
 
@@ -37,7 +36,7 @@ public:
   static nsresult Startup();
   static void Shutdown();
 
-private:
+ private:
   ~nsSHEntry();
 
   // We share the state in here with other SHEntries which correspond to the

@@ -14,28 +14,23 @@
  * Implements an XPCOM wrapper around an XPath NodeSet.
  */
 
-class txNodeSetAdaptor : public txXPathObjectAdaptor,
-                         public txINodeSet
-{
-public:
-    txNodeSetAdaptor();
-    explicit txNodeSetAdaptor(txNodeSet* aNodeSet);
+class txNodeSetAdaptor : public txXPathObjectAdaptor, public txINodeSet {
+ public:
+  txNodeSetAdaptor();
+  explicit txNodeSetAdaptor(txNodeSet* aNodeSet);
 
-    nsresult Init();
+  nsresult Init();
 
-    NS_DECL_ISUPPORTS_INHERITED
-    NS_DECL_TXINODESET
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_TXINODESET
 
-protected:
-    ~txNodeSetAdaptor() {}
+ protected:
+  ~txNodeSetAdaptor() {}
 
-private:
-    txNodeSet* NodeSet()
-    {
-        return static_cast<txNodeSet*>(mValue.get());
-    }
+ private:
+  txNodeSet* NodeSet() { return static_cast<txNodeSet*>(mValue.get()); }
 
-    bool mWritable;
+  bool mWritable;
 };
 
-#endif // txNodeSetAdaptor_h__
+#endif  // txNodeSetAdaptor_h__

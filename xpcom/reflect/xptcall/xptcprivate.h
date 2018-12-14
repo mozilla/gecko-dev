@@ -14,52 +14,56 @@
 
 class xptiInterfaceEntry;
 
-#if !defined(__ia64) || (!defined(__hpux) && !defined(__linux__) && !defined(__FreeBSD__))
+#if !defined(__ia64) || \
+    (!defined(__hpux) && !defined(__linux__) && !defined(__FreeBSD__))
 #define STUB_ENTRY(n) NS_IMETHOD Stub##n() = 0;
 #else
-#define STUB_ENTRY(n) NS_IMETHOD Stub##n(uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t) = 0;
+#define STUB_ENTRY(n)                                                  \
+  NS_IMETHOD Stub##n(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, \
+                     uint64_t, uint64_t, uint64_t) = 0;
 #endif
 
 #define SENTINEL_ENTRY(n) NS_IMETHOD Sentinel##n() = 0;
 
-class nsIXPTCStubBase : public nsISupports
-{
-public:
+class nsIXPTCStubBase : public nsISupports {
+ public:
 #include "xptcstubsdef.inc"
 };
 
 #undef STUB_ENTRY
 #undef SENTINEL_ENTRY
 
-#if !defined(__ia64) || (!defined(__hpux) && !defined(__linux__) && !defined(__FreeBSD__))
+#if !defined(__ia64) || \
+    (!defined(__hpux) && !defined(__linux__) && !defined(__FreeBSD__))
 #define STUB_ENTRY(n) NS_IMETHOD Stub##n() override;
 #else
-#define STUB_ENTRY(n) NS_IMETHOD Stub##n(uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t) override;
+#define STUB_ENTRY(n)                                                  \
+  NS_IMETHOD Stub##n(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, \
+                     uint64_t, uint64_t, uint64_t) override;
 #endif
 
 #define SENTINEL_ENTRY(n) NS_IMETHOD Sentinel##n() override;
 
-class nsXPTCStubBase final : public nsIXPTCStubBase
-{
-public:
-    NS_DECL_ISUPPORTS_INHERITED
+class nsXPTCStubBase final : public nsIXPTCStubBase {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
 
 #include "xptcstubsdef.inc"
 
-    nsXPTCStubBase(nsIXPTCProxy* aOuter, xptiInterfaceEntry *aEntry)
-        : mOuter(aOuter), mEntry(aEntry) {}
+  nsXPTCStubBase(nsIXPTCProxy* aOuter, xptiInterfaceEntry* aEntry)
+      : mOuter(aOuter), mEntry(aEntry) {}
 
-    nsIXPTCProxy*          mOuter;
-    xptiInterfaceEntry*    mEntry;
+  nsIXPTCProxy* mOuter;
+  xptiInterfaceEntry* mEntry;
 
-    ~nsXPTCStubBase() {}
+  ~nsXPTCStubBase() {}
 };
 
 #undef STUB_ENTRY
 #undef SENTINEL_ENTRY
 
 #if defined(__clang__) || defined(__GNUC__)
-#define ATTRIBUTE_USED __attribute__ ((__used__))
+#define ATTRIBUTE_USED __attribute__((__used__))
 #else
 #define ATTRIBUTE_USED
 #endif

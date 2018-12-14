@@ -15,11 +15,9 @@
 namespace mozilla {
 namespace net {
 
-class RequestContextService final
-  : public nsIRequestContextService
-  , public nsIObserver
-{
-public:
+class RequestContextService final : public nsIRequestContextService,
+                                    public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIREQUESTCONTEXTSERVICE
   NS_DECL_NSIOBSERVER
@@ -28,9 +26,9 @@ public:
 
   nsresult Init();
   void Shutdown();
-  static nsresult Create(nsISupports *outer, const nsIID& iid, void **result);
+  static nsresult Create(nsISupports *outer, const nsIID &iid, void **result);
 
-private:
+ private:
   virtual ~RequestContextService();
 
   static RequestContextService *sSelf;
@@ -40,7 +38,7 @@ private:
   uint32_t mNextRCID;
 };
 
-} // ::mozilla::net
-} // ::mozilla
+}  // namespace net
+}  // namespace mozilla
 
-#endif // mozilla__net__RequestContextService_h
+#endif  // mozilla__net__RequestContextService_h

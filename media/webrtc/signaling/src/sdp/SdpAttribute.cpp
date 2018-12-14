@@ -13,12 +13,9 @@
 #endif
 #define CRLF "\r\n"
 
-namespace mozilla
-{
+namespace mozilla {
 
-static unsigned char
-PeekChar(std::istream& is, std::string* error)
-{
+static unsigned char PeekChar(std::istream& is, std::string* error) {
   int next = is.peek();
   if (next == EOF) {
     *error = "Truncated";
@@ -28,10 +25,8 @@ PeekChar(std::istream& is, std::string* error)
   return next;
 }
 
-static std::string ParseToken(std::istream& is,
-                              const std::string& delims,
-                              std::string* error)
-{
+static std::string ParseToken(std::istream& is, const std::string& delims,
+                              std::string* error) {
   std::string token;
   while (is) {
     unsigned char c = PeekChar(is, error);
@@ -43,9 +38,7 @@ static std::string ParseToken(std::istream& is,
   return token;
 }
 
-static bool
-SkipChar(std::istream& is, unsigned char c, std::string* error)
-{
+static bool SkipChar(std::istream& is, unsigned char c, std::string* error) {
   if (PeekChar(is, error) != c) {
     *error = "Expected \'";
     error->push_back(c);
@@ -57,28 +50,19 @@ SkipChar(std::istream& is, unsigned char c, std::string* error)
   return true;
 }
 
-
-void
-SdpConnectionAttribute::Serialize(std::ostream& os) const
-{
+void SdpConnectionAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mValue << CRLF;
 }
 
-void
-SdpDirectionAttribute::Serialize(std::ostream& os) const
-{
+void SdpDirectionAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mValue << CRLF;
 }
 
-void
-SdpDtlsMessageAttribute::Serialize(std::ostream& os) const
-{
+void SdpDtlsMessageAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mRole << " " << mValue << CRLF;
 }
 
-bool
-SdpDtlsMessageAttribute::Parse(std::istream& is, std::string* error)
-{
+bool SdpDtlsMessageAttribute::Parse(std::istream& is, std::string* error) {
   std::string roleToken = ParseToken(is, " ", error);
   if (roleToken == "server") {
     mRole = kServer;
@@ -97,9 +81,7 @@ SdpDtlsMessageAttribute::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-void
-SdpExtmapAttributeList::Serialize(std::ostream& os) const
-{
+void SdpExtmapAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mExtmaps.begin(); i != mExtmaps.end(); ++i) {
     os << "a=" << mType << ":" << i->entry;
     if (i->direction_specified) {
@@ -113,9 +95,7 @@ SdpExtmapAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpFingerprintAttributeList::Serialize(std::ostream& os) const
-{
+void SdpFingerprintAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mFingerprints.begin(); i != mFingerprints.end(); ++i) {
     os << "a=" << mType << ":" << i->hashFunc << " "
        << FormatFingerprint(i->fingerprint) << CRLF;
@@ -123,9 +103,8 @@ SdpFingerprintAttributeList::Serialize(std::ostream& os) const
 }
 
 // Format the fingerprint in RFC 4572 Section 5 attribute format
-std::string
-SdpFingerprintAttributeList::FormatFingerprint(const std::vector<uint8_t>& fp)
-{
+std::string SdpFingerprintAttributeList::FormatFingerprint(
+    const std::vector<uint8_t>& fp) {
   if (fp.empty()) {
     MOZ_ASSERT(false, "Cannot format an empty fingerprint.");
     return "";
@@ -139,22 +118,19 @@ SdpFingerprintAttributeList::FormatFingerprint(const std::vector<uint8_t>& fp)
   return os.str().substr(1);
 }
 
-static uint8_t
-FromUppercaseHex(char ch)
-{
+static uint8_t FromUppercaseHex(char ch) {
   if ((ch >= '0') && (ch <= '9')) {
     return ch - '0';
   }
   if ((ch >= 'A') && (ch <= 'F')) {
     return ch - 'A' + 10;
   }
-  return 16; // invalid
+  return 16;  // invalid
 }
 
 // Parse the fingerprint from RFC 4572 Section 5 attribute format
-std::vector<uint8_t>
-SdpFingerprintAttributeList::ParseFingerprint(const std::string& str)
-{
+std::vector<uint8_t> SdpFingerprintAttributeList::ParseFingerprint(
+    const std::string& str) {
   size_t targetSize = (str.length() + 1) / 3;
   std::vector<uint8_t> fp(targetSize);
   size_t fpIndex = 0;
@@ -169,7 +145,7 @@ SdpFingerprintAttributeList::ParseFingerprint(const std::string& str)
     uint8_t low = FromUppercaseHex(str[i + 1]);
     if (high > 0xf || low > 0xf ||
         (i + 2 < str.length() && str[i + 2] != ':')) {
-      fp.clear(); // error
+      fp.clear();  // error
       return fp;
     }
     fp[fpIndex++] = high << 4 | low;
@@ -177,9 +153,7 @@ SdpFingerprintAttributeList::ParseFingerprint(const std::string& str)
   return fp;
 }
 
-void
-SdpFmtpAttributeList::Serialize(std::ostream& os) const
-{
+void SdpFmtpAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mFmtps.begin(); i != mFmtps.end(); ++i) {
     if (i->parameters) {
       os << "a=" << mType << ":" << i->format << " ";
@@ -189,9 +163,7 @@ SdpFmtpAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpGroupAttributeList::Serialize(std::ostream& os) const
-{
+void SdpGroupAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mGroups.begin(); i != mGroups.end(); ++i) {
     os << "a=" << mType << ":" << i->semantics;
     for (auto j = i->tags.begin(); j != i->tags.end(); ++j) {
@@ -214,36 +186,29 @@ void SdpIdentityAttribute::Serialize(std::ostream& os) const
 #endif
 
 // Class to help with omitting a leading delimiter for the first item in a list
-class SkipFirstDelimiter
-{
-  public:
-    explicit SkipFirstDelimiter(const std::string& delim) :
-      mDelim(delim),
-      mFirst(true)
-    {}
+class SkipFirstDelimiter {
+ public:
+  explicit SkipFirstDelimiter(const std::string& delim)
+      : mDelim(delim), mFirst(true) {}
 
-    std::ostream& print(std::ostream& os)
-    {
-      if (!mFirst) {
-        os << mDelim;
-      }
-      mFirst = false;
-      return os;
+  std::ostream& print(std::ostream& os) {
+    if (!mFirst) {
+      os << mDelim;
     }
+    mFirst = false;
+    return os;
+  }
 
-  private:
-    std::string mDelim;
-    bool mFirst;
+ private:
+  std::string mDelim;
+  bool mFirst;
 };
 
-static std::ostream& operator<<(std::ostream& os, SkipFirstDelimiter& delim)
-{
+static std::ostream& operator<<(std::ostream& os, SkipFirstDelimiter& delim) {
   return delim.print(os);
 }
 
-void
-SdpImageattrAttributeList::XYRange::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::XYRange::Serialize(std::ostream& os) const {
   if (discreteValues.empty()) {
     os << "[" << min << ":";
     if (step != 1) {
@@ -262,10 +227,8 @@ SdpImageattrAttributeList::XYRange::Serialize(std::ostream& os) const
   }
 }
 
-template<typename T>
-bool
-GetUnsigned(std::istream& is, T min, T max, T* value, std::string* error)
-{
+template <typename T>
+bool GetUnsigned(std::istream& is, T min, T max, T* value, std::string* error) {
   if (PeekChar(is, error) == '-') {
     *error = "Value is less than 0";
     return false;
@@ -291,16 +254,12 @@ GetUnsigned(std::istream& is, T min, T max, T* value, std::string* error)
   return true;
 }
 
-static bool
-GetXYValue(std::istream& is, uint32_t* value, std::string* error)
-{
+static bool GetXYValue(std::istream& is, uint32_t* value, std::string* error) {
   return GetUnsigned<uint32_t>(is, 1, 999999, value, error);
 }
 
-bool
-SdpImageattrAttributeList::XYRange::ParseDiscreteValues(std::istream& is,
-                                                        std::string* error)
-{
+bool SdpImageattrAttributeList::XYRange::ParseDiscreteValues(
+    std::istream& is, std::string* error) {
   do {
     uint32_t value;
     if (!GetXYValue(is, &value, error)) {
@@ -312,10 +271,8 @@ SdpImageattrAttributeList::XYRange::ParseDiscreteValues(std::istream& is,
   return SkipChar(is, ']', error);
 }
 
-bool
-SdpImageattrAttributeList::XYRange::ParseAfterMin(std::istream& is,
-                                                  std::string* error)
-{
+bool SdpImageattrAttributeList::XYRange::ParseAfterMin(std::istream& is,
+                                                       std::string* error) {
   // We have already parsed "[320:", and now expect another uint
   uint32_t value;
   if (!GetXYValue(is, &value, error)) {
@@ -340,10 +297,8 @@ SdpImageattrAttributeList::XYRange::ParseAfterMin(std::istream& is,
   return SkipChar(is, ']', error);
 }
 
-bool
-SdpImageattrAttributeList::XYRange::ParseAfterBracket(std::istream& is,
-                                                      std::string* error)
-{
+bool SdpImageattrAttributeList::XYRange::ParseAfterBracket(std::istream& is,
+                                                           std::string* error) {
   // Either a range, or a list of discrete values
   // [320:640], [320:16:640], or [320,640]
   uint32_t value;
@@ -366,9 +321,8 @@ SdpImageattrAttributeList::XYRange::ParseAfterBracket(std::istream& is,
   return false;
 }
 
-bool
-SdpImageattrAttributeList::XYRange::Parse(std::istream& is, std::string* error)
-{
+bool SdpImageattrAttributeList::XYRange::Parse(std::istream& is,
+                                               std::string* error) {
   if (SkipChar(is, '[', error)) {
     return ParseAfterBracket(is, error);
   }
@@ -383,22 +337,16 @@ SdpImageattrAttributeList::XYRange::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-static bool
-GetSPValue(std::istream& is, float* value, std::string* error)
-{
+static bool GetSPValue(std::istream& is, float* value, std::string* error) {
   return GetUnsigned<float>(is, 0.1f, 9.9999f, value, error);
 }
 
-static bool
-GetQValue(std::istream& is, float* value, std::string* error)
-{
+static bool GetQValue(std::istream& is, float* value, std::string* error) {
   return GetUnsigned<float>(is, 0.0f, 1.0f, value, error);
 }
 
-bool
-SdpImageattrAttributeList::SRange::ParseDiscreteValues(std::istream& is,
-                                                        std::string* error)
-{
+bool SdpImageattrAttributeList::SRange::ParseDiscreteValues(
+    std::istream& is, std::string* error) {
   do {
     float value;
     if (!GetSPValue(is, &value, error)) {
@@ -410,10 +358,8 @@ SdpImageattrAttributeList::SRange::ParseDiscreteValues(std::istream& is,
   return SkipChar(is, ']', error);
 }
 
-bool
-SdpImageattrAttributeList::SRange::ParseAfterMin(std::istream& is,
-                                                  std::string* error)
-{
+bool SdpImageattrAttributeList::SRange::ParseAfterMin(std::istream& is,
+                                                      std::string* error) {
   if (!GetSPValue(is, &max, error)) {
     return false;
   }
@@ -426,10 +372,8 @@ SdpImageattrAttributeList::SRange::ParseAfterMin(std::istream& is,
   return SkipChar(is, ']', error);
 }
 
-bool
-SdpImageattrAttributeList::SRange::ParseAfterBracket(std::istream& is,
-                                                     std::string* error)
-{
+bool SdpImageattrAttributeList::SRange::ParseAfterBracket(std::istream& is,
+                                                          std::string* error) {
   // Either a range, or a list of discrete values
   float value;
   if (!GetSPValue(is, &value, error)) {
@@ -450,9 +394,8 @@ SdpImageattrAttributeList::SRange::ParseAfterBracket(std::istream& is,
   return false;
 }
 
-bool
-SdpImageattrAttributeList::SRange::Parse(std::istream& is, std::string* error)
-{
+bool SdpImageattrAttributeList::SRange::Parse(std::istream& is,
+                                              std::string* error) {
   if (SkipChar(is, '[', error)) {
     return ParseAfterBracket(is, error);
   }
@@ -466,9 +409,8 @@ SdpImageattrAttributeList::SRange::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-bool
-SdpImageattrAttributeList::PRange::Parse(std::istream& is, std::string* error)
-{
+bool SdpImageattrAttributeList::PRange::Parse(std::istream& is,
+                                              std::string* error) {
   if (!SkipChar(is, '[', error)) {
     return false;
   }
@@ -496,9 +438,7 @@ SdpImageattrAttributeList::PRange::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-void
-SdpImageattrAttributeList::SRange::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::SRange::Serialize(std::ostream& os) const {
   os << std::setprecision(4) << std::fixed;
   if (discreteValues.empty()) {
     os << "[" << min << "-" << max << "]";
@@ -514,15 +454,12 @@ SdpImageattrAttributeList::SRange::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpImageattrAttributeList::PRange::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::PRange::Serialize(std::ostream& os) const {
   os << std::setprecision(4) << std::fixed;
   os << "[" << min << "-" << max << "]";
 }
 
-static std::string ParseKey(std::istream& is, std::string* error)
-{
+static std::string ParseKey(std::istream& is, std::string* error) {
   std::string token = ParseToken(is, "=", error);
   if (!SkipChar(is, '=', error)) {
     return "";
@@ -530,8 +467,7 @@ static std::string ParseKey(std::istream& is, std::string* error)
   return token;
 }
 
-static bool SkipBraces(std::istream& is, std::string* error)
-{
+static bool SkipBraces(std::istream& is, std::string* error) {
   if (PeekChar(is, error) != '[') {
     *error = "Expected \'[\'";
     return false;
@@ -563,8 +499,7 @@ static bool SkipBraces(std::istream& is, std::string* error)
 // Assumptions:
 // 1. If the value contains '[' or ']', they are balanced.
 // 2. The value contains no ',' outside of brackets.
-static bool SkipValue(std::istream& is, std::string* error)
-{
+static bool SkipValue(std::istream& is, std::string* error) {
   while (is) {
     switch (PeekChar(is, error)) {
       case ',':
@@ -584,9 +519,8 @@ static bool SkipValue(std::istream& is, std::string* error)
   return false;
 }
 
-bool
-SdpImageattrAttributeList::Set::Parse(std::istream& is, std::string* error)
-{
+bool SdpImageattrAttributeList::Set::Parse(std::istream& is,
+                                           std::string* error) {
   if (!SkipChar(is, '[', error)) {
     return false;
   }
@@ -613,7 +547,7 @@ SdpImageattrAttributeList::Set::Parse(std::istream& is, std::string* error)
     return false;
   }
 
-  qValue = 0.5f; // default
+  qValue = 0.5f;  // default
 
   bool gotSar = false;
   bool gotPar = false;
@@ -663,9 +597,7 @@ SdpImageattrAttributeList::Set::Parse(std::istream& is, std::string* error)
   return SkipChar(is, ']', error);
 }
 
-void
-SdpImageattrAttributeList::Set::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::Set::Serialize(std::ostream& os) const {
   os << "[x=";
   xRange.Serialize(os);
   os << ",y=";
@@ -684,10 +616,8 @@ SdpImageattrAttributeList::Set::Serialize(std::ostream& os) const
   os << "]";
 }
 
-bool
-SdpImageattrAttributeList::Imageattr::ParseSets(std::istream& is,
-                                                std::string* error)
-{
+bool SdpImageattrAttributeList::Imageattr::ParseSets(std::istream& is,
+                                                     std::string* error) {
   std::string type = ParseToken(is, " \t", error);
 
   bool* isAll = nullptr;
@@ -728,10 +658,8 @@ SdpImageattrAttributeList::Imageattr::ParseSets(std::istream& is,
   return true;
 }
 
-bool
-SdpImageattrAttributeList::Imageattr::Parse(std::istream& is,
-                                            std::string* error)
-{
+bool SdpImageattrAttributeList::Imageattr::Parse(std::istream& is,
+                                                 std::string* error) {
   if (!SkipChar(is, '*', error)) {
     uint16_t value;
     if (!GetUnsigned<uint16_t>(is, 0, UINT16_MAX, &value, error)) {
@@ -764,9 +692,7 @@ SdpImageattrAttributeList::Imageattr::Parse(std::istream& is,
   return true;
 }
 
-void
-SdpImageattrAttributeList::Imageattr::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::Imageattr::Serialize(std::ostream& os) const {
   if (pt.isSome()) {
     os << *pt;
   } else {
@@ -794,9 +720,7 @@ SdpImageattrAttributeList::Imageattr::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpImageattrAttributeList::Serialize(std::ostream& os) const
-{
+void SdpImageattrAttributeList::Serialize(std::ostream& os) const {
   for (auto& imageattr : mImageattrs) {
     os << "a=" << mType << ":";
     imageattr.Serialize(os);
@@ -804,11 +728,9 @@ SdpImageattrAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-bool
-SdpImageattrAttributeList::PushEntry(const std::string& raw,
-                                     std::string* error,
-                                     size_t* errorPos)
-{
+bool SdpImageattrAttributeList::PushEntry(const std::string& raw,
+                                          std::string* error,
+                                          size_t* errorPos) {
   std::istringstream is(raw);
 
   Imageattr imageattr;
@@ -822,9 +744,7 @@ SdpImageattrAttributeList::PushEntry(const std::string& raw,
   return true;
 }
 
-void
-SdpMsidAttributeList::Serialize(std::ostream& os) const
-{
+void SdpMsidAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mMsids.begin(); i != mMsids.end(); ++i) {
     os << "a=" << mType << ":" << i->identifier;
     if (i->appdata.length()) {
@@ -834,9 +754,7 @@ SdpMsidAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpMsidSemanticAttributeList::Serialize(std::ostream& os) const
-{
+void SdpMsidSemanticAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mMsidSemantics.begin(); i != mMsidSemantics.end(); ++i) {
     os << "a=" << mType << ":" << i->semantic;
     for (auto j = i->msids.begin(); j != i->msids.end(); ++j) {
@@ -846,9 +764,7 @@ SdpMsidSemanticAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpRemoteCandidatesAttribute::Serialize(std::ostream& os) const
-{
+void SdpRemoteCandidatesAttribute::Serialize(std::ostream& os) const {
   if (mCandidates.empty()) {
     return;
   }
@@ -861,9 +777,8 @@ SdpRemoteCandidatesAttribute::Serialize(std::ostream& os) const
   os << CRLF;
 }
 
-bool
-SdpRidAttributeList::Rid::ParseParameters(std::istream& is, std::string* error)
-{
+bool SdpRidAttributeList::Rid::ParseParameters(std::istream& is,
+                                               std::string* error) {
   if (!PeekChar(is, error)) {
     // No parameters
     return true;
@@ -873,7 +788,7 @@ SdpRidAttributeList::Rid::ParseParameters(std::istream& is, std::string* error)
     is >> std::ws;
     std::string key = ParseKey(is, error);
     if (key.empty()) {
-      return false; // Illegal trailing cruft
+      return false;  // Illegal trailing cruft
     }
 
     // This allows pt= to appear anywhere, instead of only at the beginning, but
@@ -883,33 +798,33 @@ SdpRidAttributeList::Rid::ParseParameters(std::istream& is, std::string* error)
         return false;
       }
     } else if (key == "max-width") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxWidth, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxWidth,
+                                 error)) {
         return false;
       }
     } else if (key == "max-height") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxHeight, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxHeight,
+                                 error)) {
         return false;
       }
     } else if (key == "max-fps") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxFps, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxFps,
+                                 error)) {
         return false;
       }
     } else if (key == "max-fs") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxFs, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxFs,
+                                 error)) {
         return false;
       }
     } else if (key == "max-br") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxBr, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxBr,
+                                 error)) {
         return false;
       }
     } else if (key == "max-pps") {
-      if (!GetUnsigned<uint32_t>(
-            is, 0, UINT32_MAX, &constraints.maxPps, error)) {
+      if (!GetUnsigned<uint32_t>(is, 0, UINT32_MAX, &constraints.maxPps,
+                                 error)) {
         return false;
       }
     } else if (key == "depend") {
@@ -917,33 +832,27 @@ SdpRidAttributeList::Rid::ParseParameters(std::istream& is, std::string* error)
         return false;
       }
     } else {
-      (void) ParseToken(is, ";", error);
+      (void)ParseToken(is, ";", error);
     }
   } while (SkipChar(is, ';', error));
   return true;
 }
 
-bool
-SdpRidAttributeList::Rid::ParseDepend(
-    std::istream& is,
-    std::string* error)
-{
+bool SdpRidAttributeList::Rid::ParseDepend(std::istream& is,
+                                           std::string* error) {
   do {
     std::string id = ParseToken(is, ",;", error);
     if (id.empty()) {
       return false;
     }
     dependIds.push_back(id);
-  } while(SkipChar(is, ',', error));
+  } while (SkipChar(is, ',', error));
 
   return true;
 }
 
-bool
-SdpRidAttributeList::Rid::ParseFormats(
-    std::istream& is,
-    std::string* error)
-{
+bool SdpRidAttributeList::Rid::ParseFormats(std::istream& is,
+                                            std::string* error) {
   do {
     uint16_t fmt;
     if (!GetUnsigned<uint16_t>(is, 0, 127, &fmt, error)) {
@@ -955,9 +864,7 @@ SdpRidAttributeList::Rid::ParseFormats(
   return true;
 }
 
-void
-SdpRidAttributeList::Rid::SerializeParameters(std::ostream& os) const
-{
+void SdpRidAttributeList::Rid::SerializeParameters(std::ostream& os) const {
   if (!HasParameters()) {
     return;
   }
@@ -1007,9 +914,7 @@ SdpRidAttributeList::Rid::SerializeParameters(std::ostream& os) const
   }
 }
 
-bool
-SdpRidAttributeList::Rid::Parse(std::istream& is, std::string* error)
-{
+bool SdpRidAttributeList::Rid::Parse(std::istream& is, std::string* error) {
   id = ParseToken(is, " ", error);
   if (id.empty()) {
     return false;
@@ -1029,16 +934,12 @@ SdpRidAttributeList::Rid::Parse(std::istream& is, std::string* error)
   return ParseParameters(is, error);
 }
 
-void
-SdpRidAttributeList::Rid::Serialize(std::ostream& os) const
-{
+void SdpRidAttributeList::Rid::Serialize(std::ostream& os) const {
   os << id << " " << direction;
   SerializeParameters(os);
 }
 
-bool
-SdpRidAttributeList::Rid::HasFormat(const std::string& format) const
-{
+bool SdpRidAttributeList::Rid::HasFormat(const std::string& format) const {
   if (formats.empty()) {
     return true;
   }
@@ -1049,12 +950,10 @@ SdpRidAttributeList::Rid::HasFormat(const std::string& format) const
   }
 
   return (std::find(formats.begin(), formats.end(), formatAsInt) !=
-         formats.end());
+          formats.end());
 }
 
-void
-SdpRidAttributeList::Serialize(std::ostream& os) const
-{
+void SdpRidAttributeList::Serialize(std::ostream& os) const {
   for (const Rid& rid : mRids) {
     os << "a=" << mType << ":";
     rid.Serialize(os);
@@ -1062,11 +961,8 @@ SdpRidAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-bool
-SdpRidAttributeList::PushEntry(const std::string& raw,
-                               std::string* error,
-                               size_t* errorPos)
-{
+bool SdpRidAttributeList::PushEntry(const std::string& raw, std::string* error,
+                                    size_t* errorPos) {
   std::istringstream is(raw);
 
   Rid rid;
@@ -1080,9 +976,7 @@ SdpRidAttributeList::PushEntry(const std::string& raw,
   return true;
 }
 
-void
-SdpRtcpAttribute::Serialize(std::ostream& os) const
-{
+void SdpRtcpAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mPort;
   if (!mAddress.empty()) {
     os << " " << mNetType << " " << mAddrType << " " << mAddress;
@@ -1100,9 +994,7 @@ const char* SdpRtcpFbAttributeList::tmmbr = "tmmbr";
 const char* SdpRtcpFbAttributeList::tstr = "tstr";
 const char* SdpRtcpFbAttributeList::vbcm = "vbcm";
 
-void
-SdpRtcpFbAttributeList::Serialize(std::ostream& os) const
-{
+void SdpRtcpFbAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mFeedbacks.begin(); i != mFeedbacks.end(); ++i) {
     os << "a=" << mType << ":" << i->pt << " " << i->type;
     if (i->parameter.length()) {
@@ -1115,9 +1007,7 @@ SdpRtcpFbAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-static bool
-ShouldSerializeChannels(SdpRtpmapAttributeList::CodecType type)
-{
+static bool ShouldSerializeChannels(SdpRtpmapAttributeList::CodecType type) {
   switch (type) {
     case SdpRtpmapAttributeList::kOpus:
     case SdpRtpmapAttributeList::kG722:
@@ -1139,9 +1029,7 @@ ShouldSerializeChannels(SdpRtpmapAttributeList::CodecType type)
   MOZ_CRASH();
 }
 
-void
-SdpRtpmapAttributeList::Serialize(std::ostream& os) const
-{
+void SdpRtpmapAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mRtpmaps.begin(); i != mRtpmaps.end(); ++i) {
     os << "a=" << mType << ":" << i->pt << " " << i->name << "/" << i->clock;
     if (i->channels && ShouldSerializeChannels(i->codec)) {
@@ -1151,33 +1039,26 @@ SdpRtpmapAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpSctpmapAttributeList::Serialize(std::ostream& os) const
-{
+void SdpSctpmapAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mSctpmaps.begin(); i != mSctpmaps.end(); ++i) {
     os << "a=" << mType << ":" << i->pt << " " << i->name << " " << i->streams
-      << CRLF;
+       << CRLF;
   }
 }
 
-void
-SdpSetupAttribute::Serialize(std::ostream& os) const
-{
+void SdpSetupAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mRole << CRLF;
 }
 
-void
-SdpSimulcastAttribute::Version::Serialize(std::ostream& os) const
-{
+void SdpSimulcastAttribute::Version::Serialize(std::ostream& os) const {
   SkipFirstDelimiter comma(",");
   for (const std::string& choice : choices) {
     os << comma << choice;
   }
 }
 
-bool
-SdpSimulcastAttribute::Version::Parse(std::istream& is, std::string* error)
-{
+bool SdpSimulcastAttribute::Version::Parse(std::istream& is,
+                                           std::string* error) {
   do {
     std::string value = ParseToken(is, ",; ", error);
     if (value.empty()) {
@@ -1189,10 +1070,8 @@ SdpSimulcastAttribute::Version::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-bool
-SdpSimulcastAttribute::Version::GetChoicesAsFormats(
-    std::vector<uint16_t>* formats) const
-{
+bool SdpSimulcastAttribute::Version::GetChoicesAsFormats(
+    std::vector<uint16_t>* formats) const {
   for (const std::string& choice : choices) {
     uint16_t format;
     if (!SdpHelper::GetPtAsInt(choice, &format) || (format > 127)) {
@@ -1204,9 +1083,7 @@ SdpSimulcastAttribute::Version::GetChoicesAsFormats(
   return true;
 }
 
-void
-SdpSimulcastAttribute::Versions::Serialize(std::ostream& os) const
-{
+void SdpSimulcastAttribute::Versions::Serialize(std::ostream& os) const {
   switch (type) {
     case kRid:
       os << "rid=";
@@ -1226,9 +1103,8 @@ SdpSimulcastAttribute::Versions::Serialize(std::ostream& os) const
   }
 }
 
-bool
-SdpSimulcastAttribute::Versions::Parse(std::istream& is, std::string* error)
-{
+bool SdpSimulcastAttribute::Versions::Parse(std::istream& is,
+                                            std::string* error) {
   std::string rawType = ParseKey(is, error);
   if (rawType.empty()) {
     return false;
@@ -1259,14 +1135,12 @@ SdpSimulcastAttribute::Versions::Parse(std::istream& is, std::string* error)
     }
 
     push_back(version);
-  } while(SkipChar(is, ';', error));
+  } while (SkipChar(is, ';', error));
 
   return true;
 }
 
-void
-SdpSimulcastAttribute::Serialize(std::ostream& os) const
-{
+void SdpSimulcastAttribute::Serialize(std::ostream& os) const {
   MOZ_ASSERT(sendVersions.IsSet() || recvVersions.IsSet());
 
   os << "a=" << mType << ":";
@@ -1284,9 +1158,7 @@ SdpSimulcastAttribute::Serialize(std::ostream& os) const
   os << CRLF;
 }
 
-bool
-SdpSimulcastAttribute::Parse(std::istream& is, std::string* error)
-{
+bool SdpSimulcastAttribute::Parse(std::istream& is, std::string* error) {
   bool gotRecv = false;
   bool gotSend = false;
 
@@ -1333,17 +1205,13 @@ SdpSimulcastAttribute::Parse(std::istream& is, std::string* error)
   return true;
 }
 
-void
-SdpSsrcAttributeList::Serialize(std::ostream& os) const
-{
+void SdpSsrcAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mSsrcs.begin(); i != mSsrcs.end(); ++i) {
     os << "a=" << mType << ":" << i->ssrc << " " << i->attribute << CRLF;
   }
 }
 
-void
-SdpSsrcGroupAttributeList::Serialize(std::ostream& os) const
-{
+void SdpSsrcGroupAttributeList::Serialize(std::ostream& os) const {
   for (auto i = mSsrcGroups.begin(); i != mSsrcGroups.end(); ++i) {
     os << "a=" << mType << ":" << i->semantics;
     for (auto j = i->ssrcs.begin(); j != i->ssrcs.end(); ++j) {
@@ -1353,17 +1221,13 @@ SdpSsrcGroupAttributeList::Serialize(std::ostream& os) const
   }
 }
 
-void
-SdpMultiStringAttribute::Serialize(std::ostream& os) const
-{
+void SdpMultiStringAttribute::Serialize(std::ostream& os) const {
   for (auto i = mValues.begin(); i != mValues.end(); ++i) {
     os << "a=" << mType << ":" << *i << CRLF;
   }
 }
 
-void
-SdpOptionsAttribute::Serialize(std::ostream& os) const
-{
+void SdpOptionsAttribute::Serialize(std::ostream& os) const {
   if (mValues.empty()) {
     return;
   }
@@ -1379,9 +1243,7 @@ SdpOptionsAttribute::Serialize(std::ostream& os) const
   os << CRLF;
 }
 
-void
-SdpOptionsAttribute::Load(const std::string& value)
-{
+void SdpOptionsAttribute::Load(const std::string& value) {
   size_t start = 0;
   size_t end = value.find(' ');
   while (end != std::string::npos) {
@@ -1392,27 +1254,19 @@ SdpOptionsAttribute::Load(const std::string& value)
   PushEntry(value.substr(start));
 }
 
-void
-SdpFlagAttribute::Serialize(std::ostream& os) const
-{
+void SdpFlagAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << CRLF;
 }
 
-void
-SdpStringAttribute::Serialize(std::ostream& os) const
-{
+void SdpStringAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mValue << CRLF;
 }
 
-void
-SdpNumberAttribute::Serialize(std::ostream& os) const
-{
+void SdpNumberAttribute::Serialize(std::ostream& os) const {
   os << "a=" << mType << ":" << mValue << CRLF;
 }
 
-bool
-SdpAttribute::IsAllowedAtMediaLevel(AttributeType type)
-{
+bool SdpAttribute::IsAllowedAtMediaLevel(AttributeType type) {
   switch (type) {
     case kBundleOnlyAttribute:
       return true;
@@ -1495,9 +1349,7 @@ SdpAttribute::IsAllowedAtMediaLevel(AttributeType type)
   MOZ_CRASH("Unknown attribute type");
 }
 
-bool
-SdpAttribute::IsAllowedAtSessionLevel(AttributeType type)
-{
+bool SdpAttribute::IsAllowedAtSessionLevel(AttributeType type) {
   switch (type) {
     case kBundleOnlyAttribute:
       return false;
@@ -1577,9 +1429,7 @@ SdpAttribute::IsAllowedAtSessionLevel(AttributeType type)
   MOZ_CRASH("Unknown attribute type");
 }
 
-const std::string
-SdpAttribute::GetAttributeTypeString(AttributeType type)
-{
+const std::string SdpAttribute::GetAttributeTypeString(AttributeType type) {
   switch (type) {
     case kBundleOnlyAttribute:
       return "bundle-only";
@@ -1659,4 +1509,4 @@ SdpAttribute::GetAttributeTypeString(AttributeType type)
   MOZ_CRASH("Unknown attribute type");
 }
 
-} // namespace mozilla
+}  // namespace mozilla

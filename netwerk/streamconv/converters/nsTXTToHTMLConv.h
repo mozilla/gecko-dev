@@ -11,22 +11,22 @@
 #include "nsTArray.h"
 #include "nsString.h"
 
-#define NS_NSTXTTOHTMLCONVERTER_CID                         \
-{ /* 9ef9fa14-1dd1-11b2-9d65-d72d6d1f025e */ \
-    0x9ef9fa14, \
-    0x1dd1, \
-    0x11b2, \
-    {0x9d, 0x65, 0xd7, 0x2d, 0x6d, 0x1f, 0x02, 0x5e} \
-}
+#define NS_NSTXTTOHTMLCONVERTER_CID                  \
+  { /* 9ef9fa14-1dd1-11b2-9d65-d72d6d1f025e */       \
+    0x9ef9fa14, 0x1dd1, 0x11b2, {                    \
+      0x9d, 0x65, 0xd7, 0x2d, 0x6d, 0x1f, 0x02, 0x5e \
+    }                                                \
+  }
 
 // Internal representation of a "token"
 typedef struct convToken {
-    nsString token;     // the actual string (i.e. "http://")
-    nsString modText;   // replacement text or href prepend text.
-    bool     prepend;   // flag indicating how the modText should be used.
+  nsString token;    // the actual string (i.e. "http://")
+  nsString modText;  // replacement text or href prepend text.
+  bool prepend;      // flag indicating how the modText should be used.
 } convToken;
 
-template<class T> class nsAutoPtr;
+template <class T>
+class nsAutoPtr;
 
 /**
  * Convert plain text to HTML.
@@ -57,33 +57,32 @@ template<class T> class nsAutoPtr;
  * for example, making *foo* bold is not possible.
  */
 class nsTXTToHTMLConv : public nsITXTToHTMLConv {
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISTREAMCONVERTER
-    NS_DECL_NSITXTTOHTMLCONV
-    NS_DECL_NSIREQUESTOBSERVER
-    NS_DECL_NSISTREAMLISTENER
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISTREAMCONVERTER
+  NS_DECL_NSITXTTOHTMLCONV
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSISTREAMLISTENER
 
-    nsTXTToHTMLConv();
-    nsresult Init();
+  nsTXTToHTMLConv();
+  nsresult Init();
 
-protected:
-    virtual ~nsTXTToHTMLConv();
+ protected:
+  virtual ~nsTXTToHTMLConv();
 
-    // return the token and it's location in the underlying buffer.
-    int32_t FindToken(int32_t cursor, convToken* *_retval);
+  // return the token and it's location in the underlying buffer.
+  int32_t FindToken(int32_t cursor, convToken **_retval);
 
-    // return the cursor location after munging HTML into the
-    // underlying buffer, according to mToken
-    int32_t CatHTML(int32_t front, int32_t back);
+  // return the cursor location after munging HTML into the
+  // underlying buffer, according to mToken
+  int32_t CatHTML(int32_t front, int32_t back);
 
-    nsCOMPtr<nsIStreamListener>     mListener; // final listener (consumer)
-    nsString                        mBuffer;   // any carry over data
-    nsTArray<nsAutoPtr<convToken> > mTokens;   // list of tokens to search for
-    convToken                       *mToken;   // current token (if any)
-    nsString                        mPageTitle; // Page title
-    bool                            mPreFormatHTML; // Whether to use <pre> tags
+  nsCOMPtr<nsIStreamListener> mListener;    // final listener (consumer)
+  nsString mBuffer;                         // any carry over data
+  nsTArray<nsAutoPtr<convToken> > mTokens;  // list of tokens to search for
+  convToken *mToken;                        // current token (if any)
+  nsString mPageTitle;                      // Page title
+  bool mPreFormatHTML;                      // Whether to use <pre> tags
 };
 
-#endif // ____nstxttohtmlconv___h___
-
+#endif  // ____nstxttohtmlconv___h___

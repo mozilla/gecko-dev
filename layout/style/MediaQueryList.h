@@ -27,18 +27,17 @@ namespace dom {
 class MediaList;
 
 class MediaQueryList final : public DOMEventTargetHelper,
-                             public mozilla::LinkedListElement<MediaQueryList>
-{
-public:
+                             public mozilla::LinkedListElement<MediaQueryList> {
+ public:
   // The caller who constructs is responsible for calling Evaluate
   // before calling any other methods.
-  MediaQueryList(nsIDocument* aDocument,
-                 const nsAString& aMediaQueryList,
+  MediaQueryList(nsIDocument* aDocument, const nsAString& aMediaQueryList,
                  mozilla::dom::CallerType aCallerType);
-private:
+
+ private:
   ~MediaQueryList();
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaQueryList, DOMEventTargetHelper)
 
@@ -46,7 +45,8 @@ public:
 
   void MaybeNotify();
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods
   void GetMedia(nsAString& aMedia);
@@ -56,11 +56,10 @@ public:
 
   using nsIDOMEventTarget::AddEventListener;
 
-  virtual void AddEventListener(const nsAString& aType,
-                                EventListener* aCallback,
-                                const AddEventListenerOptionsOrBoolean& aOptions,
-                                const Nullable<bool>& aWantsUntrusted,
-                                ErrorResult& aRv) override;
+  virtual void AddEventListener(
+      const nsAString& aType, EventListener* aCallback,
+      const AddEventListenerOptionsOrBoolean& aOptions,
+      const Nullable<bool>& aWantsUntrusted, ErrorResult& aRv) override;
 
   IMPL_EVENT_HANDLER(change)
 
@@ -68,7 +67,7 @@ public:
 
   void Disconnect();
 
-private:
+ private:
   void RecomputeMatches();
 
   // We only need a pointer to the document to support lazy
@@ -92,7 +91,7 @@ private:
   bool mMatchesValid;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* !defined(mozilla_dom_MediaQueryList_h) */

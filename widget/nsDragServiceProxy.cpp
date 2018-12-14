@@ -13,24 +13,18 @@
 #include "mozilla/Unused.h"
 #include "nsContentUtils.h"
 
-using mozilla::ipc::Shmem;
-using mozilla::dom::TabChild;
-using mozilla::dom::OptionalShmem;
 using mozilla::LayoutDeviceIntRect;
 using mozilla::Maybe;
+using mozilla::dom::OptionalShmem;
+using mozilla::dom::TabChild;
+using mozilla::ipc::Shmem;
 
-nsDragServiceProxy::nsDragServiceProxy()
-{
-}
+nsDragServiceProxy::nsDragServiceProxy() {}
 
-nsDragServiceProxy::~nsDragServiceProxy()
-{
-}
+nsDragServiceProxy::~nsDragServiceProxy() {}
 
-static void
-GetPrincipalURIFromNode(nsCOMPtr<nsIDOMNode>& sourceNode,
-                        nsCString& aPrincipalURISpec)
-{
+static void GetPrincipalURIFromNode(nsCOMPtr<nsIDOMNode>& sourceNode,
+                                    nsCString& aPrincipalURISpec) {
   nsCOMPtr<nsINode> node = do_QueryInterface(sourceNode);
   if (!node) {
     return;
@@ -46,21 +40,16 @@ GetPrincipalURIFromNode(nsCOMPtr<nsIDOMNode>& sourceNode,
   principalURI->GetSpec(aPrincipalURISpec);
 }
 
-nsresult
-nsDragServiceProxy::InvokeDragSessionImpl(nsIArray* aArrayTransferables,
-                                          nsIScriptableRegion* aRegion,
-                                          uint32_t aActionType)
-{
+nsresult nsDragServiceProxy::InvokeDragSessionImpl(
+    nsIArray* aArrayTransferables, nsIScriptableRegion* aRegion,
+    uint32_t aActionType) {
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(mSourceDocument);
   NS_ENSURE_STATE(doc->GetDocShell());
   TabChild* child = TabChild::GetFrom(doc->GetDocShell());
   NS_ENSURE_STATE(child);
   nsTArray<mozilla::dom::IPCDataTransfer> dataTransfers;
-  nsContentUtils::TransferablesToIPCTransferables(aArrayTransferables,
-                                                  dataTransfers,
-                                                  false,
-                                                  child->Manager(),
-                                                  nullptr);
+  nsContentUtils::TransferablesToIPCTransferables(
+      aArrayTransferables, dataTransfers, false, child->Manager(), nullptr);
 
   nsCString principalURISpec;
   GetPrincipalURIFromNode(mSourceNode, principalURISpec);
@@ -73,14 +62,12 @@ nsDragServiceProxy::InvokeDragSessionImpl(nsIArray* aArrayTransferables,
 
     if (surface) {
       RefPtr<mozilla::gfx::DataSourceSurface> dataSurface =
-        surface->GetDataSurface();
+          surface->GetDataSurface();
       if (dataSurface) {
         size_t length;
         int32_t stride;
-        Maybe<Shmem> maybeShm = nsContentUtils::GetSurfaceData(dataSurface,
-                                                               &length,
-                                                               &stride,
-                                                               child);
+        Maybe<Shmem> maybeShm = nsContentUtils::GetSurfaceData(
+            dataSurface, &length, &stride, child);
         if (maybeShm.isNothing()) {
           return NS_ERROR_FAILURE;
         }
@@ -93,10 +80,10 @@ nsDragServiceProxy::InvokeDragSessionImpl(nsIArray* aArrayTransferables,
           return NS_ERROR_FAILURE;
         }
 
-        mozilla::Unused <<
-          child->SendInvokeDragSession(dataTransfers, aActionType, surfaceData,
-                                       stride, static_cast<uint8_t>(dataSurface->GetFormat()),
-                                       dragRect, principalURISpec);
+        mozilla::Unused << child->SendInvokeDragSession(
+            dataTransfers, aActionType, surfaceData, stride,
+            static_cast<uint8_t>(dataSurface->GetFormat()), dragRect,
+            principalURISpec);
         StartDragSession();
         return NS_OK;
       }
@@ -104,8 +91,8 @@ nsDragServiceProxy::InvokeDragSessionImpl(nsIArray* aArrayTransferables,
   }
 
   mozilla::Unused << child->SendInvokeDragSession(dataTransfers, aActionType,
-                                                  mozilla::void_t(), 0, 0, dragRect,
-                                                  principalURISpec);
+                                                  mozilla::void_t(), 0, 0,
+                                                  dragRect, principalURISpec);
   StartDragSession();
   return NS_OK;
 }

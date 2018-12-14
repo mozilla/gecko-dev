@@ -13,54 +13,41 @@ namespace mozilla {
 
 ReaderProxy::ReaderProxy(AbstractThread* aOwnerThread,
                          MediaFormatReader* aReader)
-  : mOwnerThread(aOwnerThread)
-  , mReader(aReader)
-  , mWatchManager(this, aReader->OwnerThread())
-  , mDuration(aReader->OwnerThread(),
-              media::NullableTimeUnit(),
-              "ReaderProxy::mDuration (Mirror)")
-  , mSeamlessLoopingBlocked(false)
-  , mSeamlessLoopingEnabled(false)
-{
+    : mOwnerThread(aOwnerThread),
+      mReader(aReader),
+      mWatchManager(this, aReader->OwnerThread()),
+      mDuration(aReader->OwnerThread(), media::NullableTimeUnit(),
+                "ReaderProxy::mDuration (Mirror)"),
+      mSeamlessLoopingBlocked(false),
+      mSeamlessLoopingEnabled(false) {
   // Must support either heuristic buffering or WaitForData().
   MOZ_ASSERT(mReader->UseBufferingHeuristics() ||
              mReader->IsWaitForDataSupported());
 }
 
-ReaderProxy::~ReaderProxy()
-{}
+ReaderProxy::~ReaderProxy() {}
 
-media::TimeUnit
-ReaderProxy::StartTime() const
-{
+media::TimeUnit ReaderProxy::StartTime() const {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   return mStartTime.ref();
 }
 
-RefPtr<ReaderProxy::MetadataPromise>
-ReaderProxy::ReadMetadata()
-{
+RefPtr<ReaderProxy::MetadataPromise> ReaderProxy::ReadMetadata() {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   MOZ_ASSERT(!mShutdown);
-  return InvokeAsync(mReader->OwnerThread(),
-                     mReader.get(),
-                     __func__,
+  return InvokeAsync(mReader->OwnerThread(), mReader.get(), __func__,
                      &MediaFormatReader::AsyncReadMetadata)
-    ->Then(mOwnerThread,
-           __func__,
-           this,
-           &ReaderProxy::OnMetadataRead,
-           &ReaderProxy::OnMetadataNotRead);
+      ->Then(mOwnerThread, __func__, this, &ReaderProxy::OnMetadataRead,
+             &ReaderProxy::OnMetadataNotRead);
 }
 
-RefPtr<ReaderProxy::AudioDataPromise>
-ReaderProxy::OnAudioDataRequestCompleted(RefPtr<AudioData> aAudio)
-{
+RefPtr<ReaderProxy::AudioDataPromise> ReaderProxy::OnAudioDataRequestCompleted(
+    RefPtr<AudioData> aAudio) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
 
   // Subtract the start time and add the looping-offset time.
   int64_t offset =
-    StartTime().ToMicroseconds() - mLoopingOffset.ToMicroseconds();
+      StartTime().ToMicroseconds() - mLoopingOffset.ToMicroseconds();
   aAudio->AdjustForStartTime(offset);
   if (aAudio->mTime.IsValid()) {
     mLastAudioEndTime = aAudio->mTime;
@@ -70,9 +57,8 @@ ReaderProxy::OnAudioDataRequestCompleted(RefPtr<AudioData> aAudio)
                                            __func__);
 }
 
-RefPtr<ReaderProxy::AudioDataPromise>
-ReaderProxy::OnAudioDataRequestFailed(const MediaResult& aError)
-{
+RefPtr<ReaderProxy::AudioDataPromise> ReaderProxy::OnAudioDataRequestFailed(
+    const MediaResult& aError) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
 
   if (mSeamlessLoopingBlocked || !mSeamlessLoopingEnabled ||
@@ -98,75 +84,61 @@ ReaderProxy::OnAudioDataRequestFailed(const MediaResult& aError)
   RefPtr<MediaFormatReader> reader = mReader;
   ResetDecode(TrackInfo::kAudioTrack);
   return SeekInternal(SeekTarget(media::TimeUnit::Zero(), SeekTarget::Accurate))
-    ->Then(mReader->OwnerThread(),
-           __func__,
-           [reader]() { return reader->RequestAudioData(); },
-           [](const SeekRejectValue& aReject) {
-             return AudioDataPromise::CreateAndReject(aReject.mError, __func__);
-           })
-    ->Then(mOwnerThread,
-           __func__,
-           [self](RefPtr<AudioData> aAudio) {
-             return self->OnAudioDataRequestCompleted(aAudio.forget());
-           },
-           [](const MediaResult& aError) {
-             return AudioDataPromise::CreateAndReject(aError, __func__);
-           });
+      ->Then(mReader->OwnerThread(), __func__,
+             [reader]() { return reader->RequestAudioData(); },
+             [](const SeekRejectValue& aReject) {
+               return AudioDataPromise::CreateAndReject(aReject.mError,
+                                                        __func__);
+             })
+      ->Then(mOwnerThread, __func__,
+             [self](RefPtr<AudioData> aAudio) {
+               return self->OnAudioDataRequestCompleted(aAudio.forget());
+             },
+             [](const MediaResult& aError) {
+               return AudioDataPromise::CreateAndReject(aError, __func__);
+             });
 }
 
-RefPtr<ReaderProxy::AudioDataPromise>
-ReaderProxy::RequestAudioData()
-{
+RefPtr<ReaderProxy::AudioDataPromise> ReaderProxy::RequestAudioData() {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   MOZ_ASSERT(!mShutdown);
 
   mSeamlessLoopingBlocked = false;
-  return InvokeAsync(mReader->OwnerThread(),
-                     mReader.get(),
-                     __func__,
+  return InvokeAsync(mReader->OwnerThread(), mReader.get(), __func__,
                      &MediaFormatReader::RequestAudioData)
-    ->Then(mOwnerThread,
-           __func__,
-           this,
-           &ReaderProxy::OnAudioDataRequestCompleted,
-           &ReaderProxy::OnAudioDataRequestFailed);
+      ->Then(mOwnerThread, __func__, this,
+             &ReaderProxy::OnAudioDataRequestCompleted,
+             &ReaderProxy::OnAudioDataRequestFailed);
 }
 
-RefPtr<ReaderProxy::VideoDataPromise>
-ReaderProxy::RequestVideoData(const media::TimeUnit& aTimeThreshold)
-{
+RefPtr<ReaderProxy::VideoDataPromise> ReaderProxy::RequestVideoData(
+    const media::TimeUnit& aTimeThreshold) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   MOZ_ASSERT(!mShutdown);
 
   mSeamlessLoopingBlocked = false;
   const auto threshold = aTimeThreshold > media::TimeUnit::Zero()
-                         ? aTimeThreshold + StartTime()
-                         : aTimeThreshold;
+                             ? aTimeThreshold + StartTime()
+                             : aTimeThreshold;
 
   int64_t startTime = StartTime().ToMicroseconds();
-  return InvokeAsync(mReader->OwnerThread(),
-                     mReader.get(),
-                     __func__,
-                     &MediaFormatReader::RequestVideoData,
-                     threshold)
-    ->Then(mOwnerThread,
-           __func__,
-           [startTime](RefPtr<VideoData> aVideo) {
-             aVideo->AdjustForStartTime(startTime);
-             return aVideo->mTime.IsValid()
-                      ? VideoDataPromise::CreateAndResolve(aVideo.forget(),
-                                                           __func__)
-                      : VideoDataPromise::CreateAndReject(
-                          NS_ERROR_DOM_MEDIA_OVERFLOW_ERR, __func__);
-           },
-           [](const MediaResult& aError) {
-             return VideoDataPromise::CreateAndReject(aError, __func__);
-           });
+  return InvokeAsync(mReader->OwnerThread(), mReader.get(), __func__,
+                     &MediaFormatReader::RequestVideoData, threshold)
+      ->Then(mOwnerThread, __func__,
+             [startTime](RefPtr<VideoData> aVideo) {
+               aVideo->AdjustForStartTime(startTime);
+               return aVideo->mTime.IsValid()
+                          ? VideoDataPromise::CreateAndResolve(aVideo.forget(),
+                                                               __func__)
+                          : VideoDataPromise::CreateAndReject(
+                                NS_ERROR_DOM_MEDIA_OVERFLOW_ERR, __func__);
+             },
+             [](const MediaResult& aError) {
+               return VideoDataPromise::CreateAndReject(aError, __func__);
+             });
 }
 
-RefPtr<ReaderProxy::SeekPromise>
-ReaderProxy::Seek(const SeekTarget& aTarget)
-{
+RefPtr<ReaderProxy::SeekPromise> ReaderProxy::Seek(const SeekTarget& aTarget) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   mSeamlessLoopingBlocked = true;
   // Reset the members for seamless looping if the seek is triggered outside.
@@ -176,61 +148,44 @@ ReaderProxy::Seek(const SeekTarget& aTarget)
   return SeekInternal(aTarget);
 }
 
-RefPtr<ReaderProxy::SeekPromise>
-ReaderProxy::SeekInternal(const SeekTarget& aTarget)
-{
+RefPtr<ReaderProxy::SeekPromise> ReaderProxy::SeekInternal(
+    const SeekTarget& aTarget) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   SeekTarget adjustedTarget = aTarget;
   adjustedTarget.SetTime(adjustedTarget.GetTime() + StartTime());
-  return InvokeAsync(mReader->OwnerThread(),
-                     mReader.get(),
-                     __func__,
-                     &MediaFormatReader::Seek,
-                     Move(adjustedTarget));
+  return InvokeAsync(mReader->OwnerThread(), mReader.get(), __func__,
+                     &MediaFormatReader::Seek, Move(adjustedTarget));
 }
 
-RefPtr<ReaderProxy::WaitForDataPromise>
-ReaderProxy::WaitForData(MediaData::Type aType)
-{
+RefPtr<ReaderProxy::WaitForDataPromise> ReaderProxy::WaitForData(
+    MediaData::Type aType) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   MOZ_ASSERT(mReader->IsWaitForDataSupported());
-  return InvokeAsync(mReader->OwnerThread(),
-                     mReader.get(),
-                     __func__,
-                     &MediaFormatReader::WaitForData,
-                     aType);
+  return InvokeAsync(mReader->OwnerThread(), mReader.get(), __func__,
+                     &MediaFormatReader::WaitForData, aType);
 }
 
-void
-ReaderProxy::ReleaseResources()
-{
+void ReaderProxy::ReleaseResources() {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   nsCOMPtr<nsIRunnable> r =
-    NewRunnableMethod("MediaFormatReader::ReleaseResources",
-                      mReader,
-                      &MediaFormatReader::ReleaseResources);
+      NewRunnableMethod("MediaFormatReader::ReleaseResources", mReader,
+                        &MediaFormatReader::ReleaseResources);
   nsresult rv = mReader->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
   Unused << rv;
 }
 
-void
-ReaderProxy::ResetDecode(TrackSet aTracks)
-{
+void ReaderProxy::ResetDecode(TrackSet aTracks) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   nsCOMPtr<nsIRunnable> r =
-    NewRunnableMethod<TrackSet>("MediaFormatReader::ResetDecode",
-                                mReader,
-                                &MediaFormatReader::ResetDecode,
-                                aTracks);
+      NewRunnableMethod<TrackSet>("MediaFormatReader::ResetDecode", mReader,
+                                  &MediaFormatReader::ResetDecode, aTracks);
   nsresult rv = mReader->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
   Unused << rv;
 }
 
-RefPtr<ShutdownPromise>
-ReaderProxy::Shutdown()
-{
+RefPtr<ShutdownPromise> ReaderProxy::Shutdown() {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   mShutdown = true;
   RefPtr<ReaderProxy> self = this;
@@ -241,13 +196,12 @@ ReaderProxy::Shutdown()
   });
 }
 
-RefPtr<ReaderProxy::MetadataPromise>
-ReaderProxy::OnMetadataRead(MetadataHolder&& aMetadata)
-{
+RefPtr<ReaderProxy::MetadataPromise> ReaderProxy::OnMetadataRead(
+    MetadataHolder&& aMetadata) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   if (mShutdown) {
-    return MetadataPromise::CreateAndReject(
-      NS_ERROR_DOM_MEDIA_ABORT_ERR, __func__);
+    return MetadataPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_ABORT_ERR,
+                                            __func__);
   }
 
   if (mStartTime.isNothing()) {
@@ -256,60 +210,47 @@ ReaderProxy::OnMetadataRead(MetadataHolder&& aMetadata)
   return MetadataPromise::CreateAndResolve(Move(aMetadata), __func__);
 }
 
-RefPtr<ReaderProxy::MetadataPromise>
-ReaderProxy::OnMetadataNotRead(const MediaResult& aError)
-{
+RefPtr<ReaderProxy::MetadataPromise> ReaderProxy::OnMetadataNotRead(
+    const MediaResult& aError) {
   return MetadataPromise::CreateAndReject(aError, __func__);
 }
 
-void
-ReaderProxy::SetVideoBlankDecode(bool aIsBlankDecode)
-{
+void ReaderProxy::SetVideoBlankDecode(bool aIsBlankDecode) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
-  nsCOMPtr<nsIRunnable> r =
-    NewRunnableMethod<bool>("MediaFormatReader::SetVideoNullDecode",
-                            mReader,
-                            &MediaFormatReader::SetVideoNullDecode,
-                            aIsBlankDecode);
+  nsCOMPtr<nsIRunnable> r = NewRunnableMethod<bool>(
+      "MediaFormatReader::SetVideoNullDecode", mReader,
+      &MediaFormatReader::SetVideoNullDecode, aIsBlankDecode);
   nsresult rv = mReader->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
   Unused << rv;
 }
 
-void
-ReaderProxy::UpdateDuration()
-{
+void ReaderProxy::UpdateDuration() {
   MOZ_ASSERT(mReader->OwnerThread()->IsCurrentThreadIn());
   mReader->UpdateDuration(mDuration.Ref().ref());
 }
 
-void
-ReaderProxy::SetCanonicalDuration(
-  AbstractCanonical<media::NullableTimeUnit>* aCanonical)
-{
+void ReaderProxy::SetCanonicalDuration(
+    AbstractCanonical<media::NullableTimeUnit>* aCanonical) {
   using DurationT = AbstractCanonical<media::NullableTimeUnit>;
   RefPtr<ReaderProxy> self = this;
   RefPtr<DurationT> canonical = aCanonical;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-    "ReaderProxy::SetCanonicalDuration", [this, self, canonical]() {
-      mDuration.Connect(canonical);
-      mWatchManager.Watch(mDuration, &ReaderProxy::UpdateDuration);
-    });
+      "ReaderProxy::SetCanonicalDuration", [this, self, canonical]() {
+        mDuration.Connect(canonical);
+        mWatchManager.Watch(mDuration, &ReaderProxy::UpdateDuration);
+      });
   nsresult rv = mReader->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
   Unused << rv;
 }
 
-void
-ReaderProxy::SetSeamlessLoopingEnabled(bool aEnabled)
-{
+void ReaderProxy::SetSeamlessLoopingEnabled(bool aEnabled) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   mSeamlessLoopingEnabled = aEnabled;
 }
 
-void
-ReaderProxy::AdjustByLooping(media::TimeUnit& aTime)
-{
+void ReaderProxy::AdjustByLooping(media::TimeUnit& aTime) {
   MOZ_ASSERT(mOwnerThread->IsCurrentThreadIn());
   MOZ_ASSERT(!mShutdown);
   MOZ_ASSERT(!mSeamlessLoopingEnabled || !mSeamlessLoopingBlocked);
@@ -318,4 +259,4 @@ ReaderProxy::AdjustByLooping(media::TimeUnit& aTime)
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

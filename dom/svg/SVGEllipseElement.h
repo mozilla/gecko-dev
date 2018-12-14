@@ -10,33 +10,36 @@
 #include "SVGGeometryElement.h"
 #include "nsSVGLength2.h"
 
-nsresult NS_NewSVGEllipseElement(nsIContent **aResult,
-                                 already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGEllipseElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 
 typedef SVGGeometryElement SVGEllipseElementBase;
 
-class SVGEllipseElement final : public SVGEllipseElementBase
-{
-protected:
-  explicit SVGEllipseElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
-  friend nsresult (::NS_NewSVGEllipseElement(nsIContent **aResult,
-                                             already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+class SVGEllipseElement final : public SVGEllipseElementBase {
+ protected:
+  explicit SVGEllipseElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+  friend nsresult(::NS_NewSVGEllipseElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
 
-public:
+ public:
   // nsSVGSVGElement methods:
   virtual bool HasValidDimensions() const override;
 
   // SVGGeometryElement methods:
-  virtual bool GetGeometryBounds(Rect* aBounds, const StrokeOptions& aStrokeOptions,
-                                 const Matrix& aToBoundsSpace,
-                                 const Matrix* aToNonScalingStrokeSpace = nullptr) override;
+  virtual bool GetGeometryBounds(
+      Rect* aBounds, const StrokeOptions& aStrokeOptions,
+      const Matrix& aToBoundsSpace,
+      const Matrix* aToNonScalingStrokeSpace = nullptr) override;
   virtual already_AddRefed<Path> BuildPath(PathBuilder* aBuilder) override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   // WebIDL
@@ -45,8 +48,7 @@ public:
   already_AddRefed<SVGAnimatedLength> Rx();
   already_AddRefed<SVGAnimatedLength> Ry();
 
-protected:
-
+ protected:
   virtual LengthAttributesInfo GetLengthInfo() override;
 
   enum { CX, CY, RX, RY };
@@ -54,7 +56,7 @@ protected:
   static LengthInfo sLengthInfo[4];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGEllipseElement_h
+#endif  // mozilla_dom_SVGEllipseElement_h

@@ -26,46 +26,38 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGFEImageElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGFEImageElement::WrapNode(JSContext* aCx,
+                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGFEImageElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::StringInfo SVGFEImageElement::sStringInfo[3] =
-{
-  { &nsGkAtoms::result, kNameSpaceID_None, true },
-  { &nsGkAtoms::href, kNameSpaceID_None, true },
-  { &nsGkAtoms::href, kNameSpaceID_XLink, true }
-};
+nsSVGElement::StringInfo SVGFEImageElement::sStringInfo[3] = {
+    {&nsGkAtoms::result, kNameSpaceID_None, true},
+    {&nsGkAtoms::href, kNameSpaceID_None, true},
+    {&nsGkAtoms::href, kNameSpaceID_XLink, true}};
 
 //----------------------------------------------------------------------
 // nsISupports methods
 
 NS_IMPL_ISUPPORTS_INHERITED(SVGFEImageElement, SVGFEImageElementBase,
-                            nsIDOMNode, nsIDOMElement,
-                            imgINotificationObserver, nsIImageLoadingContent)
+                            nsIDOMNode, nsIDOMElement, imgINotificationObserver,
+                            nsIImageLoadingContent)
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGFEImageElement::SVGFEImageElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGFEImageElementBase(aNodeInfo)
-{
+SVGFEImageElement::SVGFEImageElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : SVGFEImageElementBase(aNodeInfo) {
   // We start out broken
   AddStatesSilently(NS_EVENT_STATE_BROKEN);
 }
 
-SVGFEImageElement::~SVGFEImageElement()
-{
-  DestroyImageLoadingContent();
-}
+SVGFEImageElement::~SVGFEImageElement() { DestroyImageLoadingContent(); }
 
 //----------------------------------------------------------------------
 
-nsresult
-SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify)
-{
+nsresult SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify) {
   // resolve href attribute
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
@@ -77,8 +69,7 @@ SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify)
   }
   href.Trim(" \t\n\r");
 
-  if (baseURI && !href.IsEmpty())
-    NS_MakeAbsoluteURI(href, href, baseURI);
+  if (baseURI && !href.IsEmpty()) NS_MakeAbsoluteURI(href, href, baseURI);
 
   // Make sure we don't get in a recursive death-spiral
   nsIDocument* doc = OwnerDoc();
@@ -100,9 +91,7 @@ SVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify)
 //----------------------------------------------------------------------
 // EventTarget methods:
 
-void
-SVGFEImageElement::AsyncEventRunning(AsyncEventDispatcher* aEvent)
-{
+void SVGFEImageElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   nsImageLoadingContent::AsyncEventRunning(aEvent);
 }
 
@@ -110,27 +99,20 @@ SVGFEImageElement::AsyncEventRunning(AsyncEventDispatcher* aEvent)
 // nsIContent methods:
 
 NS_IMETHODIMP_(bool)
-SVGFEImageElement::IsAttributeMapped(const nsAtom* name) const
-{
-  static const MappedAttributeEntry* const map[] = {
-    sGraphicsMap
-  };
+SVGFEImageElement::IsAttributeMapped(const nsAtom* name) const {
+  static const MappedAttributeEntry* const map[] = {sGraphicsMap};
 
   return FindAttributeDependence(name, map) ||
-    SVGFEImageElementBase::IsAttributeMapped(name);
+         SVGFEImageElementBase::IsAttributeMapped(name);
 }
 
-nsresult
-SVGFEImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aSubjectPrincipal,
-                                bool aNotify)
-{
-  if (aName == nsGkAtoms::href &&
-      (aNamespaceID == kNameSpaceID_XLink ||
-       aNamespaceID == kNameSpaceID_None)) {
-
+nsresult SVGFEImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                         const nsAttrValue* aValue,
+                                         const nsAttrValue* aOldValue,
+                                         nsIPrincipal* aSubjectPrincipal,
+                                         bool aNotify) {
+  if (aName == nsGkAtoms::href && (aNamespaceID == kNameSpaceID_XLink ||
+                                   aNamespaceID == kNameSpaceID_None)) {
     if (aValue) {
       LoadSVGImage(true, aNotify);
     } else {
@@ -138,31 +120,24 @@ SVGFEImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
     }
   }
 
-  return SVGFEImageElementBase::AfterSetAttr(aNamespaceID, aName,
-                                             aValue, aOldValue,
-                                             aSubjectPrincipal,
-                                             aNotify);
+  return SVGFEImageElementBase::AfterSetAttr(
+      aNamespaceID, aName, aValue, aOldValue, aSubjectPrincipal, aNotify);
 }
 
-void
-SVGFEImageElement::MaybeLoadSVGImage()
-{
+void SVGFEImageElement::MaybeLoadSVGImage() {
   if ((mStringAttributes[HREF].IsExplicitlySet() ||
-       mStringAttributes[XLINK_HREF].IsExplicitlySet() ) &&
-      (NS_FAILED(LoadSVGImage(false, true)) ||
-       !LoadingEnabled())) {
+       mStringAttributes[XLINK_HREF].IsExplicitlySet()) &&
+      (NS_FAILED(LoadSVGImage(false, true)) || !LoadingEnabled())) {
     CancelImageRequests(true);
   }
 }
 
-nsresult
-SVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                              nsIContent* aBindingParent,
-                              bool aCompileEventHandlers)
-{
-  nsresult rv = SVGFEImageElementBase::BindToTree(aDocument, aParent,
-                                                  aBindingParent,
-                                                  aCompileEventHandlers);
+nsresult SVGFEImageElement::BindToTree(nsIDocument* aDocument,
+                                       nsIContent* aParent,
+                                       nsIContent* aBindingParent,
+                                       bool aCompileEventHandlers) {
+  nsresult rv = SVGFEImageElementBase::BindToTree(
+      aDocument, aParent, aBindingParent, aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
@@ -175,26 +150,21 @@ SVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     ClearBrokenState();
     RemoveStatesSilently(NS_EVENT_STATE_BROKEN);
     nsContentUtils::AddScriptRunner(
-      NewRunnableMethod("dom::SVGFEImageElement::MaybeLoadSVGImage",
-                        this,
-                        &SVGFEImageElement::MaybeLoadSVGImage));
+        NewRunnableMethod("dom::SVGFEImageElement::MaybeLoadSVGImage", this,
+                          &SVGFEImageElement::MaybeLoadSVGImage));
   }
 
   return rv;
 }
 
-void
-SVGFEImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
-{
+void SVGFEImageElement::UnbindFromTree(bool aDeep, bool aNullParent) {
   nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
   SVGFEImageElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
-EventStates
-SVGFEImageElement::IntrinsicState() const
-{
+EventStates SVGFEImageElement::IntrinsicState() const {
   return SVGFEImageElementBase::IntrinsicState() |
-    nsImageLoadingContent::ImageState();
+         nsImageLoadingContent::ImageState();
 }
 
 //----------------------------------------------------------------------
@@ -202,23 +172,19 @@ SVGFEImageElement::IntrinsicState() const
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEImageElement)
 
-already_AddRefed<SVGAnimatedString>
-SVGFEImageElement::Href()
-{
+already_AddRefed<SVGAnimatedString> SVGFEImageElement::Href() {
   return mStringAttributes[HREF].IsExplicitlySet()
-         ? mStringAttributes[HREF].ToDOMAnimatedString(this)
-         : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
+             ? mStringAttributes[HREF].ToDOMAnimatedString(this)
+             : mStringAttributes[XLINK_HREF].ToDOMAnimatedString(this);
 }
 
 //----------------------------------------------------------------------
 // nsIDOMSVGFEImageElement methods
 
-FilterPrimitiveDescription
-SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
-                                           const IntRect& aFilterSubregion,
-                                           const nsTArray<bool>& aInputsAreTainted,
-                                           nsTArray<RefPtr<SourceSurface>>& aInputImages)
-{
+FilterPrimitiveDescription SVGFEImageElement::GetPrimitiveDescription(
+    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    const nsTArray<bool>& aInputsAreTainted,
+    nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   nsIFrame* frame = GetPrimaryFrame();
   if (!frame) {
     return FilterPrimitiveDescription(PrimitiveType::Empty);
@@ -235,7 +201,8 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
 
   RefPtr<SourceSurface> image;
   if (imageContainer) {
-    uint32_t flags = imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY;
+    uint32_t flags =
+        imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY;
     image = imageContainer->GetFrame(imgIContainer::FRAME_CURRENT, flags);
   }
 
@@ -247,14 +214,14 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
   imageContainer->GetWidth(&nativeSize.width);
   imageContainer->GetHeight(&nativeSize.height);
 
-  Matrix viewBoxTM =
-    SVGContentUtils::GetViewBoxTransform(aFilterSubregion.width, aFilterSubregion.height,
-                                         0, 0, nativeSize.width, nativeSize.height,
-                                         mPreserveAspectRatio);
+  Matrix viewBoxTM = SVGContentUtils::GetViewBoxTransform(
+      aFilterSubregion.width, aFilterSubregion.height, 0, 0, nativeSize.width,
+      nativeSize.height, mPreserveAspectRatio);
   Matrix TM = viewBoxTM;
   TM.PostTranslate(aFilterSubregion.x, aFilterSubregion.y);
 
-  SamplingFilter samplingFilter = nsLayoutUtils::GetSamplingFilterForFrame(frame);
+  SamplingFilter samplingFilter =
+      nsLayoutUtils::GetSamplingFilterForFrame(frame);
 
   FilterPrimitiveDescription descr(PrimitiveType::Image);
   descr.Attributes().Set(eImageFilter, (uint32_t)samplingFilter);
@@ -268,21 +235,18 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
   return descr;
 }
 
-bool
-SVGFEImageElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                             nsAtom* aAttribute) const
-{
+bool SVGFEImageElement::AttributeAffectsRendering(int32_t aNameSpaceID,
+                                                  nsAtom* aAttribute) const {
   // nsGkAtoms::href is deliberately omitted as the frame has special
   // handling to load the image
-  return SVGFEImageElementBase::AttributeAffectsRendering(aNameSpaceID, aAttribute) ||
+  return SVGFEImageElementBase::AttributeAffectsRendering(aNameSpaceID,
+                                                          aAttribute) ||
          (aNameSpaceID == kNameSpaceID_None &&
           aAttribute == nsGkAtoms::preserveAspectRatio);
 }
 
-bool
-SVGFEImageElement::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
-                                   nsIPrincipal* aReferencePrincipal)
-{
+bool SVGFEImageElement::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
+                                        nsIPrincipal* aReferencePrincipal) {
   nsresult rv;
   nsCOMPtr<imgIRequest> currentRequest;
   GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
@@ -324,20 +288,15 @@ SVGFEImageElement::OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
 // nsSVGElement methods
 
 already_AddRefed<DOMSVGAnimatedPreserveAspectRatio>
-SVGFEImageElement::PreserveAspectRatio()
-{
+SVGFEImageElement::PreserveAspectRatio() {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(this);
 }
 
-SVGAnimatedPreserveAspectRatio *
-SVGFEImageElement::GetPreserveAspectRatio()
-{
+SVGAnimatedPreserveAspectRatio* SVGFEImageElement::GetPreserveAspectRatio() {
   return &mPreserveAspectRatio;
 }
 
-nsSVGElement::StringAttributesInfo
-SVGFEImageElement::GetStringInfo()
-{
+nsSVGElement::StringAttributesInfo SVGFEImageElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
                               ArrayLength(sStringInfo));
 }
@@ -346,8 +305,8 @@ SVGFEImageElement::GetStringInfo()
 // imgINotificationObserver methods
 
 NS_IMETHODIMP
-SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData)
-{
+SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType,
+                          const nsIntRect* aData) {
   nsresult rv = nsImageLoadingContent::Notify(aRequest, aType, aData);
 
   if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
@@ -370,13 +329,11 @@ SVGFEImageElement::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect*
 //----------------------------------------------------------------------
 // helper methods
 
-void
-SVGFEImageElement::Invalidate()
-{
+void SVGFEImageElement::Invalidate() {
   if (GetParent() && GetParent()->IsSVGElement(nsGkAtoms::filter)) {
     static_cast<SVGFilterElement*>(GetParent())->Invalidate();
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

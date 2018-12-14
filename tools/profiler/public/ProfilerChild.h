@@ -18,8 +18,7 @@ namespace mozilla {
 // process. The corresponding ProfilerParent actor is created in the main
 // process, and it will notify us about profiler state changes and request
 // profiles from us.
-class ProfilerChild final : public PProfilerChild
-{
+class ProfilerChild final : public PProfilerChild {
   NS_INLINE_DECL_REFCOUNTING(ProfilerChild)
 
   ProfilerChild();
@@ -32,15 +31,17 @@ class ProfilerChild final : public PProfilerChild
 
   void Destroy();
 
-private:
+ private:
   virtual ~ProfilerChild();
 
   mozilla::ipc::IPCResult RecvStart(const ProfilerInitParams& params) override;
-  mozilla::ipc::IPCResult RecvEnsureStarted(const ProfilerInitParams& params) override;
+  mozilla::ipc::IPCResult RecvEnsureStarted(
+      const ProfilerInitParams& params) override;
   mozilla::ipc::IPCResult RecvStop() override;
   mozilla::ipc::IPCResult RecvPause() override;
   mozilla::ipc::IPCResult RecvResume() override;
-  mozilla::ipc::IPCResult RecvGatherProfile(GatherProfileResolver&& aResolve) override;
+  mozilla::ipc::IPCResult RecvGatherProfile(
+      GatherProfileResolver&& aResolve) override;
 
   void ActorDestroy(ActorDestroyReason aActorDestroyReason) override;
 
@@ -48,6 +49,6 @@ private:
   bool mDestroyed;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif  // ProfilerChild_h

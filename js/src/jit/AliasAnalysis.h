@@ -16,16 +16,15 @@ namespace jit {
 
 class LoopAliasInfo;
 
-class AliasAnalysis : public AliasAnalysisShared
-{
-    LoopAliasInfo* loop_;
+class AliasAnalysis : public AliasAnalysisShared {
+  LoopAliasInfo* loop_;
 
-  public:
-    AliasAnalysis(MIRGenerator* mir, MIRGraph& graph);
-    MOZ_MUST_USE bool analyze() override;
+ public:
+  AliasAnalysis(MIRGenerator* mir, MIRGraph& graph);
+  MOZ_MUST_USE bool analyze() override;
 };
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_AliasAnalysis_h */

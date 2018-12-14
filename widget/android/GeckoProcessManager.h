@@ -17,46 +17,42 @@
 namespace mozilla {
 
 class GeckoProcessManager final
-    : public java::GeckoProcessManager::Natives<GeckoProcessManager>
-{
-    GeckoProcessManager() = delete;
+    : public java::GeckoProcessManager::Natives<GeckoProcessManager> {
+  GeckoProcessManager() = delete;
 
-    static already_AddRefed<nsIWidget>
-    GetWidget(int64_t aContentId, int64_t aTabId)
-    {
-        using namespace dom;
-        MOZ_ASSERT(NS_IsMainThread());
+  static already_AddRefed<nsIWidget> GetWidget(int64_t aContentId,
+                                               int64_t aTabId) {
+    using namespace dom;
+    MOZ_ASSERT(NS_IsMainThread());
 
-        ContentProcessManager* const cpm =
-            ContentProcessManager::GetSingleton();
-        NS_ENSURE_TRUE(cpm, nullptr);
+    ContentProcessManager* const cpm = ContentProcessManager::GetSingleton();
+    NS_ENSURE_TRUE(cpm, nullptr);
 
-        RefPtr<TabParent> tab = cpm->GetTopLevelTabParentByProcessAndTabId(
-                ContentParentId(aContentId), TabId(aTabId));
-        NS_ENSURE_TRUE(tab, nullptr);
+    RefPtr<TabParent> tab = cpm->GetTopLevelTabParentByProcessAndTabId(
+        ContentParentId(aContentId), TabId(aTabId));
+    NS_ENSURE_TRUE(tab, nullptr);
 
-        nsCOMPtr<nsPIDOMWindowOuter> domWin = tab->GetParentWindowOuter();
-        NS_ENSURE_TRUE(domWin, nullptr);
+    nsCOMPtr<nsPIDOMWindowOuter> domWin = tab->GetParentWindowOuter();
+    NS_ENSURE_TRUE(domWin, nullptr);
 
-        return widget::WidgetUtils::DOMWindowToWidget(domWin);
-    }
+    return widget::WidgetUtils::DOMWindowToWidget(domWin);
+  }
 
-public:
-    static jni::Object::LocalRef
-    GetEditableParent(int64_t aContentId, int64_t aTabId)
-    {
-        // On binder thread.
-        jni::Object::GlobalRef ret;
-        nsAppShell::SyncRunEvent([aContentId, aTabId, &ret] {
-            nsCOMPtr<nsIWidget> widget = GetWidget(aContentId, aTabId);
-            if (widget) {
-                ret = static_cast<nsWindow*>(widget.get())->GetEditableParent();
-            }
-        });
-        return ret;
-    }
+ public:
+  static jni::Object::LocalRef GetEditableParent(int64_t aContentId,
+                                                 int64_t aTabId) {
+    // On binder thread.
+    jni::Object::GlobalRef ret;
+    nsAppShell::SyncRunEvent([aContentId, aTabId, &ret] {
+      nsCOMPtr<nsIWidget> widget = GetWidget(aContentId, aTabId);
+      if (widget) {
+        ret = static_cast<nsWindow*>(widget.get())->GetEditableParent();
+      }
+    });
+    return ret;
+  }
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // GeckoProcessManager_h
+#endif  // GeckoProcessManager_h

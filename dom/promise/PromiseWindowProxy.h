@@ -37,21 +37,21 @@ class Promise;
 // PromiseWindowProxy and the window are still alive that the promise
 // will remain alive. This strong reference is cycle collected, so it
 // won't cause the window to leak.
-class PromiseWindowProxy final
-{
-public:
-  PromiseWindowProxy(nsPIDOMWindowInner* aWindow, mozilla::dom::Promise* aPromise);
+class PromiseWindowProxy final {
+ public:
+  PromiseWindowProxy(nsPIDOMWindowInner* aWindow,
+                     mozilla::dom::Promise* aPromise);
   ~PromiseWindowProxy();
 
   RefPtr<Promise> Get() const;
   nsCOMPtr<nsPIDOMWindowInner> GetWindow() const;
 
-private:
+ private:
   nsCOMPtr<nsIWeakReference> mWindow;
   WeakPtr<Promise> mPromise;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PromiseWindowProxy_h
+#endif  // mozilla_dom_PromiseWindowProxy_h

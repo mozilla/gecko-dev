@@ -29,30 +29,24 @@ using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
 class CreateEncodedOCSPRequestTrustDomain final
-  : public EverythingFailsByDefaultTrustDomain
-{
-private:
+    : public EverythingFailsByDefaultTrustDomain {
+ private:
   Result DigestBuf(Input item, DigestAlgorithm digestAlg,
-                   /*out*/ uint8_t *digestBuf, size_t digestBufLen)
-                   override
-  {
+                   /*out*/ uint8_t* digestBuf, size_t digestBufLen) override {
     return TestDigestBuf(item, digestAlg, digestBuf, digestBufLen);
   }
 
-  Result CheckRSAPublicKeyModulusSizeInBits(EndEntityOrCA, unsigned int)
-                                            override
-  {
+  Result CheckRSAPublicKeyModulusSizeInBits(EndEntityOrCA,
+                                            unsigned int) override {
     return Success;
   }
 };
 
-class pkixocsp_CreateEncodedOCSPRequest : public ::testing::Test
-{
-protected:
+class pkixocsp_CreateEncodedOCSPRequest : public ::testing::Test {
+ protected:
   void MakeIssuerCertIDComponents(const char* issuerASCII,
                                   /*out*/ ByteString& issuerDER,
-                                  /*out*/ ByteString& issuerSPKI)
-  {
+                                  /*out*/ ByteString& issuerSPKI) {
     issuerDER = CNToDERName(issuerASCII);
     ASSERT_FALSE(ENCODING_FAILED(issuerDER));
 
@@ -66,9 +60,8 @@ protected:
 
 // Test that the large length of the child serial number causes
 // CreateEncodedOCSPRequest to fail.
-TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
-{
-  static const uint8_t UNSUPPORTED_LEN = 128; // must be larger than 127
+TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest) {
+  static const uint8_t UNSUPPORTED_LEN = 128;  // must be larger than 127
 
   ByteString serialNumberString;
   // tag + length + value is 1 + 2 + UNSUPPORTED_LEN
@@ -84,8 +77,8 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
 
   ByteString issuerDER;
   ByteString issuerSPKI;
-  ASSERT_NO_FATAL_FAILURE(MakeIssuerCertIDComponents("CA", issuerDER,
-                                                     issuerSPKI));
+  ASSERT_NO_FATAL_FAILURE(
+      MakeIssuerCertIDComponents("CA", issuerDER, issuerSPKI));
 
   Input issuer;
   ASSERT_EQ(Success, issuer.Init(issuerDER.data(), issuerDER.length()));
@@ -99,16 +92,15 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, ChildCertLongSerialNumberTest)
 
   uint8_t ocspRequest[OCSP_REQUEST_MAX_LENGTH];
   size_t ocspRequestLength;
-  ASSERT_EQ(Result::ERROR_BAD_DER,
-            CreateEncodedOCSPRequest(trustDomain,
-                                     CertID(issuer, spki, serialNumber),
-                                     ocspRequest, ocspRequestLength));
+  ASSERT_EQ(
+      Result::ERROR_BAD_DER,
+      CreateEncodedOCSPRequest(trustDomain, CertID(issuer, spki, serialNumber),
+                               ocspRequest, ocspRequestLength));
 }
 
 // Test that CreateEncodedOCSPRequest handles the longest serial number that
 // it's required to support (i.e. 20 octets).
-TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
-{
+TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest) {
   static const uint8_t LONGEST_REQUIRED_LEN = 20;
 
   ByteString serialNumberString;
@@ -123,8 +115,8 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
 
   ByteString issuerDER;
   ByteString issuerSPKI;
-  ASSERT_NO_FATAL_FAILURE(MakeIssuerCertIDComponents("CA", issuerDER,
-                                                     issuerSPKI));
+  ASSERT_NO_FATAL_FAILURE(
+      MakeIssuerCertIDComponents("CA", issuerDER, issuerSPKI));
 
   Input issuer;
   ASSERT_EQ(Success, issuer.Init(issuerDER.data(), issuerDER.length()));
@@ -138,8 +130,7 @@ TEST_F(pkixocsp_CreateEncodedOCSPRequest, LongestSupportedSerialNumberTest)
 
   uint8_t ocspRequest[OCSP_REQUEST_MAX_LENGTH];
   size_t ocspRequestLength;
-  ASSERT_EQ(Success,
-            CreateEncodedOCSPRequest(trustDomain,
-                                     CertID(issuer, spki, serialNumber),
-                                     ocspRequest, ocspRequestLength));
+  ASSERT_EQ(Success, CreateEncodedOCSPRequest(
+                         trustDomain, CertID(issuer, spki, serialNumber),
+                         ocspRequest, ocspRequestLength));
 }

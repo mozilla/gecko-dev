@@ -12,12 +12,10 @@
 namespace mozilla {
 namespace dom {
 
-/* virtual */ JSObject*
-CSSKeyframeRule::WrapObject(JSContext* aCx,
-                            JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* CSSKeyframeRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSKeyframeRuleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

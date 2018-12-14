@@ -22,23 +22,24 @@
 #include "nsString.h"
 #include "pkix/pkixtypes.h"
 
-namespace mozilla { namespace psm {
+namespace mozilla {
+namespace psm {
 
 enum class SSLErrorMessageType {
-  OverridableCert = 1, // for *overridable* certificate errors
-  Plain = 2,           // all other errors (or "no error")
+  OverridableCert = 1,  // for *overridable* certificate errors
+  Plain = 2,            // all other errors (or "no error")
 };
 
-class TransportSecurityInfo : public nsITransportSecurityInfo
-                            , public nsIInterfaceRequestor
-                            , public nsISSLStatusProvider
-                            , public nsIAssociatedContentSecurity
-                            , public nsISerializable
-                            , public nsIClassInfo
-{
-protected:
+class TransportSecurityInfo : public nsITransportSecurityInfo,
+                              public nsIInterfaceRequestor,
+                              public nsISSLStatusProvider,
+                              public nsIAssociatedContentSecurity,
+                              public nsISerializable,
+                              public nsIClassInfo {
+ protected:
   virtual ~TransportSecurityInfo() {}
-public:
+
+ public:
   TransportSecurityInfo();
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -51,7 +52,7 @@ public:
 
   void SetSecurityState(uint32_t aState);
 
-  const nsACString & GetHostName() const { return mHostName; }
+  const nsACString& GetHostName() const { return mHostName; }
 
   void SetHostName(const char* host);
 
@@ -65,7 +66,7 @@ public:
 
   void GetErrorLogMessage(PRErrorCode errorCode,
                           ::mozilla::psm::SSLErrorMessageType errorMessageType,
-                          nsString &result);
+                          nsString& result);
 
   void SetCanceled(PRErrorCode errorCode,
                    ::mozilla::psm::SSLErrorMessageType errorMessageType);
@@ -77,13 +78,13 @@ public:
 
   nsresult SetFailedCertChain(UniqueCERTCertList certList);
 
-private:
+ private:
   mutable ::mozilla::Mutex mMutex;
 
-protected:
+ protected:
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
 
-private:
+ private:
   uint32_t mSecurityState;
   int32_t mSubRequestsBrokenSecurity;
   int32_t mSubRequestsNoSecurity;
@@ -91,11 +92,10 @@ private:
   PRErrorCode mErrorCode;
   ::mozilla::psm::SSLErrorMessageType mErrorMessageType;
   nsString mErrorMessageCached;
-  nsresult formatErrorMessage(::mozilla::MutexAutoLock const & proofOfLock,
-                              PRErrorCode errorCode,
-                              ::mozilla::psm::SSLErrorMessageType errorMessageType,
-                              bool wantsHtml, bool suppressPort443,
-                              nsString &result);
+  nsresult formatErrorMessage(
+      ::mozilla::MutexAutoLock const& proofOfLock, PRErrorCode errorCode,
+      ::mozilla::psm::SSLErrorMessageType errorMessageType, bool wantsHtml,
+      bool suppressPort443, nsString& result);
 
   int32_t mPort;
   nsCString mHostName;
@@ -108,53 +108,51 @@ private:
   nsCOMPtr<nsIX509CertList> mFailedCertChain;
 };
 
-class RememberCertErrorsTable
-{
-private:
+class RememberCertErrorsTable {
+ private:
   RememberCertErrorsTable();
 
-  struct CertStateBits
-  {
+  struct CertStateBits {
     bool mIsDomainMismatch;
     bool mIsNotValidAtThisTime;
     bool mIsUntrusted;
   };
   nsDataHashtable<nsCStringHashKey, CertStateBits> mErrorHosts;
 
-public:
-  void RememberCertHasError(TransportSecurityInfo * infoobject,
-                            nsSSLStatus * status,
+ public:
+  void RememberCertHasError(TransportSecurityInfo* infoobject,
+                            nsSSLStatus* status,
                             SECStatus certVerificationResult);
-  void LookupCertErrorBits(TransportSecurityInfo * infoObject,
+  void LookupCertErrorBits(TransportSecurityInfo* infoObject,
                            nsSSLStatus* status);
 
-  static void Init()
-  {
-    sInstance = new RememberCertErrorsTable();
-  }
+  static void Init() { sInstance = new RememberCertErrorsTable(); }
 
-  static RememberCertErrorsTable & GetInstance()
-  {
+  static RememberCertErrorsTable& GetInstance() {
     MOZ_ASSERT(sInstance);
     return *sInstance;
   }
 
-  static void Cleanup()
-  {
+  static void Cleanup() {
     delete sInstance;
     sInstance = nullptr;
   }
-private:
+
+ private:
   Mutex mMutex;
 
-  static RememberCertErrorsTable * sInstance;
+  static RememberCertErrorsTable* sInstance;
 };
 
-} } // namespace mozilla::psm
+}  // namespace psm
+}  // namespace mozilla
 
 // 16786594-0296-4471-8096-8f84497ca428
-#define TRANSPORTSECURITYINFO_CID \
-{ 0x16786594, 0x0296, 0x4471, \
-    { 0x80, 0x96, 0x8f, 0x84, 0x49, 0x7c, 0xa4, 0x28 } }
+#define TRANSPORTSECURITYINFO_CID                    \
+  {                                                  \
+    0x16786594, 0x0296, 0x4471, {                    \
+      0x80, 0x96, 0x8f, 0x84, 0x49, 0x7c, 0xa4, 0x28 \
+    }                                                \
+  }
 
-#endif // TransportSecurityInfo_h
+#endif  // TransportSecurityInfo_h

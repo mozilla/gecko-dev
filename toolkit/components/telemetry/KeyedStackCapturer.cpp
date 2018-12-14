@@ -24,13 +24,9 @@ const size_t kMaxCapturedStacksKept = 50;
  * @param aChar a character to validate.
  * @return True, if the char is valid, False - otherwise.
  */
-bool
-IsKeyCharValid(const char aChar)
-{
-  return (aChar >= 'A' && aChar <= 'Z')
-      || (aChar >= 'a' && aChar <= 'z')
-      || (aChar >= '0' && aChar <= '9')
-      || aChar == '-';
+bool IsKeyCharValid(const char aChar) {
+  return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') ||
+         (aChar >= '0' && aChar <= '9') || aChar == '-';
 }
 
 /**
@@ -39,9 +35,7 @@ IsKeyCharValid(const char aChar)
  * @param aKey is the key string.
  * @return True, if the key is valid, False - otherwise.
  */
-bool
-IsKeyValid(const nsACString& aKey)
-{
+bool IsKeyValid(const nsACString& aKey) {
   // Check key length.
   if (aKey.Length() > kMaxKeyLength) {
     return false;
@@ -52,14 +46,14 @@ IsKeyValid(const nsACString& aKey)
   const char* end = aKey.EndReading();
 
   for (; cur < end; ++cur) {
-      if (!IsKeyCharValid(*cur)) {
-        return false;
-      }
+    if (!IsKeyCharValid(*cur)) {
+      return false;
+    }
   }
   return true;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 namespace mozilla {
 namespace Telemetry {
@@ -70,9 +64,9 @@ void KeyedStackCapturer::Capture(const nsACString& aKey) {
   // Check if the key is ok.
   if (!IsKeyValid(aKey)) {
     NS_WARNING(nsPrintfCString(
-      "Invalid key is used to capture stack in telemetry: '%s'",
-      PromiseFlatCString(aKey).get()
-    ).get());
+                   "Invalid key is used to capture stack in telemetry: '%s'",
+                   PromiseFlatCString(aKey).get())
+                   .get());
     return;
   }
 
@@ -95,7 +89,7 @@ void KeyedStackCapturer::Capture(const nsACString& aKey) {
   std::vector<uintptr_t> rawStack;
   auto callback = [](uint32_t, void* aPC, void*, void* aClosure) {
     std::vector<uintptr_t>* stack =
-      static_cast<std::vector<uintptr_t>*>(aClosure);
+        static_cast<std::vector<uintptr_t>*>(aClosure);
     stack->push_back(reinterpret_cast<uintptr_t>(aPC));
   };
   MozStackWalk(callback, /* skipFrames */ 0, /* maxFrames */ 0, &rawStack);
@@ -107,8 +101,8 @@ void KeyedStackCapturer::Capture(const nsACString& aKey) {
 }
 
 NS_IMETHODIMP
-KeyedStackCapturer::ReflectCapturedStacks(JSContext *cx, JS::MutableHandle<JS::Value> ret)
-{
+KeyedStackCapturer::ReflectCapturedStacks(JSContext* cx,
+                                          JS::MutableHandle<JS::Value> ret) {
   MutexAutoLock capturedStackMutex(mStackCapturerMutex);
 
   // this adds the memoryMap and stacks properties.
@@ -122,27 +116,28 @@ KeyedStackCapturer::ReflectCapturedStacks(JSContext *cx, JS::MutableHandle<JS::V
     return NS_ERROR_FAILURE;
   }
 
-  bool ok = JS_DefineProperty(cx, fullReportObj, "captures",
-                              keysArray, JSPROP_ENUMERATE);
+  bool ok = JS_DefineProperty(cx, fullReportObj, "captures", keysArray,
+                              JSPROP_ENUMERATE);
   if (!ok) {
     return NS_ERROR_FAILURE;
   }
 
   size_t keyIndex = 0;
-  for (auto iter = mStackInfos.ConstIter(); !iter.Done(); iter.Next(), ++keyIndex) {
+  for (auto iter = mStackInfos.ConstIter(); !iter.Done();
+       iter.Next(), ++keyIndex) {
     const StackFrequencyInfo* info = iter.Data();
 
     JS::RootedObject infoArray(cx, JS_NewArrayObject(cx, 0));
     if (!keysArray) {
       return NS_ERROR_FAILURE;
     }
-    JS::RootedString str(cx, JS_NewStringCopyZ(cx,
-                         PromiseFlatCString(iter.Key()).get()));
-    if (!str ||
-        !JS_DefineElement(cx, infoArray, 0, str, JSPROP_ENUMERATE) ||
+    JS::RootedString str(
+        cx, JS_NewStringCopyZ(cx, PromiseFlatCString(iter.Key()).get()));
+    if (!str || !JS_DefineElement(cx, infoArray, 0, str, JSPROP_ENUMERATE) ||
         !JS_DefineElement(cx, infoArray, 1, info->mIndex, JSPROP_ENUMERATE) ||
         !JS_DefineElement(cx, infoArray, 2, info->mCount, JSPROP_ENUMERATE) ||
-        !JS_DefineElement(cx, keysArray, keyIndex, infoArray, JSPROP_ENUMERATE)) {
+        !JS_DefineElement(cx, keysArray, keyIndex, infoArray,
+                          JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -151,13 +146,11 @@ KeyedStackCapturer::ReflectCapturedStacks(JSContext *cx, JS::MutableHandle<JS::V
   return NS_OK;
 }
 
-void
-KeyedStackCapturer::Clear()
-{
+void KeyedStackCapturer::Clear() {
   MutexAutoLock captureStackMutex(mStackCapturerMutex);
   mStackInfos.Clear();
   mStacks.Clear();
 }
 
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Telemetry
+}  // namespace mozilla

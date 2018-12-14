@@ -12,9 +12,8 @@ class nsISpellChecker;
 
 namespace mozilla {
 
-class RemoteSpellcheckEngineParent : public PRemoteSpellcheckEngineParent
-{
-public:
+class RemoteSpellcheckEngineParent : public PRemoteSpellcheckEngineParent {
+ public:
   RemoteSpellcheckEngineParent();
 
   virtual ~RemoteSpellcheckEngineParent();
@@ -25,20 +24,19 @@ public:
                                                     bool* success) override;
 
   virtual mozilla::ipc::IPCResult RecvSetDictionaryFromList(
-                                    nsTArray<nsString>&& aList,
-                                    const intptr_t& aPromiseId) override;
+      nsTArray<nsString>&& aList, const intptr_t& aPromiseId) override;
 
-  virtual mozilla::ipc::IPCResult RecvCheck(const nsString& aWord, bool* aIsMisspelled) override;
+  virtual mozilla::ipc::IPCResult RecvCheck(const nsString& aWord,
+                                            bool* aIsMisspelled) override;
 
-  virtual mozilla::ipc::IPCResult RecvCheckAndSuggest(const nsString& aWord,
-                                                      bool* aIsMisspelled,
-                                                      InfallibleTArray<nsString>* aSuggestions)
-      override;
+  virtual mozilla::ipc::IPCResult RecvCheckAndSuggest(
+      const nsString& aWord, bool* aIsMisspelled,
+      InfallibleTArray<nsString>* aSuggestions) override;
 
-private:
+ private:
   nsCOMPtr<nsISpellChecker> mSpellChecker;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

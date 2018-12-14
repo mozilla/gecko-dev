@@ -24,10 +24,9 @@ using namespace mozilla::a11y;
 // OuterDocAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-OuterDocAccessible::
-  OuterDocAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
+OuterDocAccessible::OuterDocAccessible(nsIContent* aContent,
+                                       DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {
   mType = eOuterDocType;
 
 #ifdef XP_WIN
@@ -41,31 +40,21 @@ OuterDocAccessible::
   nsIDocument* outerDoc = mContent->GetUncomposedDoc();
   if (outerDoc) {
     nsIDocument* innerDoc = outerDoc->GetSubDocumentFor(mContent);
-    if (innerDoc)
-      GetAccService()->GetDocAccessible(innerDoc);
+    if (innerDoc) GetAccService()->GetDocAccessible(innerDoc);
   }
 }
 
-OuterDocAccessible::~OuterDocAccessible()
-{
-}
+OuterDocAccessible::~OuterDocAccessible() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible public (DON'T add methods here)
 
-role
-OuterDocAccessible::NativeRole()
-{
-  return roles::INTERNAL_FRAME;
-}
+role OuterDocAccessible::NativeRole() { return roles::INTERNAL_FRAME; }
 
-Accessible*
-OuterDocAccessible::ChildAtPoint(int32_t aX, int32_t aY,
-                                 EWhichChildAtPoint aWhichChild)
-{
+Accessible* OuterDocAccessible::ChildAtPoint(int32_t aX, int32_t aY,
+                                             EWhichChildAtPoint aWhichChild) {
   nsIntRect docRect = Bounds();
-  if (!docRect.Contains(aX, aY))
-    return nullptr;
+  if (!docRect.Contains(aX, aY)) return nullptr;
 
   // Always return the inner doc as direct child accessible unless bounds
   // outside of it.
@@ -80,12 +69,9 @@ OuterDocAccessible::ChildAtPoint(int32_t aX, int32_t aY,
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible public
 
-void
-OuterDocAccessible::Shutdown()
-{
+void OuterDocAccessible::Shutdown() {
 #ifdef A11Y_LOG
-  if (logging::IsEnabled(logging::eDocDestroy))
-    logging::OuterDocDestroy(this);
+  if (logging::IsEnabled(logging::eDocDestroy)) logging::OuterDocDestroy(this);
 #endif
 
   Accessible* child = mChildren.SafeElementAt(0, nullptr);
@@ -111,9 +97,7 @@ OuterDocAccessible::Shutdown()
   AccessibleWrap::Shutdown();
 }
 
-bool
-OuterDocAccessible::InsertChildAt(uint32_t aIdx, Accessible* aAccessible)
-{
+bool OuterDocAccessible::InsertChildAt(uint32_t aIdx, Accessible* aAccessible) {
   MOZ_RELEASE_ASSERT(aAccessible->IsDoc(),
                      "OuterDocAccessible can have a document child only!");
 
@@ -122,11 +106,9 @@ OuterDocAccessible::InsertChildAt(uint32_t aIdx, Accessible* aAccessible)
   // to avoid weird flashes of default background color.
   // The old viewer will be destroyed after the new one is created.
   // For a11y, it should be safe to shut down the old document now.
-  if (mChildren.Length())
-    mChildren[0]->Shutdown();
+  if (mChildren.Length()) mChildren[0]->Shutdown();
 
-  if (!AccessibleWrap::InsertChildAt(0, aAccessible))
-    return false;
+  if (!AccessibleWrap::InsertChildAt(0, aAccessible)) return false;
 
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocCreate)) {
@@ -139,9 +121,7 @@ OuterDocAccessible::InsertChildAt(uint32_t aIdx, Accessible* aAccessible)
   return true;
 }
 
-bool
-OuterDocAccessible::RemoveChild(Accessible* aAccessible)
-{
+bool OuterDocAccessible::RemoveChild(Accessible* aAccessible) {
   Accessible* child = mChildren.SafeElementAt(0, nullptr);
   if (child != aAccessible) {
     NS_ERROR("Wrong child to remove!");
@@ -164,9 +144,7 @@ OuterDocAccessible::RemoveChild(Accessible* aAccessible)
   return wasRemoved;
 }
 
-bool
-OuterDocAccessible::IsAcceptableChild(nsIContent* aEl) const
-{
+bool OuterDocAccessible::IsAcceptableChild(nsIContent* aEl) const {
   // outer document accessible doesn't not participate in ordinal tree
   // mutations.
   return false;
@@ -178,9 +156,7 @@ OuterDocAccessible::IsAcceptableChild(nsIContent* aEl) const
 // functions must be implemented so that we properly cross the chrome-to-content
 // boundary when traversing.
 
-uint32_t
-OuterDocAccessible::ChildCount() const
-{
+uint32_t OuterDocAccessible::ChildCount() const {
   uint32_t result = mChildren.Length();
   if (!result && RemoteChildDoc()) {
     result = 1;
@@ -188,9 +164,7 @@ OuterDocAccessible::ChildCount() const
   return result;
 }
 
-Accessible*
-OuterDocAccessible::GetChildAt(uint32_t aIndex) const
-{
+Accessible* OuterDocAccessible::GetChildAt(uint32_t aIndex) const {
   Accessible* result = AccessibleWrap::GetChildAt(aIndex);
   if (result || aIndex) {
     return result;
@@ -204,14 +178,11 @@ OuterDocAccessible::GetChildAt(uint32_t aIndex) const
   return WrapperFor(remoteChild);
 }
 
-#endif // defined(XP_WIN)
+#endif  // defined(XP_WIN)
 
-DocAccessibleParent*
-OuterDocAccessible::RemoteChildDoc() const
-{
+DocAccessibleParent* OuterDocAccessible::RemoteChildDoc() const {
   dom::TabParent* tab = dom::TabParent::GetFrom(GetContent());
-  if (!tab)
-    return nullptr;
+  if (!tab) return nullptr;
 
   return tab->GetTopLevelDocAccessible();
 }

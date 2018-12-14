@@ -12,42 +12,41 @@
 
 namespace mozilla {
 
-class ServoDeclarationBlock final : public DeclarationBlock
-{
-public:
+class ServoDeclarationBlock final : public DeclarationBlock {
+ public:
   explicit ServoDeclarationBlock(
-    already_AddRefed<RawServoDeclarationBlock> aRaw)
-    : DeclarationBlock(StyleBackendType::Servo), mRaw(aRaw) {}
+      already_AddRefed<RawServoDeclarationBlock> aRaw)
+      : DeclarationBlock(StyleBackendType::Servo), mRaw(aRaw) {}
 
   ServoDeclarationBlock()
-    : ServoDeclarationBlock(Servo_DeclarationBlock_CreateEmpty().Consume()) {}
+      : ServoDeclarationBlock(Servo_DeclarationBlock_CreateEmpty().Consume()) {}
 
   ServoDeclarationBlock(const ServoDeclarationBlock& aCopy)
-    : DeclarationBlock(aCopy)
-    , mRaw(Servo_DeclarationBlock_Clone(aCopy.mRaw).Consume()) {}
+      : DeclarationBlock(aCopy),
+        mRaw(Servo_DeclarationBlock_Clone(aCopy.mRaw).Consume()) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ServoDeclarationBlock)
 
-  static already_AddRefed<ServoDeclarationBlock>
-  FromCssText(const nsAString& aCssText, URLExtraData* aExtraData,
-              nsCompatibility aMode, css::Loader* aLoader);
+  static already_AddRefed<ServoDeclarationBlock> FromCssText(
+      const nsAString& aCssText, URLExtraData* aExtraData,
+      nsCompatibility aMode, css::Loader* aLoader);
 
   RawServoDeclarationBlock* Raw() const { return mRaw; }
   RawServoDeclarationBlock* const* RefRaw() const {
     static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
-                  sizeof(RawServoDeclarationBlock*),
+                      sizeof(RawServoDeclarationBlock*),
                   "RefPtr should just be a pointer");
     return reinterpret_cast<RawServoDeclarationBlock* const*>(&mRaw);
   }
 
-  const RawServoDeclarationBlockStrong* RefRawStrong() const
-  {
+  const RawServoDeclarationBlockStrong* RefRawStrong() const {
     static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
-                  sizeof(RawServoDeclarationBlock*),
+                      sizeof(RawServoDeclarationBlock*),
                   "RefPtr should just be a pointer");
-    static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
-                  sizeof(RawServoDeclarationBlockStrong),
-                  "RawServoDeclarationBlockStrong should be the same as RefPtr");
+    static_assert(
+        sizeof(RefPtr<RawServoDeclarationBlock>) ==
+            sizeof(RawServoDeclarationBlockStrong),
+        "RawServoDeclarationBlockStrong should be the same as RefPtr");
     return reinterpret_cast<const RawServoDeclarationBlockStrong*>(&mRaw);
   }
 
@@ -55,9 +54,7 @@ public:
     Servo_DeclarationBlock_GetCssText(mRaw, &aResult);
   }
 
-  uint32_t Count() const {
-    return Servo_DeclarationBlock_Count(mRaw);
-  }
+  uint32_t Count() const { return Servo_DeclarationBlock_Count(mRaw); }
   bool GetNthProperty(uint32_t aIndex, nsAString& aReturn) const {
     aReturn.Truncate();
     return Servo_DeclarationBlock_GetNthProperty(mRaw, aIndex, &aReturn);
@@ -70,12 +67,12 @@ public:
   bool RemoveProperty(const nsAString& aProperty);
   bool RemovePropertyByID(nsCSSPropertyID aPropID);
 
-private:
+ private:
   ~ServoDeclarationBlock() {}
 
   RefPtr<RawServoDeclarationBlock> mRaw;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoDeclarationBlock_h
+#endif  // mozilla_ServoDeclarationBlock_h

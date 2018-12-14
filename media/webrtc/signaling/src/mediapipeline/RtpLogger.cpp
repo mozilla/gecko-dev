@@ -29,11 +29,9 @@ static const char* rlLogTag = "RtpLogger";
 
 namespace mozilla {
 
-bool RtpLogger::IsPacketLoggingOn() {
-  return CSFLogTestLevel(CSF_LOG_DEBUG);
-}
+bool RtpLogger::IsPacketLoggingOn() { return CSFLogTestLevel(CSF_LOG_DEBUG); }
 
-void RtpLogger::LogPacket(const unsigned char *data, int len, bool input,
+void RtpLogger::LogPacket(const unsigned char* data, int len, bool input,
                           bool isRtp, int headerLength, std::string desc) {
   if (CSFLogTestLevel(CSF_LOG_DEBUG)) {
     std::stringstream ss;
@@ -64,11 +62,10 @@ void RtpLogger::LogPacket(const unsigned char *data, int len, bool input,
       // Allow the first 5 bytes of the payload in clear
       offset_ += 5;
     }
-    for (int i=0; i < len; ++i) {
+    for (int i = 0; i < len; ++i) {
       if (isRtp && i > offset_) {
         ss << " 00";
-      }
-      else {
+      } else {
         ss << " " << std::setw(2) << (int)data[i];
       }
     }
@@ -77,5 +74,4 @@ void RtpLogger::LogPacket(const unsigned char *data, int len, bool input,
   }
 }
 
-}  // end of namespace
-
+}  // namespace mozilla

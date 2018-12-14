@@ -11,7 +11,7 @@
 #include "mozilla/PodOperations.h"
 
 #include "nsCSSPropertyID.h"
-#include <limits.h> // for CHAR_BIT
+#include <limits.h>  // for CHAR_BIT
 
 /**
  * nsCSSPropertyIDSet maintains a set of non-shorthand CSS properties.  In
@@ -19,118 +19,115 @@
  * for whether that property is in the set.
  */
 class nsCSSPropertyIDSet {
-public:
-    nsCSSPropertyIDSet() { Empty(); }
-    // auto-generated copy-constructor OK
+ public:
+  nsCSSPropertyIDSet() { Empty(); }
+  // auto-generated copy-constructor OK
 
-    void AssertInSetRange(nsCSSPropertyID aProperty) const {
-        NS_ASSERTION(0 <= aProperty &&
-                     aProperty < eCSSProperty_COUNT_no_shorthands,
-                     "out of bounds");
+  void AssertInSetRange(nsCSSPropertyID aProperty) const {
+    NS_ASSERTION(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
+                 "out of bounds");
+  }
+
+  // Conversion of aProperty to |size_t| after AssertInSetRange
+  // lets the compiler generate significantly tighter code.
+
+  void AddProperty(nsCSSPropertyID aProperty) {
+    AssertInSetRange(aProperty);
+    size_t p = aProperty;
+    mProperties[p / kBitsInChunk] |= property_set_type(1) << (p % kBitsInChunk);
+  }
+
+  void RemoveProperty(nsCSSPropertyID aProperty) {
+    AssertInSetRange(aProperty);
+    size_t p = aProperty;
+    mProperties[p / kBitsInChunk] &=
+        ~(property_set_type(1) << (p % kBitsInChunk));
+  }
+
+  bool HasProperty(nsCSSPropertyID aProperty) const {
+    AssertInSetRange(aProperty);
+    size_t p = aProperty;
+    return (mProperties[p / kBitsInChunk] &
+            (property_set_type(1) << (p % kBitsInChunk))) != 0;
+  }
+
+  void Empty() { memset(mProperties, 0, sizeof(mProperties)); }
+
+  void AssertIsEmpty(const char* aText) const {
+    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+      NS_ASSERTION(mProperties[i] == 0, aText);
     }
+  }
 
-    // Conversion of aProperty to |size_t| after AssertInSetRange
-    // lets the compiler generate significantly tighter code.
+  bool Equals(const nsCSSPropertyIDSet& aOther) const {
+    return mozilla::PodEqual(mProperties, aOther.mProperties);
+  }
 
-    void AddProperty(nsCSSPropertyID aProperty) {
-        AssertInSetRange(aProperty);
-        size_t p = aProperty;
-        mProperties[p / kBitsInChunk] |=
-          property_set_type(1) << (p % kBitsInChunk);
-    }
-
-    void RemoveProperty(nsCSSPropertyID aProperty) {
-        AssertInSetRange(aProperty);
-        size_t p = aProperty;
-        mProperties[p / kBitsInChunk] &=
-            ~(property_set_type(1) << (p % kBitsInChunk));
-    }
-
-    bool HasProperty(nsCSSPropertyID aProperty) const {
-        AssertInSetRange(aProperty);
-        size_t p = aProperty;
-        return (mProperties[p / kBitsInChunk] &
-                (property_set_type(1) << (p % kBitsInChunk))) != 0;
-    }
-
-    void Empty() {
-        memset(mProperties, 0, sizeof(mProperties));
-    }
-
-    void AssertIsEmpty(const char* aText) const {
-        for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
-            NS_ASSERTION(mProperties[i] == 0, aText);
-        }
-    }
-
-    bool Equals(const nsCSSPropertyIDSet& aOther) const {
-      return mozilla::PodEqual(mProperties, aOther.mProperties);
-    }
-
-    bool IsEmpty() const {
-      for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
-          if (mProperties[i] != 0) {
-            return false;
-          }
+  bool IsEmpty() const {
+    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+      if (mProperties[i] != 0) {
+        return false;
       }
-      return true;
     }
+    return true;
+  }
 
-    // Return a new nsCSSPropertyIDSet which is the inverse of this set.
-    nsCSSPropertyIDSet Inverse() const {
-      nsCSSPropertyIDSet result;
-      for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
-        result.mProperties[i] = ~mProperties[i];
-      }
-      return result;
+  // Return a new nsCSSPropertyIDSet which is the inverse of this set.
+  nsCSSPropertyIDSet Inverse() const {
+    nsCSSPropertyIDSet result;
+    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+      result.mProperties[i] = ~mProperties[i];
     }
+    return result;
+  }
 
-    // Returns a new nsCSSPropertyIDSet with all properties that are both in
-    // this set and |aOther|.
-    nsCSSPropertyIDSet Intersect(const nsCSSPropertyIDSet& aOther) const {
-      nsCSSPropertyIDSet result;
-      for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
-        result.mProperties[i] = mProperties[i] & aOther.mProperties[i];
-      }
-      return result;
+  // Returns a new nsCSSPropertyIDSet with all properties that are both in
+  // this set and |aOther|.
+  nsCSSPropertyIDSet Intersect(const nsCSSPropertyIDSet& aOther) const {
+    nsCSSPropertyIDSet result;
+    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+      result.mProperties[i] = mProperties[i] & aOther.mProperties[i];
     }
+    return result;
+  }
 
-    // Return a new nsCSSPropertyIDSet with all properties that are in either
-    // this set or |aOther| but not both.
-    nsCSSPropertyIDSet Xor(const nsCSSPropertyIDSet& aOther) const {
-      nsCSSPropertyIDSet result;
-      for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
-        result.mProperties[i] = mProperties[i] ^ aOther.mProperties[i];
-      }
-      return result;
+  // Return a new nsCSSPropertyIDSet with all properties that are in either
+  // this set or |aOther| but not both.
+  nsCSSPropertyIDSet Xor(const nsCSSPropertyIDSet& aOther) const {
+    nsCSSPropertyIDSet result;
+    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+      result.mProperties[i] = mProperties[i] ^ aOther.mProperties[i];
     }
+    return result;
+  }
 
-private:
-    typedef unsigned long property_set_type;
-public:
-    // number of bits in |property_set_type|.
-    static const size_t kBitsInChunk = sizeof(property_set_type)*CHAR_BIT;
-    // number of |property_set_type|s in the set
-    static const size_t kChunkCount =
-        (eCSSProperty_COUNT_no_shorthands + kBitsInChunk - 1) / kBitsInChunk;
+ private:
+  typedef unsigned long property_set_type;
 
-    /*
-     * For fast enumeration of all the bits that are set, callers can
-     * check each chunk against zero (since in normal cases few bits are
-     * likely to be set).
-     */
-    bool HasPropertyInChunk(size_t aChunk) const {
-        return mProperties[aChunk] != 0;
-    }
-    bool HasPropertyAt(size_t aChunk, size_t aBit) const {
-        return (mProperties[aChunk] & (property_set_type(1) << aBit)) != 0;
-    }
-    static nsCSSPropertyID CSSPropertyAt(size_t aChunk, size_t aBit) {
-        return nsCSSPropertyID(aChunk * kBitsInChunk + aBit);
-    }
+ public:
+  // number of bits in |property_set_type|.
+  static const size_t kBitsInChunk = sizeof(property_set_type) * CHAR_BIT;
+  // number of |property_set_type|s in the set
+  static const size_t kChunkCount =
+      (eCSSProperty_COUNT_no_shorthands + kBitsInChunk - 1) / kBitsInChunk;
 
-private:
-    property_set_type mProperties[kChunkCount];
+  /*
+   * For fast enumeration of all the bits that are set, callers can
+   * check each chunk against zero (since in normal cases few bits are
+   * likely to be set).
+   */
+  bool HasPropertyInChunk(size_t aChunk) const {
+    return mProperties[aChunk] != 0;
+  }
+  bool HasPropertyAt(size_t aChunk, size_t aBit) const {
+    return (mProperties[aChunk] & (property_set_type(1) << aBit)) != 0;
+  }
+  static nsCSSPropertyID CSSPropertyAt(size_t aChunk, size_t aBit) {
+    return nsCSSPropertyID(aChunk * kBitsInChunk + aBit);
+  }
+
+ private:
+  property_set_type mProperties[kChunkCount];
 };
 
 #endif /* !defined(nsCSSPropertyIDSet_h__) */

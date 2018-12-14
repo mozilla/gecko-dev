@@ -23,23 +23,19 @@
 // of a series animation functions according to the rules of SMIL composition
 // including prioritising animations.
 
-class nsSMILCompositor : public PLDHashEntryHdr
-{
-public:
+class nsSMILCompositor : public PLDHashEntryHdr {
+ public:
   typedef nsSMILTargetIdentifier KeyType;
   typedef const KeyType& KeyTypeRef;
   typedef const KeyType* KeyTypePointer;
 
   explicit nsSMILCompositor(KeyTypePointer aKey)
-   : mKey(*aKey),
-     mForceCompositing(false)
-  { }
+      : mKey(*aKey), mForceCompositing(false) {}
   nsSMILCompositor(nsSMILCompositor&& toMove)
-    : mKey(mozilla::Move(toMove.mKey)),
-      mAnimationFunctions(mozilla::Move(toMove.mAnimationFunctions)),
-      mForceCompositing(false)
-  { }
-  ~nsSMILCompositor() { }
+      : mKey(mozilla::Move(toMove.mKey)),
+        mAnimationFunctions(mozilla::Move(toMove.mAnimationFunctions)),
+        mForceCompositing(false) {}
+  ~nsSMILCompositor() {}
 
   // PLDHashEntryHdr methods
   KeyTypeRef GetKey() const { return mKey; }
@@ -77,8 +73,8 @@ public:
   //
   // @param aBaseStyleContext  An optional style context which, if set, will be
   //                           used when fetching the base style.
-  mozilla::UniquePtr<nsISMILAttr>
-  CreateSMILAttr(nsStyleContext* aBaseStyleContext);
+  mozilla::UniquePtr<nsISMILAttr> CreateSMILAttr(
+      nsStyleContext* aBaseStyleContext);
 
   // Returns the CSS property this compositor should animate, or
   // eCSSProperty_UNKNOWN if this compositor does not animate a CSS property.
@@ -122,4 +118,4 @@ public:
   nsSMILValue mCachedBaseValue;
 };
 
-#endif // NS_SMILCOMPOSITOR_H_
+#endif  // NS_SMILCOMPOSITOR_H_

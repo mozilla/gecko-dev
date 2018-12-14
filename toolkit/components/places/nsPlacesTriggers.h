@@ -23,41 +23,45 @@
  * This triggers update visit_count and last_visit_date based on historyvisits
  * table changes.
  */
-#define CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_historyvisits_afterinsert_v2_trigger " \
-  "AFTER INSERT ON moz_historyvisits FOR EACH ROW " \
-  "BEGIN " \
-    "SELECT store_last_inserted_id('moz_historyvisits', NEW.id); " \
-    "UPDATE moz_places SET " \
-      "visit_count = visit_count + (SELECT NEW.visit_type NOT IN (" EXCLUDED_VISIT_TYPES ")), "\
+#define CREATE_HISTORYVISITS_AFTERINSERT_TRIGGER                           \
+  NS_LITERAL_CSTRING(                                                      \
+      "CREATE TEMP TRIGGER moz_historyvisits_afterinsert_v2_trigger "      \
+      "AFTER INSERT ON moz_historyvisits FOR EACH ROW "                    \
+      "BEGIN "                                                             \
+      "SELECT store_last_inserted_id('moz_historyvisits', NEW.id); "       \
+      "UPDATE moz_places SET "                                             \
+      "visit_count = visit_count + (SELECT NEW.visit_type NOT IN "         \
+      "(" EXCLUDED_VISIT_TYPES                                             \
+      ")), "                                                               \
       "last_visit_date = MAX(IFNULL(last_visit_date, 0), NEW.visit_date) " \
-    "WHERE id = NEW.place_id;" \
-  "END" \
-)
+      "WHERE id = NEW.place_id;"                                           \
+      "END")
 
-#define CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_historyvisits_afterdelete_v2_trigger " \
-  "AFTER DELETE ON moz_historyvisits FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places SET " \
-      "visit_count = visit_count - (SELECT OLD.visit_type NOT IN (" EXCLUDED_VISIT_TYPES ")), "\
-      "last_visit_date = (SELECT visit_date FROM moz_historyvisits " \
-                         "WHERE place_id = OLD.place_id " \
-                         "ORDER BY visit_date DESC LIMIT 1) " \
-    "WHERE id = OLD.place_id;" \
-  "END" \
-)
+#define CREATE_HISTORYVISITS_AFTERDELETE_TRIGGER                      \
+  NS_LITERAL_CSTRING(                                                 \
+      "CREATE TEMP TRIGGER moz_historyvisits_afterdelete_v2_trigger " \
+      "AFTER DELETE ON moz_historyvisits FOR EACH ROW "               \
+      "BEGIN "                                                        \
+      "UPDATE moz_places SET "                                        \
+      "visit_count = visit_count - (SELECT OLD.visit_type NOT IN "    \
+      "(" EXCLUDED_VISIT_TYPES                                        \
+      ")), "                                                          \
+      "last_visit_date = (SELECT visit_date FROM moz_historyvisits "  \
+      "WHERE place_id = OLD.place_id "                                \
+      "ORDER BY visit_date DESC LIMIT 1) "                            \
+      "WHERE id = OLD.place_id;"                                      \
+      "END")
 
 /**
  * A predicate matching pages on rev_host, based on a given host value.
  * 'host' may be either the moz_hosts.host column or an alias representing an
  * equivalent value.
  */
-#define HOST_TO_REVHOST_PREDICATE \
+#define HOST_TO_REVHOST_PREDICATE                       \
   "rev_host = get_unreversed_host(host || '.') || '.' " \
   "OR rev_host = get_unreversed_host(host || '.') || '.www.'"
 
-#define OLDHOST_TO_REVHOST_PREDICATE \
+#define OLDHOST_TO_REVHOST_PREDICATE                        \
   "rev_host = get_unreversed_host(OLD.host || '.') || '.' " \
   "OR rev_host = get_unreversed_host(OLD.host || '.') || '.www.'"
 
@@ -67,7 +71,8 @@
  * have higher priority, and more generically "www." prefixed hosts come before
  * unprefixed ones.
  * Given a host, examine associated pages and:
- *  - if at least half the typed pages start with https://www. return https://www.
+ *  - if at least half the typed pages start with https://www. return
+ * https://www.
  *  - if at least half the typed pages start with https:// return https://
  *  - if all of the typed pages start with ftp: return ftp://
  *     - This is because mostly people will want to visit the http version
@@ -75,24 +80,28 @@
  *  - if at least half the typed pages start with www. return www.
  *  - otherwise don't use any prefix
  */
-#define HOSTS_PREFIX_PRIORITY_FRAGMENT \
-  "SELECT CASE " \
-    "WHEN ( " \
-      "SELECT round(avg(substr(url,1,12) = 'https://www.')) FROM moz_places h " \
-      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
-    ") THEN 'https://www.' " \
-    "WHEN ( " \
-      "SELECT round(avg(substr(url,1,8) = 'https://')) FROM moz_places h " \
-      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
-    ") THEN 'https://' " \
-    "WHEN 1 = ( " \
-      "SELECT min(substr(url,1,4) = 'ftp:') FROM moz_places h " \
-      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
-    ") THEN 'ftp://' " \
-    "WHEN ( " \
-      "SELECT round(avg(substr(url,1,11) = 'http://www.')) FROM moz_places h " \
-      "WHERE (" HOST_TO_REVHOST_PREDICATE ") AND +h.typed = 1 " \
-    ") THEN 'www.' " \
+#define HOSTS_PREFIX_PRIORITY_FRAGMENT                                      \
+  "SELECT CASE "                                                            \
+  "WHEN ( "                                                                 \
+  "SELECT round(avg(substr(url,1,12) = 'https://www.')) FROM moz_places h " \
+  "WHERE (" HOST_TO_REVHOST_PREDICATE                                       \
+  ") AND +h.typed = 1 "                                                     \
+  ") THEN 'https://www.' "                                                  \
+  "WHEN ( "                                                                 \
+  "SELECT round(avg(substr(url,1,8) = 'https://')) FROM moz_places h "      \
+  "WHERE (" HOST_TO_REVHOST_PREDICATE                                       \
+  ") AND +h.typed = 1 "                                                     \
+  ") THEN 'https://' "                                                      \
+  "WHEN 1 = ( "                                                             \
+  "SELECT min(substr(url,1,4) = 'ftp:') FROM moz_places h "                 \
+  "WHERE (" HOST_TO_REVHOST_PREDICATE                                       \
+  ") AND +h.typed = 1 "                                                     \
+  ") THEN 'ftp://' "                                                        \
+  "WHEN ( "                                                                 \
+  "SELECT round(avg(substr(url,1,11) = 'http://www.')) FROM moz_places h "  \
+  "WHERE (" HOST_TO_REVHOST_PREDICATE                                       \
+  ") AND +h.typed = 1 "                                                     \
+  ") THEN 'www.' "                                                          \
   "END "
 
 // The next few triggers are a workaround for the lack of FOR EACH STATEMENT in
@@ -106,109 +115,114 @@
 // transaction.
 // Regardless, this is still better than hanging the browser for several minutes
 // on a fast machine.
-#define CREATE_PLACES_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_places_afterinsert_trigger " \
-  "AFTER INSERT ON moz_places FOR EACH ROW " \
-  "BEGIN " \
-    "SELECT store_last_inserted_id('moz_places', NEW.id); " \
-    "INSERT OR IGNORE INTO moz_updatehostsinsert_temp (host)" \
-    "VALUES (fixup_url(get_unreversed_host(NEW.rev_host)));" \
-  "END" \
-)
+#define CREATE_PLACES_AFTERINSERT_TRIGGER                       \
+  NS_LITERAL_CSTRING(                                           \
+      "CREATE TEMP TRIGGER moz_places_afterinsert_trigger "     \
+      "AFTER INSERT ON moz_places FOR EACH ROW "                \
+      "BEGIN "                                                  \
+      "SELECT store_last_inserted_id('moz_places', NEW.id); "   \
+      "INSERT OR IGNORE INTO moz_updatehostsinsert_temp (host)" \
+      "VALUES (fixup_url(get_unreversed_host(NEW.rev_host)));"  \
+      "END")
 
 // See CREATE_PLACES_AFTERINSERT_TRIGGER. For each delete in moz_places we
 // add the host to moz_updatehostsdelete_temp - we then delete everything
 // from moz_updatehostsdelete_temp, allowing us to run a trigger only once
 // per host.
-#define CREATE_PLACES_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_places_afterdelete_trigger " \
-  "AFTER DELETE ON moz_places FOR EACH ROW " \
-  "BEGIN " \
-    "INSERT OR IGNORE INTO moz_updatehostsdelete_temp (host)" \
-    "VALUES (fixup_url(get_unreversed_host(OLD.rev_host)));" \
-  "END" \
-)
+#define CREATE_PLACES_AFTERDELETE_TRIGGER                       \
+  NS_LITERAL_CSTRING(                                           \
+      "CREATE TEMP TRIGGER moz_places_afterdelete_trigger "     \
+      "AFTER DELETE ON moz_places FOR EACH ROW "                \
+      "BEGIN "                                                  \
+      "INSERT OR IGNORE INTO moz_updatehostsdelete_temp (host)" \
+      "VALUES (fixup_url(get_unreversed_host(OLD.rev_host)));"  \
+      "END")
 
 // See CREATE_PLACES_AFTERINSERT_TRIGGER. This is the trigger that we want
 // to ensure gets run for each distinct host that we insert into moz_places.
-#define CREATE_UPDATEHOSTSINSERT_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_updatehostsinsert_afterdelete_trigger " \
-  "AFTER DELETE ON moz_updatehostsinsert_temp FOR EACH ROW " \
-  "BEGIN " \
-    "INSERT OR REPLACE INTO moz_hosts (id, host, frecency, typed, prefix) " \
-    "SELECT " \
-        "(SELECT id FROM moz_hosts WHERE host = OLD.host), " \
-        "OLD.host, " \
-        "MAX(IFNULL((SELECT frecency FROM moz_hosts WHERE host = OLD.host), -1), " \
-          "(SELECT MAX(frecency) FROM moz_places h " \
-            "WHERE (" OLDHOST_TO_REVHOST_PREDICATE "))), " \
-        "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = OLD.host), 0), " \
-          "(SELECT MAX(typed) FROM moz_places h " \
-            "WHERE (" OLDHOST_TO_REVHOST_PREDICATE "))), " \
-        "(" HOSTS_PREFIX_PRIORITY_FRAGMENT \
-         "FROM ( " \
-            "SELECT OLD.host AS host " \
-          ")" \
-        ") " \
-    " WHERE LENGTH(OLD.host) > 1; " \
-  "END" \
-)
+#define CREATE_UPDATEHOSTSINSERT_AFTERDELETE_TRIGGER                          \
+  NS_LITERAL_CSTRING(                                                         \
+      "CREATE TEMP TRIGGER moz_updatehostsinsert_afterdelete_trigger "        \
+      "AFTER DELETE ON moz_updatehostsinsert_temp FOR EACH ROW "              \
+      "BEGIN "                                                                \
+      "INSERT OR REPLACE INTO moz_hosts (id, host, frecency, typed, prefix) " \
+      "SELECT "                                                               \
+      "(SELECT id FROM moz_hosts WHERE host = OLD.host), "                    \
+      "OLD.host, "                                                            \
+      "MAX(IFNULL((SELECT frecency FROM moz_hosts WHERE host = OLD.host), "   \
+      "-1), "                                                                 \
+      "(SELECT MAX(frecency) FROM moz_places h "                              \
+      "WHERE (" OLDHOST_TO_REVHOST_PREDICATE                                  \
+      "))), "                                                                 \
+      "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = OLD.host), 0), "  \
+      "(SELECT MAX(typed) FROM moz_places h "                                 \
+      "WHERE (" OLDHOST_TO_REVHOST_PREDICATE                                  \
+      "))), "                                                                 \
+      "(" HOSTS_PREFIX_PRIORITY_FRAGMENT                                      \
+      "FROM ( "                                                               \
+      "SELECT OLD.host AS host "                                              \
+      ")"                                                                     \
+      ") "                                                                    \
+      " WHERE LENGTH(OLD.host) > 1; "                                         \
+      "END")
 
 // See CREATE_PLACES_AFTERINSERT_TRIGGER. This is the trigger that we want
 // to ensure gets run for each distinct host that we delete from moz_places.
-#define CREATE_UPDATEHOSTSDELETE_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_updatehostsdelete_afterdelete_trigger " \
-  "AFTER DELETE ON moz_updatehostsdelete_temp FOR EACH ROW " \
-  "BEGIN " \
-    "DELETE FROM moz_hosts " \
-    "WHERE host = OLD.host " \
-      "AND NOT EXISTS(" \
-        "SELECT 1 FROM moz_places " \
-          "WHERE rev_host = get_unreversed_host(host || '.') || '.' " \
-             "OR rev_host = get_unreversed_host(host || '.') || '.www.' " \
-      "); " \
-    "UPDATE moz_hosts " \
-    "SET prefix = (" HOSTS_PREFIX_PRIORITY_FRAGMENT ") " \
-    "WHERE host = OLD.host; " \
-    "DELETE FROM moz_icons " \
-    "WHERE fixed_icon_url_hash = hash(fixup_url(OLD.host || '/favicon.ico')) " \
-      "AND fixup_url(icon_url) = fixup_url(OLD.host || '/favicon.ico') "\
-      "AND NOT EXISTS (SELECT 1 FROM moz_hosts WHERE host = OLD.host " \
-                                                 "OR host = fixup_url(OLD.host));" \
-  "END" \
-)
+#define CREATE_UPDATEHOSTSDELETE_AFTERDELETE_TRIGGER                     \
+  NS_LITERAL_CSTRING(                                                    \
+      "CREATE TEMP TRIGGER moz_updatehostsdelete_afterdelete_trigger "   \
+      "AFTER DELETE ON moz_updatehostsdelete_temp FOR EACH ROW "         \
+      "BEGIN "                                                           \
+      "DELETE FROM moz_hosts "                                           \
+      "WHERE host = OLD.host "                                           \
+      "AND NOT EXISTS("                                                  \
+      "SELECT 1 FROM moz_places "                                        \
+      "WHERE rev_host = get_unreversed_host(host || '.') || '.' "        \
+      "OR rev_host = get_unreversed_host(host || '.') || '.www.' "       \
+      "); "                                                              \
+      "UPDATE moz_hosts "                                                \
+      "SET prefix = (" HOSTS_PREFIX_PRIORITY_FRAGMENT                    \
+      ") "                                                               \
+      "WHERE host = OLD.host; "                                          \
+      "DELETE FROM moz_icons "                                           \
+      "WHERE fixed_icon_url_hash = hash(fixup_url(OLD.host || "          \
+      "'/favicon.ico')) "                                                \
+      "AND fixup_url(icon_url) = fixup_url(OLD.host || '/favicon.ico') " \
+      "AND NOT EXISTS (SELECT 1 FROM moz_hosts WHERE host = OLD.host "   \
+      "OR host = fixup_url(OLD.host));"                                  \
+      "END")
 
 // For performance reasons the host frecency is updated only when the page
 // frecency changes by a meaningful percentage.  This is because the frecency
 // decay algorithm requires to update all the frecencies at once, causing a
 // too high overhead, while leaving the ordering unchanged.
-#define CREATE_PLACES_AFTERUPDATE_FRECENCY_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_places_afterupdate_frecency_trigger " \
-  "AFTER UPDATE OF frecency ON moz_places FOR EACH ROW " \
-  "WHEN NEW.frecency >= 0 " \
-    "AND ABS(" \
+#define CREATE_PLACES_AFTERUPDATE_FRECENCY_TRIGGER                          \
+  NS_LITERAL_CSTRING(                                                       \
+      "CREATE TEMP TRIGGER moz_places_afterupdate_frecency_trigger "        \
+      "AFTER UPDATE OF frecency ON moz_places FOR EACH ROW "                \
+      "WHEN NEW.frecency >= 0 "                                             \
+      "AND ABS("                                                            \
       "IFNULL((NEW.frecency - OLD.frecency) / CAST(NEW.frecency AS REAL), " \
-             "(NEW.frecency - OLD.frecency))" \
-    ") > .05 " \
-  "BEGIN " \
-    "UPDATE moz_hosts " \
-    "SET frecency = (SELECT MAX(frecency) FROM moz_places " \
-                    "WHERE rev_host = get_unreversed_host(host || '.') || '.' " \
-                       "OR rev_host = get_unreversed_host(host || '.') || '.www.') " \
-    "WHERE host = fixup_url(get_unreversed_host(NEW.rev_host)); " \
-  "END" \
-)
+      "(NEW.frecency - OLD.frecency))"                                      \
+      ") > .05 "                                                            \
+      "BEGIN "                                                              \
+      "UPDATE moz_hosts "                                                   \
+      "SET frecency = (SELECT MAX(frecency) FROM moz_places "               \
+      "WHERE rev_host = get_unreversed_host(host || '.') || '.' "           \
+      "OR rev_host = get_unreversed_host(host || '.') || '.www.') "         \
+      "WHERE host = fixup_url(get_unreversed_host(NEW.rev_host)); "         \
+      "END")
 
-#define CREATE_PLACES_AFTERUPDATE_TYPED_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_places_afterupdate_typed_trigger " \
-  "AFTER UPDATE OF typed ON moz_places FOR EACH ROW " \
-  "WHEN NEW.typed = 1 " \
-  "BEGIN " \
-    "UPDATE moz_hosts " \
-    "SET typed = 1 " \
-    "WHERE host = fixup_url(get_unreversed_host(NEW.rev_host)); " \
-  "END" \
-)
+#define CREATE_PLACES_AFTERUPDATE_TYPED_TRIGGER                     \
+  NS_LITERAL_CSTRING(                                               \
+      "CREATE TEMP TRIGGER moz_places_afterupdate_typed_trigger "   \
+      "AFTER UPDATE OF typed ON moz_places FOR EACH ROW "           \
+      "WHEN NEW.typed = 1 "                                         \
+      "BEGIN "                                                      \
+      "UPDATE moz_hosts "                                           \
+      "SET typed = 1 "                                              \
+      "WHERE host = fixup_url(get_unreversed_host(NEW.rev_host)); " \
+      "END")
 
 /**
  * This trigger removes a row from moz_openpages_temp when open_count reaches 0.
@@ -216,90 +230,90 @@
  * @note this should be kept up-to-date with the definition in
  *       nsPlacesAutoComplete.js
  */
-#define CREATE_REMOVEOPENPAGE_CLEANUP_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger " \
-  "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW " \
-  "WHEN NEW.open_count = 0 " \
-  "BEGIN " \
-    "DELETE FROM moz_openpages_temp " \
-    "WHERE url = NEW.url " \
-      "AND userContextId = NEW.userContextId;" \
-  "END" \
-)
+#define CREATE_REMOVEOPENPAGE_CLEANUP_TRIGGER                            \
+  NS_LITERAL_CSTRING(                                                    \
+      "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger " \
+      "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW "   \
+      "WHEN NEW.open_count = 0 "                                         \
+      "BEGIN "                                                           \
+      "DELETE FROM moz_openpages_temp "                                  \
+      "WHERE url = NEW.url "                                             \
+      "AND userContextId = NEW.userContextId;"                           \
+      "END")
 
-#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterdelete_trigger " \
-  "AFTER DELETE ON moz_bookmarks FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count - 1 " \
-    "WHERE id = OLD.fk;" \
-  "END" \
-)
+#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERDELETE_TRIGGER                    \
+  NS_LITERAL_CSTRING(                                                        \
+      "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterdelete_trigger " \
+      "AFTER DELETE ON moz_bookmarks FOR EACH ROW "                          \
+      "BEGIN "                                                               \
+      "UPDATE moz_places "                                                   \
+      "SET foreign_count = foreign_count - 1 "                               \
+      "WHERE id = OLD.fk;"                                                   \
+      "END")
 
-#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterinsert_trigger " \
-  "AFTER INSERT ON moz_bookmarks FOR EACH ROW " \
-  "BEGIN " \
-    "SELECT store_last_inserted_id('moz_bookmarks', NEW.id); " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count + 1 " \
-    "WHERE id = NEW.fk;" \
-  "END" \
-)
+#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERINSERT_TRIGGER                    \
+  NS_LITERAL_CSTRING(                                                        \
+      "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterinsert_trigger " \
+      "AFTER INSERT ON moz_bookmarks FOR EACH ROW "                          \
+      "BEGIN "                                                               \
+      "SELECT store_last_inserted_id('moz_bookmarks', NEW.id); "             \
+      "UPDATE moz_places "                                                   \
+      "SET foreign_count = foreign_count + 1 "                               \
+      "WHERE id = NEW.fk;"                                                   \
+      "END")
 
-#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERUPDATE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterupdate_trigger " \
-  "AFTER UPDATE OF fk ON moz_bookmarks FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count + 1 " \
-    "WHERE id = NEW.fk;" \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count - 1 " \
-    "WHERE id = OLD.fk;" \
-  "END" \
-)
+#define CREATE_BOOKMARKS_FOREIGNCOUNT_AFTERUPDATE_TRIGGER                    \
+  NS_LITERAL_CSTRING(                                                        \
+      "CREATE TEMP TRIGGER moz_bookmarks_foreign_count_afterupdate_trigger " \
+      "AFTER UPDATE OF fk ON moz_bookmarks FOR EACH ROW "                    \
+      "BEGIN "                                                               \
+      "UPDATE moz_places "                                                   \
+      "SET foreign_count = foreign_count + 1 "                               \
+      "WHERE id = NEW.fk;"                                                   \
+      "UPDATE moz_places "                                                   \
+      "SET foreign_count = foreign_count - 1 "                               \
+      "WHERE id = OLD.fk;"                                                   \
+      "END")
 
-#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERDELETE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_keywords_foreign_count_afterdelete_trigger " \
-  "AFTER DELETE ON moz_keywords FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count - 1 " \
-    "WHERE id = OLD.place_id;" \
-  "END" \
-)
+#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERDELETE_TRIGGER                    \
+  NS_LITERAL_CSTRING(                                                       \
+      "CREATE TEMP TRIGGER moz_keywords_foreign_count_afterdelete_trigger " \
+      "AFTER DELETE ON moz_keywords FOR EACH ROW "                          \
+      "BEGIN "                                                              \
+      "UPDATE moz_places "                                                  \
+      "SET foreign_count = foreign_count - 1 "                              \
+      "WHERE id = OLD.place_id;"                                            \
+      "END")
 
-#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_keyords_foreign_count_afterinsert_trigger " \
-  "AFTER INSERT ON moz_keywords FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count + 1 " \
-    "WHERE id = NEW.place_id;" \
-  "END" \
-)
+#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERINSERT_TRIGGER                   \
+  NS_LITERAL_CSTRING(                                                      \
+      "CREATE TEMP TRIGGER moz_keyords_foreign_count_afterinsert_trigger " \
+      "AFTER INSERT ON moz_keywords FOR EACH ROW "                         \
+      "BEGIN "                                                             \
+      "UPDATE moz_places "                                                 \
+      "SET foreign_count = foreign_count + 1 "                             \
+      "WHERE id = NEW.place_id;"                                           \
+      "END")
 
-#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERUPDATE_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_keywords_foreign_count_afterupdate_trigger " \
-  "AFTER UPDATE OF place_id ON moz_keywords FOR EACH ROW " \
-  "BEGIN " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count + 1 " \
-    "WHERE id = NEW.place_id; " \
-    "UPDATE moz_places " \
-    "SET foreign_count = foreign_count - 1 " \
-    "WHERE id = OLD.place_id; " \
-  "END" \
-)
+#define CREATE_KEYWORDS_FOREIGNCOUNT_AFTERUPDATE_TRIGGER                    \
+  NS_LITERAL_CSTRING(                                                       \
+      "CREATE TEMP TRIGGER moz_keywords_foreign_count_afterupdate_trigger " \
+      "AFTER UPDATE OF place_id ON moz_keywords FOR EACH ROW "              \
+      "BEGIN "                                                              \
+      "UPDATE moz_places "                                                  \
+      "SET foreign_count = foreign_count + 1 "                              \
+      "WHERE id = NEW.place_id; "                                           \
+      "UPDATE moz_places "                                                  \
+      "SET foreign_count = foreign_count - 1 "                              \
+      "WHERE id = OLD.place_id; "                                           \
+      "END")
 
-#define CREATE_ICONS_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMP TRIGGER moz_icons_afterinsert_v1_trigger " \
-  "AFTER INSERT ON moz_icons FOR EACH ROW " \
-  "BEGIN " \
-    "SELECT store_last_inserted_id('moz_icons', NEW.id); " \
-  "END" \
-)
+#define CREATE_ICONS_AFTERINSERT_TRIGGER                      \
+  NS_LITERAL_CSTRING(                                         \
+      "CREATE TEMP TRIGGER moz_icons_afterinsert_v1_trigger " \
+      "AFTER INSERT ON moz_icons FOR EACH ROW "               \
+      "BEGIN "                                                \
+      "SELECT store_last_inserted_id('moz_icons', NEW.id); "  \
+      "END")
 
-#endif // __nsPlacesTriggers_h__
+#endif  // __nsPlacesTriggers_h__

@@ -104,84 +104,70 @@ namespace js {
 // The `ProfileStringMap` weakly holds its `JSScript*` keys and owns its string
 // values. Entries are removed when the `JSScript` is finalized; see
 // `GeckoProfiler::onScriptFinalized`.
-using ProfileStringMap = HashMap<JSScript*,
-                                 UniqueChars,
-                                 DefaultHasher<JSScript*>,
-                                 SystemAllocPolicy>;
+using ProfileStringMap = HashMap<JSScript*, UniqueChars,
+                                 DefaultHasher<JSScript*>, SystemAllocPolicy>;
 
-class GeckoProfilerRuntime
-{
-    JSRuntime*           rt;
-    ExclusiveData<ProfileStringMap> strings;
-    bool                 slowAssertions;
-    uint32_t             enabled_;
-    void                (*eventMarker_)(const char*);
+class GeckoProfilerRuntime {
+  JSRuntime* rt;
+  ExclusiveData<ProfileStringMap> strings;
+  bool slowAssertions;
+  uint32_t enabled_;
+  void (*eventMarker_)(const char*);
 
-    UniqueChars allocProfileString(JSScript* script, JSFunction* function);
+  UniqueChars allocProfileString(JSScript* script, JSFunction* function);
 
-  public:
-    explicit GeckoProfilerRuntime(JSRuntime* rt);
+ public:
+  explicit GeckoProfilerRuntime(JSRuntime* rt);
 
-    bool init();
+  bool init();
 
-    /* management of whether instrumentation is on or off */
-    bool enabled() { return enabled_; }
-    void enable(bool enabled);
-    void enableSlowAssertions(bool enabled) { slowAssertions = enabled; }
-    bool slowAssertionsEnabled() { return slowAssertions; }
+  /* management of whether instrumentation is on or off */
+  bool enabled() { return enabled_; }
+  void enable(bool enabled);
+  void enableSlowAssertions(bool enabled) { slowAssertions = enabled; }
+  bool slowAssertionsEnabled() { return slowAssertions; }
 
-    void setEventMarker(void (*fn)(const char*));
-    const char* profileString(JSScript* script, JSFunction* maybeFun);
-    void onScriptFinalized(JSScript* script);
+  void setEventMarker(void (*fn)(const char*));
+  const char* profileString(JSScript* script, JSFunction* maybeFun);
+  void onScriptFinalized(JSScript* script);
 
-    void markEvent(const char* event);
+  void markEvent(const char* event);
 
-    /* meant to be used for testing, not recommended to call in normal code */
-    size_t stringsCount();
-    void stringsReset();
+  /* meant to be used for testing, not recommended to call in normal code */
+  size_t stringsCount();
+  void stringsReset();
 
-    uint32_t* addressOfEnabled() {
-        return &enabled_;
-    }
+  uint32_t* addressOfEnabled() { return &enabled_; }
 
-    void fixupStringsMapAfterMovingGC();
+  void fixupStringsMapAfterMovingGC();
 #ifdef JSGC_HASH_TABLE_CHECKS
-    void checkStringsMapAfterMovingGC();
+  void checkStringsMapAfterMovingGC();
 #endif
 };
 
-inline size_t
-GeckoProfilerRuntime::stringsCount()
-{
-    return strings.lock()->count();
+inline size_t GeckoProfilerRuntime::stringsCount() {
+  return strings.lock()->count();
 }
 
-inline void
-GeckoProfilerRuntime::stringsReset()
-{
-    strings.lock()->clear();
-}
+inline void GeckoProfilerRuntime::stringsReset() { strings.lock()->clear(); }
 
 /*
  * This class is used in RunScript() to push the marker onto the sampling stack
  * that we're about to enter JS function calls. This is the only time in which a
  * valid stack pointer is pushed to the sampling stack.
  */
-class MOZ_RAII GeckoProfilerEntryMarker
-{
-  public:
-    explicit MOZ_ALWAYS_INLINE
-    GeckoProfilerEntryMarker(JSContext* cx,
-                             JSScript* script
-                             MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    MOZ_ALWAYS_INLINE ~GeckoProfilerEntryMarker();
+class MOZ_RAII GeckoProfilerEntryMarker {
+ public:
+  explicit MOZ_ALWAYS_INLINE GeckoProfilerEntryMarker(
+      JSContext* cx, JSScript* script MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  MOZ_ALWAYS_INLINE ~GeckoProfilerEntryMarker();
 
-  private:
-    GeckoProfilerThread* profiler_;
+ private:
+  GeckoProfilerThread* profiler_;
 #ifdef DEBUG
-    uint32_t spBefore_;
+  uint32_t spBefore_;
 #endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 /*
@@ -189,21 +175,20 @@ class MOZ_RAII GeckoProfilerEntryMarker
  *
  * NB: The `label` string must be statically allocated.
  */
-class MOZ_NONHEAP_CLASS AutoGeckoProfilerEntry
-{
-  public:
-    explicit MOZ_ALWAYS_INLINE
-    AutoGeckoProfilerEntry(JSContext* cx, const char* label,
-                           ProfileEntry::Category category = ProfileEntry::Category::JS
-                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    MOZ_ALWAYS_INLINE ~AutoGeckoProfilerEntry();
+class MOZ_NONHEAP_CLASS AutoGeckoProfilerEntry {
+ public:
+  explicit MOZ_ALWAYS_INLINE AutoGeckoProfilerEntry(
+      JSContext* cx, const char* label,
+      ProfileEntry::Category category =
+          ProfileEntry::Category::JS MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  MOZ_ALWAYS_INLINE ~AutoGeckoProfilerEntry();
 
-  private:
-    GeckoProfilerThread* profiler_;
+ private:
+  GeckoProfilerThread* profiler_;
 #ifdef DEBUG
-    uint32_t spBefore_;
+  uint32_t spBefore_;
 #endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 /*
@@ -211,17 +196,16 @@ class MOZ_NONHEAP_CLASS AutoGeckoProfilerEntry
  * being entered via OSR.  It marks the current top pseudostack entry as
  * OSR-ed
  */
-class MOZ_RAII GeckoProfilerBaselineOSRMarker
-{
-  public:
-    explicit GeckoProfilerBaselineOSRMarker(JSContext* cx, bool hasProfilerFrame
-                                            MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~GeckoProfilerBaselineOSRMarker();
+class MOZ_RAII GeckoProfilerBaselineOSRMarker {
+ public:
+  explicit GeckoProfilerBaselineOSRMarker(
+      JSContext* cx, bool hasProfilerFrame MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+  ~GeckoProfilerBaselineOSRMarker();
 
-  private:
-    GeckoProfilerThread* profiler;
-    mozilla::DebugOnly<uint32_t> spBefore_;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+ private:
+  GeckoProfilerThread* profiler;
+  mozilla::DebugOnly<uint32_t> spBefore_;
+  MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 /*
@@ -236,22 +220,25 @@ class MOZ_RAII GeckoProfilerBaselineOSRMarker
  * The basic methods which emit instrumentation are at the end of this class,
  * and the management functions are all described in the middle.
  */
-template<class Assembler, class Register>
-class GeckoProfilerInstrumentation
-{
-    GeckoProfilerRuntime* profiler_; // Instrumentation location management
+template <class Assembler, class Register>
+class GeckoProfilerInstrumentation {
+  GeckoProfilerRuntime* profiler_;  // Instrumentation location management
 
-  public:
-    /*
-     * Creates instrumentation which writes information out the the specified
-     * profiler's stack and constituent fields.
-     */
-    explicit GeckoProfilerInstrumentation(GeckoProfilerRuntime* profiler) : profiler_(profiler) {}
+ public:
+  /*
+   * Creates instrumentation which writes information out the the specified
+   * profiler's stack and constituent fields.
+   */
+  explicit GeckoProfilerInstrumentation(GeckoProfilerRuntime* profiler)
+      : profiler_(profiler) {}
 
-    /* Small proxies around GeckoProfiler */
-    bool enabled() { return profiler_ && profiler_->enabled(); }
-    GeckoProfilerRuntime* profiler() { MOZ_ASSERT(enabled()); return profiler_; }
-    void disable() { profiler_ = nullptr; }
+  /* Small proxies around GeckoProfiler */
+  bool enabled() { return profiler_ && profiler_->enabled(); }
+  GeckoProfilerRuntime* profiler() {
+    MOZ_ASSERT(enabled());
+    return profiler_;
+  }
+  void disable() { profiler_ = nullptr; }
 };
 
 } /* namespace js */

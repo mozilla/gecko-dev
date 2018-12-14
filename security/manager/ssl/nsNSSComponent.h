@@ -21,49 +21,53 @@
 #include "sslt.h"
 
 #ifdef XP_WIN
-#include "windows.h" // this needs to be before the following includes
+#include "windows.h"  // this needs to be before the following includes
 #include "wincrypt.h"
-#endif // XP_WIN
+#endif  // XP_WIN
 
 class nsIDOMWindow;
 class nsIPrompt;
 class nsIX509CertList;
 class SmartCardThreadList;
 
-namespace mozilla { namespace psm {
+namespace mozilla {
+namespace psm {
 
 MOZ_MUST_USE
-  ::already_AddRefed<mozilla::psm::SharedCertVerifier>
-  GetDefaultCertVerifier();
+::already_AddRefed<mozilla::psm::SharedCertVerifier> GetDefaultCertVerifier();
 
-} } // namespace mozilla::psm
+}  // namespace psm
+}  // namespace mozilla
 
-
-#define NS_NSSCOMPONENT_CID \
-{0x4cb64dfd, 0xca98, 0x4e24, {0xbe, 0xfd, 0x0d, 0x92, 0x85, 0xa3, 0x3b, 0xcb}}
+#define NS_NSSCOMPONENT_CID                          \
+  {                                                  \
+    0x4cb64dfd, 0xca98, 0x4e24, {                    \
+      0xbe, 0xfd, 0x0d, 0x92, 0x85, 0xa3, 0x3b, 0xcb \
+    }                                                \
+  }
 
 #define PSM_COMPONENT_CONTRACTID "@mozilla.org/psm;1"
 
-#define NS_INSSCOMPONENT_IID \
-  { 0xa0a8f52b, 0xea18, 0x4abc, \
-    { 0xa3, 0xca, 0xec, 0xcf, 0x70, 0x4f, 0xfe, 0x63 } }
+#define NS_INSSCOMPONENT_IID                         \
+  {                                                  \
+    0xa0a8f52b, 0xea18, 0x4abc, {                    \
+      0xa3, 0xca, 0xec, 0xcf, 0x70, 0x4f, 0xfe, 0x63 \
+    }                                                \
+  }
 
 extern bool EnsureNSSInitializedChromeOrContent();
 
-class NS_NO_VTABLE nsINSSComponent : public nsISupports
-{
-public:
+class NS_NO_VTABLE nsINSSComponent : public nsISupports {
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INSSCOMPONENT_IID)
 
-  NS_IMETHOD GetPIPNSSBundleString(const char* name,
-                                   nsAString& outString) = 0;
+  NS_IMETHOD GetPIPNSSBundleString(const char* name, nsAString& outString) = 0;
   NS_IMETHOD PIPBundleFormatStringFromName(const char* name,
                                            const char16_t** params,
                                            uint32_t numParams,
                                            nsAString& outString) = 0;
 
-  NS_IMETHOD GetNSSBundleString(const char* name,
-                                nsAString& outString) = 0;
+  NS_IMETHOD GetNSSBundleString(const char* name, nsAString& outString) = 0;
 
   NS_IMETHOD LogoutAuthenticatedPK11() = 0;
 
@@ -86,21 +90,19 @@ public:
   NS_IMETHOD HasUserCertsInstalled(bool& result) = 0;
 
   virtual ::already_AddRefed<mozilla::psm::SharedCertVerifier>
-    GetDefaultCertVerifier() = 0;
+  GetDefaultCertVerifier() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINSSComponent, NS_INSSCOMPONENT_IID)
 
 // Implementation of the PSM component interface.
-class nsNSSComponent final : public nsINSSComponent
-                           , public nsIObserver
-{
-public:
+class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
+ public:
   // LoadLoadableRootsTask updates mLoadableRootsLoaded and
   // mLoadableRootsLoadedResult and then signals mLoadableRootsLoadedMonitor.
   friend class LoadLoadableRootsTask;
 
-  NS_DEFINE_STATIC_CID_ACCESSOR( NS_NSSCOMPONENT_CID )
+  NS_DEFINE_STATIC_CID_ACCESSOR(NS_NSSCOMPONENT_CID)
 
   nsNSSComponent();
 
@@ -117,14 +119,17 @@ public:
                                            const char16_t** params,
                                            uint32_t numParams,
                                            nsAString& outString) override;
-  NS_IMETHOD GetNSSBundleString(const char* name, nsAString& outString) override;
+  NS_IMETHOD GetNSSBundleString(const char* name,
+                                nsAString& outString) override;
   NS_IMETHOD LogoutAuthenticatedPK11() override;
 
 #ifdef DEBUG
-  NS_IMETHOD IsCertTestBuiltInRoot(CERTCertificate* cert, bool& result) override;
+  NS_IMETHOD IsCertTestBuiltInRoot(CERTCertificate* cert,
+                                   bool& result) override;
 #endif
 
-  NS_IMETHOD IsCertContentSigningRoot(CERTCertificate* cert, bool& result) override;
+  NS_IMETHOD IsCertContentSigningRoot(CERTCertificate* cert,
+                                      bool& result) override;
 
 #ifdef XP_WIN
   NS_IMETHOD GetEnterpriseRoots(nsIX509CertList** enterpriseRoots) override;
@@ -138,22 +143,21 @@ public:
   NS_IMETHOD HasActiveSmartCards(bool& result) override;
   NS_IMETHOD HasUserCertsInstalled(bool& result) override;
 
-  ::already_AddRefed<mozilla::psm::SharedCertVerifier>
-    GetDefaultCertVerifier() override;
+  ::already_AddRefed<mozilla::psm::SharedCertVerifier> GetDefaultCertVerifier()
+      override;
 
   // The following two methods are thread-safe.
   static bool AreAnyWeakCiphersEnabled();
   static void UseWeakCiphersOnSocket(PRFileDesc* fd);
 
   static void FillTLSVersionRange(SSLVersionRange& rangeOut,
-                                  uint32_t minFromPrefs,
-                                  uint32_t maxFromPrefs,
+                                  uint32_t minFromPrefs, uint32_t maxFromPrefs,
                                   SSLVersionRange defaults);
 
-protected:
+ protected:
   virtual ~nsNSSComponent();
 
-private:
+ private:
   nsresult InitializeNSS();
   void ShutdownNSS();
 
@@ -168,14 +172,14 @@ private:
   void MaybeImportEnterpriseRoots();
 #ifdef XP_WIN
   void ImportEnterpriseRootsForLocation(
-    DWORD locationFlag, const mozilla::MutexAutoLock& proofOfLock);
+      DWORD locationFlag, const mozilla::MutexAutoLock& proofOfLock);
   nsresult MaybeImportFamilySafetyRoot(PCCERT_CONTEXT certificate,
                                        bool& wasFamilySafetyRoot);
   nsresult LoadFamilySafetyRoot();
   void UnloadFamilySafetyRoot();
 
   void UnloadEnterpriseRoots();
-#endif // XP_WIN
+#endif  // XP_WIN
 
   // mLoadableRootsLoadedMonitor protects mLoadableRootsLoaded.
   mozilla::Monitor mLoadableRootsLoadedMonitor;
@@ -197,15 +201,13 @@ private:
 #ifdef XP_WIN
   mozilla::UniqueCERTCertificate mFamilySafetyRoot;
   mozilla::UniqueCERTCertList mEnterpriseRoots;
-#endif // XP_WIN
+#endif  // XP_WIN
 
   // The following members are accessed only on the main thread:
   static int mInstanceCount;
 };
 
-inline nsresult
-BlockUntilLoadableRootsLoaded()
-{
+inline nsresult BlockUntilLoadableRootsLoaded() {
   nsCOMPtr<nsINSSComponent> component(do_GetService(PSM_COMPONENT_CONTRACTID));
   if (!component) {
     return NS_ERROR_FAILURE;
@@ -213,9 +215,7 @@ BlockUntilLoadableRootsLoaded()
   return component->BlockUntilLoadableRootsLoaded();
 }
 
-inline nsresult
-CheckForSmartCardChanges()
-{
+inline nsresult CheckForSmartCardChanges() {
 #ifndef MOZ_NO_SMART_CARDS
   nsCOMPtr<nsINSSComponent> component(do_GetService(PSM_COMPONENT_CONTRACTID));
   if (!component) {
@@ -227,9 +227,8 @@ CheckForSmartCardChanges()
 #endif
 }
 
-class nsNSSErrors
-{
-public:
+class nsNSSErrors {
+ public:
   static const char* getDefaultErrorStringName(PRErrorCode err);
   static const char* getOverrideErrorStringName(PRErrorCode aErrorCode);
   static nsresult getErrorMessageFromCode(PRErrorCode err,
@@ -237,4 +236,4 @@ public:
                                           nsString& returnedMessage);
 };
 
-#endif // _nsNSSComponent_h_
+#endif  // _nsNSSComponent_h_

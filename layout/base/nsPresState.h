@@ -16,104 +16,62 @@
 #include "gfxPoint.h"
 #include "nsAutoPtr.h"
 
-class nsPresState
-{
-public:
+class nsPresState {
+ public:
   nsPresState()
-    : mContentData(nullptr)
-    , mScrollState(0, 0)
-    , mAllowScrollOriginDowngrade(true)
-    , mResolution(1.0)
-    , mScaleToResolution(false)
-    , mDisabledSet(false)
-    , mDisabled(false)
-    , mDroppedDown(false)
-  {}
+      : mContentData(nullptr),
+        mScrollState(0, 0),
+        mAllowScrollOriginDowngrade(true),
+        mResolution(1.0),
+        mScaleToResolution(false),
+        mDisabledSet(false),
+        mDisabled(false),
+        mDroppedDown(false) {}
 
-  void SetScrollState(const nsPoint& aState)
-  {
-    mScrollState = aState;
-  }
+  void SetScrollState(const nsPoint& aState) { mScrollState = aState; }
 
-  nsPoint GetScrollPosition() const
-  {
-    return mScrollState;
-  }
+  nsPoint GetScrollPosition() const { return mScrollState; }
 
-  void SetAllowScrollOriginDowngrade(bool aAllowScrollOriginDowngrade)
-  {
+  void SetAllowScrollOriginDowngrade(bool aAllowScrollOriginDowngrade) {
     mAllowScrollOriginDowngrade = aAllowScrollOriginDowngrade;
   }
 
-  bool GetAllowScrollOriginDowngrade()
-  {
-    return mAllowScrollOriginDowngrade;
-  }
+  bool GetAllowScrollOriginDowngrade() { return mAllowScrollOriginDowngrade; }
 
-  void SetResolution(float aSize)
-  {
-    mResolution = aSize;
-  }
+  void SetResolution(float aSize) { mResolution = aSize; }
 
-  float GetResolution() const
-  {
-    return mResolution;
-  }
+  float GetResolution() const { return mResolution; }
 
-  void SetScaleToResolution(bool aScaleToResolution)
-  {
+  void SetScaleToResolution(bool aScaleToResolution) {
     mScaleToResolution = aScaleToResolution;
   }
 
-  bool GetScaleToResolution() const
-  {
-    return mScaleToResolution;
-  }
+  bool GetScaleToResolution() const { return mScaleToResolution; }
 
-  void ClearNonScrollState()
-  {
+  void ClearNonScrollState() {
     mContentData = nullptr;
     mDisabledSet = false;
   }
 
-  bool GetDisabled() const
-  {
-    return mDisabled;
-  }
+  bool GetDisabled() const { return mDisabled; }
 
-  void SetDisabled(bool aDisabled)
-  {
+  void SetDisabled(bool aDisabled) {
     mDisabled = aDisabled;
     mDisabledSet = true;
   }
 
-  bool IsDisabledSet() const
-  {
-    return mDisabledSet;
-  }
+  bool IsDisabledSet() const { return mDisabledSet; }
 
-  nsISupports* GetStateProperty() const
-  {
-    return mContentData;
-  }
+  nsISupports* GetStateProperty() const { return mContentData; }
 
-  void SetStateProperty(nsISupports *aProperty)
-  {
-    mContentData = aProperty;
-  }
+  void SetStateProperty(nsISupports* aProperty) { mContentData = aProperty; }
 
-  void SetDroppedDown(bool aDroppedDown)
-  {
-    mDroppedDown = aDroppedDown;
-  }
+  void SetDroppedDown(bool aDroppedDown) { mDroppedDown = aDroppedDown; }
 
-  bool GetDroppedDown() const
-  {
-    return mDroppedDown;
-  }
+  bool GetDroppedDown() const { return mDroppedDown; }
 
-// MEMBER VARIABLES
-protected:
+  // MEMBER VARIABLES
+ protected:
   nsCOMPtr<nsISupports> mContentData;
   nsPoint mScrollState;
   bool mAllowScrollOriginDowngrade;

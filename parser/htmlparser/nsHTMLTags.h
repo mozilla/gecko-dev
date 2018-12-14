@@ -40,7 +40,7 @@ enum nsHTMLTag {
 #define NS_HTML_TAG_MAX int32_t(eHTMLTag_text - 1)
 
 class nsHTMLTags {
-public:
+ public:
   using TagStringHash = nsDataHashtable<nsStringHashKey, nsHTMLTag>;
   using TagAtomHash = nsDataHashtable<nsPtrHashKey<nsAtom>, nsHTMLTag>;
 
@@ -50,20 +50,17 @@ public:
 
   // Functions for converting string or atom to id
   static nsHTMLTag StringTagToId(const nsAString& aTagName);
-  static nsHTMLTag AtomTagToId(nsAtom* aTagName)
-  {
+  static nsHTMLTag AtomTagToId(nsAtom* aTagName) {
     return StringTagToId(nsDependentAtomString(aTagName));
   }
 
-  static nsHTMLTag CaseSensitiveStringTagToId(const nsAString& aTagName)
-  {
+  static nsHTMLTag CaseSensitiveStringTagToId(const nsAString& aTagName) {
     NS_ASSERTION(gTagTable, "no lookup table, needs addref");
 
     nsHTMLTag* tag = gTagTable->GetValue(aTagName);
     return tag ? *tag : eHTMLTag_userdefined;
   }
-  static nsHTMLTag CaseSensitiveAtomTagToId(nsAtom* aTagName)
-  {
+  static nsHTMLTag CaseSensitiveAtomTagToId(nsAtom* aTagName) {
     NS_ASSERTION(gTagAtomTable, "no lookup table, needs addref");
     NS_ASSERTION(aTagName, "null tagname!");
 
@@ -75,7 +72,7 @@ public:
   static void TestTagTable();
 #endif
 
-private:
+ private:
   // This would use NS_STATIC_ATOM_DECL if it wasn't an array.
   static nsStaticAtom* sTagAtomTable[eHTMLTag_userdefined - 1];
   static const char16_t* const sTagUnicodeTable[];

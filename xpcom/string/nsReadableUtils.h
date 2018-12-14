@@ -20,21 +20,17 @@
 
 // Can't include mozilla/Encoding.h here
 extern "C" {
-  size_t encoding_utf8_valid_up_to(uint8_t const* buffer, size_t buffer_len);
-  size_t encoding_ascii_valid_up_to(uint8_t const* buffer, size_t buffer_len);
+size_t encoding_utf8_valid_up_to(uint8_t const* buffer, size_t buffer_len);
+size_t encoding_ascii_valid_up_to(uint8_t const* buffer, size_t buffer_len);
 }
 
-inline size_t
-Distance(const nsReadingIterator<char16_t>& aStart,
-         const nsReadingIterator<char16_t>& aEnd)
-{
+inline size_t Distance(const nsReadingIterator<char16_t>& aStart,
+                       const nsReadingIterator<char16_t>& aEnd) {
   MOZ_ASSERT(aStart.get() <= aEnd.get());
   return static_cast<size_t>(aEnd.get() - aStart.get());
 }
-inline size_t
-Distance(const nsReadingIterator<char>& aStart,
-         const nsReadingIterator<char>& aEnd)
-{
+inline size_t Distance(const nsReadingIterator<char>& aStart,
+                       const nsReadingIterator<char>& aEnd) {
   MOZ_ASSERT(aStart.get() <= aEnd.get());
   return static_cast<size_t>(aEnd.get() - aStart.get());
 }
@@ -62,18 +58,15 @@ MOZ_MUST_USE bool AppendASCIItoUTF16(const nsACString& aSource,
                                      const mozilla::fallible_t&);
 
 void LossyAppendUTF16toASCII(const char16ptr_t aSource, nsACString& aDest);
-MOZ_MUST_USE bool AppendASCIItoUTF16(const char* aSource,
-                                     nsAString& aDest,
+MOZ_MUST_USE bool AppendASCIItoUTF16(const char* aSource, nsAString& aDest,
                                      const mozilla::fallible_t&);
 void AppendASCIItoUTF16(const char* aSource, nsAString& aDest);
 
 void AppendUTF16toUTF8(const nsAString& aSource, nsACString& aDest);
-MOZ_MUST_USE bool AppendUTF16toUTF8(const nsAString& aSource,
-                                    nsACString& aDest,
+MOZ_MUST_USE bool AppendUTF16toUTF8(const nsAString& aSource, nsACString& aDest,
                                     const mozilla::fallible_t&);
 void AppendUTF8toUTF16(const nsACString& aSource, nsAString& aDest);
-MOZ_MUST_USE bool AppendUTF8toUTF16(const nsACString& aSource,
-                                    nsAString& aDest,
+MOZ_MUST_USE bool AppendUTF8toUTF16(const nsACString& aSource, nsAString& aDest,
                                     const mozilla::fallible_t&);
 
 void AppendUTF16toUTF8(const char16ptr_t aSource, nsACString& aDest);
@@ -83,21 +76,23 @@ void AppendUTF8toUTF16(const char* aSource, nsAString& aDest);
  * Returns a new |char| buffer containing a zero-terminated copy of |aSource|.
  *
  * Allocates and returns a new |char| buffer which you must free with |free|.
- * Performs a lossy encoding conversion by chopping 16-bit wide characters down to 8-bits wide while copying |aSource| to your new buffer.
- * This conversion is not well defined; but it reproduces legacy string behavior.
- * The new buffer is zero-terminated, but that may not help you if |aSource| contains embedded nulls.
+ * Performs a lossy encoding conversion by chopping 16-bit wide characters down
+ * to 8-bits wide while copying |aSource| to your new buffer. This conversion is
+ * not well defined; but it reproduces legacy string behavior. The new buffer is
+ * zero-terminated, but that may not help you if |aSource| contains embedded
+ * nulls.
  *
  * @param aSource a 16-bit wide string
  * @return a new |char| buffer you must free with |free|.
  */
 char* ToNewCString(const nsAString& aSource);
 
-
 /**
  * Returns a new |char| buffer containing a zero-terminated copy of |aSource|.
  *
  * Allocates and returns a new |char| buffer which you must free with |free|.
- * The new buffer is zero-terminated, but that may not help you if |aSource| contains embedded nulls.
+ * The new buffer is zero-terminated, but that may not help you if |aSource|
+ * contains embedded nulls.
  *
  * @param aSource an 8-bit wide string
  * @return a new |char| buffer you must free with |free|.
@@ -121,7 +116,6 @@ char* ToNewCString(const nsACString& aSource);
 
 char* ToNewUTF8String(const nsAString& aSource, uint32_t* aUTF8Count = nullptr);
 
-
 /**
  * Returns a new |char16_t| buffer containing a zero-terminated copy of
  * |aSource|.
@@ -136,14 +130,16 @@ char* ToNewUTF8String(const nsAString& aSource, uint32_t* aUTF8Count = nullptr);
  */
 char16_t* ToNewUnicode(const nsAString& aSource);
 
-
 /**
- * Returns a new |char16_t| buffer containing a zero-terminated copy of |aSource|.
+ * Returns a new |char16_t| buffer containing a zero-terminated copy of
+ * |aSource|.
  *
- * Allocates and returns a new |char16_t| buffer which you must free with |free|.
- * Performs an encoding conversion by 0-padding 8-bit wide characters up to 16-bits wide while copying |aSource| to your new buffer.
- * This conversion is not well defined; but it reproduces legacy string behavior.
- * The new buffer is zero-terminated, but that may not help you if |aSource| contains embedded nulls.
+ * Allocates and returns a new |char16_t| buffer which you must free with
+ * |free|. Performs an encoding conversion by 0-padding 8-bit wide characters up
+ * to 16-bits wide while copying |aSource| to your new buffer. This conversion
+ * is not well defined; but it reproduces legacy string behavior. The new buffer
+ * is zero-terminated, but that may not help you if |aSource| contains embedded
+ * nulls.
  *
  * @param aSource an 8-bit wide string (a C-string, NOT UTF-8)
  * @return a new |char16_t| buffer you must free with |free|.
@@ -178,8 +174,7 @@ uint32_t CalcUTF8ToUnicodeLength(const nsACString& aSource);
  *                    were copied
  * @return aBuffer pointer, for convenience
  */
-char16_t* UTF8ToUnicodeBuffer(const nsACString& aSource,
-                              char16_t* aBuffer,
+char16_t* UTF8ToUnicodeBuffer(const nsACString& aSource, char16_t* aBuffer,
                               uint32_t* aUTF16Count = nullptr);
 
 /**
@@ -212,11 +207,8 @@ char16_t* UTF8ToNewUnicode(const nsACString& aSource,
  * @param aLength the number of 16-bit code units to copy
  * @return pointer to destination buffer - identical to |aDest|
  */
-char16_t* CopyUnicodeTo(const nsAString& aSource,
-                        uint32_t aSrcOffset,
-                        char16_t* aDest,
-                        uint32_t aLength);
-
+char16_t* CopyUnicodeTo(const nsAString& aSource, uint32_t aSrcOffset,
+                        char16_t* aDest, uint32_t aLength);
 
 /**
  * Copies 16-bit characters between iterators |aSrcStart| and
@@ -230,8 +222,7 @@ char16_t* CopyUnicodeTo(const nsAString& aSource,
  * @param aDest destination for the copy
  */
 void CopyUnicodeTo(const nsAString::const_iterator& aSrcStart,
-                   const nsAString::const_iterator& aSrcEnd,
-                   nsAString& aDest);
+                   const nsAString::const_iterator& aSrcEnd, nsAString& aDest);
 
 /**
  * Appends 16-bit characters between iterators |aSrcStart| and
@@ -248,19 +239,20 @@ void AppendUnicodeTo(const nsAString::const_iterator& aSrcStart,
                      nsAString& aDest);
 
 /**
- * Returns |true| if |aString| contains only ASCII characters, that is, characters in the range (0x00, 0x7F).
+ * Returns |true| if |aString| contains only ASCII characters, that is,
+ * characters in the range (0x00, 0x7F).
  *
  * @param aString a 16-bit wide string to scan
  */
 bool IsASCII(const nsAString& aString);
 
 /**
- * Returns |true| if |aString| contains only ASCII characters, that is, characters in the range (0x00, 0x7F).
+ * Returns |true| if |aString| contains only ASCII characters, that is,
+ * characters in the range (0x00, 0x7F).
  *
  * @param aString a 8-bit wide string to scan
  */
-inline bool IsASCII(const nsACString& aString)
-{
+inline bool IsASCII(const nsACString& aString) {
   size_t length = aString.Length();
   const uint8_t* ptr = reinterpret_cast<const uint8_t*>(aString.BeginReading());
   // For short strings, calling into Rust is a pessimization, and the SIMD
@@ -289,8 +281,7 @@ inline bool IsASCII(const nsACString& aString)
  *
  * @param aString an 8-bit wide string to scan
  */
-inline bool IsUTF8(const nsACString& aString)
-{
+inline bool IsUTF8(const nsACString& aString) {
   size_t length = aString.Length();
   const uint8_t* ptr = reinterpret_cast<const uint8_t*>(aString.BeginReading());
   // For short strings, calling into Rust is a pessimization, and the SIMD
@@ -307,7 +298,7 @@ inline bool IsUTF8(const nsACString& aString)
     }
     return true;
   }
-  end:
+end:
   return length == encoding_utf8_valid_up_to(ptr, length);
 }
 
@@ -333,13 +324,15 @@ void ToUpperCase(const nsACString& aSource, nsACString& aDest);
 void ToLowerCase(const nsACString& aSource, nsACString& aDest);
 
 /**
- * Finds the leftmost occurrence of |aPattern|, if any in the range |aSearchStart|..|aSearchEnd|.
+ * Finds the leftmost occurrence of |aPattern|, if any in the range
+ * |aSearchStart|..|aSearchEnd|.
  *
- * Returns |true| if a match was found, and adjusts |aSearchStart| and |aSearchEnd| to
- * point to the match.  If no match was found, returns |false| and makes |aSearchStart == aSearchEnd|.
+ * Returns |true| if a match was found, and adjusts |aSearchStart| and
+ * |aSearchEnd| to point to the match.  If no match was found, returns |false|
+ * and makes |aSearchStart == aSearchEnd|.
  *
- * Currently, this is equivalent to the O(m*n) implementation previously on |ns[C]String|.
- * If we need something faster, then we can implement that later.
+ * Currently, this is equivalent to the O(m*n) implementation previously on
+ * |ns[C]String|. If we need something faster, then we can implement that later.
  */
 
 bool FindInReadable(const nsAString& aPattern, nsAString::const_iterator&,
@@ -351,26 +344,23 @@ bool FindInReadable(const nsACString& aPattern, nsACString::const_iterator&,
 
 /* sometimes we don't care about where the string was, just that we
  * found it or not */
-inline bool
-FindInReadable(const nsAString& aPattern, const nsAString& aSource,
-               const nsStringComparator& aCompare = nsDefaultStringComparator())
-{
+inline bool FindInReadable(
+    const nsAString& aPattern, const nsAString& aSource,
+    const nsStringComparator& aCompare = nsDefaultStringComparator()) {
   nsAString::const_iterator start, end;
   aSource.BeginReading(start);
   aSource.EndReading(end);
   return FindInReadable(aPattern, start, end, aCompare);
 }
 
-inline bool
-FindInReadable(const nsACString& aPattern, const nsACString& aSource,
-               const nsCStringComparator& aCompare = nsDefaultCStringComparator())
-{
+inline bool FindInReadable(
+    const nsACString& aPattern, const nsACString& aSource,
+    const nsCStringComparator& aCompare = nsDefaultCStringComparator()) {
   nsACString::const_iterator start, end;
   aSource.BeginReading(start);
   aSource.EndReading(end);
   return FindInReadable(aPattern, start, end, aCompare);
 }
-
 
 bool CaseInsensitiveFindInReadable(const nsACString& aPattern,
                                    nsACString::const_iterator&,
@@ -378,8 +368,9 @@ bool CaseInsensitiveFindInReadable(const nsACString& aPattern,
 
 /**
  * Finds the rightmost occurrence of |aPattern|
- * Returns |true| if a match was found, and adjusts |aSearchStart| and |aSearchEnd| to
- * point to the match.  If no match was found, returns |false| and makes |aSearchStart == aSearchEnd|.
+ * Returns |true| if a match was found, and adjusts |aSearchStart| and
+ * |aSearchEnd| to point to the match.  If no match was found, returns |false|
+ * and makes |aSearchStart == aSearchEnd|.
  *
  */
 bool RFindInReadable(const nsAString& aPattern, nsAString::const_iterator&,
@@ -390,25 +381,23 @@ bool RFindInReadable(const nsACString& aPattern, nsACString::const_iterator&,
                      const nsCStringComparator& = nsDefaultCStringComparator());
 
 /**
-* Finds the leftmost occurrence of |aChar|, if any in the range
-* |aSearchStart|..|aSearchEnd|.
-*
-* Returns |true| if a match was found, and adjusts |aSearchStart| to
-* point to the match.  If no match was found, returns |false| and
-* makes |aSearchStart == aSearchEnd|.
-*/
+ * Finds the leftmost occurrence of |aChar|, if any in the range
+ * |aSearchStart|..|aSearchEnd|.
+ *
+ * Returns |true| if a match was found, and adjusts |aSearchStart| to
+ * point to the match.  If no match was found, returns |false| and
+ * makes |aSearchStart == aSearchEnd|.
+ */
 bool FindCharInReadable(char16_t aChar, nsAString::const_iterator& aSearchStart,
                         const nsAString::const_iterator& aSearchEnd);
 bool FindCharInReadable(char aChar, nsACString::const_iterator& aSearchStart,
                         const nsACString::const_iterator& aSearchEnd);
 
 /**
-* Finds the number of occurences of |aChar| in the string |aStr|
-*/
-uint32_t CountCharInReadable(const nsAString& aStr,
-                             char16_t aChar);
-uint32_t CountCharInReadable(const nsACString& aStr,
-                             char aChar);
+ * Finds the number of occurences of |aChar| in the string |aStr|
+ */
+uint32_t CountCharInReadable(const nsAString& aStr, char16_t aChar);
+uint32_t CountCharInReadable(const nsACString& aStr, char aChar);
 
 bool StringBeginsWith(const nsAString& aSource, const nsAString& aSubstring);
 bool StringBeginsWith(const nsAString& aSource, const nsAString& aSubstring,
@@ -430,24 +419,22 @@ const nsString& VoidString();
 const nsCString& VoidCString();
 
 /**
-* Compare a UTF-8 string to an UTF-16 string.
-*
-* Returns 0 if the strings are equal, -1 if aUTF8String is less
-* than aUTF16Count, and 1 in the reverse case.  In case of fatal
-* error (eg the strings are not valid UTF8 and UTF16 respectively),
-* this method will return INT32_MIN.
-*/
+ * Compare a UTF-8 string to an UTF-16 string.
+ *
+ * Returns 0 if the strings are equal, -1 if aUTF8String is less
+ * than aUTF16Count, and 1 in the reverse case.  In case of fatal
+ * error (eg the strings are not valid UTF8 and UTF16 respectively),
+ * this method will return INT32_MIN.
+ */
 int32_t CompareUTF8toUTF16(const nsACString& aUTF8String,
                            const nsAString& aUTF16String);
 
 void AppendUCS4ToUTF16(const uint32_t aSource, nsAString& aDest);
 
-template<class T>
-inline bool
-EnsureStringLength(T& aStr, uint32_t aLen)
-{
+template <class T>
+inline bool EnsureStringLength(T& aStr, uint32_t aLen) {
   aStr.SetLength(aLen);
   return (aStr.Length() == aLen);
 }
 
-#endif // !defined(nsReadableUtils_h___)
+#endif  // !defined(nsReadableUtils_h___)

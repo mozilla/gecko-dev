@@ -29,127 +29,132 @@
 #define CSS_CUSTOM_NAME_PREFIX_LENGTH 2
 
 // Flags for ParseVariant method
-#define VARIANT_KEYWORD         0x000001  // K
-#define VARIANT_LENGTH          0x000002  // L
-#define VARIANT_PERCENT         0x000004  // P
-#define VARIANT_COLOR           0x000008  // C eCSSUnit_*Color, eCSSUnit_Ident (e.g.  "red")
-#define VARIANT_URL             0x000010  // U
-#define VARIANT_NUMBER          0x000020  // N
-#define VARIANT_INTEGER         0x000040  // I
-#define VARIANT_ANGLE           0x000080  // G
-#define VARIANT_FREQUENCY       0x000100  // F
-#define VARIANT_TIME            0x000200  // T
-#define VARIANT_STRING          0x000400  // S
-#define VARIANT_COUNTER         0x000800  //
-#define VARIANT_ATTR            0x001000  //
-#define VARIANT_IDENTIFIER      0x002000  // D
-#define VARIANT_IDENTIFIER_NO_INHERIT 0x004000 // like above, but excluding
+#define VARIANT_KEYWORD 0x000001  // K
+#define VARIANT_LENGTH 0x000002   // L
+#define VARIANT_PERCENT 0x000004  // P
+#define VARIANT_COLOR \
+  0x000008                    // C eCSSUnit_*Color, eCSSUnit_Ident (e.g.  "red")
+#define VARIANT_URL 0x000010  // U
+#define VARIANT_NUMBER 0x000020                 // N
+#define VARIANT_INTEGER 0x000040                // I
+#define VARIANT_ANGLE 0x000080                  // G
+#define VARIANT_FREQUENCY 0x000100              // F
+#define VARIANT_TIME 0x000200                   // T
+#define VARIANT_STRING 0x000400                 // S
+#define VARIANT_COUNTER 0x000800                //
+#define VARIANT_ATTR 0x001000                   //
+#define VARIANT_IDENTIFIER 0x002000             // D
+#define VARIANT_IDENTIFIER_NO_INHERIT 0x004000  // like above, but excluding
 // 'inherit' and 'initial'
-#define VARIANT_AUTO            0x010000  // A
-#define VARIANT_INHERIT         0x020000  // H eCSSUnit_Initial, eCSSUnit_Inherit, eCSSUnit_Unset
-#define VARIANT_NONE            0x040000  // O
-#define VARIANT_NORMAL          0x080000  // M
-#define VARIANT_SYSFONT         0x100000  // eCSSUnit_System_Font
-#define VARIANT_GRADIENT        0x200000  // eCSSUnit_Gradient
+#define VARIANT_AUTO 0x010000  // A
+#define VARIANT_INHERIT \
+  0x020000  // H eCSSUnit_Initial, eCSSUnit_Inherit, eCSSUnit_Unset
+#define VARIANT_NONE 0x040000             // O
+#define VARIANT_NORMAL 0x080000           // M
+#define VARIANT_SYSFONT 0x100000          // eCSSUnit_System_Font
+#define VARIANT_GRADIENT 0x200000         // eCSSUnit_Gradient
 #define VARIANT_TIMING_FUNCTION 0x400000  // cubic-bezier() and steps()
-#define VARIANT_ALL             0x800000  //
-#define VARIANT_IMAGE_RECT    0x01000000  // eCSSUnit_Function
+#define VARIANT_ALL 0x800000              //
+#define VARIANT_IMAGE_RECT 0x01000000     // eCSSUnit_Function
 // This is an extra bit that says that a VARIANT_ANGLE allows unitless zero:
-#define VARIANT_ZERO_ANGLE    0x02000000  // unitless zero for angles
-#define VARIANT_CALC          0x04000000  // eCSSUnit_Calc
-#define VARIANT_ELEMENT       0x08000000  // eCSSUnit_Element
-#define VARIANT_NONNEGATIVE_DIMENSION 0x10000000 // Only lengths greater than or equal to 0.0
+#define VARIANT_ZERO_ANGLE 0x02000000  // unitless zero for angles
+#define VARIANT_CALC 0x04000000        // eCSSUnit_Calc
+#define VARIANT_ELEMENT 0x08000000     // eCSSUnit_Element
+#define VARIANT_NONNEGATIVE_DIMENSION \
+  0x10000000  // Only lengths greater than or equal to 0.0
 // Keyword used iff gfx.font_rendering.opentype_svg.enabled is true:
 #define VARIANT_OPENTYPE_SVG_KEYWORD 0x20000000
-#define VARIANT_ABSOLUTE_DIMENSION 0x40000000 // B Only lengths with absolute length unit
+#define VARIANT_ABSOLUTE_DIMENSION \
+  0x40000000  // B Only lengths with absolute length unit
 
 // Variants that can consume more than one token
-#define VARIANT_MULTIPLE_TOKENS \
-  (VARIANT_COLOR |            /* rgb(...), hsl(...), etc. */                  \
-   VARIANT_COUNTER |          /* counter(...), counters(...) */               \
-   VARIANT_ATTR |             /* attr(...) */                                 \
-   VARIANT_GRADIENT |         /* linear-gradient(...), etc. */                \
-   VARIANT_TIMING_FUNCTION |  /* cubic-bezier(...), steps(...) */             \
-   VARIANT_IMAGE_RECT |       /* -moz-image-rect(...) */                      \
-   VARIANT_CALC |             /* calc(...) */                                 \
-   VARIANT_ELEMENT)           /* -moz-element(...) */
+#define VARIANT_MULTIPLE_TOKENS                                  \
+  (VARIANT_COLOR |           /* rgb(...), hsl(...), etc. */      \
+   VARIANT_COUNTER |         /* counter(...), counters(...) */   \
+   VARIANT_ATTR |            /* attr(...) */                     \
+   VARIANT_GRADIENT |        /* linear-gradient(...), etc. */    \
+   VARIANT_TIMING_FUNCTION | /* cubic-bezier(...), steps(...) */ \
+   VARIANT_IMAGE_RECT |      /* -moz-image-rect(...) */          \
+   VARIANT_CALC |            /* calc(...) */                     \
+   VARIANT_ELEMENT)          /* -moz-element(...) */
 
 // Common combinations of variants
-#define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
-#define VARIANT_LP   (VARIANT_LENGTH | VARIANT_PERCENT)
-#define VARIANT_LN   (VARIANT_LENGTH | VARIANT_NUMBER)
-#define VARIANT_AH   (VARIANT_AUTO | VARIANT_INHERIT)
+#define VARIANT_AL (VARIANT_AUTO | VARIANT_LENGTH)
+#define VARIANT_LP (VARIANT_LENGTH | VARIANT_PERCENT)
+#define VARIANT_LN (VARIANT_LENGTH | VARIANT_NUMBER)
+#define VARIANT_AH (VARIANT_AUTO | VARIANT_INHERIT)
 #define VARIANT_AHLP (VARIANT_AH | VARIANT_LP)
-#define VARIANT_AHI  (VARIANT_AH | VARIANT_INTEGER)
-#define VARIANT_AHK  (VARIANT_AH | VARIANT_KEYWORD)
+#define VARIANT_AHI (VARIANT_AH | VARIANT_INTEGER)
+#define VARIANT_AHK (VARIANT_AH | VARIANT_KEYWORD)
 #define VARIANT_AHKLP (VARIANT_AHLP | VARIANT_KEYWORD)
-#define VARIANT_AHL  (VARIANT_AH | VARIANT_LENGTH)
+#define VARIANT_AHL (VARIANT_AH | VARIANT_LENGTH)
 #define VARIANT_AHKL (VARIANT_AHK | VARIANT_LENGTH)
-#define VARIANT_HK   (VARIANT_INHERIT | VARIANT_KEYWORD)
-#define VARIANT_HKF  (VARIANT_HK | VARIANT_FREQUENCY)
-#define VARIANT_HKI  (VARIANT_HK | VARIANT_INTEGER)
-#define VARIANT_HKL  (VARIANT_HK | VARIANT_LENGTH)
+#define VARIANT_HK (VARIANT_INHERIT | VARIANT_KEYWORD)
+#define VARIANT_HKF (VARIANT_HK | VARIANT_FREQUENCY)
+#define VARIANT_HKI (VARIANT_HK | VARIANT_INTEGER)
+#define VARIANT_HKL (VARIANT_HK | VARIANT_LENGTH)
 #define VARIANT_HKLP (VARIANT_HK | VARIANT_LP)
 #define VARIANT_HKLPO (VARIANT_HKLP | VARIANT_NONE)
-#define VARIANT_HL   (VARIANT_INHERIT | VARIANT_LENGTH)
-#define VARIANT_HI   (VARIANT_INHERIT | VARIANT_INTEGER)
-#define VARIANT_HLP  (VARIANT_HL | VARIANT_PERCENT)
+#define VARIANT_HL (VARIANT_INHERIT | VARIANT_LENGTH)
+#define VARIANT_HI (VARIANT_INHERIT | VARIANT_INTEGER)
+#define VARIANT_HLP (VARIANT_HL | VARIANT_PERCENT)
 #define VARIANT_HLPN (VARIANT_HLP | VARIANT_NUMBER)
 #define VARIANT_HLPO (VARIANT_HLP | VARIANT_NONE)
-#define VARIANT_HTP  (VARIANT_INHERIT | VARIANT_TIME | VARIANT_PERCENT)
-#define VARIANT_HMK  (VARIANT_HK | VARIANT_NORMAL)
-#define VARIANT_HC   (VARIANT_INHERIT | VARIANT_COLOR)
-#define VARIANT_HCK  (VARIANT_HK | VARIANT_COLOR)
-#define VARIANT_HUK  (VARIANT_HK | VARIANT_URL)
-#define VARIANT_HUO  (VARIANT_INHERIT | VARIANT_URL | VARIANT_NONE)
+#define VARIANT_HTP (VARIANT_INHERIT | VARIANT_TIME | VARIANT_PERCENT)
+#define VARIANT_HMK (VARIANT_HK | VARIANT_NORMAL)
+#define VARIANT_HC (VARIANT_INHERIT | VARIANT_COLOR)
+#define VARIANT_HCK (VARIANT_HK | VARIANT_COLOR)
+#define VARIANT_HUK (VARIANT_HK | VARIANT_URL)
+#define VARIANT_HUO (VARIANT_INHERIT | VARIANT_URL | VARIANT_NONE)
 #define VARIANT_AHUO (VARIANT_AUTO | VARIANT_HUO)
-#define VARIANT_HPN  (VARIANT_INHERIT | VARIANT_PERCENT | VARIANT_NUMBER)
-#define VARIANT_PN   (VARIANT_PERCENT | VARIANT_NUMBER)
+#define VARIANT_HPN (VARIANT_INHERIT | VARIANT_PERCENT | VARIANT_NUMBER)
+#define VARIANT_PN (VARIANT_PERCENT | VARIANT_NUMBER)
 #define VARIANT_ALPN (VARIANT_AL | VARIANT_PN)
-#define VARIANT_HN   (VARIANT_INHERIT | VARIANT_NUMBER)
-#define VARIANT_HON  (VARIANT_HN | VARIANT_NONE)
-#define VARIANT_HOS  (VARIANT_INHERIT | VARIANT_NONE | VARIANT_STRING)
-#define VARIANT_LPN  (VARIANT_LP | VARIANT_NUMBER)
-#define VARIANT_UK   (VARIANT_URL | VARIANT_KEYWORD)
-#define VARIANT_UO   (VARIANT_URL | VARIANT_NONE)
+#define VARIANT_HN (VARIANT_INHERIT | VARIANT_NUMBER)
+#define VARIANT_HON (VARIANT_HN | VARIANT_NONE)
+#define VARIANT_HOS (VARIANT_INHERIT | VARIANT_NONE | VARIANT_STRING)
+#define VARIANT_LPN (VARIANT_LP | VARIANT_NUMBER)
+#define VARIANT_UK (VARIANT_URL | VARIANT_KEYWORD)
+#define VARIANT_UO (VARIANT_URL | VARIANT_NONE)
 #define VARIANT_ANGLE_OR_ZERO (VARIANT_ANGLE | VARIANT_ZERO_ANGLE)
-#define VARIANT_LB   (VARIANT_LENGTH | VARIANT_ABSOLUTE_DIMENSION)
+#define VARIANT_LB (VARIANT_LENGTH | VARIANT_ABSOLUTE_DIMENSION)
 #define VARIANT_LBCALC (VARIANT_LB | VARIANT_CALC)
-#define VARIANT_LCALC  (VARIANT_LENGTH | VARIANT_CALC)
+#define VARIANT_LCALC (VARIANT_LENGTH | VARIANT_CALC)
 #define VARIANT_LPCALC (VARIANT_LCALC | VARIANT_PERCENT)
 #define VARIANT_LNCALC (VARIANT_LCALC | VARIANT_NUMBER)
 #define VARIANT_LPNCALC (VARIANT_LNCALC | VARIANT_PERCENT)
-#define VARIANT_IMAGE   (VARIANT_URL | VARIANT_NONE | VARIANT_GRADIENT | \
-                        VARIANT_IMAGE_RECT | VARIANT_ELEMENT)
+#define VARIANT_IMAGE                                                   \
+  (VARIANT_URL | VARIANT_NONE | VARIANT_GRADIENT | VARIANT_IMAGE_RECT | \
+   VARIANT_ELEMENT)
 
 // Flags for the kFlagsTable bitfield (flags_ in nsCSSPropList.h)
 
 // This property is a logical property (such as padding-inline-start).
-#define CSS_PROPERTY_LOGICAL                      (1<<0)
+#define CSS_PROPERTY_LOGICAL (1 << 0)
 
-#define CSS_PROPERTY_VALUE_LIST_USES_COMMAS       (1<<1) /* otherwise spaces */
+#define CSS_PROPERTY_VALUE_LIST_USES_COMMAS (1 << 1) /* otherwise spaces */
 
-#define CSS_PROPERTY_APPLIES_TO_FIRST_LETTER      (1<<2)
-#define CSS_PROPERTY_APPLIES_TO_FIRST_LINE        (1<<3)
+#define CSS_PROPERTY_APPLIES_TO_FIRST_LETTER (1 << 2)
+#define CSS_PROPERTY_APPLIES_TO_FIRST_LINE (1 << 3)
 #define CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE \
   (CSS_PROPERTY_APPLIES_TO_FIRST_LETTER | CSS_PROPERTY_APPLIES_TO_FIRST_LINE)
 
 // Note that 'background-color' is ignored differently from the other
 // properties that have this set, but that's just special-cased.
-#define CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED (1<<4)
+#define CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED (1 << 4)
 
 // A property that needs to have image loads started when a URL value
 // for the property is used for an element.  This is supported only
 // for a few possible value formats: image directly in the value; list
 // of images; and with CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0, image in slot
 // 0 of an array, or list of such arrays.
-#define CSS_PROPERTY_START_IMAGE_LOADS            (1<<5)
+#define CSS_PROPERTY_START_IMAGE_LOADS (1 << 5)
 
 // Should be set only for properties with START_IMAGE_LOADS.  Indicates
 // that the property has an array value with a URL/image value at index
 // 0 in the array, rather than the URL/image being in the value or value
 // list.
-#define CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0          (1<<6)
+#define CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0 (1 << 6)
 
 // This is a logical property that represents some value associated with
 // a logical axis rather than a logical box side, and thus has two
@@ -158,13 +163,13 @@
 // represents the size in either the block or inline axis dimensions, and
 // has two corresponding physical properties, width and height.  Must not
 // be used in conjunction with CSS_PROPERTY_LOGICAL_END_EDGE.
-#define CSS_PROPERTY_LOGICAL_AXIS                 (1<<7)
+#define CSS_PROPERTY_LOGICAL_AXIS (1 << 7)
 
 // This property allows calc() between lengths and percentages and
 // stores such calc() expressions in its style structs (typically in an
 // nsStyleCoord, although this is not the case for 'background-position'
 // and 'background-size').
-#define CSS_PROPERTY_STORES_CALC                  (1<<8)
+#define CSS_PROPERTY_STORES_CALC (1 << 8)
 
 // Define what mechanism the CSS parser uses for parsing the property.
 // See CSSParserImpl::ParseProperty(nsCSSPropertyID).  Don't use 0 so that
@@ -177,48 +182,48 @@
 // CSS_PROPERTY_PARSE_VALUE_LIST) and
 // CSS_PROPERTY_VALUE_PARSER_FUNCTION, though a number of existing
 // longhand properties use CSS_PROPERTY_PARSE_FUNCTION instead.
-#define CSS_PROPERTY_PARSE_PROPERTY_MASK          (7<<9)
-#define CSS_PROPERTY_PARSE_INACCESSIBLE           (1<<9)
-#define CSS_PROPERTY_PARSE_FUNCTION               (2<<9)
-#define CSS_PROPERTY_PARSE_VALUE                  (3<<9)
-#define CSS_PROPERTY_PARSE_VALUE_LIST             (4<<9)
+#define CSS_PROPERTY_PARSE_PROPERTY_MASK (7 << 9)
+#define CSS_PROPERTY_PARSE_INACCESSIBLE (1 << 9)
+#define CSS_PROPERTY_PARSE_FUNCTION (2 << 9)
+#define CSS_PROPERTY_PARSE_VALUE (3 << 9)
+#define CSS_PROPERTY_PARSE_VALUE_LIST (4 << 9)
 
 // See CSSParserImpl::ParseSingleValueProperty and comment above
 // CSS_PROPERTY_PARSE_FUNCTION (which is different).
-#define CSS_PROPERTY_VALUE_PARSER_FUNCTION        (1<<12)
+#define CSS_PROPERTY_VALUE_PARSER_FUNCTION (1 << 12)
 static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
                CSS_PROPERTY_VALUE_PARSER_FUNCTION) == 0,
               "didn't leave enough room for the parse property constants");
 
-#define CSS_PROPERTY_VALUE_RESTRICTION_MASK       (3<<13)
+#define CSS_PROPERTY_VALUE_RESTRICTION_MASK (3 << 13)
 // The parser (in particular, CSSParserImpl::ParseSingleValueProperty)
 // should enforce that the value of this property must be 0 or larger.
-#define CSS_PROPERTY_VALUE_NONNEGATIVE            (1<<13)
+#define CSS_PROPERTY_VALUE_NONNEGATIVE (1 << 13)
 // The parser (in particular, CSSParserImpl::ParseSingleValueProperty)
 // should enforce that the value of this property must be 1 or larger.
-#define CSS_PROPERTY_VALUE_AT_LEAST_ONE           (2<<13)
+#define CSS_PROPERTY_VALUE_AT_LEAST_ONE (2 << 13)
 
 // Does this property support the hashless hex color quirk in quirks mode?
-#define CSS_PROPERTY_HASHLESS_COLOR_QUIRK         (1<<15)
+#define CSS_PROPERTY_HASHLESS_COLOR_QUIRK (1 << 15)
 
 // Does this property support the unitless length quirk in quirks mode?
-#define CSS_PROPERTY_UNITLESS_LENGTH_QUIRK        (1<<16)
+#define CSS_PROPERTY_UNITLESS_LENGTH_QUIRK (1 << 16)
 
 // Is this property (which must be a shorthand) really an alias?
-#define CSS_PROPERTY_IS_ALIAS                     (1<<17)
+#define CSS_PROPERTY_IS_ALIAS (1 << 17)
 
 // Does the property apply to ::placeholder?
-#define CSS_PROPERTY_APPLIES_TO_PLACEHOLDER       (1<<18)
+#define CSS_PROPERTY_APPLIES_TO_PLACEHOLDER (1 << 18)
 
 // This property is allowed in an @page rule.
-#define CSS_PROPERTY_APPLIES_TO_PAGE_RULE         (1<<19)
+#define CSS_PROPERTY_APPLIES_TO_PAGE_RULE (1 << 19)
 
 // This property's getComputedStyle implementation requires layout to be
 // flushed.
-#define CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH     (1<<20)
+#define CSS_PROPERTY_GETCS_NEEDS_LAYOUT_FLUSH (1 << 20)
 
 // This property requires a stacking context.
-#define CSS_PROPERTY_CREATES_STACKING_CONTEXT     (1<<21)
+#define CSS_PROPERTY_CREATES_STACKING_CONTEXT (1 << 21)
 
 // The following two flags along with the pref defines where the this
 // property can be used:
@@ -236,21 +241,21 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // transitions) these flags are ignored. That is, if the property is disabled
 // by a pref, we will *not* run animations or transitions on it even in
 // UA sheets or chrome.
-#define CSS_PROPERTY_ENABLED_MASK                 (3<<22)
-#define CSS_PROPERTY_ENABLED_IN_UA_SHEETS         (1<<22)
-#define CSS_PROPERTY_ENABLED_IN_CHROME            (1<<23)
+#define CSS_PROPERTY_ENABLED_MASK (3 << 22)
+#define CSS_PROPERTY_ENABLED_IN_UA_SHEETS (1 << 22)
+#define CSS_PROPERTY_ENABLED_IN_CHROME (1 << 23)
 #define CSS_PROPERTY_ENABLED_IN_UA_SHEETS_AND_CHROME \
   (CSS_PROPERTY_ENABLED_IN_UA_SHEETS | CSS_PROPERTY_ENABLED_IN_CHROME)
 
 // This property's unitless values are pixels.
-#define CSS_PROPERTY_NUMBERS_ARE_PIXELS           (1<<24)
+#define CSS_PROPERTY_NUMBERS_ARE_PIXELS (1 << 24)
 
 // This property is a logical property for one of the two block axis
 // sides (such as margin-block-start or margin-block-end).  Must only be
 // set if CSS_PROPERTY_LOGICAL is set.  When not set, the logical
 // property is for one of the two inline axis sides (such as
 // margin-inline-start or margin-inline-end).
-#define CSS_PROPERTY_LOGICAL_BLOCK_AXIS           (1<<25)
+#define CSS_PROPERTY_LOGICAL_BLOCK_AXIS (1 << 25)
 
 // This property is a logical property for the "end" edge of the
 // axis determined by the presence or absence of
@@ -258,22 +263,22 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // margin-inline-end).  Must only be set if CSS_PROPERTY_LOGICAL is set.
 // When not set, the logical property is for the "start" edge (such as
 // margin-block-start or margin-inline-start).
-#define CSS_PROPERTY_LOGICAL_END_EDGE             (1<<26)
+#define CSS_PROPERTY_LOGICAL_END_EDGE (1 << 26)
 
 // This property can be animated on the compositor.
-#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR    (1<<27)
+#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR (1 << 27)
 
 // This property is an internal property that is not represented
 // in the DOM.  Properties with this flag must be defined in an #ifndef
 // CSS_PROP_LIST_EXCLUDE_INTERNAL section of nsCSSPropList.h.
-#define CSS_PROPERTY_INTERNAL                     (1<<28)
+#define CSS_PROPERTY_INTERNAL (1 << 28)
 
 // This property has values that can establish a containing block for
 // fixed positioned and absolutely positioned elements.
 // This should be set for any properties that can cause an element to be
 // such a containing block, as implemented in
 // nsStyleDisplay::IsFixedPosContainingBlock.
-#define CSS_PROPERTY_FIXPOS_CB                    (1<<29)
+#define CSS_PROPERTY_FIXPOS_CB (1 << 29)
 
 // This property has values that can establish a containing block for
 // absolutely positioned elements.
@@ -282,12 +287,12 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // nsStyleDisplay::IsAbsPosContainingBlock.
 // It does not need to be set for properties that also have
 // CSS_PROPERTY_FIXPOS_CB set.
-#define CSS_PROPERTY_ABSPOS_CB                    (1<<30)
+#define CSS_PROPERTY_ABSPOS_CB (1 << 30)
 
 // This property should add Cross Origin Request headers to any loads
 // that it triggers. Currently this is only used for properties that
 // also use CSS_PROPERTY_START_IMAGE_LOADS.
-#define CSS_PROPERTY_LOAD_USE_CORS                (1U<<31)
+#define CSS_PROPERTY_LOAD_USE_CORS (1U << 31)
 
 /**
  * Types of animatable values.
@@ -340,32 +345,25 @@ enum nsStyleAnimType {
 };
 
 class nsCSSProps {
-public:
+ public:
   typedef mozilla::CSSEnabledState EnabledState;
 
-  struct KTableEntry
-  {
+  struct KTableEntry {
     // KTableEntry objects can be initialized either with an int16_t value
     // or a value of an enumeration type that can fit within an int16_t.
 
     constexpr KTableEntry(nsCSSKeyword aKeyword, int16_t aValue)
-      : mKeyword(aKeyword)
-      , mValue(aValue)
-    {
-    }
+        : mKeyword(aKeyword), mValue(aValue) {}
 
-    template<typename T,
-             typename = typename std::enable_if<std::is_enum<T>::value>::type>
+    template <typename T,
+              typename = typename std::enable_if<std::is_enum<T>::value>::type>
     constexpr KTableEntry(nsCSSKeyword aKeyword, T aValue)
-      : mKeyword(aKeyword)
-      , mValue(static_cast<int16_t>(aValue))
-    {
+        : mKeyword(aKeyword), mValue(static_cast<int16_t>(aValue)) {
       static_assert(mozilla::EnumTypeFitsWithin<T, int16_t>::value,
                     "aValue must be an enum that fits within mValue");
     }
 
-    bool IsSentinel() const
-    {
+    bool IsSentinel() const {
       return mKeyword == eCSSKeyword_UNKNOWN && mValue == -1;
     }
 
@@ -380,17 +378,15 @@ public:
   // nsCSSPropertyID value.  If aProperty is the name of a custom property,
   // then eCSSPropertyExtra_variable will be returned.
   static nsCSSPropertyID LookupProperty(const nsAString& aProperty,
-                                      EnabledState aEnabled);
+                                        EnabledState aEnabled);
   static nsCSSPropertyID LookupProperty(const nsACString& aProperty,
-                                      EnabledState aEnabled);
+                                        EnabledState aEnabled);
   // As above, but looked up using a property's IDL name.
   // eCSSPropertyExtra_variable won't be returned from these methods.
   static nsCSSPropertyID LookupPropertyByIDLName(
-      const nsAString& aPropertyIDLName,
-      EnabledState aEnabled);
+      const nsAString& aPropertyIDLName, EnabledState aEnabled);
   static nsCSSPropertyID LookupPropertyByIDLName(
-      const nsACString& aPropertyIDLName,
-      EnabledState aEnabled);
+      const nsACString& aPropertyIDLName, EnabledState aEnabled);
 
   // Returns whether aProperty is a custom property name, i.e. begins with
   // "--".  This assumes that the CSS Variables pref has been enabled.
@@ -426,11 +422,12 @@ public:
   // Given a CSS Property and a Property Enum Value
   // Return back a const nsString& representation of the
   // value. Return back nullstr if no value is found
-  static const nsCString& LookupPropertyValue(nsCSSPropertyID aProperty, int32_t aValue);
+  static const nsCString& LookupPropertyValue(nsCSSPropertyID aProperty,
+                                              int32_t aValue);
 
-  // Get a color name for a predefined color value like buttonhighlight or activeborder
-  // Sets the aStr param to the name of the propertyID
-  static bool GetColorName(int32_t aPropID, nsCString &aStr);
+  // Get a color name for a predefined color value like buttonhighlight or
+  // activeborder Sets the aStr param to the name of the propertyID
+  static bool GetColorName(int32_t aPropID, nsCString& aStr);
 
   // Returns the index of |aKeyword| in |aTable|, if it exists there;
   // otherwise, returns -1.
@@ -438,47 +435,46 @@ public:
   static int32_t FindIndexOfKeyword(nsCSSKeyword aKeyword,
                                     const KTableEntry aTable[]);
 
-  // Find |aKeyword| in |aTable|, if found set |aValue| to its corresponding value.
-  // If not found, return false and do not set |aValue|.
+  // Find |aKeyword| in |aTable|, if found set |aValue| to its corresponding
+  // value. If not found, return false and do not set |aValue|.
   static bool FindKeyword(nsCSSKeyword aKeyword, const KTableEntry aTable[],
                           int32_t& aValue);
-  // Return the first keyword in |aTable| that has the corresponding value |aValue|.
-  // Return |eCSSKeyword_UNKNOWN| if not found.
+  // Return the first keyword in |aTable| that has the corresponding value
+  // |aValue|. Return |eCSSKeyword_UNKNOWN| if not found.
   static nsCSSKeyword ValueToKeywordEnum(int32_t aValue,
                                          const KTableEntry aTable[]);
-  template<typename T,
-           typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  static nsCSSKeyword ValueToKeywordEnum(T aValue,
-                                         const KTableEntry aTable[])
-  {
-    static_assert(mozilla::EnumTypeFitsWithin<T, int16_t>::value,
-                  "aValue must be an enum that fits within KTableEntry::mValue");
+  template <typename T,
+            typename = typename std::enable_if<std::is_enum<T>::value>::type>
+  static nsCSSKeyword ValueToKeywordEnum(T aValue, const KTableEntry aTable[]) {
+    static_assert(
+        mozilla::EnumTypeFitsWithin<T, int16_t>::value,
+        "aValue must be an enum that fits within KTableEntry::mValue");
     return ValueToKeywordEnum(static_cast<int16_t>(aValue), aTable);
   }
   // Ditto but as a string, return "" when not found.
   static const nsCString& ValueToKeyword(int32_t aValue,
                                          const KTableEntry aTable[]);
-  template<typename T,
-           typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  static const nsCString& ValueToKeyword(T aValue, const KTableEntry aTable[])
-  {
-    static_assert(mozilla::EnumTypeFitsWithin<T, int16_t>::value,
-                  "aValue must be an enum that fits within KTableEntry::mValue");
+  template <typename T,
+            typename = typename std::enable_if<std::is_enum<T>::value>::type>
+  static const nsCString& ValueToKeyword(T aValue, const KTableEntry aTable[]) {
+    static_assert(
+        mozilla::EnumTypeFitsWithin<T, int16_t>::value,
+        "aValue must be an enum that fits within KTableEntry::mValue");
     return ValueToKeyword(static_cast<int16_t>(aValue), aTable);
   }
 
   static const nsStyleStructID kSIDTable[eCSSProperty_COUNT_no_shorthands];
-  static const KTableEntry* const kKeywordTableTable[eCSSProperty_COUNT_no_shorthands];
+  static const KTableEntry* const
+      kKeywordTableTable[eCSSProperty_COUNT_no_shorthands];
   static const nsStyleAnimType kAnimTypeTable[eCSSProperty_COUNT_no_shorthands];
   static const ptrdiff_t
-    kStyleStructOffsetTable[eCSSProperty_COUNT_no_shorthands];
+      kStyleStructOffsetTable[eCSSProperty_COUNT_no_shorthands];
 
-private:
-  static const uint32_t        kFlagsTable[eCSSProperty_COUNT];
+ private:
+  static const uint32_t kFlagsTable[eCSSProperty_COUNT];
 
-public:
-  static inline bool PropHasFlags(nsCSSPropertyID aProperty, uint32_t aFlags)
-  {
+ public:
+  static inline bool PropHasFlags(nsCSSPropertyID aProperty, uint32_t aFlags) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
                "out of range");
     MOZ_ASSERT(!(aFlags & CSS_PROPERTY_PARSE_PROPERTY_MASK),
@@ -488,43 +484,41 @@ public:
     return (nsCSSProps::kFlagsTable[aProperty] & aFlags) == aFlags;
   }
 
-  static inline uint32_t PropertyParseType(nsCSSPropertyID aProperty)
-  {
+  static inline uint32_t PropertyParseType(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
                "out of range");
     return nsCSSProps::kFlagsTable[aProperty] &
            CSS_PROPERTY_PARSE_PROPERTY_MASK;
   }
 
-  static inline uint32_t ValueRestrictions(nsCSSPropertyID aProperty)
-  {
+  static inline uint32_t ValueRestrictions(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
                "out of range");
     return nsCSSProps::kFlagsTable[aProperty] &
            CSS_PROPERTY_VALUE_RESTRICTION_MASK;
   }
 
-private:
+ private:
   static const uint32_t kParserVariantTable[eCSSProperty_COUNT_no_shorthands];
 
-public:
+ public:
   static inline uint32_t ParserVariant(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
                "out of range");
     return nsCSSProps::kParserVariantTable[aProperty];
   }
 
-private:
+ private:
   // A table for shorthand properties.  The appropriate index is the
   // property ID minus eCSSProperty_COUNT_no_shorthands.
-  static const nsCSSPropertyID *const
-    kSubpropertyTable[eCSSProperty_COUNT - eCSSProperty_COUNT_no_shorthands];
+  static const nsCSSPropertyID* const
+      kSubpropertyTable[eCSSProperty_COUNT - eCSSProperty_COUNT_no_shorthands];
 
-public:
-  static inline
-  const nsCSSPropertyID * SubpropertyEntryFor(nsCSSPropertyID aProperty) {
+ public:
+  static inline const nsCSSPropertyID* SubpropertyEntryFor(
+      nsCSSPropertyID aProperty) {
     MOZ_ASSERT(eCSSProperty_COUNT_no_shorthands <= aProperty &&
-               aProperty < eCSSProperty_COUNT,
+                   aProperty < eCSSProperty_COUNT,
                "out of range");
     return nsCSSProps::kSubpropertyTable[aProperty -
                                          eCSSProperty_COUNT_no_shorthands];
@@ -533,33 +527,36 @@ public:
   // Returns an eCSSProperty_UNKNOWN-terminated array of the shorthand
   // properties containing |aProperty|, sorted from those that contain
   // the most properties to those that contain the least.
-  static const nsCSSPropertyID * ShorthandsContaining(nsCSSPropertyID aProperty) {
+  static const nsCSSPropertyID* ShorthandsContaining(
+      nsCSSPropertyID aProperty) {
     MOZ_ASSERT(gShorthandsContainingPool, "uninitialized");
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
                "out of range");
     return gShorthandsContainingTable[aProperty];
   }
-private:
+
+ private:
   // gShorthandsContainingTable is an array of the return values for
   // ShorthandsContaining (arrays of nsCSSPropertyID terminated by
   // eCSSProperty_UNKNOWN) pointing into memory in
   // gShorthandsContainingPool (which contains all of those arrays in a
   // single allocation, and is the one pointer that should be |free|d).
-  static nsCSSPropertyID *gShorthandsContainingTable[eCSSProperty_COUNT_no_shorthands];
+  static nsCSSPropertyID*
+      gShorthandsContainingTable[eCSSProperty_COUNT_no_shorthands];
   static nsCSSPropertyID* gShorthandsContainingPool;
   static bool BuildShorthandsContainingTable();
 
-private:
+ private:
   static const size_t gPropertyCountInStruct[nsStyleStructID_Length];
   static const size_t gPropertyIndexInStruct[eCSSProperty_COUNT_no_shorthands];
-public:
+
+ public:
   /**
    * Return the number of properties that must be cascaded when
    * nsRuleNode builds the nsStyle* for aSID.
    */
   static size_t PropertyCountInStruct(nsStyleStructID aSID) {
-    MOZ_ASSERT(0 <= aSID && aSID < nsStyleStructID_Length,
-               "out of range");
+    MOZ_ASSERT(0 <= aSID && aSID < nsStyleStructID_Length, "out of range");
     return gPropertyCountInStruct[aSID];
   }
   /**
@@ -572,13 +569,13 @@ public:
     return gPropertyIndexInStruct[aProperty];
   }
 
-private:
+ private:
   // A table for logical property groups.  Indexes are
   // nsCSSPropertyLogicalGroup values.
   static const nsCSSPropertyID* const
-    kLogicalGroupTable[eCSSPropertyLogicalGroup_COUNT];
+      kLogicalGroupTable[eCSSPropertyLogicalGroup_COUNT];
 
-public:
+ public:
   /**
    * Returns an array of longhand physical properties which can be set by
    * the argument, which must be a logical longhand property.  The returned
@@ -599,14 +596,14 @@ public:
    */
   static const nsCSSPropertyID* LogicalGroup(nsCSSPropertyID aProperty);
 
-private:
+ private:
   static bool gPropertyEnabled[eCSSProperty_COUNT_with_aliases];
 
-private:
+ private:
   // Defined in the generated nsCSSPropsGenerated.inc.
   static const char* const kIDLNameTable[eCSSProperty_COUNT];
 
-public:
+ public:
   /**
    * Returns the IDL name of the specified property, which must be a
    * longhand, logical or shorthand property.  The IDL name is the property
@@ -617,23 +614,21 @@ public:
    * As a special case, the string "cssFloat" is returned for the float
    * property.  nullptr is returned for internal properties.
    */
-  static const char* PropertyIDLName(nsCSSPropertyID aProperty)
-  {
+  static const char* PropertyIDLName(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
                "out of range");
     return kIDLNameTable[aProperty];
   }
 
-private:
+ private:
   static const int32_t kIDLNameSortPositionTable[eCSSProperty_COUNT];
 
-public:
+ public:
   /**
    * Returns the position of the specified property in a list of all
    * properties sorted by their IDL name.
    */
-  static int32_t PropertyIDLNameSortPosition(nsCSSPropertyID aProperty)
-  {
+  static int32_t PropertyIDLNameSortPosition(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
                "out of range");
     return kIDLNameSortPositionTable[aProperty];
@@ -652,18 +647,17 @@ public:
   // A table for the use counter associated with each CSS property.  If a
   // property does not have a use counter defined in UseCounters.conf, then
   // its associated entry is |eUseCounter_UNKNOWN|.
-  static const mozilla::UseCounter gPropertyUseCounter[eCSSProperty_COUNT_no_shorthands];
+  static const mozilla::UseCounter
+      gPropertyUseCounter[eCSSProperty_COUNT_no_shorthands];
 
-public:
-
+ public:
   static mozilla::UseCounter UseCounterFor(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
                "out of range");
     return gPropertyUseCounter[aProperty];
   }
 
-  static bool IsEnabled(nsCSSPropertyID aProperty, EnabledState aEnabled)
-  {
+  static bool IsEnabled(nsCSSPropertyID aProperty, EnabledState aEnabled) {
     if (IsEnabled(aProperty)) {
       return true;
     }
@@ -671,34 +665,31 @@ public:
       return true;
     }
     if ((aEnabled & EnabledState::eInUASheets) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_UA_SHEETS))
-    {
+        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_UA_SHEETS)) {
       return true;
     }
     if ((aEnabled & EnabledState::eInChrome) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_CHROME))
-    {
+        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_CHROME)) {
       return true;
     }
     return false;
   }
 
-public:
-
+ public:
   // Return an array of possible list style types, and the length of
   // the array.
-  static const char* const* GetListStyleTypes(int32_t *aLength);
+  static const char* const* GetListStyleTypes(int32_t* aLength);
 
-// Storing the enabledstate_ value in an nsCSSPropertyID variable is a small hack
-// to avoid needing a separate variable declaration for its real type
+// Storing the enabledstate_ value in an nsCSSPropertyID variable is a small
+// hack to avoid needing a separate variable declaration for its real type
 // (CSSEnabledState), which would then require using a block and
 // therefore a pair of macros by consumers for the start and end of the loop.
-#define CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(it_, prop_, enabledstate_)   \
-  for (const nsCSSPropertyID *it_ = nsCSSProps::SubpropertyEntryFor(prop_), \
-                            es_ = (nsCSSPropertyID)((enabledstate_) |       \
-                                                  CSSEnabledState(0));    \
-       *it_ != eCSSProperty_UNKNOWN; ++it_)                               \
-    if (nsCSSProps::IsEnabled(*it_, (mozilla::CSSEnabledState) es_))
+#define CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(it_, prop_, enabledstate_)  \
+  for (const nsCSSPropertyID *                                           \
+           it_ = nsCSSProps::SubpropertyEntryFor(prop_),                 \
+          es_ = (nsCSSPropertyID)((enabledstate_) | CSSEnabledState(0)); \
+       *it_ != eCSSProperty_UNKNOWN; ++it_)                              \
+    if (nsCSSProps::IsEnabled(*it_, (mozilla::CSSEnabledState)es_))
 
   // Keyword/Enum value tables
   static const KTableEntry kAnimationDirectionKTable[];
@@ -773,18 +764,23 @@ public:
   static KTableEntry kDisplayKTable[];
   static const KTableEntry kElevationKTable[];
   static const KTableEntry kEmptyCellsKTable[];
-  // -- tables for parsing the {align,justify}-{content,items,self} properties --
+  // -- tables for parsing the {align,justify}-{content,items,self} properties
+  // --
   static const KTableEntry kAlignAllKeywords[];
-  static const KTableEntry kAlignOverflowPosition[]; // <overflow-position>
-  static const KTableEntry kAlignSelfPosition[];     // <self-position>
-  static const KTableEntry kAlignLegacy[];           // 'legacy'
-  static const KTableEntry kAlignLegacyPosition[];   // 'left/right/center'
-  static const KTableEntry kAlignAutoNormalStretchBaseline[]; // 'auto/normal/stretch/baseline'
-  static const KTableEntry kAlignNormalStretchBaseline[]; // 'normal/stretch/baseline'
-  static const KTableEntry kAlignNormalBaseline[]; // 'normal/baseline'
-  static const KTableEntry kAlignContentDistribution[]; // <content-distribution>
-  static const KTableEntry kAlignContentPosition[]; // <content-position>
-  // -- tables for auto-completion of the {align,justify}-{content,items,self} properties --
+  static const KTableEntry kAlignOverflowPosition[];  // <overflow-position>
+  static const KTableEntry kAlignSelfPosition[];      // <self-position>
+  static const KTableEntry kAlignLegacy[];            // 'legacy'
+  static const KTableEntry kAlignLegacyPosition[];    // 'left/right/center'
+  static const KTableEntry
+      kAlignAutoNormalStretchBaseline[];  // 'auto/normal/stretch/baseline'
+  static const KTableEntry
+      kAlignNormalStretchBaseline[];                // 'normal/stretch/baseline'
+  static const KTableEntry kAlignNormalBaseline[];  // 'normal/baseline'
+  static const KTableEntry
+      kAlignContentDistribution[];                   // <content-distribution>
+  static const KTableEntry kAlignContentPosition[];  // <content-position>
+  // -- tables for auto-completion of the {align,justify}-{content,items,self}
+  // properties --
   static const KTableEntry kAutoCompletionAlignJustifySelf[];
   static const KTableEntry kAutoCompletionAlignItems[];
   static const KTableEntry kAutoCompletionAlignJustifyContent[];
@@ -886,7 +882,7 @@ public:
   static const KTableEntry kVisibilityKTable[];
   static const KTableEntry kVolumeKTable[];
   static const KTableEntry kWhitespaceKTable[];
-  static const KTableEntry kWidthKTable[]; // also min-width, max-width
+  static const KTableEntry kWidthKTable[];  // also min-width, max-width
   static const KTableEntry kWindowDraggingKTable[];
   static const KTableEntry kWindowShadowKTable[];
   static const KTableEntry kWordBreakKTable[];

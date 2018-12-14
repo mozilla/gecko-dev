@@ -15,8 +15,9 @@ namespace layers {
 struct APZTestDataToJSConverter {
   template <typename Key, typename Value, typename KeyValuePair>
   static void ConvertMap(const std::map<Key, Value>& aFrom,
-                               dom::Sequence<KeyValuePair>& aOutTo,
-                               void (*aElementConverter)(const Key&, const Value&, KeyValuePair&)) {
+                         dom::Sequence<KeyValuePair>& aOutTo,
+                         void (*aElementConverter)(const Key&, const Value&,
+                                                   KeyValuePair&)) {
     for (auto it = aFrom.begin(); it != aFrom.end(); ++it) {
       aOutTo.AppendElement(fallible);
       aElementConverter(it->first, it->second, aOutTo.LastElement());
@@ -36,15 +37,18 @@ struct APZTestDataToJSConverter {
   static void ConvertAPZTestData(const APZTestData& aFrom,
                                  dom::APZTestData& aOutTo) {
     ConvertMap(aFrom.mPaints, aOutTo.mPaints.Construct(), ConvertBucket);
-    ConvertMap(aFrom.mRepaintRequests, aOutTo.mRepaintRequests.Construct(), ConvertBucket);
-    ConvertList(aFrom.mHitResults, aOutTo.mHitResults.Construct(), ConvertHitResult);
+    ConvertMap(aFrom.mRepaintRequests, aOutTo.mRepaintRequests.Construct(),
+               ConvertBucket);
+    ConvertList(aFrom.mHitResults, aOutTo.mHitResults.Construct(),
+                ConvertHitResult);
   }
 
   static void ConvertBucket(const SequenceNumber& aKey,
                             const APZTestData::Bucket& aValue,
                             dom::APZBucket& aOutKeyValuePair) {
     aOutKeyValuePair.mSequenceNumber.Construct() = aKey;
-    ConvertMap(aValue, aOutKeyValuePair.mScrollFrames.Construct(), ConvertScrollFrameData);
+    ConvertMap(aValue, aOutKeyValuePair.mScrollFrames.Construct(),
+               ConvertScrollFrameData);
   }
 
   static void ConvertScrollFrameData(const APZTestData::ViewID& aKey,
@@ -54,8 +58,7 @@ struct APZTestDataToJSConverter {
     ConvertMap(aValue, aOutKeyValuePair.mEntries.Construct(), ConvertEntry);
   }
 
-  static void ConvertEntry(const std::string& aKey,
-                           const std::string& aValue,
+  static void ConvertEntry(const std::string& aKey, const std::string& aValue,
                            dom::ScrollFrameDataEntry& aOutKeyValuePair) {
     ConvertString(aKey, aOutKeyValuePair.mKey.Construct());
     ConvertString(aValue, aOutKeyValuePair.mValue.Construct());
@@ -70,19 +73,19 @@ struct APZTestDataToJSConverter {
     aOutHitResult.mScreenX.Construct() = aResult.point.x;
     aOutHitResult.mScreenY.Construct() = aResult.point.y;
     static_assert(sizeof(aResult.result) == sizeof(uint16_t),
-        "Expected CompositorHitTestInfo to be 16-bit");
-    aOutHitResult.mHitResult.Construct() = static_cast<uint16_t>(aResult.result);
+                  "Expected CompositorHitTestInfo to be 16-bit");
+    aOutHitResult.mHitResult.Construct() =
+        static_cast<uint16_t>(aResult.result);
     aOutHitResult.mScrollId.Construct() = aResult.scrollId;
   }
 };
 
-bool
-APZTestData::ToJS(JS::MutableHandleValue aOutValue, JSContext* aContext) const
-{
+bool APZTestData::ToJS(JS::MutableHandleValue aOutValue,
+                       JSContext* aContext) const {
   dom::APZTestData result;
   APZTestDataToJSConverter::ConvertAPZTestData(*this, result);
   return dom::ToJSValue(aContext, result, aOutValue);
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

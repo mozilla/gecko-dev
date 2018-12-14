@@ -28,10 +28,12 @@
 
 #include "pkix/Time.h"
 
-namespace mozilla { namespace pkix { namespace test {
+namespace mozilla {
+namespace pkix {
+namespace test {
 
 static const std::time_t ONE_DAY_IN_SECONDS_AS_TIME_T =
-  static_cast<std::time_t>(Time::ONE_DAY_IN_SECONDS);
+    static_cast<std::time_t>(Time::ONE_DAY_IN_SECONDS);
 
 // This assumes that time/time_t are POSIX-compliant in that time() returns
 // the number of seconds since the Unix epoch.
@@ -43,4 +45,6 @@ const std::time_t twoDaysAfterNow(now + (2 * ONE_DAY_IN_SECONDS_AS_TIME_T));
 const std::time_t tenDaysBeforeNow(now - (10 * ONE_DAY_IN_SECONDS_AS_TIME_T));
 const std::time_t tenDaysAfterNow(now + (10 * ONE_DAY_IN_SECONDS_AS_TIME_T));
 
-} } } // namespace mozilla::pkix::test
+}  // namespace test
+}  // namespace pkix
+}  // namespace mozilla

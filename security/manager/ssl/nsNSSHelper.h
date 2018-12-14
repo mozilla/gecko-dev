@@ -15,15 +15,14 @@
 // Implementation of an nsIInterfaceRequestor for use
 // as context for NSS calls
 //
-class PipUIContext : public nsIInterfaceRequestor
-{
-public:
+class PipUIContext : public nsIInterfaceRequestor {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINTERFACEREQUESTOR
 
   PipUIContext();
 
-protected:
+ protected:
   virtual ~PipUIContext();
 };
 
@@ -32,25 +31,20 @@ protected:
 // specific dialogs.
 //
 
-nsresult
-getNSSDialogs(void **_result, REFNSIID aIID, const char *contract);
+nsresult getNSSDialogs(void **_result, REFNSIID aIID, const char *contract);
 
 extern "C" {
 // a "fake" unicode conversion function
-PRBool
-pip_ucs2_ascii_conversion_fn(PRBool toUnicode,
-                             unsigned char *inBuf,
-                             unsigned int inBufLen,
-                             unsigned char *outBuf,
-                             unsigned int maxOutBufLen,
-                             unsigned int *outBufLen,
-                             PRBool swapBytes);
+PRBool pip_ucs2_ascii_conversion_fn(PRBool toUnicode, unsigned char *inBuf,
+                                    unsigned int inBufLen,
+                                    unsigned char *outBuf,
+                                    unsigned int maxOutBufLen,
+                                    unsigned int *outBufLen, PRBool swapBytes);
 }
 
 //
 // A function that sets the password on an unitialized slot.
 //
-nsresult
-setPassword(PK11SlotInfo* slot, nsIInterfaceRequestor* ctx);
+nsresult setPassword(PK11SlotInfo *slot, nsIInterfaceRequestor *ctx);
 
 #endif

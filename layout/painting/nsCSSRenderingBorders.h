@@ -28,11 +28,11 @@ class nsDisplayBorder;
 namespace mozilla {
 namespace gfx {
 class GradientStops;
-} // namespace gfx
+}  // namespace gfx
 namespace layers {
 class StackingContextHelper;
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 // define this to enable a bunch of debug dump info
 #undef DEBUG_NEW_BORDERS
@@ -48,9 +48,9 @@ class StackingContextHelper;
  *
  * borderStyles -- one border style enum per side
  * borderWidths -- one border width per side
- * borderRadii -- a RectCornerRadii struct describing the w/h for each rounded corner.
- *    If the corner doesn't have a border radius, 0,0 should be given for it.
- * borderColors -- one nscolor per side
+ * borderRadii -- a RectCornerRadii struct describing the w/h for each rounded
+ * corner. If the corner doesn't have a border radius, 0,0 should be given for
+ * it. borderColors -- one nscolor per side
  *
  * skipSides -- a bit mask specifying which sides, if any, to skip
  * backgroundColor -- the background color of the element.
@@ -69,8 +69,7 @@ typedef enum {
 class nsIDocument;
 class nsPresContext;
 
-class nsCSSBorderRenderer final
-{
+class nsCSSBorderRenderer final {
   typedef mozilla::gfx::Bezier Bezier;
   typedef mozilla::gfx::ColorPattern ColorPattern;
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -86,28 +85,22 @@ class nsCSSBorderRenderer final
   friend class nsDisplayButtonBorder;
   friend class nsDisplayButtonForeground;
 
-public:
-
-  nsCSSBorderRenderer(nsPresContext* aPresContext,
-                      const nsIDocument* aDocument,
-                      DrawTarget* aDrawTarget,
-                      const Rect& aDirtyRect,
-                      Rect& aOuterRect,
-                      const uint8_t* aBorderStyles,
-                      const Float* aBorderWidths,
-                      RectCornerRadii& aBorderRadii,
-                      const nscolor* aBorderColors,
-                      nscolor aBackgroundColor,
+ public:
+  nsCSSBorderRenderer(nsPresContext* aPresContext, const nsIDocument* aDocument,
+                      DrawTarget* aDrawTarget, const Rect& aDirtyRect,
+                      Rect& aOuterRect, const uint8_t* aBorderStyles,
+                      const Float* aBorderWidths, RectCornerRadii& aBorderRadii,
+                      const nscolor* aBorderColors, nscolor aBackgroundColor,
                       bool aBackfaceIsVisible,
                       const mozilla::Maybe<Rect>& aClipRect);
 
   // draw the entire border
   void DrawBorders();
 
-  void CreateWebRenderCommands(nsDisplayItem* aItem,
-                               mozilla::wr::DisplayListBuilder& aBuilder,
-                               mozilla::wr::IpcResourceUpdateQueue& aResources,
-                               const mozilla::layers::StackingContextHelper& aSc);
+  void CreateWebRenderCommands(
+      nsDisplayItem* aItem, mozilla::wr::DisplayListBuilder& aBuilder,
+      mozilla::wr::IpcResourceUpdateQueue& aResources,
+      const mozilla::layers::StackingContextHelper& aSc);
 
   // utility function used for background painting as well as borders
   static void ComputeInnerRadii(const RectCornerRadii& aRadii,
@@ -124,8 +117,7 @@ public:
 
   static bool AllCornersZeroSize(const RectCornerRadii& corners);
 
-private:
-
+ private:
   RectCornerRadii mBorderCornerDimensions;
 
   // Target document to report warning
@@ -171,7 +163,8 @@ private:
   bool IsCornerMergeable(mozilla::Corner aCorner);
 
   // For the given solid corner, what color style should be used?
-  BorderColorStyle BorderColorStyleForSolidCorner(uint8_t aStyle, mozilla::Corner aCorner);
+  BorderColorStyle BorderColorStyleForSolidCorner(uint8_t aStyle,
+                                                  mozilla::Corner aCorner);
 
   //
   // Path generation functions
@@ -179,7 +172,8 @@ private:
 
   // Get the Rect for drawing the given corner
   Rect GetCornerRect(mozilla::Corner aCorner);
-  // add the path for drawing the given side without any adjacent corners to the context
+  // add the path for drawing the given side without any adjacent corners to the
+  // context
   Rect GetSideClipWithoutCornersRect(mozilla::Side aSide);
 
   // Create a clip path for the wedge that this side of
@@ -193,15 +187,12 @@ private:
   already_AddRefed<Path> GetSideClipSubPath(mozilla::Side aSide);
 
   // Return start or end point for dashed/dotted side
-  Point GetStraightBorderPoint(mozilla::Side aSide,
-                               mozilla::Corner aCorner,
-                               bool* aIsUnfilled,
-                               Float aDotOffset = 0.0f);
+  Point GetStraightBorderPoint(mozilla::Side aSide, mozilla::Corner aCorner,
+                               bool* aIsUnfilled, Float aDotOffset = 0.0f);
 
   // Return bezier control points for the outer and the inner curve for given
   // corner
-  void GetOuterAndInnerBezier(Bezier* aOuterBezier,
-                              Bezier* aInnerBezier,
+  void GetOuterAndInnerBezier(Bezier* aOuterBezier, Bezier* aInnerBezier,
                               mozilla::Corner aCorner);
 
   // Given a set of sides to fill and a color, do so in the fastest way.
@@ -216,11 +207,9 @@ private:
   //
   // Calling code is expected to only set up a clip as necessary; no
   // clip is needed if we can render the entire border in 1 or 2 passes.
-  void FillSolidBorder(const Rect& aOuterRect,
-                       const Rect& aInnerRect,
+  void FillSolidBorder(const Rect& aOuterRect, const Rect& aInnerRect,
                        const RectCornerRadii& aBorderRadii,
-                       const Float* aBorderSizes,
-                       int aSides,
+                       const Float* aBorderSizes, int aSides,
                        const ColorPattern& aColor);
 
   //
@@ -229,12 +218,12 @@ private:
 
   // draw the border for the given sides, using the style of the first side
   // present in the bitmask
-  void DrawBorderSides (int aSides);
+  void DrawBorderSides(int aSides);
 
   // Setup the stroke options for the given dashed/dotted side
-  void SetupDashedOptions(StrokeOptions* aStrokeOptions,
-                          Float aDash[2], mozilla::Side aSide,
-                          Float aBorderLength, bool isCorner);
+  void SetupDashedOptions(StrokeOptions* aStrokeOptions, Float aDash[2],
+                          mozilla::Side aSide, Float aBorderLength,
+                          bool isCorner);
 
   // Draw the given dashed/dotte side
   void DrawDashedOrDottedSide(mozilla::Side aSide);
@@ -243,20 +232,16 @@ private:
   void DrawDottedSideSlow(mozilla::Side aSide);
 
   // Draw the given dashed/dotted corner
-  void DrawDashedOrDottedCorner(mozilla::Side aSide,
-                                mozilla::Corner aCorner);
+  void DrawDashedOrDottedCorner(mozilla::Side aSide, mozilla::Corner aCorner);
 
   // Draw the given dotted corner, each segment separately
-  void DrawDottedCornerSlow(mozilla::Side aSide,
-                            mozilla::Corner aCorner);
+  void DrawDottedCornerSlow(mozilla::Side aSide, mozilla::Corner aCorner);
 
   // Draw the given dashed corner, each dot separately
-  void DrawDashedCornerSlow(mozilla::Side aSide,
-                            mozilla::Corner aCorner);
+  void DrawDashedCornerSlow(mozilla::Side aSide, mozilla::Corner aCorner);
 
   // Draw the given dashed/dotted corner with solid style
-  void DrawFallbackSolidCorner(mozilla::Side aSide,
-                               mozilla::Corner aCorner);
+  void DrawFallbackSolidCorner(mozilla::Side aSide, mozilla::Corner aCorner);
 
   // Analyze if all border sides have the same width.
   bool AllBordersSameWidth();
@@ -273,40 +258,33 @@ private:
   void DrawSolidBorder();
 };
 
-class nsCSSBorderImageRenderer final
-{
+class nsCSSBorderImageRenderer final {
   typedef mozilla::nsImageRenderer nsImageRenderer;
-public:
-  static mozilla::Maybe<nsCSSBorderImageRenderer>
-  CreateBorderImageRenderer(nsPresContext* aPresContext,
-                            nsIFrame* aForFrame,
-                            const nsRect& aBorderArea,
-                            const nsStyleBorder& aStyleBorder,
-                            const nsRect& aDirtyRect,
-                            nsIFrame::Sides aSkipSides,
-                            uint32_t aFlags,
-                            mozilla::image::ImgDrawResult* aDrawResult);
 
-  mozilla::image::ImgDrawResult
-  DrawBorderImage(nsPresContext* aPresContext,
-                  gfxContext& aRenderingContext,
-                  nsIFrame* aForFrame,
-                  const nsRect& aDirtyRect);
-  void
-  CreateWebRenderCommands(nsDisplayItem* aItem,
-                          nsIFrame* aForFrame,
-                          mozilla::wr::DisplayListBuilder& aBuilder,
-                          mozilla::wr::IpcResourceUpdateQueue& aResources,
-                          const mozilla::layers::StackingContextHelper& aSc,
-                          mozilla::layers::WebRenderLayerManager* aManager,
-                          nsDisplayListBuilder* aDisplayListBuilder);
+ public:
+  static mozilla::Maybe<nsCSSBorderImageRenderer> CreateBorderImageRenderer(
+      nsPresContext* aPresContext, nsIFrame* aForFrame,
+      const nsRect& aBorderArea, const nsStyleBorder& aStyleBorder,
+      const nsRect& aDirtyRect, nsIFrame::Sides aSkipSides, uint32_t aFlags,
+      mozilla::image::ImgDrawResult* aDrawResult);
+
+  mozilla::image::ImgDrawResult DrawBorderImage(nsPresContext* aPresContext,
+                                                gfxContext& aRenderingContext,
+                                                nsIFrame* aForFrame,
+                                                const nsRect& aDirtyRect);
+  void CreateWebRenderCommands(
+      nsDisplayItem* aItem, nsIFrame* aForFrame,
+      mozilla::wr::DisplayListBuilder& aBuilder,
+      mozilla::wr::IpcResourceUpdateQueue& aResources,
+      const mozilla::layers::StackingContextHelper& aSc,
+      mozilla::layers::WebRenderLayerManager* aManager,
+      nsDisplayListBuilder* aDisplayListBuilder);
 
   nsCSSBorderImageRenderer(const nsCSSBorderImageRenderer& aRhs);
   nsCSSBorderImageRenderer& operator=(const nsCSSBorderImageRenderer& aRhs);
 
-private:
-  nsCSSBorderImageRenderer(nsIFrame* aForFrame,
-                           const nsRect& aBorderArea,
+ private:
+  nsCSSBorderImageRenderer(nsIFrame* aForFrame, const nsRect& aBorderArea,
                            const nsStyleBorder& aStyleBorder,
                            nsIFrame::Sides aSkipSides,
                            const nsImageRenderer& aImageRenderer);
@@ -331,36 +309,34 @@ namespace mozilla {
 #include <stdarg.h>
 
 static inline void PrintAsString(const mozilla::gfx::Point& p) {
-  fprintf (stderr, "[%f,%f]", p.x, p.y);
+  fprintf(stderr, "[%f,%f]", p.x, p.y);
 }
 
 static inline void PrintAsString(const mozilla::gfx::Size& s) {
-  fprintf (stderr, "[%f %f]", s.width, s.height);
+  fprintf(stderr, "[%f %f]", s.width, s.height);
 }
 
 static inline void PrintAsString(const mozilla::gfx::Rect& r) {
-  fprintf (stderr, "[%f %f %f %f]", r.X(), r.Y(), r.Width(), r.Height());
+  fprintf(stderr, "[%f %f %f %f]", r.X(), r.Y(), r.Width(), r.Height());
 }
 
 static inline void PrintAsString(const mozilla::gfx::Float f) {
-  fprintf (stderr, "%f", f);
+  fprintf(stderr, "%f", f);
 }
 
-static inline void PrintAsString(const char *s) {
-  fprintf (stderr, "%s", s);
+static inline void PrintAsString(const char* s) { fprintf(stderr, "%s", s); }
+
+static inline void PrintAsStringNewline(const char* s = nullptr) {
+  if (s) fprintf(stderr, "%s", s);
+  fprintf(stderr, "\n");
+  fflush(stderr);
 }
 
-static inline void PrintAsStringNewline(const char *s = nullptr) {
-  if (s)
-    fprintf (stderr, "%s", s);
-  fprintf (stderr, "\n");
-  fflush (stderr);
-}
-
-static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char *fmt, ...) {
+static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char* fmt,
+                                                               ...) {
   va_list vl;
   va_start(vl, fmt);
-  vfprintf (stderr, fmt, vl);
+  vfprintf(stderr, fmt, vl);
   va_end(vl);
 }
 
@@ -369,11 +345,12 @@ static inline void PrintAsString(const mozilla::gfx::Point& p) {}
 static inline void PrintAsString(const mozilla::gfx::Size& s) {}
 static inline void PrintAsString(const mozilla::gfx::Rect& r) {}
 static inline void PrintAsString(const mozilla::gfx::Float f) {}
-static inline void PrintAsString(const char *s) {}
-static inline void PrintAsStringNewline(const char *s = nullptr) {}
-static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char *fmt, ...) {}
+static inline void PrintAsString(const char* s) {}
+static inline void PrintAsStringNewline(const char* s = nullptr) {}
+static inline MOZ_FORMAT_PRINTF(1, 2) void PrintAsFormatString(const char* fmt,
+                                                               ...) {}
 #endif
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* NS_CSS_RENDERING_BORDERS_H */

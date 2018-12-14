@@ -15,15 +15,17 @@ namespace mozilla {
 class OriginAttributes;
 }
 
-namespace mozilla { namespace psm {
+namespace mozilla {
+namespace psm {
 
 // The memory returned via |encodedResponse| is owned by the given arena.
 Result DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
                      const OriginAttributes& originAttributes,
                      const SECItem* encodedRequest, TimeDuration timeout,
                      bool useGET,
-             /*out*/ SECItem*& encodedResponse);
+                     /*out*/ SECItem*& encodedResponse);
 
-} } // namespace mozilla::psm
+}  // namespace psm
+}  // namespace mozilla
 
-#endif // OCSPRequestor_h
+#endif  // OCSPRequestor_h

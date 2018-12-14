@@ -12,95 +12,72 @@
 namespace mozilla {
 namespace layers {
 
-APZSampler::APZSampler(const RefPtr<APZCTreeManager>& aApz)
-  : mApz(aApz)
-{
-}
+APZSampler::APZSampler(const RefPtr<APZCTreeManager>& aApz) : mApz(aApz) {}
 
-APZSampler::~APZSampler()
-{
-}
+APZSampler::~APZSampler() {}
 
-void
-APZSampler::ClearTree()
-{
+void APZSampler::ClearTree() {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mApz->ClearTree();
 }
 
-void
-APZSampler::UpdateFocusState(uint64_t aRootLayerTreeId,
-                             uint64_t aOriginatingLayersId,
-                             const FocusTarget& aFocusTarget)
-{
+void APZSampler::UpdateFocusState(uint64_t aRootLayerTreeId,
+                                  uint64_t aOriginatingLayersId,
+                                  const FocusTarget& aFocusTarget) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mApz->UpdateFocusState(aRootLayerTreeId, aOriginatingLayersId, aFocusTarget);
 }
 
-void
-APZSampler::UpdateHitTestingTree(uint64_t aRootLayerTreeId,
-                                 Layer* aRoot,
-                                 bool aIsFirstPaint,
-                                 uint64_t aOriginatingLayersId,
-                                 uint32_t aPaintSequenceNumber)
-{
+void APZSampler::UpdateHitTestingTree(uint64_t aRootLayerTreeId, Layer* aRoot,
+                                      bool aIsFirstPaint,
+                                      uint64_t aOriginatingLayersId,
+                                      uint32_t aPaintSequenceNumber) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mApz->UpdateHitTestingTree(aRootLayerTreeId, aRoot, aIsFirstPaint,
-      aOriginatingLayersId, aPaintSequenceNumber);
+                             aOriginatingLayersId, aPaintSequenceNumber);
 }
 
-void
-APZSampler::UpdateHitTestingTree(uint64_t aRootLayerTreeId,
-                                 const WebRenderScrollData& aScrollData,
-                                 bool aIsFirstPaint,
-                                 uint64_t aOriginatingLayersId,
-                                 uint32_t aPaintSequenceNumber)
-{
+void APZSampler::UpdateHitTestingTree(uint64_t aRootLayerTreeId,
+                                      const WebRenderScrollData& aScrollData,
+                                      bool aIsFirstPaint,
+                                      uint64_t aOriginatingLayersId,
+                                      uint32_t aPaintSequenceNumber) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mApz->UpdateHitTestingTree(aRootLayerTreeId, aScrollData, aIsFirstPaint,
-      aOriginatingLayersId, aPaintSequenceNumber);
+                             aOriginatingLayersId, aPaintSequenceNumber);
 }
 
-void
-APZSampler::NotifyLayerTreeAdopted(uint64_t aLayersId,
-                                   const RefPtr<APZSampler>& aOldSampler)
-{
+void APZSampler::NotifyLayerTreeAdopted(uint64_t aLayersId,
+                                        const RefPtr<APZSampler>& aOldSampler) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  mApz->NotifyLayerTreeAdopted(aLayersId, aOldSampler ? aOldSampler->mApz : nullptr);
+  mApz->NotifyLayerTreeAdopted(aLayersId,
+                               aOldSampler ? aOldSampler->mApz : nullptr);
 }
 
-void
-APZSampler::NotifyLayerTreeRemoved(uint64_t aLayersId)
-{
+void APZSampler::NotifyLayerTreeRemoved(uint64_t aLayersId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   mApz->NotifyLayerTreeRemoved(aLayersId);
 }
 
-bool
-APZSampler::PushStateToWR(wr::TransactionBuilder& aTxn,
-                          const TimeStamp& aSampleTime,
-                          nsTArray<wr::WrTransformProperty>& aTransformArray)
-{
+bool APZSampler::PushStateToWR(
+    wr::TransactionBuilder& aTxn, const TimeStamp& aSampleTime,
+    nsTArray<wr::WrTransformProperty>& aTransformArray) {
   // This function will be removed eventually since we'll have WR pull
   // the transforms from APZ instead.
   return mApz->PushStateToWR(aTxn, aSampleTime, aTransformArray);
 }
 
-bool
-APZSampler::GetAPZTestData(uint64_t aLayersId,
-                           APZTestData* aOutData)
-{
+bool APZSampler::GetAPZTestData(uint64_t aLayersId, APZTestData* aOutData) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   return mApz->GetAPZTestData(aLayersId, aOutData);
 }
 
-void
-APZSampler::SetTestAsyncScrollOffset(uint64_t aLayersId,
-                                     const FrameMetrics::ViewID& aScrollId,
-                                     const CSSPoint& aOffset)
-{
+void APZSampler::SetTestAsyncScrollOffset(uint64_t aLayersId,
+                                          const FrameMetrics::ViewID& aScrollId,
+                                          const CSSPoint& aOffset) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  RefPtr<AsyncPanZoomController> apzc = mApz->GetTargetAPZC(aLayersId, aScrollId);
+  RefPtr<AsyncPanZoomController> apzc =
+      mApz->GetTargetAPZC(aLayersId, aScrollId);
   if (apzc) {
     apzc->SetTestAsyncScrollOffset(aOffset);
   } else {
@@ -108,13 +85,12 @@ APZSampler::SetTestAsyncScrollOffset(uint64_t aLayersId,
   }
 }
 
-void
-APZSampler::SetTestAsyncZoom(uint64_t aLayersId,
-                             const FrameMetrics::ViewID& aScrollId,
-                             const LayerToParentLayerScale& aZoom)
-{
+void APZSampler::SetTestAsyncZoom(uint64_t aLayersId,
+                                  const FrameMetrics::ViewID& aScrollId,
+                                  const LayerToParentLayerScale& aZoom) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
-  RefPtr<AsyncPanZoomController> apzc = mApz->GetTargetAPZC(aLayersId, aScrollId);
+  RefPtr<AsyncPanZoomController> apzc =
+      mApz->GetTargetAPZC(aLayersId, aScrollId);
   if (apzc) {
     apzc->SetTestAsyncZoom(aZoom);
   } else {
@@ -122,5 +98,5 @@ APZSampler::SetTestAsyncZoom(uint64_t aLayersId,
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

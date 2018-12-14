@@ -19,10 +19,8 @@ class nsIURI;
 typedef unsigned long long DOMTimeMilliSec;
 typedef double DOMHighResTimeStamp;
 
-class nsDOMNavigationTiming final
-  : public mozilla::RelativeTimeline
-{
-public:
+class nsDOMNavigationTiming final : public mozilla::RelativeTimeline {
+ public:
   enum Type {
     TYPE_NAVIGATE = 0,
     TYPE_RELOAD = 1,
@@ -34,114 +32,85 @@ public:
 
   NS_INLINE_DECL_REFCOUNTING(nsDOMNavigationTiming)
 
-  Type GetType() const
-  {
-    return mNavigationType;
-  }
+  Type GetType() const { return mNavigationType; }
 
-  inline DOMHighResTimeStamp GetNavigationStartHighRes() const
-  {
+  inline DOMHighResTimeStamp GetNavigationStartHighRes() const {
     return mNavigationStartHighRes;
   }
 
-  DOMTimeMilliSec GetNavigationStart() const
-  {
+  DOMTimeMilliSec GetNavigationStart() const {
     return static_cast<int64_t>(GetNavigationStartHighRes());
   }
 
-  mozilla::TimeStamp GetNavigationStartTimeStamp() const
-  {
+  mozilla::TimeStamp GetNavigationStartTimeStamp() const {
     return mNavigationStart;
   }
 
-  DOMTimeMilliSec GetUnloadEventStart()
-  {
+  DOMTimeMilliSec GetUnloadEventStart() {
     return TimeStampToDOM(GetUnloadEventStartTimeStamp());
   }
 
-  DOMTimeMilliSec GetUnloadEventEnd()
-  {
+  DOMTimeMilliSec GetUnloadEventEnd() {
     return TimeStampToDOM(GetUnloadEventEndTimeStamp());
   }
 
-  DOMTimeMilliSec GetDomLoading() const
-  {
-    return TimeStampToDOM(mDOMLoading);
-  }
-  DOMTimeMilliSec GetDomInteractive() const
-  {
+  DOMTimeMilliSec GetDomLoading() const { return TimeStampToDOM(mDOMLoading); }
+  DOMTimeMilliSec GetDomInteractive() const {
     return TimeStampToDOM(mDOMInteractive);
   }
-  DOMTimeMilliSec GetDomContentLoadedEventStart() const
-  {
+  DOMTimeMilliSec GetDomContentLoadedEventStart() const {
     return TimeStampToDOM(mDOMContentLoadedEventStart);
   }
-  DOMTimeMilliSec GetDomContentLoadedEventEnd() const
-  {
+  DOMTimeMilliSec GetDomContentLoadedEventEnd() const {
     return TimeStampToDOM(mDOMContentLoadedEventEnd);
   }
-  DOMTimeMilliSec GetDomComplete() const
-  {
+  DOMTimeMilliSec GetDomComplete() const {
     return TimeStampToDOM(mDOMComplete);
   }
-  DOMTimeMilliSec GetLoadEventStart() const
-  {
+  DOMTimeMilliSec GetLoadEventStart() const {
     return TimeStampToDOM(mLoadEventStart);
   }
-  DOMTimeMilliSec GetLoadEventEnd() const
-  {
+  DOMTimeMilliSec GetLoadEventEnd() const {
     return TimeStampToDOM(mLoadEventEnd);
   }
-  DOMTimeMilliSec GetTimeToNonBlankPaint() const
-  {
+  DOMTimeMilliSec GetTimeToNonBlankPaint() const {
     return TimeStampToDOM(mNonBlankPaint);
   }
 
-  DOMHighResTimeStamp GetUnloadEventStartHighRes()
-  {
+  DOMHighResTimeStamp GetUnloadEventStartHighRes() {
     mozilla::TimeStamp stamp = GetUnloadEventStartTimeStamp();
     if (stamp.IsNull()) {
       return 0;
     }
     return TimeStampToDOMHighRes(stamp);
   }
-  DOMHighResTimeStamp GetUnloadEventEndHighRes()
-  {
+  DOMHighResTimeStamp GetUnloadEventEndHighRes() {
     mozilla::TimeStamp stamp = GetUnloadEventEndTimeStamp();
     if (stamp.IsNull()) {
       return 0;
     }
     return TimeStampToDOMHighRes(stamp);
   }
-  DOMHighResTimeStamp GetDomInteractiveHighRes() const
-  {
+  DOMHighResTimeStamp GetDomInteractiveHighRes() const {
     return TimeStampToDOMHighRes(mDOMInteractive);
   }
-  DOMHighResTimeStamp GetDomContentLoadedEventStartHighRes() const
-  {
+  DOMHighResTimeStamp GetDomContentLoadedEventStartHighRes() const {
     return TimeStampToDOMHighRes(mDOMContentLoadedEventStart);
   }
-  DOMHighResTimeStamp GetDomContentLoadedEventEndHighRes() const
-  {
+  DOMHighResTimeStamp GetDomContentLoadedEventEndHighRes() const {
     return TimeStampToDOMHighRes(mDOMContentLoadedEventEnd);
   }
-  DOMHighResTimeStamp GetDomCompleteHighRes() const
-  {
+  DOMHighResTimeStamp GetDomCompleteHighRes() const {
     return TimeStampToDOMHighRes(mDOMComplete);
   }
-  DOMHighResTimeStamp GetLoadEventStartHighRes() const
-  {
+  DOMHighResTimeStamp GetLoadEventStartHighRes() const {
     return TimeStampToDOMHighRes(mLoadEventStart);
   }
-  DOMHighResTimeStamp GetLoadEventEndHighRes() const
-  {
+  DOMHighResTimeStamp GetLoadEventEndHighRes() const {
     return TimeStampToDOMHighRes(mLoadEventEnd);
   }
 
-  enum class DocShellState : uint8_t {
-    eActive,
-    eInactive
-  };
+  enum class DocShellState : uint8_t { eActive, eInactive };
 
   void NotifyNavigationStart(DocShellState aDocShellState);
   void NotifyFetchStart(nsIURI* aURI, Type aNavigationType);
@@ -165,8 +134,8 @@ public:
 
   DOMTimeMilliSec TimeStampToDOM(mozilla::TimeStamp aStamp) const;
 
-  inline DOMHighResTimeStamp TimeStampToDOMHighRes(mozilla::TimeStamp aStamp) const
-  {
+  inline DOMHighResTimeStamp TimeStampToDOMHighRes(
+      mozilla::TimeStamp aStamp) const {
     if (aStamp.IsNull()) {
       return 0;
     }
@@ -174,8 +143,8 @@ public:
     return duration.ToMilliseconds();
   }
 
-private:
-  nsDOMNavigationTiming(const nsDOMNavigationTiming &) = delete;
+ private:
+  nsDOMNavigationTiming(const nsDOMNavigationTiming&) = delete;
   ~nsDOMNavigationTiming();
 
   void Clear();

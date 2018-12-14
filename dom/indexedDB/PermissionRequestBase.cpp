@@ -40,35 +40,26 @@ const char kPermissionResponseTopic[] = TOPIC_PREFIX "response";
 
 const uint32_t kPermissionDefault = nsIPermissionManager::UNKNOWN_ACTION;
 
-void
-AssertSanity()
-{
+void AssertSanity() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-} // namespace
+}  // namespace
 
 PermissionRequestBase::PermissionRequestBase(Element* aOwnerElement,
                                              nsIPrincipal* aPrincipal)
-  : mOwnerElement(aOwnerElement)
-  , mPrincipal(aPrincipal)
-{
+    : mOwnerElement(aOwnerElement), mPrincipal(aPrincipal) {
   AssertSanity();
   MOZ_ASSERT(aOwnerElement);
   MOZ_ASSERT(aPrincipal);
 }
 
-PermissionRequestBase::~PermissionRequestBase()
-{
-  AssertSanity();
-}
+PermissionRequestBase::~PermissionRequestBase() { AssertSanity(); }
 
 // static
-nsresult
-PermissionRequestBase::GetCurrentPermission(nsIPrincipal* aPrincipal,
-                                            PermissionValue* aCurrentValue)
-{
+nsresult PermissionRequestBase::GetCurrentPermission(
+    nsIPrincipal* aPrincipal, PermissionValue* aCurrentValue) {
   AssertSanity();
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCurrentValue);
@@ -80,15 +71,12 @@ PermissionRequestBase::GetCurrentPermission(nsIPrincipal* aPrincipal,
 
   uint32_t intPermission;
   nsresult rv = permMan->TestExactPermissionFromPrincipal(
-                                                 aPrincipal,
-                                                 kPermissionString,
-                                                 &intPermission);
+      aPrincipal, kPermissionString, &intPermission);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  PermissionValue permission =
-    PermissionValueForIntPermission(intPermission);
+  PermissionValue permission = PermissionValueForIntPermission(intPermission);
 
   MOZ_ASSERT(permission == kPermissionAllowed ||
              permission == kPermissionDenied ||
@@ -99,10 +87,8 @@ PermissionRequestBase::GetCurrentPermission(nsIPrincipal* aPrincipal,
 }
 
 // static
-auto
-PermissionRequestBase::PermissionValueForIntPermission(uint32_t aIntPermission)
-  -> PermissionValue
-{
+auto PermissionRequestBase::PermissionValueForIntPermission(
+    uint32_t aIntPermission) -> PermissionValue {
   AssertSanity();
 
   switch (aIntPermission) {
@@ -119,9 +105,7 @@ PermissionRequestBase::PermissionValueForIntPermission(uint32_t aIntPermission)
   MOZ_CRASH("Should never get here!");
 }
 
-nsresult
-PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue)
-{
+nsresult PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue) {
   AssertSanity();
   MOZ_ASSERT(aCurrentValue);
   MOZ_ASSERT(mPrincipal);
@@ -153,8 +137,7 @@ PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue)
     principal.swap(mPrincipal);
 
     rv = obsSvc->NotifyObservers(static_cast<nsIObserver*>(this),
-                                 kPermissionPromptTopic,
-                                 nullptr);
+                                 kPermissionPromptTopic, nullptr);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       // Finally release if we failed the prompt.
       mOwnerElement = nullptr;
@@ -167,10 +150,8 @@ PermissionRequestBase::PromptIfNeeded(PermissionValue* aCurrentValue)
   return NS_OK;
 }
 
-void
-PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
-                                             uint32_t aIntPermission)
-{
+void PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
+                                                  uint32_t aIntPermission) {
   AssertSanity();
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aIntPermission == kPermissionAllowed ||
@@ -181,11 +162,10 @@ PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
     return;
   }
 
-  nsresult rv = permMan->AddFromPrincipal(aPrincipal,
-                                          kPermissionString,
-                                          aIntPermission,
-                                          nsIPermissionManager::EXPIRE_NEVER,
-                                          /* aExpireTime */ 0);
+  nsresult rv =
+      permMan->AddFromPrincipal(aPrincipal, kPermissionString, aIntPermission,
+                                nsIPermissionManager::EXPIRE_NEVER,
+                                /* aExpireTime */ 0);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -194,9 +174,7 @@ PermissionRequestBase::SetExplicitPermission(nsIPrincipal* aPrincipal,
 NS_IMPL_ISUPPORTS(PermissionRequestBase, nsIObserver, nsIInterfaceRequestor)
 
 NS_IMETHODIMP
-PermissionRequestBase::GetInterface(const nsIID& aIID,
-                                    void** aResult)
-{
+PermissionRequestBase::GetInterface(const nsIID& aIID, void** aResult) {
   AssertSanity();
 
   if (aIID.Equals(NS_GET_IID(nsIObserver))) {
@@ -212,10 +190,8 @@ PermissionRequestBase::GetInterface(const nsIID& aIID,
 }
 
 NS_IMETHODIMP
-PermissionRequestBase::Observe(nsISupports* aSubject,
-                               const char* aTopic,
-                               const char16_t* aData)
-{
+PermissionRequestBase::Observe(nsISupports* aSubject, const char* aTopic,
+                               const char16_t* aData) {
   AssertSanity();
   MOZ_ASSERT(!strcmp(aTopic, kPermissionResponseTopic));
   MOZ_ASSERT(mOwnerElement);
@@ -264,6 +240,6 @@ PermissionRequestBase::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
-} // namespace indexedDB
-} // namespace dom
-} // namespace mozilla
+}  // namespace indexedDB
+}  // namespace dom
+}  // namespace mozilla

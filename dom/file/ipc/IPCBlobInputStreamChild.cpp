@@ -19,38 +19,30 @@ namespace {
 
 // This runnable is used in case the last stream is forgotten on the 'wrong'
 // thread.
-class ShutdownRunnable final : public CancelableRunnable
-{
-public:
+class ShutdownRunnable final : public CancelableRunnable {
+ public:
   explicit ShutdownRunnable(IPCBlobInputStreamChild* aActor)
-    : CancelableRunnable("dom::ShutdownRunnable")
-    , mActor(aActor)
-  {}
+      : CancelableRunnable("dom::ShutdownRunnable"), mActor(aActor) {}
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     mActor->Shutdown();
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<IPCBlobInputStreamChild> mActor;
 };
 
 // This runnable is used in case StreamNeeded() has been called on a non-owning
 // thread.
-class StreamNeededRunnable final : public CancelableRunnable
-{
-public:
+class StreamNeededRunnable final : public CancelableRunnable {
+ public:
   explicit StreamNeededRunnable(IPCBlobInputStreamChild* aActor)
-    : CancelableRunnable("dom::StreamNeededRunnable")
-    , mActor(aActor)
-  {}
+      : CancelableRunnable("dom::StreamNeededRunnable"), mActor(aActor) {}
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     MOZ_ASSERT(mActor->State() != IPCBlobInputStreamChild::eActiveMigrating &&
                mActor->State() != IPCBlobInputStreamChild::eInactiveMigrating);
     if (mActor->State() == IPCBlobInputStreamChild::eActive) {
@@ -59,93 +51,79 @@ public:
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<IPCBlobInputStreamChild> mActor;
 };
 
 // When the stream has been received from the parent, we inform the
 // IPCBlobInputStream.
-class StreamReadyRunnable final : public CancelableRunnable
-{
-public:
+class StreamReadyRunnable final : public CancelableRunnable {
+ public:
   StreamReadyRunnable(IPCBlobInputStream* aDestinationStream,
                       already_AddRefed<nsIInputStream> aCreatedStream)
-    : CancelableRunnable("dom::StreamReadyRunnable")
-    , mDestinationStream(aDestinationStream)
-    , mCreatedStream(Move(aCreatedStream))
-  {
+      : CancelableRunnable("dom::StreamReadyRunnable"),
+        mDestinationStream(aDestinationStream),
+        mCreatedStream(Move(aCreatedStream)) {
     MOZ_ASSERT(mDestinationStream);
     // mCreatedStream can be null.
   }
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     mDestinationStream->StreamReady(mCreatedStream.forget());
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<IPCBlobInputStream> mDestinationStream;
   nsCOMPtr<nsIInputStream> mCreatedStream;
 };
 
-class IPCBlobInputStreamWorkerHolder final : public WorkerHolder
-{
-public:
+class IPCBlobInputStreamWorkerHolder final : public WorkerHolder {
+ public:
   IPCBlobInputStreamWorkerHolder()
-    : WorkerHolder("IPCBlobInputStreamWorkerHolder")
-  {}
+      : WorkerHolder("IPCBlobInputStreamWorkerHolder") {}
 
-  bool Notify(WorkerStatus aStatus) override
-  {
+  bool Notify(WorkerStatus aStatus) override {
     // We must keep the worker alive until the migration is completed.
     return true;
   }
 };
 
-class ReleaseWorkerHolderRunnable final : public CancelableRunnable
-{
-public:
+class ReleaseWorkerHolderRunnable final : public CancelableRunnable {
+ public:
   explicit ReleaseWorkerHolderRunnable(UniquePtr<WorkerHolder>&& aWorkerHolder)
-    : CancelableRunnable("dom::ReleaseWorkerHolderRunnable")
-    , mWorkerHolder(Move(aWorkerHolder))
-  {}
+      : CancelableRunnable("dom::ReleaseWorkerHolderRunnable"),
+        mWorkerHolder(Move(aWorkerHolder)) {}
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     mWorkerHolder = nullptr;
     return NS_OK;
   }
 
-  nsresult
-  Cancel() override
-  {
-    return Run();
-  }
+  nsresult Cancel() override { return Run(); }
 
-private:
+ private:
   UniquePtr<WorkerHolder> mWorkerHolder;
 };
 
-} // anonymous
+}  // namespace
 
 IPCBlobInputStreamChild::IPCBlobInputStreamChild(const nsID& aID,
                                                  uint64_t aSize)
-  : mMutex("IPCBlobInputStreamChild::mMutex")
-  , mID(aID)
-  , mSize(aSize)
-  , mState(eActive)
-  , mOwningEventTarget(GetCurrentThreadSerialEventTarget())
-{
+    : mMutex("IPCBlobInputStreamChild::mMutex"),
+      mID(aID),
+      mSize(aSize),
+      mState(eActive),
+      mOwningEventTarget(GetCurrentThreadSerialEventTarget()) {
   // If we are running in a worker, we need to send a Close() to the parent side
   // before the thread is released.
   if (!NS_IsMainThread()) {
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     if (workerPrivate) {
       UniquePtr<WorkerHolder> workerHolder(
-        new IPCBlobInputStreamWorkerHolder());
+          new IPCBlobInputStreamWorkerHolder());
       if (workerHolder->HoldWorker(workerPrivate, Canceling)) {
         mWorkerHolder.swap(workerHolder);
       }
@@ -153,12 +131,9 @@ IPCBlobInputStreamChild::IPCBlobInputStreamChild(const nsID& aID,
   }
 }
 
-IPCBlobInputStreamChild::~IPCBlobInputStreamChild()
-{}
+IPCBlobInputStreamChild::~IPCBlobInputStreamChild() {}
 
-void
-IPCBlobInputStreamChild::Shutdown()
-{
+void IPCBlobInputStreamChild::Shutdown() {
   MutexAutoLock lock(mMutex);
 
   RefPtr<IPCBlobInputStreamChild> kungFuDeathGrip = this;
@@ -172,9 +147,8 @@ IPCBlobInputStreamChild::Shutdown()
   }
 }
 
-void
-IPCBlobInputStreamChild::ActorDestroy(IProtocol::ActorDestroyReason aReason)
-{
+void IPCBlobInputStreamChild::ActorDestroy(
+    IProtocol::ActorDestroyReason aReason) {
   bool migrating = false;
 
   {
@@ -187,7 +161,7 @@ IPCBlobInputStreamChild::ActorDestroy(IProtocol::ActorDestroyReason aReason)
     // We were waiting for this! Now we can migrate the actor in the correct
     // thread.
     RefPtr<IPCBlobInputStreamThread> thread =
-      IPCBlobInputStreamThread::GetOrCreate();
+        IPCBlobInputStreamThread::GetOrCreate();
     MOZ_ASSERT(thread, "We cannot continue without DOMFile thread.");
 
     ResetManager();
@@ -199,16 +173,12 @@ IPCBlobInputStreamChild::ActorDestroy(IProtocol::ActorDestroyReason aReason)
   Shutdown();
 }
 
-IPCBlobInputStreamChild::ActorState
-IPCBlobInputStreamChild::State()
-{
+IPCBlobInputStreamChild::ActorState IPCBlobInputStreamChild::State() {
   MutexAutoLock lock(mMutex);
   return mState;
 }
 
-already_AddRefed<IPCBlobInputStream>
-IPCBlobInputStreamChild::CreateStream()
-{
+already_AddRefed<IPCBlobInputStream> IPCBlobInputStreamChild::CreateStream() {
   bool shouldMigrate = false;
 
   RefPtr<IPCBlobInputStream> stream = new IPCBlobInputStream(this);
@@ -241,9 +211,7 @@ IPCBlobInputStreamChild::CreateStream()
   return stream.forget();
 }
 
-void
-IPCBlobInputStreamChild::ForgetStream(IPCBlobInputStream* aStream)
-{
+void IPCBlobInputStreamChild::ForgetStream(IPCBlobInputStream* aStream) {
   MOZ_ASSERT(aStream);
 
   RefPtr<IPCBlobInputStreamChild> kungFuDeathGrip = this;
@@ -266,10 +234,8 @@ IPCBlobInputStreamChild::ForgetStream(IPCBlobInputStream* aStream)
   mOwningEventTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
 
-void
-IPCBlobInputStreamChild::StreamNeeded(IPCBlobInputStream* aStream,
-                                      nsIEventTarget* aEventTarget)
-{
+void IPCBlobInputStreamChild::StreamNeeded(IPCBlobInputStream* aStream,
+                                           nsIEventTarget* aEventTarget) {
   MutexAutoLock lock(mMutex);
 
   if (mState == eInactive) {
@@ -298,9 +264,8 @@ IPCBlobInputStreamChild::StreamNeeded(IPCBlobInputStream* aStream,
   mOwningEventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
 }
 
-mozilla::ipc::IPCResult
-IPCBlobInputStreamChild::RecvStreamReady(const OptionalIPCStream& aStream)
-{
+mozilla::ipc::IPCResult IPCBlobInputStreamChild::RecvStreamReady(
+    const OptionalIPCStream& aStream) {
   nsCOMPtr<nsIInputStream> stream = mozilla::ipc::DeserializeIPCStream(aStream);
 
   RefPtr<IPCBlobInputStream> pendingStream;
@@ -318,7 +283,7 @@ IPCBlobInputStreamChild::RecvStreamReady(const OptionalIPCStream& aStream)
   }
 
   RefPtr<StreamReadyRunnable> runnable =
-    new StreamReadyRunnable(pendingStream, stream.forget());
+      new StreamReadyRunnable(pendingStream, stream.forget());
 
   // If IPCBlobInputStream::AsyncWait() has been executed without passing an
   // event target, we run the callback synchronous because any thread could be
@@ -333,15 +298,13 @@ IPCBlobInputStreamChild::RecvStreamReady(const OptionalIPCStream& aStream)
   return IPC_OK();
 }
 
-void
-IPCBlobInputStreamChild::Migrated()
-{
+void IPCBlobInputStreamChild::Migrated() {
   MutexAutoLock lock(mMutex);
   MOZ_ASSERT(mState == eInactiveMigrating);
 
   if (mWorkerHolder) {
     RefPtr<ReleaseWorkerHolderRunnable> runnable =
-      new ReleaseWorkerHolderRunnable(Move(mWorkerHolder));
+        new ReleaseWorkerHolderRunnable(Move(mWorkerHolder));
     mOwningEventTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
   }
 
@@ -364,5 +327,5 @@ IPCBlobInputStreamChild::Migrated()
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

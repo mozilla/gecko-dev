@@ -19,22 +19,14 @@ class nsTextControlFrame;
 
 namespace mozilla {
 
-class TextInputListener final : public nsIDOMEventListener
-                              , public nsSupportsWeakReference
-{
-public:
+class TextInputListener final : public nsIDOMEventListener,
+                                public nsSupportsWeakReference {
+ public:
   explicit TextInputListener(nsITextControlElement* aTextControlElement);
 
-  void SetFrame(nsIFrame* aTextControlFrame)
-  {
-    mFrame = aTextControlFrame;
-  }
-  void SettingValue(bool aValue)
-  {
-    mSettingValue = aValue;
-  }
-  void SetValueChanged(bool aSetValueChanged)
-  {
+  void SetFrame(nsIFrame* aTextControlFrame) { mFrame = aTextControlFrame; }
+  void SettingValue(bool aValue) { mSettingValue = aValue; }
+  void SetValueChanged(bool aSetValueChanged) {
     mSetValueChanged = aSetValueChanged;
   }
 
@@ -57,28 +49,22 @@ public:
   /**
    * Start to listen or end listening to selection change in the editor.
    */
-  void StartToListenToSelectionChange()
-  {
-    mListeningToSelectionChange = true;
-  }
-  void EndListeningToSelectionChange()
-  {
-    mListeningToSelectionChange = false;
-  }
+  void StartToListenToSelectionChange() { mListeningToSelectionChange = true; }
+  void EndListeningToSelectionChange() { mListeningToSelectionChange = false; }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(TextInputListener,
                                            nsIDOMEventListener)
   NS_DECL_NSIDOMEVENTLISTENER
 
-protected:
+ protected:
   virtual ~TextInputListener() = default;
 
   nsresult UpdateTextInputCommands(const nsAString& aCommandsToUpdate,
                                    nsISelection* aSelection = nullptr,
                                    int16_t aReason = 0);
 
-protected:
+ protected:
   nsIFrame* mFrame;
   nsITextControlElement* const mTxtCtrlElement;
 
@@ -110,6 +96,6 @@ protected:
   bool mListeningToSelectionChange;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef mozilla_TextInputListener_h
+#endif  // #ifndef mozilla_TextInputListener_h

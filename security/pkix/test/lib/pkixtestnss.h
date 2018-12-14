@@ -33,17 +33,21 @@
 #include "keythi.h"
 #include "pkixtestutil.h"
 
-namespace mozilla { namespace pkix { namespace test {
+namespace mozilla {
+namespace pkix {
+namespace test {
 
 typedef ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
-  ScopedSECKEYPublicKey;
+    ScopedSECKEYPublicKey;
 typedef ScopedPtr<SECKEYPrivateKey, SECKEY_DestroyPrivateKey>
-  ScopedSECKEYPrivateKey;
+    ScopedSECKEYPrivateKey;
 
 TestKeyPair* CreateTestKeyPair(const TestPublicKeyAlgorithm publicKeyAlg,
                                const ScopedSECKEYPublicKey& publicKey,
                                const ScopedSECKEYPrivateKey& privateKey);
 
-} } } // namespace mozilla::pkix::test
+}  // namespace test
+}  // namespace pkix
+}  // namespace mozilla
 
-#endif // mozilla_pkix_test_pkixtestnss_h
+#endif  // mozilla_pkix_test_pkixtestnss_h

@@ -24,43 +24,32 @@ namespace mozilla {
 namespace dom {
 class Element;
 }
-}
+}  // namespace mozilla
 
-class nsXULContentUtils
-{
-protected:
-    static nsIRDFService* gRDF;
-    static nsICollation *gCollation;
+class nsXULContentUtils {
+ protected:
+  static nsIRDFService* gRDF;
+  static nsICollation* gCollation;
 
-    static bool gDisableXULCache;
+  static bool gDisableXULCache;
 
-    static int
-    DisableXULCacheChangedCallback(const char* aPrefName, void* aClosure);
+  static int DisableXULCacheChangedCallback(const char* aPrefName,
+                                            void* aClosure);
 
-public:
-    static nsresult
-    Init();
+ public:
+  static nsresult Init();
 
-    static nsresult
-    Finish();
+  static nsresult Finish();
 
-    static nsresult
-    FindChildByTag(nsIContent *aElement,
-                   int32_t aNameSpaceID,
-                   nsAtom* aTag,
-                   mozilla::dom::Element** aResult);
+  static nsresult FindChildByTag(nsIContent* aElement, int32_t aNameSpaceID,
+                                 nsAtom* aTag, mozilla::dom::Element** aResult);
 
-    static nsresult
-    SetCommandUpdater(nsIDocument* aDocument, mozilla::dom::Element* aElement);
+  static nsresult SetCommandUpdater(nsIDocument* aDocument,
+                                    mozilla::dom::Element* aElement);
 
-    static nsIRDFService*
-    RDFService()
-    {
-        return gRDF;
-    }
+  static nsIRDFService* RDFService() { return gRDF; }
 
-    static nsICollation*
-    GetCollation();
+  static nsICollation* GetCollation();
 };
 
-#endif // nsXULContentUtils_h__
+#endif  // nsXULContentUtils_h__

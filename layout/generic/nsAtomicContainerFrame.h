@@ -4,7 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* base class for rendering objects that need child lists but behave like leaf */
+/* base class for rendering objects that need child lists but behave like leaf
+ */
 
 #ifndef nsAtomicContainerFrame_h___
 #define nsAtomicContainerFrame_h___
@@ -17,33 +18,29 @@
  * CSS box model would need child list for ::backdrop in case they are
  * in fullscreen, while some of them still want leaf frame behavior.
  */
-class nsAtomicContainerFrame : public nsContainerFrame
-{
-public:
+class nsAtomicContainerFrame : public nsContainerFrame {
+ public:
   NS_DECL_ABSTRACT_FRAME(nsAtomicContainerFrame)
 
   // Bypass the nsContainerFrame/nsSplittableFrame impl of the following
   // methods so we behave like a leaf frame.
-  FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) override
-  {
+  FrameSearchResult PeekOffsetNoAmount(bool aForward,
+                                       int32_t* aOffset) override {
     return nsFrame::PeekOffsetNoAmount(aForward, aOffset);
   }
-  FrameSearchResult
-  PeekOffsetCharacter(bool aForward, int32_t* aOffset,
-                      PeekOffsetCharacterOptions aOptions =
-                        PeekOffsetCharacterOptions()) override
-  {
+  FrameSearchResult PeekOffsetCharacter(
+      bool aForward, int32_t* aOffset,
+      PeekOffsetCharacterOptions aOptions =
+          PeekOffsetCharacterOptions()) override {
     return nsFrame::PeekOffsetCharacter(aForward, aOffset, aOptions);
   }
-  nsSplittableType GetSplittableType() const override
-  {
+  nsSplittableType GetSplittableType() const override {
     return nsFrame::GetSplittableType();
   }
 
-protected:
+ protected:
   nsAtomicContainerFrame(nsStyleContext* aContext, ClassID aID)
-    : nsContainerFrame(aContext, aID)
-  {}
+      : nsContainerFrame(aContext, aID) {}
 };
 
-#endif // nsAtomicContainerFrame_h___
+#endif  // nsAtomicContainerFrame_h___

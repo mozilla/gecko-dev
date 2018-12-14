@@ -8,8 +8,7 @@
 
 using namespace mozilla;
 
-void ProfilerIOInterposeObserver::Observe(Observation& aObservation)
-{
+void ProfilerIOInterposeObserver::Observe(Observation& aObservation) {
   if (!IsMainThread()) {
     return;
   }
@@ -19,9 +18,8 @@ void ProfilerIOInterposeObserver::Observe(Observation& aObservation)
   nsString filename;
   aObservation.Filename(filename);
   profiler_add_marker(
-    aObservation.ObservedOperationString(),
-    MakeUnique<IOMarkerPayload>(aObservation.Reference(),
-                                NS_ConvertUTF16toUTF8(filename).get(),
-                                aObservation.Start(), aObservation.End(),
-                                Move(stack)));
+      aObservation.ObservedOperationString(),
+      MakeUnique<IOMarkerPayload>(
+          aObservation.Reference(), NS_ConvertUTF16toUTF8(filename).get(),
+          aObservation.Start(), aObservation.End(), Move(stack)));
 }

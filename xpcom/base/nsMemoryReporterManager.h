@@ -20,31 +20,31 @@ namespace mozilla {
 class MemoryReportingProcess;
 namespace dom {
 class MemoryReport;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 class nsITimer;
 
-class nsMemoryReporterManager final : public nsIMemoryReporterManager
-{
+class nsMemoryReporterManager final : public nsIMemoryReporterManager {
   virtual ~nsMemoryReporterManager();
 
-public:
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTERMANAGER
 
   nsMemoryReporterManager();
 
   // Gets the memory reporter manager service.
-  static nsMemoryReporterManager* GetOrCreate()
-  {
+  static nsMemoryReporterManager* GetOrCreate() {
     nsCOMPtr<nsIMemoryReporterManager> imgr =
-      do_GetService("@mozilla.org/memory-reporter-manager;1");
+        do_GetService("@mozilla.org/memory-reporter-manager;1");
     return static_cast<nsMemoryReporterManager*>(imgr.get());
   }
 
-  typedef nsDataHashtable<nsRefPtrHashKey<nsIMemoryReporter>, bool> StrongReportersTable;
-  typedef nsDataHashtable<nsPtrHashKey<nsIMemoryReporter>, bool> WeakReportersTable;
+  typedef nsDataHashtable<nsRefPtrHashKey<nsIMemoryReporter>, bool>
+      StrongReportersTable;
+  typedef nsDataHashtable<nsPtrHashKey<nsIMemoryReporter>, bool>
+      WeakReportersTable;
 
   // Inter-process memory reporting proceeds as follows.
   //
@@ -110,8 +110,8 @@ public:
   //   is incomplete.
   //
   // Now, what what happens if a child process is created/destroyed in the
-  // middle of a request?  Well, PendingProcessesState is initialized with an array
-  // of child process actors as of when the report started.  So...
+  // middle of a request?  Well, PendingProcessesState is initialized with an
+  // array of child process actors as of when the report started.  So...
   //
   // - If a process is created after reporting starts, it won't be sent a
   //   request for reports.  So the reported data will reflect how things were
@@ -137,8 +137,7 @@ public:
 
   // Functions that (a) implement distinguished amounts, and (b) are outside of
   // this module.
-  struct AmountFns
-  {
+  struct AmountFns {
     mozilla::InfallibleAmountFn mJSMainRuntimeGCHeap;
     mozilla::InfallibleAmountFn mJSMainRuntimeTemporaryPeak;
     mozilla::InfallibleAmountFn mJSMainRuntimeCompartmentsSystem;
@@ -153,10 +152,7 @@ public:
 
     mozilla::InfallibleAmountFn mGhostWindows;
 
-    AmountFns()
-    {
-      mozilla::PodZero(this);
-    }
+    AmountFns() { mozilla::PodZero(this); }
   };
   AmountFns mAmountFns;
 
@@ -172,22 +168,18 @@ public:
   static int64_t ResidentUnique();
 
   // Functions that measure per-tab memory consumption.
-  struct SizeOfTabFns
-  {
-    mozilla::JSSizeOfTabFn    mJS;
+  struct SizeOfTabFns {
+    mozilla::JSSizeOfTabFn mJS;
     mozilla::NonJSSizeOfTabFn mNonJS;
 
-    SizeOfTabFns()
-    {
-      mozilla::PodZero(this);
-    }
+    SizeOfTabFns() { mozilla::PodZero(this); }
   };
   SizeOfTabFns mSizeOfTabFns;
 
-private:
-  MOZ_MUST_USE nsresult
-  RegisterReporterHelper(nsIMemoryReporter* aReporter,
-                         bool aForce, bool aStrongRef, bool aIsAsync);
+ private:
+  MOZ_MUST_USE nsresult RegisterReporterHelper(nsIMemoryReporter* aReporter,
+                                               bool aForce, bool aStrongRef,
+                                               bool aIsAsync);
 
   MOZ_MUST_USE nsresult StartGettingReports();
   // No MOZ_MUST_USE here because ignoring the result is common and reasonable.
@@ -195,8 +187,7 @@ private:
 
   void DispatchReporter(nsIMemoryReporter* aReporter, bool aIsAsync,
                         nsIHandleReportCallback* aHandleReport,
-                        nsISupports* aHandleReportData,
-                        bool aAnonymize);
+                        nsISupports* aHandleReportData, bool aAnonymize);
 
   static void TimeoutCallback(nsITimer* aTimer, void* aData);
   // Note: this timeout needs to be long enough to allow for the
@@ -218,21 +209,20 @@ private:
   // Used to keep track of state of which processes are currently running and
   // waiting to run memory reports. Holds references to parameters needed when
   // requesting a memory report and finishing reporting.
-  struct PendingProcessesState
-  {
-    uint32_t                             mGeneration;
-    bool                                 mAnonymize;
-    bool                                 mMinimize;
-    nsCOMPtr<nsITimer>                   mTimer;
+  struct PendingProcessesState {
+    uint32_t mGeneration;
+    bool mAnonymize;
+    bool mMinimize;
+    nsCOMPtr<nsITimer> mTimer;
     nsTArray<RefPtr<mozilla::MemoryReportingProcess>> mChildrenPending;
-    uint32_t                             mNumProcessesRunning;
-    uint32_t                             mNumProcessesCompleted;
-    uint32_t                             mConcurrencyLimit;
-    nsCOMPtr<nsIHandleReportCallback>    mHandleReport;
-    nsCOMPtr<nsISupports>                mHandleReportData;
+    uint32_t mNumProcessesRunning;
+    uint32_t mNumProcessesCompleted;
+    uint32_t mConcurrencyLimit;
+    nsCOMPtr<nsIHandleReportCallback> mHandleReport;
+    nsCOMPtr<nsISupports> mHandleReportData;
     nsCOMPtr<nsIFinishReportingCallback> mFinishReporting;
-    nsCOMPtr<nsISupports>                mFinishReportingData;
-    nsString                             mDMDDumpIdent;
+    nsCOMPtr<nsISupports> mFinishReportingData;
+    nsString mDMDDumpIdent;
 
     PendingProcessesState(uint32_t aGeneration, bool aAnonymize, bool aMinimize,
                           uint32_t aConcurrencyLimit,
@@ -246,8 +236,7 @@ private:
   // Used to keep track of the state of the asynchronously run memory
   // reporters. The callback and file handle used when all memory reporters
   // have finished are also stored here.
-  struct PendingReportersState
-  {
+  struct PendingReportersState {
     // Number of memory reporters currently running.
     uint32_t mReportsPending;
 
@@ -259,14 +248,11 @@ private:
     FILE* mDMDFile;
 
     PendingReportersState(nsIFinishReportingCallback* aFinishReporting,
-                        nsISupports* aFinishReportingData,
-                        FILE* aDMDFile)
-      : mReportsPending(0)
-      , mFinishReporting(aFinishReporting)
-      , mFinishReportingData(aFinishReportingData)
-      , mDMDFile(aDMDFile)
-    {
-    }
+                          nsISupports* aFinishReportingData, FILE* aDMDFile)
+        : mReportsPending(0),
+          mFinishReporting(aFinishReporting),
+          mFinishReportingData(aFinishReportingData),
+          mDMDFile(aDMDFile) {}
   };
 
   // When this is non-null, a request is in flight.  Note: We use manual
@@ -281,13 +267,16 @@ private:
   nsCOMPtr<nsIEventTarget> mThreadPool;
 
   PendingProcessesState* GetStateForGeneration(uint32_t aGeneration);
-  static MOZ_MUST_USE bool
-  StartChildReport(mozilla::MemoryReportingProcess* aChild,
-                   const PendingProcessesState* aState);
+  static MOZ_MUST_USE bool StartChildReport(
+      mozilla::MemoryReportingProcess* aChild,
+      const PendingProcessesState* aState);
 };
 
-#define NS_MEMORY_REPORTER_MANAGER_CID \
-{ 0xfb97e4f5, 0x32dd, 0x497a, \
-{ 0xba, 0xa2, 0x7d, 0x1e, 0x55, 0x7, 0x99, 0x10 } }
+#define NS_MEMORY_REPORTER_MANAGER_CID              \
+  {                                                 \
+    0xfb97e4f5, 0x32dd, 0x497a, {                   \
+      0xba, 0xa2, 0x7d, 0x1e, 0x55, 0x7, 0x99, 0x10 \
+    }                                               \
+  }
 
-#endif // nsMemoryReporterManager_h__
+#endif  // nsMemoryReporterManager_h__

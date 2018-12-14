@@ -9,69 +9,72 @@
 #include "nsIHttpChannel.h"
 #include "nsUnicharUtils.h"
 
-namespace mozilla { namespace net {
+namespace mozilla {
+namespace net {
 
 enum ReferrerPolicy {
   /* spec tokens: never no-referrer */
-  RP_No_Referrer                 = nsIHttpChannel::REFERRER_POLICY_NO_REFERRER,
+  RP_No_Referrer = nsIHttpChannel::REFERRER_POLICY_NO_REFERRER,
 
   /* spec tokens: origin */
-  RP_Origin                      = nsIHttpChannel::REFERRER_POLICY_ORIGIN,
+  RP_Origin = nsIHttpChannel::REFERRER_POLICY_ORIGIN,
 
   /* spec tokens: default no-referrer-when-downgrade */
-  RP_No_Referrer_When_Downgrade  = nsIHttpChannel::REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
+  RP_No_Referrer_When_Downgrade =
+      nsIHttpChannel::REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE,
 
   /* spec tokens: origin-when-cross-origin */
-  RP_Origin_When_Crossorigin     = nsIHttpChannel::REFERRER_POLICY_ORIGIN_WHEN_XORIGIN,
+  RP_Origin_When_Crossorigin =
+      nsIHttpChannel::REFERRER_POLICY_ORIGIN_WHEN_XORIGIN,
 
   /* spec tokens: always unsafe-url */
-  RP_Unsafe_URL                  = nsIHttpChannel::REFERRER_POLICY_UNSAFE_URL,
+  RP_Unsafe_URL = nsIHttpChannel::REFERRER_POLICY_UNSAFE_URL,
 
   /* spec tokens: same-origin */
-  RP_Same_Origin                = nsIHttpChannel::REFERRER_POLICY_SAME_ORIGIN,
+  RP_Same_Origin = nsIHttpChannel::REFERRER_POLICY_SAME_ORIGIN,
 
   /* spec tokens: strict-origin */
-  RP_Strict_Origin               = nsIHttpChannel::REFERRER_POLICY_STRICT_ORIGIN,
+  RP_Strict_Origin = nsIHttpChannel::REFERRER_POLICY_STRICT_ORIGIN,
 
   /* spec tokens: strict-origin-when-cross-origin */
-  RP_Strict_Origin_When_Cross_Origin = nsIHttpChannel::REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN,
+  RP_Strict_Origin_When_Cross_Origin =
+      nsIHttpChannel::REFERRER_POLICY_STRICT_ORIGIN_WHEN_XORIGIN,
 
   /* spec tokens: empty string */
   /* The empty string "" corresponds to no referrer policy, or unset policy */
-  RP_Unset                       = nsIHttpChannel::REFERRER_POLICY_UNSET,
+  RP_Unset = nsIHttpChannel::REFERRER_POLICY_UNSET,
 };
 
 /* spec tokens: never no-referrer */
-const char kRPS_Never[]                       = "never";
-const char kRPS_No_Referrer[]                 = "no-referrer";
+const char kRPS_Never[] = "never";
+const char kRPS_No_Referrer[] = "no-referrer";
 
 /* spec tokens: origin */
-const char kRPS_Origin[]                      = "origin";
+const char kRPS_Origin[] = "origin";
 
 /* spec tokens: default no-referrer-when-downgrade */
-const char kRPS_Default[]                     = "default";
-const char kRPS_No_Referrer_When_Downgrade[]  = "no-referrer-when-downgrade";
+const char kRPS_Default[] = "default";
+const char kRPS_No_Referrer_When_Downgrade[] = "no-referrer-when-downgrade";
 
 /* spec tokens: origin-when-cross-origin */
-const char kRPS_Origin_When_Cross_Origin[]    = "origin-when-cross-origin";
-const char kRPS_Origin_When_Crossorigin[]     = "origin-when-crossorigin";
+const char kRPS_Origin_When_Cross_Origin[] = "origin-when-cross-origin";
+const char kRPS_Origin_When_Crossorigin[] = "origin-when-crossorigin";
 
 /* spec tokens: same-origin */
-const char kRPS_Same_Origin[]                 = "same-origin";
+const char kRPS_Same_Origin[] = "same-origin";
 
 /* spec tokens: strict-origin */
-const char kRPS_Strict_Origin[]               = "strict-origin";
+const char kRPS_Strict_Origin[] = "strict-origin";
 
 /* spec tokens: strict-origin-when-cross-origin */
-const char kRPS_Strict_Origin_When_Cross_Origin[] = "strict-origin-when-cross-origin";
+const char kRPS_Strict_Origin_When_Cross_Origin[] =
+    "strict-origin-when-cross-origin";
 
 /* spec tokens: always unsafe-url */
-const char kRPS_Always[]                      = "always";
-const char kRPS_Unsafe_URL[]                  = "unsafe-url";
+const char kRPS_Always[] = "always";
+const char kRPS_Unsafe_URL[] = "unsafe-url";
 
-inline ReferrerPolicy
-ReferrerPolicyFromString(const nsAString& content)
-{
+inline ReferrerPolicy ReferrerPolicyFromString(const nsAString& content) {
   if (content.IsEmpty()) {
     return RP_No_Referrer;
   }
@@ -110,12 +113,9 @@ ReferrerPolicyFromString(const nsAString& content)
   }
   // Spec says if none of the previous match, use empty string.
   return RP_Unset;
-
 }
 
-inline bool
-IsValidReferrerPolicy(const nsAString& content)
-{
+inline bool IsValidReferrerPolicy(const nsAString& content) {
   if (content.IsEmpty()) {
     return true;
   }
@@ -123,25 +123,26 @@ IsValidReferrerPolicy(const nsAString& content)
   nsString lowerContent(content);
   ToLowerCase(lowerContent);
 
-  return lowerContent.EqualsLiteral(kRPS_Never)
-      || lowerContent.EqualsLiteral(kRPS_No_Referrer)
-      || lowerContent.EqualsLiteral(kRPS_Origin)
-      || lowerContent.EqualsLiteral(kRPS_Default)
-      || lowerContent.EqualsLiteral(kRPS_No_Referrer_When_Downgrade)
-      || lowerContent.EqualsLiteral(kRPS_Origin_When_Cross_Origin)
-      || lowerContent.EqualsLiteral(kRPS_Origin_When_Crossorigin)
-      || lowerContent.EqualsLiteral(kRPS_Same_Origin)
-      || lowerContent.EqualsLiteral(kRPS_Strict_Origin)
-      || lowerContent.EqualsLiteral(kRPS_Strict_Origin_When_Cross_Origin)
-      || lowerContent.EqualsLiteral(kRPS_Always)
-      || lowerContent.EqualsLiteral(kRPS_Unsafe_URL);
+  return lowerContent.EqualsLiteral(kRPS_Never) ||
+         lowerContent.EqualsLiteral(kRPS_No_Referrer) ||
+         lowerContent.EqualsLiteral(kRPS_Origin) ||
+         lowerContent.EqualsLiteral(kRPS_Default) ||
+         lowerContent.EqualsLiteral(kRPS_No_Referrer_When_Downgrade) ||
+         lowerContent.EqualsLiteral(kRPS_Origin_When_Cross_Origin) ||
+         lowerContent.EqualsLiteral(kRPS_Origin_When_Crossorigin) ||
+         lowerContent.EqualsLiteral(kRPS_Same_Origin) ||
+         lowerContent.EqualsLiteral(kRPS_Strict_Origin) ||
+         lowerContent.EqualsLiteral(kRPS_Strict_Origin_When_Cross_Origin) ||
+         lowerContent.EqualsLiteral(kRPS_Always) ||
+         lowerContent.EqualsLiteral(kRPS_Unsafe_URL);
 }
 
-inline ReferrerPolicy
-AttributeReferrerPolicyFromString(const nsAString& content)
-{
-  // Specs : https://html.spec.whatwg.org/multipage/infrastructure.html#referrer-policy-attribute
-  // Spec says the empty string "" corresponds to no referrer policy, or RP_Unset
+inline ReferrerPolicy AttributeReferrerPolicyFromString(
+    const nsAString& content) {
+  // Specs :
+  // https://html.spec.whatwg.org/multipage/infrastructure.html#referrer-policy-attribute
+  // Spec says the empty string "" corresponds to no referrer policy, or
+  // RP_Unset
   if (content.IsEmpty()) {
     return RP_Unset;
   }
@@ -179,7 +180,7 @@ AttributeReferrerPolicyFromString(const nsAString& content)
   return RP_Unset;
 }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 #endif

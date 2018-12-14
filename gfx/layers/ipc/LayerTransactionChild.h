@@ -7,8 +7,8 @@
 #ifndef MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
 #define MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
 
-#include <stdint.h>                     // for uint32_t
-#include "mozilla/Attributes.h"         // for override
+#include <stdint.h>              // for uint32_t
+#include "mozilla/Attributes.h"  // for override
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
 #include "mozilla/RefPtr.h"
@@ -17,15 +17,14 @@ namespace mozilla {
 
 namespace layout {
 class RenderFrameChild;
-} // namespace layout
+}  // namespace layout
 
 namespace layers {
 
 class ShadowLayerForwarder;
 
-class LayerTransactionChild : public PLayerTransactionChild
-{
-public:
+class LayerTransactionChild : public PLayerTransactionChild {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LayerTransactionChild)
   /**
    * Clean this up, finishing with SendShutDown() which will cause __delete__
@@ -40,25 +39,18 @@ public:
   bool IPCOpen() const { return mIPCOpen && !mDestroyed; }
   bool IsDestroyed() const { return mDestroyed; }
 
-  void SetForwarder(ShadowLayerForwarder* aForwarder)
-  {
+  void SetForwarder(ShadowLayerForwarder* aForwarder) {
     mForwarder = aForwarder;
   }
 
   uint64_t GetId() const { return mId; }
 
-  void MarkDestroyed() {
-    mDestroyed = true;
-  }
+  void MarkDestroyed() { mDestroyed = true; }
 
-protected:
+ protected:
   explicit LayerTransactionChild(const uint64_t& aId)
-    : mForwarder(nullptr)
-    , mIPCOpen(false)
-    , mDestroyed(false)
-    , mId(aId)
-  {}
-  ~LayerTransactionChild() { }
+      : mForwarder(nullptr), mIPCOpen(false), mDestroyed(false), mId(aId) {}
+  ~LayerTransactionChild() {}
 
   void ActorDestroy(ActorDestroyReason why) override;
 
@@ -81,7 +73,7 @@ protected:
   uint64_t mId;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
+#endif  // MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H

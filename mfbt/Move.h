@@ -196,10 +196,8 @@ namespace mozilla {
  * Identical to std::Move(); this is necessary until our stlport supports
  * std::move().
  */
-template<typename T>
-inline typename RemoveReference<T>::Type&&
-Move(T&& aX)
-{
+template <typename T>
+inline typename RemoveReference<T>::Type&& Move(T&& aX) {
   return static_cast<typename RemoveReference<T>::Type&&>(aX);
 }
 
@@ -207,32 +205,26 @@ Move(T&& aX)
  * These two overloads are identical to std::forward(); they are necessary until
  * our stlport supports std::forward().
  */
-template<typename T>
-inline T&&
-Forward(typename RemoveReference<T>::Type& aX)
-{
+template <typename T>
+inline T&& Forward(typename RemoveReference<T>::Type& aX) {
   return static_cast<T&&>(aX);
 }
 
-template<typename T>
-inline T&&
-Forward(typename RemoveReference<T>::Type&& aX)
-{
+template <typename T>
+inline T&& Forward(typename RemoveReference<T>::Type&& aX) {
   static_assert(!IsLvalueReference<T>::value,
                 "misuse of Forward detected!  try the other overload");
   return static_cast<T&&>(aX);
 }
 
 /** Swap |aX| and |aY| using move-construction if possible. */
-template<typename T>
-inline void
-Swap(T& aX, T& aY)
-{
+template <typename T>
+inline void Swap(T& aX, T& aY) {
   T tmp(Move(aX));
   aX = Move(aY);
   aY = Move(tmp);
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_Move_h */

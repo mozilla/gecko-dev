@@ -29,9 +29,7 @@ namespace mozilla {
 
 ServoCSSRuleList::ServoCSSRuleList(already_AddRefed<ServoCssRules> aRawRules,
                                    ServoStyleSheet* aDirectOwnerStyleSheet)
-  : mStyleSheet(aDirectOwnerStyleSheet)
-  , mRawRules(aRawRules)
-{
+    : mStyleSheet(aDirectOwnerStyleSheet), mRawRules(aRawRules) {
   Servo_CssRules_ListTypes(mRawRules, &mRules);
 }
 
@@ -67,42 +65,33 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ServoCSSRuleList,
   });
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-void
-ServoCSSRuleList::SetParentRule(css::GroupRule* aParentRule)
-{
+void ServoCSSRuleList::SetParentRule(css::GroupRule* aParentRule) {
   mParentRule = aParentRule;
-  EnumerateInstantiatedRules([aParentRule](css::Rule* rule) {
-    rule->SetParentRule(aParentRule);
-  });
+  EnumerateInstantiatedRules(
+      [aParentRule](css::Rule* rule) { rule->SetParentRule(aParentRule); });
 }
 
-void
-ServoCSSRuleList::SetStyleSheet(StyleSheet* aStyleSheet)
-{
+void ServoCSSRuleList::SetStyleSheet(StyleSheet* aStyleSheet) {
   mStyleSheet = aStyleSheet ? aStyleSheet->AsServo() : nullptr;
-  EnumerateInstantiatedRules([this](css::Rule* rule) {
-    rule->SetStyleSheet(mStyleSheet);
-  });
+  EnumerateInstantiatedRules(
+      [this](css::Rule* rule) { rule->SetStyleSheet(mStyleSheet); });
 }
 
-css::Rule*
-ServoCSSRuleList::GetRule(uint32_t aIndex)
-{
+css::Rule* ServoCSSRuleList::GetRule(uint32_t aIndex) {
   uintptr_t rule = mRules[aIndex];
   if (rule <= kMaxRuleType) {
     RefPtr<css::Rule> ruleObj = nullptr;
     switch (rule) {
-#define CASE_RULE(const_, name_)                                            \
-      case CSSRuleBinding::const_##_RULE: {                                 \
-        uint32_t line = 0, column = 0;                                      \
-        RefPtr<RawServo##name_##Rule> rule =                                \
-          Servo_CssRules_Get##name_##RuleAt(                                \
-              mRawRules, aIndex, &line, &column                             \
-          ).Consume();                                                      \
-        MOZ_ASSERT(rule);                                                   \
-        ruleObj = new Servo##name_##Rule(rule.forget(), line, column);      \
-        break;                                                              \
-      }
+#define CASE_RULE(const_, name_)                                             \
+  case CSSRuleBinding::const_##_RULE: {                                      \
+    uint32_t line = 0, column = 0;                                           \
+    RefPtr<RawServo##name_##Rule> rule =                                     \
+        Servo_CssRules_Get##name_##RuleAt(mRawRules, aIndex, &line, &column) \
+            .Consume();                                                      \
+    MOZ_ASSERT(rule);                                                        \
+    ruleObj = new Servo##name_##Rule(rule.forget(), line, column);           \
+    break;                                                                   \
+  }
       CASE_RULE(STYLE, Style)
       CASE_RULE(KEYFRAMES, Keyframes)
       CASE_RULE(MEDIA, Media)
@@ -140,9 +129,7 @@ ServoCSSRuleList::GetRule(uint32_t aIndex)
   return CastToPtr(rule);
 }
 
-css::Rule*
-ServoCSSRuleList::IndexedGetter(uint32_t aIndex, bool& aFound)
-{
+css::Rule* ServoCSSRuleList::IndexedGetter(uint32_t aIndex, bool& aFound) {
   if (aIndex >= mRules.Length()) {
     aFound = false;
     return nullptr;
@@ -151,10 +138,8 @@ ServoCSSRuleList::IndexedGetter(uint32_t aIndex, bool& aFound)
   return GetRule(aIndex);
 }
 
-template<typename Func>
-void
-ServoCSSRuleList::EnumerateInstantiatedRules(Func aCallback)
-{
+template <typename Func>
+void ServoCSSRuleList::EnumerateInstantiatedRules(Func aCallback) {
   for (uintptr_t rule : mRules) {
     if (rule > kMaxRuleType) {
       aCallback(CastToPtr(rule));
@@ -162,36 +147,28 @@ ServoCSSRuleList::EnumerateInstantiatedRules(Func aCallback)
   }
 }
 
-static void
-DropRule(already_AddRefed<css::Rule> aRule)
-{
+static void DropRule(already_AddRefed<css::Rule> aRule) {
   RefPtr<css::Rule> rule = aRule;
   rule->SetStyleSheet(nullptr);
   rule->SetParentRule(nullptr);
 }
 
-void
-ServoCSSRuleList::DropAllRules()
-{
-  EnumerateInstantiatedRules([](css::Rule* rule) {
-    DropRule(already_AddRefed<css::Rule>(rule));
-  });
+void ServoCSSRuleList::DropAllRules() {
+  EnumerateInstantiatedRules(
+      [](css::Rule* rule) { DropRule(already_AddRefed<css::Rule>(rule)); });
   mRules.Clear();
   mRawRules = nullptr;
 }
 
-void
-ServoCSSRuleList::DropReference()
-{
+void ServoCSSRuleList::DropReference() {
   mStyleSheet = nullptr;
   mParentRule = nullptr;
   DropAllRules();
 }
 
-nsresult
-ServoCSSRuleList::InsertRule(const nsAString& aRule, uint32_t aIndex)
-{
-  MOZ_ASSERT(mStyleSheet, "Caller must ensure that "
+nsresult ServoCSSRuleList::InsertRule(const nsAString& aRule, uint32_t aIndex) {
+  MOZ_ASSERT(mStyleSheet,
+             "Caller must ensure that "
              "the list is not unlinked from stylesheet");
   NS_ConvertUTF16toUTF8 rule(aRule);
   bool nested = !!mParentRule;
@@ -200,9 +177,9 @@ ServoCSSRuleList::InsertRule(const nsAString& aRule, uint32_t aIndex)
     loader = doc->CSSLoader();
   }
   uint16_t type;
-  nsresult rv = Servo_CssRules_InsertRule(mRawRules, mStyleSheet->RawContents(),
-                                          &rule, aIndex, nested,
-                                          loader, mStyleSheet, &type);
+  nsresult rv =
+      Servo_CssRules_InsertRule(mRawRules, mStyleSheet->RawContents(), &rule,
+                                aIndex, nested, loader, mStyleSheet, &type);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -210,9 +187,7 @@ ServoCSSRuleList::InsertRule(const nsAString& aRule, uint32_t aIndex)
   return rv;
 }
 
-nsresult
-ServoCSSRuleList::DeleteRule(uint32_t aIndex)
-{
+nsresult ServoCSSRuleList::DeleteRule(uint32_t aIndex) {
   nsresult rv = Servo_CssRules_DeleteRule(mRawRules, aIndex);
   if (!NS_FAILED(rv)) {
     uintptr_t rule = mRules[aIndex];
@@ -224,9 +199,7 @@ ServoCSSRuleList::DeleteRule(uint32_t aIndex)
   return rv;
 }
 
-uint16_t
-ServoCSSRuleList::GetDOMCSSRuleType(uint32_t aIndex) const
-{
+uint16_t ServoCSSRuleList::GetDOMCSSRuleType(uint32_t aIndex) const {
   uintptr_t rule = mRules[aIndex];
   if (rule <= kMaxRuleType) {
     return rule;
@@ -234,11 +207,10 @@ ServoCSSRuleList::GetDOMCSSRuleType(uint32_t aIndex) const
   return CastToPtr(rule)->Type();
 }
 
-ServoCSSRuleList::~ServoCSSRuleList()
-{
+ServoCSSRuleList::~ServoCSSRuleList() {
   MOZ_ASSERT(!mStyleSheet, "Backpointer should have been cleared");
   MOZ_ASSERT(!mParentRule, "Backpointer should have been cleared");
   DropAllRules();
 }
 
-} // namespace mozilla
+}  // namespace mozilla

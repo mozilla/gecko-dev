@@ -17,9 +17,8 @@ namespace ipc {
 
 class CrashReporterMetadataShmem;
 
-class CrashReporterClient
-{
-public:
+class CrashReporterClient {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CrashReporterClient);
 
   // |aTopLevelProtocol| must be a top-level protocol instance, as sub-actors
@@ -39,8 +38,7 @@ public:
 
     InitSingletonWithShmem(shmem);
     Unused << aToplevelProtocol->SendInitCrashReporter(
-      shmem,
-      CrashReporter::CurrentThreadId());
+        shmem, CrashReporter::CurrentThreadId());
     return true;
   }
 
@@ -50,9 +48,7 @@ public:
     static const size_t kShmemSize = 16 * 1024;
 
     return aToplevelProtocol->AllocUnsafeShmem(
-      kShmemSize,
-      SharedMemory::TYPE_BASIC,
-      aOutShmem);
+        kShmemSize, SharedMemory::TYPE_BASIC, aOutShmem);
   }
 
   static void InitSingletonWithShmem(const Shmem& aShmem);
@@ -63,20 +59,19 @@ public:
   void AnnotateCrashReport(const nsCString& aKey, const nsCString& aData);
   void AppendAppNotes(const nsCString& aData);
 
-private:
+ private:
   explicit CrashReporterClient(const Shmem& aShmem);
   ~CrashReporterClient();
 
-private:
+ private:
   static StaticMutex sLock;
   static StaticRefPtr<CrashReporterClient> sClientSingleton;
 
-private:
+ private:
   UniquePtr<CrashReporterMetadataShmem> mMetadata;
 };
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla
 
-#endif // mozilla_ipc_CrashReporterClient_h
-
+#endif  // mozilla_ipc_CrashReporterClient_h

@@ -22,8 +22,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-SelectionChangeListener::RawRangeData::RawRangeData(const nsRange* aRange)
-{
+SelectionChangeListener::RawRangeData::RawRangeData(const nsRange* aRange) {
   mozilla::ErrorResult rv;
   mStartContainer = aRange->GetStartContainer(rv);
   rv.SuppressException();
@@ -35,9 +34,7 @@ SelectionChangeListener::RawRangeData::RawRangeData(const nsRange* aRange)
   rv.SuppressException();
 }
 
-bool
-SelectionChangeListener::RawRangeData::Equals(const nsRange* aRange)
-{
+bool SelectionChangeListener::RawRangeData::Equals(const nsRange* aRange) {
   mozilla::ErrorResult rv;
   bool eq = mStartContainer == aRange->GetStartContainer(rv);
   rv.SuppressException();
@@ -50,16 +47,14 @@ SelectionChangeListener::RawRangeData::Equals(const nsRange* aRange)
   return eq;
 }
 
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            SelectionChangeListener::RawRangeData& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    SelectionChangeListener::RawRangeData& aField, const char* aName,
+    uint32_t aFlags = 0) {
   ImplCycleCollectionTraverse(aCallback, aField.mStartContainer,
                               "mStartContainer", aFlags);
-  ImplCycleCollectionTraverse(aCallback, aField.mEndContainer,
-                              "mEndContainer", aFlags);
+  ImplCycleCollectionTraverse(aCallback, aField.mEndContainer, "mEndContainer",
+                              aFlags);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(SelectionChangeListener)
@@ -82,8 +77,8 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(SelectionChangeListener)
 
 NS_IMETHODIMP
 SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
-                                                nsISelection* aSel, int16_t aReason)
-{
+                                                nsISelection* aSel,
+                                                int16_t aReason) {
   RefPtr<Selection> sel = aSel->AsSelection();
 
   nsIDocument* doc = sel->GetParentObject();
@@ -94,7 +89,8 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
 
   // Check if the ranges have actually changed
   // Don't bother checking this if we are hiding changes.
-  if (mOldRanges.Length() == sel->RangeCount() && !sel->IsBlockingSelectionChangeEvents()) {
+  if (mOldRanges.Length() == sel->RangeCount() &&
+      !sel->IsBlockingSelectionChangeEvents()) {
     bool changed = false;
 
     for (size_t i = 0; i < mOldRanges.Length(); i++) {
@@ -139,8 +135,8 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
     // Check if we should be firing this event to a different node than the
     // document. The limiter of the nsFrameSelection will be within the native
     // anonymous subtree of the node we want to fire the event on. We need to
-    // climb up the parent chain to escape the native anonymous subtree, and then
-    // fire the event.
+    // climb up the parent chain to escape the native anonymous subtree, and
+    // then fire the event.
     if (const nsFrameSelection* fs = sel->GetFrameSelection()) {
       if (nsCOMPtr<nsIContent> root = fs->GetLimiter()) {
         while (root && root->IsInNativeAnonymousSubtree()) {
@@ -151,7 +147,8 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
       }
     }
 
-    // If we didn't get a target before, we can instead fire the event at the document.
+    // If we didn't get a target before, we can instead fire the event at the
+    // document.
     if (!target) {
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
       target = doc.forget();
@@ -159,7 +156,7 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
 
     if (target) {
       RefPtr<AsyncEventDispatcher> asyncDispatcher =
-        new AsyncEventDispatcher(target, eSelectionChange, false);
+          new AsyncEventDispatcher(target, eSelectionChange, false);
       asyncDispatcher->PostDOMEvent();
     }
   } else {
@@ -174,7 +171,7 @@ SelectionChangeListener::NotifySelectionChanged(nsIDOMDocument* aDoc,
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDoc);
     if (doc) {
       RefPtr<AsyncEventDispatcher> asyncDispatcher =
-        new AsyncEventDispatcher(doc, eSelectionChange, false);
+          new AsyncEventDispatcher(doc, eSelectionChange, false);
       asyncDispatcher->PostDOMEvent();
     }
   }

@@ -11,9 +11,7 @@
 namespace mozilla {
 namespace wr {
 
-void
-Assign_WrVecU8(wr::WrVecU8& aVec, mozilla::ipc::ByteBuf&& aOther)
-{
+void Assign_WrVecU8(wr::WrVecU8& aVec, mozilla::ipc::ByteBuf&& aOther) {
   aVec.data = aOther.mData;
   aVec.length = aOther.mLen;
   aVec.capacity = aOther.mCapacity;
@@ -22,5 +20,5 @@ Assign_WrVecU8(wr::WrVecU8& aVec, mozilla::ipc::ByteBuf&& aOther)
   aOther.mCapacity = 0;
 }
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla

@@ -10,23 +10,19 @@
 
 NS_IMPL_ISUPPORTS(mozSpellI18NManager, mozISpellI18NManager)
 
-mozSpellI18NManager::mozSpellI18NManager()
-{
-}
+mozSpellI18NManager::mozSpellI18NManager() {}
 
-mozSpellI18NManager::~mozSpellI18NManager()
-{
-}
+mozSpellI18NManager::~mozSpellI18NManager() {}
 
-NS_IMETHODIMP mozSpellI18NManager::GetUtil(const char16_t *aLanguage, mozISpellI18NUtil **_retval)
-{
- if (!_retval) {
-   return NS_ERROR_NULL_POINTER;
- }
+NS_IMETHODIMP mozSpellI18NManager::GetUtil(const char16_t *aLanguage,
+                                           mozISpellI18NUtil **_retval) {
+  if (!_retval) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
- // XXX TODO Actually handle multiple languages.
- RefPtr<mozEnglishWordUtils> utils = new mozEnglishWordUtils;
- utils.forget(_retval);
+  // XXX TODO Actually handle multiple languages.
+  RefPtr<mozEnglishWordUtils> utils = new mozEnglishWordUtils;
+  utils.forget(_retval);
 
- return NS_OK;
+  return NS_OK;
 }

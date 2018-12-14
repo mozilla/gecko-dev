@@ -33,7 +33,8 @@
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWindow)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsScreenManagerAndroid)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIdleServiceAndroid, nsIdleServiceAndroid::GetInstance)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIdleServiceAndroid,
+                                         nsIdleServiceAndroid::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsTransferable)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
@@ -50,13 +51,11 @@ namespace widget {
 // This constructor should really be shared with all platforms.
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(GfxInfo, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(AndroidAlerts)
-}
-}
+}  // namespace widget
+}  // namespace mozilla
 
-static nsresult
-nsNativeThemeAndroidConstructor(nsISupports *aOuter, REFNSIID aIID,
-                                void **aResult)
-{
+static nsresult nsNativeThemeAndroidConstructor(nsISupports *aOuter,
+                                                REFNSIID aIID, void **aResult) {
   nsresult rv;
 
   if (aOuter) {
@@ -65,7 +64,7 @@ nsNativeThemeAndroidConstructor(nsISupports *aOuter, REFNSIID aIID,
   }
 
   *aResult = nullptr;
-  nsNativeThemeAndroid* inst = new nsNativeThemeAndroid();
+  nsNativeThemeAndroid *inst = new nsNativeThemeAndroid();
   NS_ADDREF(inst);
   rv = inst->QueryInterface(aIID, aResult);
   NS_RELEASE(inst);
@@ -92,65 +91,65 @@ NS_DEFINE_NAMED_CID(NS_ANDROIDPROTOCOLHANDLER_CID);
 NS_DEFINE_NAMED_CID(NS_SYSTEMALERTSSERVICE_CID);
 
 static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
-  { &kNS_WINDOW_CID, false, nullptr, nsWindowConstructor },
-  { &kNS_CHILD_CID, false, nullptr, nsWindowConstructor },
-  { &kNS_APPSHELL_CID, false, nullptr, nsAppShellConstructor },
-  { &kNS_SCREENMANAGER_CID, false, nullptr, nsScreenManagerAndroidConstructor },
-  { &kNS_THEMERENDERER_CID, false, nullptr, nsNativeThemeAndroidConstructor },
-  { &kNS_IDLE_SERVICE_CID, false, nullptr, nsIdleServiceAndroidConstructor },
-  { &kNS_TRANSFERABLE_CID, false, nullptr, nsTransferableConstructor },
-  { &kNS_CLIPBOARD_CID, false, nullptr, nsClipboardConstructor },
-  { &kNS_CLIPBOARDHELPER_CID, false, nullptr, nsClipboardHelperConstructor },
-  { &kNS_PRINTSETTINGSSERVICE_CID, false, nullptr, nsPrintSettingsServiceAndroidConstructor },
-  { &kNS_PRINTSESSION_CID, false, nullptr, nsPrintSessionConstructor },
-  { &kNS_DEVICE_CONTEXT_SPEC_CID, false, nullptr, nsDeviceContextSpecAndroidConstructor },
-  { &kNS_HTMLFORMATCONVERTER_CID, false, nullptr, nsHTMLFormatConverterConstructor },
-  { &kNS_GFXINFO_CID, false, nullptr, mozilla::widget::GfxInfoConstructor },
-  { &kNS_ANDROIDBRIDGE_CID, false, nullptr, nsAndroidBridgeConstructor },
-  { &kNS_ANDROIDPROTOCOLHANDLER_CID, false, nullptr, nsAndroidProtocolHandlerConstructor },
-  { &kNS_SYSTEMALERTSSERVICE_CID, false, nullptr, mozilla::widget::AndroidAlertsConstructor },
-  { nullptr }
-};
+    {&kNS_WINDOW_CID, false, nullptr, nsWindowConstructor},
+    {&kNS_CHILD_CID, false, nullptr, nsWindowConstructor},
+    {&kNS_APPSHELL_CID, false, nullptr, nsAppShellConstructor},
+    {&kNS_SCREENMANAGER_CID, false, nullptr, nsScreenManagerAndroidConstructor},
+    {&kNS_THEMERENDERER_CID, false, nullptr, nsNativeThemeAndroidConstructor},
+    {&kNS_IDLE_SERVICE_CID, false, nullptr, nsIdleServiceAndroidConstructor},
+    {&kNS_TRANSFERABLE_CID, false, nullptr, nsTransferableConstructor},
+    {&kNS_CLIPBOARD_CID, false, nullptr, nsClipboardConstructor},
+    {&kNS_CLIPBOARDHELPER_CID, false, nullptr, nsClipboardHelperConstructor},
+    {&kNS_PRINTSETTINGSSERVICE_CID, false, nullptr,
+     nsPrintSettingsServiceAndroidConstructor},
+    {&kNS_PRINTSESSION_CID, false, nullptr, nsPrintSessionConstructor},
+    {&kNS_DEVICE_CONTEXT_SPEC_CID, false, nullptr,
+     nsDeviceContextSpecAndroidConstructor},
+    {&kNS_HTMLFORMATCONVERTER_CID, false, nullptr,
+     nsHTMLFormatConverterConstructor},
+    {&kNS_GFXINFO_CID, false, nullptr, mozilla::widget::GfxInfoConstructor},
+    {&kNS_ANDROIDBRIDGE_CID, false, nullptr, nsAndroidBridgeConstructor},
+    {&kNS_ANDROIDPROTOCOLHANDLER_CID, false, nullptr,
+     nsAndroidProtocolHandlerConstructor},
+    {&kNS_SYSTEMALERTSSERVICE_CID, false, nullptr,
+     mozilla::widget::AndroidAlertsConstructor},
+    {nullptr}};
 
 static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
-  { "@mozilla.org/widgets/window/android;1", &kNS_WINDOW_CID },
-  { "@mozilla.org/widgets/child_window/android;1", &kNS_CHILD_CID },
-  { "@mozilla.org/widget/appshell/android;1", &kNS_APPSHELL_CID },
-  { "@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID },
-  { "@mozilla.org/chrome/chrome-native-theme;1", &kNS_THEMERENDERER_CID },
-  { "@mozilla.org/widget/idleservice;1", &kNS_IDLE_SERVICE_CID },
-  { "@mozilla.org/widget/transferable;1", &kNS_TRANSFERABLE_CID },
-  { "@mozilla.org/widget/clipboard;1", &kNS_CLIPBOARD_CID },
-  { "@mozilla.org/widget/clipboardhelper;1", &kNS_CLIPBOARDHELPER_CID },
-  { "@mozilla.org/gfx/printsettings-service;1", &kNS_PRINTSETTINGSSERVICE_CID },
-  { "@mozilla.org/gfx/printsession;1", &kNS_PRINTSESSION_CID },
-  { "@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID },
-  { "@mozilla.org/widget/htmlformatconverter;1", &kNS_HTMLFORMATCONVERTER_CID },
-  { "@mozilla.org/gfx/info;1", &kNS_GFXINFO_CID },
-  { "@mozilla.org/android/bridge;1", &kNS_ANDROIDBRIDGE_CID },
-  { NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "android", &kNS_ANDROIDPROTOCOLHANDLER_CID },
-  { NS_SYSTEMALERTSERVICE_CONTRACTID, &kNS_SYSTEMALERTSSERVICE_CID },
-  { nullptr }
-};
+    {"@mozilla.org/widgets/window/android;1", &kNS_WINDOW_CID},
+    {"@mozilla.org/widgets/child_window/android;1", &kNS_CHILD_CID},
+    {"@mozilla.org/widget/appshell/android;1", &kNS_APPSHELL_CID},
+    {"@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID},
+    {"@mozilla.org/chrome/chrome-native-theme;1", &kNS_THEMERENDERER_CID},
+    {"@mozilla.org/widget/idleservice;1", &kNS_IDLE_SERVICE_CID},
+    {"@mozilla.org/widget/transferable;1", &kNS_TRANSFERABLE_CID},
+    {"@mozilla.org/widget/clipboard;1", &kNS_CLIPBOARD_CID},
+    {"@mozilla.org/widget/clipboardhelper;1", &kNS_CLIPBOARDHELPER_CID},
+    {"@mozilla.org/gfx/printsettings-service;1", &kNS_PRINTSETTINGSSERVICE_CID},
+    {"@mozilla.org/gfx/printsession;1", &kNS_PRINTSESSION_CID},
+    {"@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID},
+    {"@mozilla.org/widget/htmlformatconverter;1", &kNS_HTMLFORMATCONVERTER_CID},
+    {"@mozilla.org/gfx/info;1", &kNS_GFXINFO_CID},
+    {"@mozilla.org/android/bridge;1", &kNS_ANDROIDBRIDGE_CID},
+    {NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "android",
+     &kNS_ANDROIDPROTOCOLHANDLER_CID},
+    {NS_SYSTEMALERTSERVICE_CONTRACTID, &kNS_SYSTEMALERTSSERVICE_CID},
+    {nullptr}};
 
-static void
-nsWidgetAndroidModuleDtor()
-{
-    // Shutdown all XP level widget classes.
-    mozilla::widget::WidgetUtils::Shutdown();
+static void nsWidgetAndroidModuleDtor() {
+  // Shutdown all XP level widget classes.
+  mozilla::widget::WidgetUtils::Shutdown();
 
-    nsLookAndFeel::Shutdown();
-    nsAppShellShutdown();
+  nsLookAndFeel::Shutdown();
+  nsAppShellShutdown();
 }
 
-static const mozilla::Module kWidgetModule = {
-    mozilla::Module::kVersion,
-    kWidgetCIDs,
-    kWidgetContracts,
-    nullptr,
-    nullptr,
-    nsAppShellInit,
-    nsWidgetAndroidModuleDtor
-};
+static const mozilla::Module kWidgetModule = {mozilla::Module::kVersion,
+                                              kWidgetCIDs,
+                                              kWidgetContracts,
+                                              nullptr,
+                                              nullptr,
+                                              nsAppShellInit,
+                                              nsWidgetAndroidModuleDtor};
 
 NSMODULE_DEFN(nsWidgetAndroidModule) = &kWidgetModule;

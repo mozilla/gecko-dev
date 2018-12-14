@@ -14,8 +14,8 @@ namespace dom {
 
 // Ensure that constants are consistent.
 
-#define CHECK(X, Y) \
-  static_assert(static_cast<int>(X) == static_cast<int>(Y),       \
+#define CHECK(X, Y)                                         \
+  static_assert(static_cast<int>(X) == static_cast<int>(Y), \
                 "nsCSSToken and CSSTokenType should have identical values")
 
 CHECK(eCSSToken_Whitespace, CSSTokenType::Whitespace);
@@ -44,40 +44,25 @@ CHECK(eCSSToken_HTMLComment, CSSTokenType::Htmlcomment);
 #undef CHECK
 
 CSSLexer::CSSLexer(const nsAString& aText)
-  : mInput(aText)
-  , mScanner(mInput, 1)
-{
-}
+    : mInput(aText), mScanner(mInput, 1) {}
 
-CSSLexer::~CSSLexer()
-{
-}
+CSSLexer::~CSSLexer() {}
 
-bool
-CSSLexer::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
-                     JS::MutableHandle<JSObject*> aReflector)
-{
+bool CSSLexer::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+                          JS::MutableHandle<JSObject*> aReflector) {
   return CSSLexerBinding::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
-uint32_t
-CSSLexer::LineNumber()
-{
+uint32_t CSSLexer::LineNumber() {
   // The scanner uses 1-based line numbers, but our callers expect
   // 0-based.
   return mScanner.GetLineNumber() - 1;
 }
 
-uint32_t
-CSSLexer::ColumnNumber()
-{
-  return mScanner.GetColumnNumber();
-}
+uint32_t CSSLexer::ColumnNumber() { return mScanner.GetColumnNumber(); }
 
-void
-CSSLexer::PerformEOFFixup(const nsAString& aInputString, bool aPreserveBackslash,
-                          nsAString& aResult)
-{
+void CSSLexer::PerformEOFFixup(const nsAString& aInputString,
+                               bool aPreserveBackslash, nsAString& aResult) {
   aResult.Append(aInputString);
   uint32_t eofChars = mScanner.GetEOFCharacters();
 
@@ -94,13 +79,11 @@ CSSLexer::PerformEOFFixup(const nsAString& aInputString, bool aPreserveBackslash
     aResult.Truncate(aResult.Length() - 1);
   }
 
-  nsCSSScanner::AppendImpliedEOFCharacters(nsCSSScanner::EOFCharacters(eofChars),
-                                           aResult);
+  nsCSSScanner::AppendImpliedEOFCharacters(
+      nsCSSScanner::EOFCharacters(eofChars), aResult);
 }
 
-void
-CSSLexer::NextToken(Nullable<CSSToken>& aResult)
-{
+void CSSLexer::NextToken(Nullable<CSSToken>& aResult) {
   nsCSSToken token;
   if (!mScanner.Next(token, eCSSScannerExclude_None)) {
     return;
@@ -163,5 +146,5 @@ CSSLexer::NextToken(Nullable<CSSToken>& aResult)
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

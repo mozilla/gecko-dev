@@ -25,18 +25,15 @@ class TabChildGlobal;
  * max scroll y, and amount of vertical scrolling that ocurred.
  * for more information see bug 1340904
  */
-class TelemetryScrollProbe final : public nsIDOMEventListener
-{
-public:
+class TelemetryScrollProbe final : public nsIDOMEventListener {
+ public:
   static void Create(TabChildGlobal* aWebFrame);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
-private:
-  explicit TelemetryScrollProbe(nsWeakPtr aWebNav)
-      : mWebNav(aWebNav)
-  { }
+ private:
+  explicit TelemetryScrollProbe(nsWeakPtr aWebNav) : mWebNav(aWebNav) {}
   ~TelemetryScrollProbe() {}
 
   already_AddRefed<nsIWebNavigation> GetWebNavigation() const;
@@ -48,7 +45,7 @@ private:
   nsWeakPtr mWebNav;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_TelemetryScrollProbe_h
+#endif  // mozilla_dom_TelemetryScrollProbe_h

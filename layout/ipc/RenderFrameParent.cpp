@@ -45,38 +45,37 @@ typedef FrameMetrics::ViewID ViewID;
 
 /**
  * Gets the layer-pixel offset of aContainerFrame's content rect top-left
- * from the nearest display item reference frame (which we assume will be inducing
- * a ContainerLayer).
+ * from the nearest display item reference frame (which we assume will be
+ * inducing a ContainerLayer).
  */
-static LayoutDeviceIntPoint
-GetContentRectLayerOffset(nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuilder)
-{
+static LayoutDeviceIntPoint GetContentRectLayerOffset(
+    nsIFrame* aContainerFrame, nsDisplayListBuilder* aBuilder) {
   nscoord auPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
 
   // Offset to the content rect in case we have borders or padding
   // Note that aContainerFrame could be a reference frame itself, so
   // we need to be careful here to ensure that we call ToReferenceFrame
   // on aContainerFrame and not its parent.
-  nsPoint frameOffset = aBuilder->ToReferenceFrame(aContainerFrame) +
-    aContainerFrame->GetContentRectRelativeToSelf().TopLeft();
+  nsPoint frameOffset =
+      aBuilder->ToReferenceFrame(aContainerFrame) +
+      aContainerFrame->GetContentRectRelativeToSelf().TopLeft();
 
-  return LayoutDeviceIntPoint::FromAppUnitsToNearest(frameOffset, auPerDevPixel);
+  return LayoutDeviceIntPoint::FromAppUnitsToNearest(frameOffset,
+                                                     auPerDevPixel);
 }
 
 // Return true iff |aManager| is a "temporary layer manager".  They're
 // used for small software rendering tasks, like drawWindow.  That's
 // currently implemented by a BasicLayerManager without a backing
 // widget, and hence in non-retained mode.
-inline static bool
-IsTempLayerManager(LayerManager* aManager)
-{
-  return (mozilla::layers::LayersBackend::LAYERS_BASIC == aManager->GetBackendType() &&
+inline static bool IsTempLayerManager(LayerManager* aManager) {
+  return (mozilla::layers::LayersBackend::LAYERS_BASIC ==
+              aManager->GetBackendType() &&
           !static_cast<BasicLayerManager*>(aManager)->IsRetained());
 }
 
-static already_AddRefed<LayerManager>
-GetLayerManager(nsFrameLoader* aFrameLoader)
-{
+static already_AddRefed<LayerManager> GetLayerManager(
+    nsFrameLoader* aFrameLoader) {
   if (nsIContent* content = aFrameLoader->GetOwnerContent()) {
     RefPtr<LayerManager> lm = nsContentUtils::LayerManagerForContent(content);
     if (lm) {
@@ -92,22 +91,18 @@ GetLayerManager(nsFrameLoader* aFrameLoader)
 }
 
 RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader)
-  : mLayersId(0)
-  , mLayersConnected(false)
-  , mFrameLoader(aFrameLoader)
-  , mFrameLoaderDestroyed(false)
-  , mAsyncPanZoomEnabled(false)
-  , mInitted(false)
-{
+    : mLayersId(0),
+      mLayersConnected(false),
+      mFrameLoader(aFrameLoader),
+      mFrameLoaderDestroyed(false),
+      mAsyncPanZoomEnabled(false),
+      mInitted(false) {
   mInitted = Init(aFrameLoader);
 }
 
-RenderFrameParent::~RenderFrameParent()
-{}
+RenderFrameParent::~RenderFrameParent() {}
 
-bool
-RenderFrameParent::Init(nsFrameLoader* aFrameLoader)
-{
+bool RenderFrameParent::Init(nsFrameLoader* aFrameLoader) {
   if (mInitted || !aFrameLoader) {
     return false;
   }
@@ -129,44 +124,33 @@ RenderFrameParent::Init(nsFrameLoader* aFrameLoader)
     // and we'll keep an indirect reference to that tree.
     GPUProcessManager* gpm = GPUProcessManager::Get();
     mLayersConnected = gpm->AllocateAndConnectLayerTreeId(
-      compositor,
-      browser->Manager()->AsContentParent()->OtherPid(),
-      &mLayersId,
-      &mCompositorOptions);
+        compositor, browser->Manager()->AsContentParent()->OtherPid(),
+        &mLayersId, &mCompositorOptions);
   } else if (XRE_IsContentProcess()) {
-    ContentChild::GetSingleton()->SendAllocateLayerTreeId(browser->Manager()->ChildID(), browser->GetTabId(), &mLayersId);
-    mLayersConnected = CompositorBridgeChild::Get()->SendNotifyChildCreated(mLayersId, &mCompositorOptions);
+    ContentChild::GetSingleton()->SendAllocateLayerTreeId(
+        browser->Manager()->ChildID(), browser->GetTabId(), &mLayersId);
+    mLayersConnected = CompositorBridgeChild::Get()->SendNotifyChildCreated(
+        mLayersId, &mCompositorOptions);
   }
 
   mInitted = true;
   return true;
 }
 
-bool
-RenderFrameParent::IsInitted()
-{
-  return mInitted;
-}
+bool RenderFrameParent::IsInitted() { return mInitted; }
 
-void
-RenderFrameParent::Destroy()
-{
+void RenderFrameParent::Destroy() {
   mFrameLoaderDestroyed = true;
   mLayerManager = nullptr;
 }
 
-already_AddRefed<Layer>
-RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
-                              nsIFrame* aFrame,
-                              LayerManager* aManager,
-                              nsDisplayItem* aItem,
-                              const ContainerLayerParameters& aContainerParameters)
-{
-  MOZ_ASSERT(aFrame,
-             "makes no sense to have a shadow tree without a frame");
-  MOZ_ASSERT(!mContainer ||
-             IsTempLayerManager(aManager) ||
-             mContainer->Manager() == aManager,
+already_AddRefed<Layer> RenderFrameParent::BuildLayer(
+    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, LayerManager* aManager,
+    nsDisplayItem* aItem,
+    const ContainerLayerParameters& aContainerParameters) {
+  MOZ_ASSERT(aFrame, "makes no sense to have a shadow tree without a frame");
+  MOZ_ASSERT(!mContainer || IsTempLayerManager(aManager) ||
+                 mContainer->Manager() == aManager,
              "retaining manager changed out from under us ... HELP!");
 
   if (IsTempLayerManager(aManager) ||
@@ -188,7 +172,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   RefPtr<Layer> layer =
-    (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
+      (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
   if (!layer) {
     layer = aManager->CreateRefLayer();
   }
@@ -212,9 +196,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   return layer.forget();
 }
 
-LayerManager*
-RenderFrameParent::AttachLayerManager()
-{
+LayerManager* RenderFrameParent::AttachLayerManager() {
   RefPtr<LayerManager> lm;
   if (mFrameLoader) {
     lm = GetLayerManager(mFrameLoader);
@@ -222,7 +204,8 @@ RenderFrameParent::AttachLayerManager()
 
   // Perhaps the document containing this frame currently has no presentation?
   if (lm && lm->GetCompositorBridgeChild() && lm != mLayerManager) {
-    mLayersConnected = lm->GetCompositorBridgeChild()->SendAdoptChild(mLayersId);
+    mLayersConnected =
+        lm->GetCompositorBridgeChild()->SendAdoptChild(mLayersId);
     FrameLayerBuilder::InvalidateAllLayers(lm);
   }
 
@@ -230,24 +213,21 @@ RenderFrameParent::AttachLayerManager()
   return mLayerManager;
 }
 
-void
-RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
-{
+void RenderFrameParent::OwnerContentChanged(nsIContent* aContent) {
   MOZ_ASSERT(!mFrameLoader || mFrameLoader->GetOwnerContent() == aContent,
              "Don't build new map if owner is same!");
 
   Unused << AttachLayerManager();
 }
 
-void
-RenderFrameParent::ActorDestroy(ActorDestroyReason why)
-{
+void RenderFrameParent::ActorDestroy(ActorDestroyReason why) {
   if (mLayersId != 0) {
     if (XRE_IsParentProcess()) {
       GPUProcessManager::Get()->UnmapLayerTreeId(mLayersId, OtherPid());
     } else if (XRE_IsContentProcess()) {
       TabParent* browser = TabParent::GetFrom(mFrameLoader);
-      ContentChild::GetSingleton()->SendDeallocateLayerTreeId(browser->Manager()->ChildID(), mLayersId);
+      ContentChild::GetSingleton()->SendDeallocateLayerTreeId(
+          browser->Manager()->ChildID(), mLayersId);
     }
   }
 
@@ -255,16 +235,12 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
   mLayerManager = nullptr;
 }
 
-mozilla::ipc::IPCResult
-RenderFrameParent::RecvNotifyCompositorTransaction()
-{
+mozilla::ipc::IPCResult RenderFrameParent::RecvNotifyCompositorTransaction() {
   TriggerRepaint();
   return IPC_OK();
 }
 
-void
-RenderFrameParent::TriggerRepaint()
-{
+void RenderFrameParent::TriggerRepaint() {
   nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!docFrame) {
     // Bad, but nothing we can do about it (XXX/cjones: or is there?
@@ -278,11 +254,9 @@ RenderFrameParent::TriggerRepaint()
   docFrame->InvalidateLayer(DisplayItemType::TYPE_REMOTE);
 }
 
-void
-RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                                    nsSubDocumentFrame* aFrame,
-                                    const nsDisplayListSet& aLists)
-{
+void RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
+                                         nsSubDocumentFrame* aFrame,
+                                         const nsDisplayListSet& aLists) {
   // We're the subdoc for <browser remote="true"> and it has
   // painted content.  Display its shadow layer tree.
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
@@ -292,13 +266,13 @@ RenderFrameParent::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   clipState.ClipContentDescendants(bounds);
 
   aLists.Content()->AppendToTop(
-    MakeDisplayItem<nsDisplayRemote>(aBuilder, aFrame, this));
+      MakeDisplayItem<nsDisplayRemote>(aBuilder, aFrame, this));
 }
 
-void
-RenderFrameParent::GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextureFactoryIdentifier)
-{
-  RefPtr<LayerManager> lm = mFrameLoader ? GetLayerManager(mFrameLoader) : nullptr;
+void RenderFrameParent::GetTextureFactoryIdentifier(
+    TextureFactoryIdentifier* aTextureFactoryIdentifier) {
+  RefPtr<LayerManager> lm =
+      mFrameLoader ? GetLayerManager(mFrameLoader) : nullptr;
   // Perhaps the document containing this frame currently has no presentation?
   if (lm) {
     *aTextureFactoryIdentifier = lm->GetTextureFactoryIdentifier();
@@ -307,9 +281,7 @@ RenderFrameParent::GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextur
   }
 }
 
-void
-RenderFrameParent::TakeFocusForClickFromTap()
-{
+void RenderFrameParent::TakeFocusForClickFromTap() {
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (!fm) {
     return;
@@ -323,13 +295,12 @@ RenderFrameParent::TakeFocusForClickFromTap()
     return;
   }
   fm->SetFocus(element, nsIFocusManager::FLAG_BYMOUSE |
-                        nsIFocusManager::FLAG_BYTOUCH |
-                        nsIFocusManager::FLAG_NOSCROLL);
+                            nsIFocusManager::FLAG_BYTOUCH |
+                            nsIFocusManager::FLAG_NOSCROLL);
 }
 
-void
-RenderFrameParent::EnsureLayersConnected(CompositorOptions* aCompositorOptions)
-{
+void RenderFrameParent::EnsureLayersConnected(
+    CompositorOptions* aCompositorOptions) {
   RefPtr<LayerManager> lm = GetLayerManager(mFrameLoader);
   if (!lm) {
     return;
@@ -339,79 +310,77 @@ RenderFrameParent::EnsureLayersConnected(CompositorOptions* aCompositorOptions)
     return;
   }
 
-  mLayersConnected = lm->GetCompositorBridgeChild()->SendNotifyChildRecreated(mLayersId, &mCompositorOptions);
+  mLayersConnected = lm->GetCompositorBridgeChild()->SendNotifyChildRecreated(
+      mLayersId, &mCompositorOptions);
   *aCompositorOptions = mCompositorOptions;
 }
 
-} // namespace layout
-} // namespace mozilla
+}  // namespace layout
+}  // namespace mozilla
 
 nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
                                  nsSubDocumentFrame* aFrame,
                                  RenderFrameParent* aRemoteFrame)
-  : nsDisplayItem(aBuilder, aFrame)
-  , mRemoteFrame(aRemoteFrame)
-  , mEventRegionsOverride(EventRegionsOverride::NoOverride)
-{
+    : nsDisplayItem(aBuilder, aFrame),
+      mRemoteFrame(aRemoteFrame),
+      mEventRegionsOverride(EventRegionsOverride::NoOverride) {
   if (aBuilder->IsBuildingLayerEventRegions()) {
     bool frameIsPointerEventsNone =
-      aFrame->StyleUserInterface()->GetEffectivePointerEvents(aFrame) ==
+        aFrame->StyleUserInterface()->GetEffectivePointerEvents(aFrame) ==
         NS_STYLE_POINTER_EVENTS_NONE;
     if (aBuilder->IsInsidePointerEventsNoneDoc() || frameIsPointerEventsNone) {
       mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
     }
-    if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(aFrame->PresShell())) {
+    if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(
+            aFrame->PresShell())) {
       mEventRegionsOverride |= EventRegionsOverride::ForceDispatchToContent;
     }
   }
 }
 
-already_AddRefed<Layer>
-nsDisplayRemote::BuildLayer(nsDisplayListBuilder* aBuilder,
-                            LayerManager* aManager,
-                            const ContainerLayerParameters& aContainerParameters)
-{
-  RefPtr<Layer> layer = mRemoteFrame->BuildLayer(aBuilder, mFrame, aManager, this, aContainerParameters);
+already_AddRefed<Layer> nsDisplayRemote::BuildLayer(
+    nsDisplayListBuilder* aBuilder, LayerManager* aManager,
+    const ContainerLayerParameters& aContainerParameters) {
+  RefPtr<Layer> layer = mRemoteFrame->BuildLayer(aBuilder, mFrame, aManager,
+                                                 this, aContainerParameters);
   if (layer && layer->AsRefLayer()) {
     layer->AsRefLayer()->SetEventRegionsOverride(mEventRegionsOverride);
   }
   return layer.forget();
 }
 
-bool
-nsDisplayRemote::CreateWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
-                                         mozilla::wr::IpcResourceUpdateQueue& aResources,
-                                         const StackingContextHelper& aSc,
-                                         mozilla::layers::WebRenderLayerManager* aManager,
-                                         nsDisplayListBuilder* aDisplayListBuilder)
-{
-  mOffset = mozilla::layout::GetContentRectLayerOffset(mFrame, aDisplayListBuilder);
+bool nsDisplayRemote::CreateWebRenderCommands(
+    mozilla::wr::DisplayListBuilder& aBuilder,
+    mozilla::wr::IpcResourceUpdateQueue& aResources,
+    const StackingContextHelper& aSc,
+    mozilla::layers::WebRenderLayerManager* aManager,
+    nsDisplayListBuilder* aDisplayListBuilder) {
+  mOffset =
+      mozilla::layout::GetContentRectLayerOffset(mFrame, aDisplayListBuilder);
 
   mozilla::LayoutDeviceRect rect = mozilla::LayoutDeviceRect::FromAppUnits(
-    mFrame->GetContentRectRelativeToSelf(), mFrame->PresContext()->AppUnitsPerDevPixel());
+      mFrame->GetContentRectRelativeToSelf(),
+      mFrame->PresContext()->AppUnitsPerDevPixel());
   rect += mOffset;
 
-  aBuilder.PushIFrame(aSc.ToRelativeLayoutRect(rect),
-      !BackfaceIsHidden(),
-      mozilla::wr::AsPipelineId(GetRemoteLayersId()));
+  aBuilder.PushIFrame(aSc.ToRelativeLayoutRect(rect), !BackfaceIsHidden(),
+                      mozilla::wr::AsPipelineId(GetRemoteLayersId()));
 
   return true;
 }
 
-bool
-nsDisplayRemote::UpdateScrollData(mozilla::layers::WebRenderScrollData* aData,
-                                  mozilla::layers::WebRenderLayerScrollData* aLayerData)
-{
+bool nsDisplayRemote::UpdateScrollData(
+    mozilla::layers::WebRenderScrollData* aData,
+    mozilla::layers::WebRenderLayerScrollData* aLayerData) {
   if (aLayerData) {
     aLayerData->SetReferentId(GetRemoteLayersId());
-    aLayerData->SetTransform(mozilla::gfx::Matrix4x4::Translation(mOffset.x, mOffset.y, 0.0));
+    aLayerData->SetTransform(
+        mozilla::gfx::Matrix4x4::Translation(mOffset.x, mOffset.y, 0.0));
     aLayerData->SetEventRegionsOverride(mEventRegionsOverride);
   }
   return true;
 }
 
-uint64_t
-nsDisplayRemote::GetRemoteLayersId() const
-{
+uint64_t nsDisplayRemote::GetRemoteLayersId() const {
   return mRemoteFrame->GetLayersId();
 }

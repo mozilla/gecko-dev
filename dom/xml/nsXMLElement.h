@@ -12,20 +12,16 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/DOMRect.h"
 
-class nsXMLElement : public mozilla::dom::Element,
-                     public nsIDOMElement
-{
-public:
+class nsXMLElement : public mozilla::dom::Element, public nsIDOMElement {
+ public:
   explicit nsXMLElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : mozilla::dom::Element(aNodeInfo)
-  {
-  }
+      : mozilla::dom::Element(aNodeInfo) {}
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   // nsINode interface methods
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   virtual nsIDOMNode* AsDOMNode() override { return this; }
@@ -33,10 +29,11 @@ public:
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) override;
 
-protected:
+ protected:
   virtual ~nsXMLElement() {}
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 };
 
-#endif // nsXMLElement_h___
+#endif  // nsXMLElement_h___

@@ -39,38 +39,28 @@ namespace mozilla {
  * (SetFontSizeDependency, SetWritingModeDependency) instead causes the
  * struct to be stored, with the condition, in the rule tree.
  */
-class RuleNodeCacheConditions
-{
-public:
-  RuleNodeCacheConditions()
-    : mFontSize(0)
-    , mBits(0)
-    , mWritingMode(0)
-  {}
+class RuleNodeCacheConditions {
+ public:
+  RuleNodeCacheConditions() : mFontSize(0), mBits(0), mWritingMode(0) {}
 
   RuleNodeCacheConditions(const RuleNodeCacheConditions& aOther)
-    : mFontSize(aOther.mFontSize)
-    , mBits(aOther.mBits)
-    , mWritingMode(aOther.mWritingMode)
-  {}
+      : mFontSize(aOther.mFontSize),
+        mBits(aOther.mBits),
+        mWritingMode(aOther.mWritingMode) {}
 
-  RuleNodeCacheConditions& operator=(const RuleNodeCacheConditions& aOther)
-  {
+  RuleNodeCacheConditions& operator=(const RuleNodeCacheConditions& aOther) {
     mFontSize = aOther.mFontSize;
     mBits = aOther.mBits;
     mWritingMode = aOther.mWritingMode;
     return *this;
   }
 
-  bool operator==(const RuleNodeCacheConditions& aOther) const
-  {
-    return mFontSize == aOther.mFontSize &&
-           mBits == aOther.mBits &&
+  bool operator==(const RuleNodeCacheConditions& aOther) const {
+    return mFontSize == aOther.mFontSize && mBits == aOther.mBits &&
            mWritingMode == aOther.mWritingMode;
   }
 
-  bool operator!=(const RuleNodeCacheConditions& aOther) const
-  {
+  bool operator!=(const RuleNodeCacheConditions& aOther) const {
     return !(*this == aOther);
   }
 
@@ -85,8 +75,7 @@ public:
    * only do so while computing inherited structs (nsStyleFont), and we
    * only store reset structs conditionally.
    */
-  void SetFontSizeDependency(nscoord aCoord)
-  {
+  void SetFontSizeDependency(nscoord aCoord) {
     MOZ_ASSERT(!(mBits & eHaveFontSize) || mFontSize == aCoord);
     mFontSize = aCoord;
     mBits |= eHaveFontSize;
@@ -98,35 +87,21 @@ public:
    * depends on its 'writing-mode', 'direction', and 'text-orientation'
    * properties.
    */
-  void SetWritingModeDependency(uint8_t aWritingMode)
-  {
+  void SetWritingModeDependency(uint8_t aWritingMode) {
     MOZ_ASSERT(!(mBits & eHaveWritingMode) || mWritingMode == aWritingMode);
     mWritingMode = aWritingMode;
     mBits |= eHaveWritingMode;
   }
 
-  void SetUncacheable()
-  {
-    mBits |= eUncacheable;
-  }
+  void SetUncacheable() { mBits |= eUncacheable; }
 
-  void Clear()
-  {
-    *this = RuleNodeCacheConditions();
-  }
+  void Clear() { *this = RuleNodeCacheConditions(); }
 
-  bool Cacheable() const
-  {
-    return !(mBits & eUncacheable);
-  }
+  bool Cacheable() const { return !(mBits & eUncacheable); }
 
-  bool CacheableWithDependencies() const
-  {
-    return Cacheable() && mBits;
-  }
+  bool CacheableWithDependencies() const { return Cacheable() && mBits; }
 
-  bool CacheableWithoutDependencies() const
-  {
+  bool CacheableWithoutDependencies() const {
     // We're not uncacheable and we have don't have a font-size or
     // writing mode value.
     return mBits == 0;
@@ -136,11 +111,11 @@ public:
   void List() const;
 #endif
 
-private:
+ private:
   enum {
-    eUncacheable      = 1 << 0,
-    eHaveFontSize     = 1 << 1,
-    eHaveWritingMode  = 1 << 2,
+    eUncacheable = 1 << 0,
+    eHaveFontSize = 1 << 1,
+    eHaveWritingMode = 1 << 2,
   };
 
   // The font size from which em units are derived.
@@ -154,7 +129,7 @@ private:
   uint8_t mWritingMode;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #else
 
@@ -162,12 +137,10 @@ namespace mozilla {
 
 // Define this dummy class so there are fewer call sites to change when the old
 // style system code is compiled out.
-class RuleNodeCacheConditions
-{
-};
+class RuleNodeCacheConditions {};
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif
 
-#endif // !defined(RuleNodeCacheConditions_h_)
+#endif  // !defined(RuleNodeCacheConditions_h_)

@@ -34,17 +34,16 @@ class TransportLayerIce : public TransportLayer {
 
   virtual ~TransportLayerIce();
 
-  void SetParameters(RefPtr<NrIceMediaStream> stream,
-                     int component);
+  void SetParameters(RefPtr<NrIceMediaStream> stream, int component);
 
-  void ResetOldStream(); // called after successful ice restart
-  void RestoreOldStream(); // called after unsuccessful ice restart
+  void ResetOldStream();    // called after successful ice restart
+  void RestoreOldStream();  // called after unsuccessful ice restart
 
   // Transport layer overrides.
   TransportResult SendPacket(const unsigned char *data, size_t len) override;
 
   // Slots for ICE
-  void IceCandidate(NrIceMediaStream *stream, const std::string&);
+  void IceCandidate(NrIceMediaStream *stream, const std::string &);
   void IceReady(NrIceMediaStream *stream);
   void IceFailed(NrIceMediaStream *stream);
   void IcePacketReceived(NrIceMediaStream *stream, int component,
@@ -63,5 +62,5 @@ class TransportLayerIce : public TransportLayer {
   RefPtr<NrIceMediaStream> old_stream_;
 };
 
-}  // close namespace
+}  // namespace mozilla
 #endif

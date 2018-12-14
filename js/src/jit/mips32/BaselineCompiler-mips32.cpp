@@ -11,6 +11,4 @@ using namespace js::jit;
 
 BaselineCompilerMIPS::BaselineCompilerMIPS(JSContext* cx, TempAllocator& alloc,
                                            JSScript* script)
-  : BaselineCompilerMIPSShared(cx, alloc, script)
-{
-}
+    : BaselineCompilerMIPSShared(cx, alloc, script) {}

@@ -29,27 +29,26 @@ namespace mozilla {
 class WebBrowserPersistDocumentParent;
 
 class WebBrowserPersistRemoteDocument final
-    : public nsIWebBrowserPersistDocument
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBBROWSERPERSISTDOCUMENT
+    : public nsIWebBrowserPersistDocument {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIWEBBROWSERPERSISTDOCUMENT
 
-private:
-    using Attrs = WebBrowserPersistDocumentAttrs;
-    WebBrowserPersistDocumentParent* mActor;
-    Attrs mAttrs;
-    nsCOMPtr<nsIInputStream> mPostData;
+ private:
+  using Attrs = WebBrowserPersistDocumentAttrs;
+  WebBrowserPersistDocumentParent* mActor;
+  Attrs mAttrs;
+  nsCOMPtr<nsIInputStream> mPostData;
 
-    friend class WebBrowserPersistDocumentParent;
-    WebBrowserPersistRemoteDocument(WebBrowserPersistDocumentParent* aActor,
-                                    const Attrs& aAttrs,
-                                    nsIInputStream* aPostData);
-    ~WebBrowserPersistRemoteDocument();
+  friend class WebBrowserPersistDocumentParent;
+  WebBrowserPersistRemoteDocument(WebBrowserPersistDocumentParent* aActor,
+                                  const Attrs& aAttrs,
+                                  nsIInputStream* aPostData);
+  ~WebBrowserPersistRemoteDocument();
 
-    void ActorDestroy(void);
+  void ActorDestroy(void);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WebBrowserPersistRemoteDocument_h__
+#endif  // WebBrowserPersistRemoteDocument_h__

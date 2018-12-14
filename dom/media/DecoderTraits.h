@@ -16,17 +16,14 @@ class MediaContainerType;
 struct MediaFormatReaderInit;
 class MediaFormatReader;
 
-enum CanPlayStatus {
-  CANPLAY_NO,
-  CANPLAY_MAYBE,
-  CANPLAY_YES
-};
+enum CanPlayStatus { CANPLAY_NO, CANPLAY_MAYBE, CANPLAY_YES };
 
 class DecoderTraits {
-public:
+ public:
   // Returns the CanPlayStatus indicating if we can handle this container type.
-  static CanPlayStatus CanHandleContainerType(const MediaContainerType& aContainerType,
-                                              DecoderDoctorDiagnostics* aDiagnostics);
+  static CanPlayStatus CanHandleContainerType(
+      const MediaContainerType& aContainerType,
+      DecoderDoctorDiagnostics* aDiagnostics);
 
   // Returns true if we should handle this MIME type when it appears
   // as an <object> or as a toplevel page. If, in practice, our support
@@ -63,7 +60,6 @@ public:
   static bool CrossOriginRedirectsProhibited(const MediaContainerType& aType);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif
-

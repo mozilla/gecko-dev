@@ -17,8 +17,7 @@ namespace mozilla {
 /**
  * Wrapper class used to initialize static data used by the TimeStamp class
  */
-struct TimeStampInitialization
-{
+struct TimeStampInitialization {
   /**
    * First timestamp taken when the class static initializers are run. This
    * timestamp is used to sanitize timestamps coming from different sources.
@@ -32,23 +31,17 @@ struct TimeStampInitialization
    */
   TimeStamp mProcessCreation;
 
-  TimeStampInitialization()
-  {
+  TimeStampInitialization() {
     TimeStamp::Startup();
     mFirstTimeStamp = TimeStamp::Now();
   };
 
-  ~TimeStampInitialization()
-  {
-    TimeStamp::Shutdown();
-  };
+  ~TimeStampInitialization() { TimeStamp::Shutdown(); };
 };
 
 static TimeStampInitialization sInitOnce;
 
-MFBT_API TimeStamp
-TimeStamp::ProcessCreation(bool* aIsInconsistent)
-{
+MFBT_API TimeStamp TimeStamp::ProcessCreation(bool* aIsInconsistent) {
   if (aIsInconsistent) {
     *aIsInconsistent = false;
   }
@@ -87,10 +80,8 @@ TimeStamp::ProcessCreation(bool* aIsInconsistent)
   return sInitOnce.mProcessCreation;
 }
 
-void
-TimeStamp::RecordProcessRestart()
-{
+void TimeStamp::RecordProcessRestart() {
   sInitOnce.mProcessCreation = TimeStamp();
 }
 
-} // namespace mozilla
+}  // namespace mozilla

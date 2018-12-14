@@ -15,31 +15,24 @@
  * or nodeset.
  */
 
-class txXPathObjectAdaptor : public txIXPathObject
-{
-public:
-    explicit txXPathObjectAdaptor(txAExprResult* aValue) : mValue(aValue)
-    {
-        NS_ASSERTION(aValue,
-                     "Don't create a txXPathObjectAdaptor if you don't have a "
-                     "txAExprResult");
-    }
+class txXPathObjectAdaptor : public txIXPathObject {
+ public:
+  explicit txXPathObjectAdaptor(txAExprResult* aValue) : mValue(aValue) {
+    NS_ASSERTION(aValue,
+                 "Don't create a txXPathObjectAdaptor if you don't have a "
+                 "txAExprResult");
+  }
 
-    NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS
 
-    NS_IMETHOD_(txAExprResult*) GetResult() override
-    {
-        return mValue;
-    }
+  NS_IMETHOD_(txAExprResult*) GetResult() override { return mValue; }
 
-protected:
-    txXPathObjectAdaptor() : mValue(nullptr)
-    {
-    }
+ protected:
+  txXPathObjectAdaptor() : mValue(nullptr) {}
 
-    virtual ~txXPathObjectAdaptor() {}
+  virtual ~txXPathObjectAdaptor() {}
 
-    RefPtr<txAExprResult> mValue;
+  RefPtr<txAExprResult> mValue;
 };
 
-#endif // txXPathObjectAdaptor_h__
+#endif  // txXPathObjectAdaptor_h__

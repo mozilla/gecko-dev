@@ -12,19 +12,17 @@ namespace mozilla {
 namespace widget {
 
 class PDFiumChild final : public PPDFiumChild,
-                          public mozilla::ipc::IShmemAllocator
-{
-public:
+                          public mozilla::ipc::IShmemAllocator {
+ public:
   PDFiumChild();
   virtual ~PDFiumChild();
 
-  bool Init(base::ProcessId aParentPid,
-            MessageLoop* aIOLoop,
+  bool Init(base::ProcessId aParentPid, MessageLoop* aIOLoop,
             IPC::Channel* aChannel);
 
   FORWARD_SHMEM_ALLOCATOR_TO(PPDFiumChild)
 
-private:
+ private:
   // PPDFiumChild functions.
   mozilla::ipc::IPCResult RecvConvertToEMF(const FileDescriptor& aFD,
                                            const int& aPageWidth,
@@ -33,7 +31,7 @@ private:
   void OnChannelConnected(int32_t pid) override;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // PDFIUMCHILD_H_
+#endif  // PDFIUMCHILD_H_

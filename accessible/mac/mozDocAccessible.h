@@ -1,4 +1,5 @@
-/* -*- Mode: Objective-C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: Objective-C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset:
+ * 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,8 +14,7 @@
   The root accessible. There is one per window.
   Created by the RootAccessibleWrap.
 */
-@interface mozRootAccessible : mozAccessible
-{
+@interface mozRootAccessible : mozAccessible {
   // the mozView that we're representing.
   // all outside communication goes through the mozView.
   // in reality, it's just piping all calls to us, and we're
@@ -26,6 +26,6 @@
   // party tools that we do this!
   //
   // /hwaara
-  id <mozView, mozAccessible> mParallelView; // weak ref
+  id<mozView, mozAccessible> mParallelView;  // weak ref
 }
 @end

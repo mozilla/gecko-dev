@@ -12,19 +12,17 @@
 namespace js {
 namespace jit {
 
-class BaselineCompilerNone : public BaselineCompilerShared
-{
-  protected:
-    BaselineCompilerNone(JSContext* cx, TempAllocator& alloc, JSScript* script)
-      : BaselineCompilerShared(cx, alloc, script)
-    {
-        MOZ_CRASH();
-    }
+class BaselineCompilerNone : public BaselineCompilerShared {
+ protected:
+  BaselineCompilerNone(JSContext* cx, TempAllocator& alloc, JSScript* script)
+      : BaselineCompilerShared(cx, alloc, script) {
+    MOZ_CRASH();
+  }
 };
 
 typedef BaselineCompilerNone BaselineCompilerSpecific;
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_none_BaselineCompiler_none_h */

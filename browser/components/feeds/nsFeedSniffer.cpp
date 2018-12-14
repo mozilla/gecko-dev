@@ -40,28 +40,24 @@
 
 #define MAX_BYTES 512u
 
-NS_IMPL_ISUPPORTS(nsFeedSniffer,
-                  nsIContentSniffer,
-                  nsIStreamListener,
+NS_IMPL_ISUPPORTS(nsFeedSniffer, nsIContentSniffer, nsIStreamListener,
                   nsIRequestObserver)
 
-nsresult
-nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
-                                  const uint8_t* data,
-                                  uint32_t length)
-{
+nsresult nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
+                                           const uint8_t* data,
+                                           uint32_t length) {
   nsresult rv = NS_OK;
 
- mDecodedData = "";
- nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
-  if (!httpChannel)
-    return NS_ERROR_NO_INTERFACE;
+  mDecodedData = "";
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
+  if (!httpChannel) return NS_ERROR_NO_INTERFACE;
 
   nsAutoCString contentEncoding;
-  mozilla::Unused << httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Content-Encoding"),
-                                                    contentEncoding);
+  mozilla::Unused << httpChannel->GetResponseHeader(
+      NS_LITERAL_CSTRING("Content-Encoding"), contentEncoding);
   if (!contentEncoding.IsEmpty()) {
-    nsCOMPtr<nsIStreamConverterService> converterService(do_GetService(NS_STREAMCONVERTERSERVICE_CONTRACTID));
+    nsCOMPtr<nsIStreamConverterService> converterService(
+        do_GetService(NS_STREAMCONVERTERSERVICE_CONTRACTID));
     if (converterService) {
       ToLowerCase(contentEncoding);
 
@@ -74,9 +70,8 @@ nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
       converter->OnStartRequest(request, nullptr);
 
       nsCOMPtr<nsIStringInputStream> rawStream =
-        do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID);
-      if (!rawStream)
-        return NS_ERROR_FAILURE;
+          do_CreateInstance(NS_STRINGINPUTSTREAM_CONTRACTID);
+      if (!rawStream) return NS_ERROR_FAILURE;
 
       rv = rawStream->SetData((const char*)data, length);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -90,19 +85,14 @@ nsFeedSniffer::ConvertEncodedData(nsIRequest* request,
   return rv;
 }
 
-template<int N>
-static bool
-StringBeginsWithLowercaseLiteral(nsAString& aString,
-                                 const char (&aSubstring)[N])
-{
+template <int N>
+static bool StringBeginsWithLowercaseLiteral(nsAString& aString,
+                                             const char (&aSubstring)[N]) {
   return StringHead(aString, N).LowerCaseEqualsLiteral(aSubstring);
 }
 
-bool
-HasAttachmentDisposition(nsIHttpChannel* httpChannel)
-{
-  if (!httpChannel)
-    return false;
+bool HasAttachmentDisposition(nsIHttpChannel* httpChannel) {
+  if (!httpChannel) return false;
 
   uint32_t disp;
   nsresult rv = httpChannel->GetContentDisposition(&disp);
@@ -117,12 +107,9 @@ HasAttachmentDisposition(nsIHttpChannel* httpChannel)
  * @return the first occurrence of a character within a string buffer,
  *         or nullptr if not found
  */
-static const char*
-FindChar(char c, const char *begin, const char *end)
-{
+static const char* FindChar(char c, const char* begin, const char* end) {
   for (; begin < end; ++begin) {
-    if (*begin == c)
-      return begin;
+    if (*begin == c) return begin;
   }
   return nullptr;
 }
@@ -145,28 +132,23 @@ FindChar(char c, const char *begin, const char *end)
  * @returns true if the found substring is the documentElement, false
  *          otherwise.
  */
-static bool
-IsDocumentElement(const char *start, const char* end)
-{
+static bool IsDocumentElement(const char* start, const char* end) {
   // For every tag in the buffer, check to see if it's a PI, Doctype or
   // comment, our desired substring or something invalid.
-  while ( (start = FindChar('<', start, end)) ) {
+  while ((start = FindChar('<', start, end))) {
     ++start;
-    if (start >= end)
-      return false;
+    if (start >= end) return false;
 
     // Check to see if the character following the '<' is either '?' or '!'
     // (processing instruction or doctype or comment)... these are valid nodes
     // to have in the prologue.
-    if (*start != '?' && *start != '!')
-      return false;
+    if (*start != '?' && *start != '!') return false;
 
     // Now advance the iterator until the '>' (We do this because we don't want
     // to sniff indicator substrings that are embedded within other nodes, e.g.
     // comments: <!-- <rdf:RDF .. > -->
     start = FindChar('>', start, end);
-    if (!start)
-      return false;
+    if (!start) return false;
 
     ++start;
   }
@@ -183,34 +165,30 @@ IsDocumentElement(const char *start, const char* end)
  * @returns true if the substring exists and is the documentElement, false
  *          otherwise.
  */
-static bool
-ContainsTopLevelSubstring(nsACString& dataString, const char *substring)
-{
+static bool ContainsTopLevelSubstring(nsACString& dataString,
+                                      const char* substring) {
   nsACString::const_iterator start, end;
   dataString.BeginReading(start);
   dataString.EndReading(end);
 
-  if (!FindInReadable(nsCString(substring), start, end)){
+  if (!FindInReadable(nsCString(substring), start, end)) {
     return false;
   }
 
   auto offset = start.get() - dataString.Data();
 
-  const char *begin = dataString.BeginReading();
+  const char* begin = dataString.BeginReading();
 
   // Only do the validation when we find the substring.
   return IsDocumentElement(begin, begin + offset);
 }
 
 NS_IMETHODIMP
-nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
-                                      const uint8_t* data,
+nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request, const uint8_t* data,
                                       uint32_t length,
-                                      nsACString& sniffedType)
-{
+                                      nsACString& sniffedType) {
   nsCOMPtr<nsIHttpChannel> channel(do_QueryInterface(request));
-  if (!channel)
-    return NS_ERROR_NO_INTERFACE;
+  if (!channel) return NS_ERROR_NO_INTERFACE;
 
   // Check that this is a GET request, since you can't subscribe to a POST...
   nsAutoCString method;
@@ -244,20 +222,19 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   nsAutoCString contentType;
   channel->GetContentType(contentType);
   bool noSniff = contentType.EqualsLiteral(TYPE_RSS) ||
-                   contentType.EqualsLiteral(TYPE_ATOM);
+                 contentType.EqualsLiteral(TYPE_ATOM);
 
   if (noSniff) {
     // check for an attachment after we have a likely feed.
-    if(HasAttachmentDisposition(channel)) {
+    if (HasAttachmentDisposition(channel)) {
       sniffedType.Truncate();
       return NS_OK;
     }
 
     // set the feed header as a response header, since we have good metadata
     // telling us that the feed is supposed to be RSS or Atom
-    mozilla::DebugOnly<nsresult> rv =
-      channel->SetResponseHeader(NS_LITERAL_CSTRING("X-Moz-Is-Feed"),
-                                 NS_LITERAL_CSTRING("1"), false);
+    mozilla::DebugOnly<nsresult> rv = channel->SetResponseHeader(
+        NS_LITERAL_CSTRING("X-Moz-Is-Feed"), NS_LITERAL_CSTRING("1"), false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     sniffedType.AssignLiteral(TYPE_MAYBE_FEED);
     return NS_OK;
@@ -277,8 +254,7 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   // Now we need to potentially decompress data served with
   // Content-Encoding: gzip
   nsresult rv = ConvertEncodedData(request, data, length);
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) return rv;
 
   // We cap the number of bytes to scan at MAX_BYTES to prevent picking up
   // false positives by accidentally reading document content, e.g. a "how to
@@ -305,15 +281,14 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
   isFeed = ContainsTopLevelSubstring(dataString, "<rss");
 
   // Atom 1.0
-  if (!isFeed)
-    isFeed = ContainsTopLevelSubstring(dataString, "<feed");
+  if (!isFeed) isFeed = ContainsTopLevelSubstring(dataString, "<feed");
 
   // RSS 1.0
   if (!isFeed) {
     bool foundNS_RDF = FindInReadable(NS_LITERAL_CSTRING(NS_RDF), dataString);
     bool foundNS_RSS = FindInReadable(NS_LITERAL_CSTRING(NS_RSS), dataString);
-    isFeed = ContainsTopLevelSubstring(dataString, "<rdf:RDF") &&
-      foundNS_RDF && foundNS_RSS;
+    isFeed = ContainsTopLevelSubstring(dataString, "<rdf:RDF") && foundNS_RDF &&
+             foundNS_RSS;
   }
 
   // If we sniffed a feed, coerce our internal type
@@ -325,19 +300,15 @@ nsFeedSniffer::GetMIMETypeFromContent(nsIRequest* request,
 }
 
 NS_IMETHODIMP
-nsFeedSniffer::OnStartRequest(nsIRequest* request, nsISupports* context)
-{
+nsFeedSniffer::OnStartRequest(nsIRequest* request, nsISupports* context) {
   return NS_OK;
 }
 
-nsresult
-nsFeedSniffer::AppendSegmentToString(nsIInputStream* inputStream,
-                                     void* closure,
-                                     const char* rawSegment,
-                                     uint32_t toOffset,
-                                     uint32_t count,
-                                     uint32_t* writeCount)
-{
+nsresult nsFeedSniffer::AppendSegmentToString(nsIInputStream* inputStream,
+                                              void* closure,
+                                              const char* rawSegment,
+                                              uint32_t toOffset, uint32_t count,
+                                              uint32_t* writeCount) {
   nsCString* decodedData = static_cast<nsCString*>(closure);
   decodedData->Append(rawSegment, count);
   *writeCount = count;
@@ -347,8 +318,7 @@ nsFeedSniffer::AppendSegmentToString(nsIInputStream* inputStream,
 NS_IMETHODIMP
 nsFeedSniffer::OnDataAvailable(nsIRequest* request, nsISupports* context,
                                nsIInputStream* stream, uint64_t offset,
-                               uint32_t count)
-{
+                               uint32_t count) {
   uint32_t read;
   return stream->ReadSegments(AppendSegmentToString, &mDecodedData, count,
                               &read);
@@ -356,7 +326,6 @@ nsFeedSniffer::OnDataAvailable(nsIRequest* request, nsISupports* context,
 
 NS_IMETHODIMP
 nsFeedSniffer::OnStopRequest(nsIRequest* request, nsISupports* context,
-                             nsresult status)
-{
+                             nsresult status) {
   return NS_OK;
 }

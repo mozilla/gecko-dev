@@ -13,19 +13,16 @@
 namespace mozilla {
 namespace dom {
 
-class CSSMozDocumentRule : public css::ConditionRule
-{
-protected:
+class CSSMozDocumentRule : public css::ConditionRule {
+ protected:
   using ConditionRule::ConditionRule;
   virtual ~CSSMozDocumentRule() {}
 
-public:
+ public:
   int32_t GetType() const final { return css::Rule::DOCUMENT_RULE; }
 
-  static bool Match(nsIDocument* aDoc,
-                    nsIURI* aDocURI,
-                    const nsACString& aDocURISpec,
-                    const nsACString& aPattern,
+  static bool Match(nsIDocument* aDoc, nsIURI* aDocURI,
+                    const nsACString& aDocURISpec, const nsACString& aPattern,
                     css::URLMatchingFunction aUrlMatchingFunction);
 
   // WebIDL interface
@@ -35,7 +32,7 @@ public:
                        JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSMozDocumentRule_h
+#endif  // mozilla_dom_CSSMozDocumentRule_h

@@ -31,36 +31,29 @@ class nsIDOMDataChannel;
 
 namespace test {
 
-class AFakePCObserver : public nsSupportsWeakReference
-{
-protected:
+class AFakePCObserver : public nsSupportsWeakReference {
+ protected:
   typedef mozilla::ErrorResult ER;
-public:
-  enum Action {
-    OFFER,
-    ANSWER
-  };
 
-  enum ResponseState {
-    stateNoResponse,
-    stateSuccess,
-    stateError
-  };
+ public:
+  enum Action { OFFER, ANSWER };
+
+  enum ResponseState { stateNoResponse, stateSuccess, stateError };
 
   AFakePCObserver(mozilla::PeerConnectionImpl *peerConnection,
-                  const std::string &aName) :
-    state(stateNoResponse), addIceSuccessCount(0),
-    onAddStreamCalled(false),
-    name(aName),
-    pc(peerConnection) {
-  }
+                  const std::string &aName)
+      : state(stateNoResponse),
+        addIceSuccessCount(0),
+        onAddStreamCalled(false),
+        name(aName),
+        pc(peerConnection) {}
 
-  AFakePCObserver() :
-    state(stateNoResponse), addIceSuccessCount(0),
-    onAddStreamCalled(false),
-    name(""),
-    pc(nullptr) {
-  }
+  AFakePCObserver()
+      : state(stateNoResponse),
+        addIceSuccessCount(0),
+        onAddStreamCalled(false),
+        name(""),
+        pc(nullptr) {}
 
   virtual ~AFakePCObserver() {}
 
@@ -75,38 +68,41 @@ public:
   std::string name;
   std::vector<std::string> candidates;
 
-  NS_IMETHOD OnCreateOfferSuccess(const char* offer, ER&) = 0;
-  NS_IMETHOD OnCreateOfferError(uint32_t code, const char *msg, ER&) = 0;
-  NS_IMETHOD OnCreateAnswerSuccess(const char* answer, ER&) = 0;
-  NS_IMETHOD OnCreateAnswerError(uint32_t code, const char *msg, ER&) = 0;
-  NS_IMETHOD OnSetLocalDescriptionSuccess(ER&) = 0;
-  NS_IMETHOD OnSetRemoteDescriptionSuccess(ER&) = 0;
-  NS_IMETHOD OnSetLocalDescriptionError(uint32_t code, const char *msg, ER&) = 0;
-  NS_IMETHOD OnSetRemoteDescriptionError(uint32_t code, const char *msg, ER&) = 0;
-  NS_IMETHOD NotifyDataChannel(nsIDOMDataChannel *channel, ER&) = 0;
-  NS_IMETHOD OnStateChange(mozilla::dom::PCObserverStateType state_type, ER&,
-                                      void* = nullptr) = 0;
-  NS_IMETHOD OnAddStream(mozilla::DOMMediaStream &stream, ER&) = 0;
-  NS_IMETHOD OnRemoveStream(mozilla::DOMMediaStream &stream, ER&) = 0;
-  NS_IMETHOD OnAddTrack(mozilla::dom::MediaStreamTrack &track, ER&) = 0;
-  NS_IMETHOD OnRemoveTrack(mozilla::dom::MediaStreamTrack &track, ER&) = 0;
-  NS_IMETHOD OnReplaceTrackSuccess(ER&) = 0;
-  NS_IMETHOD OnReplaceTrackError(uint32_t code, const char *msg, ER&) = 0;
-  NS_IMETHOD OnAddIceCandidateSuccess(ER&) = 0;
-  NS_IMETHOD OnAddIceCandidateError(uint32_t code, const char *msg, ER&) = 0;
+  NS_IMETHOD OnCreateOfferSuccess(const char *offer, ER &) = 0;
+  NS_IMETHOD OnCreateOfferError(uint32_t code, const char *msg, ER &) = 0;
+  NS_IMETHOD OnCreateAnswerSuccess(const char *answer, ER &) = 0;
+  NS_IMETHOD OnCreateAnswerError(uint32_t code, const char *msg, ER &) = 0;
+  NS_IMETHOD OnSetLocalDescriptionSuccess(ER &) = 0;
+  NS_IMETHOD OnSetRemoteDescriptionSuccess(ER &) = 0;
+  NS_IMETHOD OnSetLocalDescriptionError(uint32_t code, const char *msg,
+                                        ER &) = 0;
+  NS_IMETHOD OnSetRemoteDescriptionError(uint32_t code, const char *msg,
+                                         ER &) = 0;
+  NS_IMETHOD NotifyDataChannel(nsIDOMDataChannel *channel, ER &) = 0;
+  NS_IMETHOD OnStateChange(mozilla::dom::PCObserverStateType state_type, ER &,
+                           void * = nullptr) = 0;
+  NS_IMETHOD OnAddStream(mozilla::DOMMediaStream &stream, ER &) = 0;
+  NS_IMETHOD OnRemoveStream(mozilla::DOMMediaStream &stream, ER &) = 0;
+  NS_IMETHOD OnAddTrack(mozilla::dom::MediaStreamTrack &track, ER &) = 0;
+  NS_IMETHOD OnRemoveTrack(mozilla::dom::MediaStreamTrack &track, ER &) = 0;
+  NS_IMETHOD OnReplaceTrackSuccess(ER &) = 0;
+  NS_IMETHOD OnReplaceTrackError(uint32_t code, const char *msg, ER &) = 0;
+  NS_IMETHOD OnAddIceCandidateSuccess(ER &) = 0;
+  NS_IMETHOD OnAddIceCandidateError(uint32_t code, const char *msg, ER &) = 0;
   NS_IMETHOD OnIceCandidate(uint16_t level, const char *mid,
-                                       const char *candidate, ER&) = 0;
-  NS_IMETHOD OnNegotiationNeeded(ER&) = 0;
-protected:
+                            const char *candidate, ER &) = 0;
+  NS_IMETHOD OnNegotiationNeeded(ER &) = 0;
+
+ protected:
   mozilla::PeerConnectionImpl *pc;
   std::vector<mozilla::DOMMediaStream *> streams;
 };
-}
+}  // namespace test
 
 namespace mozilla {
 namespace dom {
 typedef test::AFakePCObserver PeerConnectionObserver;
 }
-}
+}  // namespace mozilla
 
 #endif

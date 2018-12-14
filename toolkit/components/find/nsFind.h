@@ -20,25 +20,28 @@ class nsIContent;
 
 #define NS_FIND_CONTRACTID "@mozilla.org/embedcomp/rangefind;1"
 
-#define NS_FIND_CID \
-  {0x471f4944, 0x1dd2, 0x11b2, {0x87, 0xac, 0x90, 0xbe, 0x0a, 0x51, 0xd6, 0x09}}
+#define NS_FIND_CID                                  \
+  {                                                  \
+    0x471f4944, 0x1dd2, 0x11b2, {                    \
+      0x87, 0xac, 0x90, 0xbe, 0x0a, 0x51, 0xd6, 0x09 \
+    }                                                \
+  }
 
 class nsFindContentIterator;
 
-class nsFind : public nsIFind
-{
-public:
+class nsFind : public nsIFind {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIFIND
   NS_DECL_CYCLE_COLLECTION_CLASS(nsFind)
 
   nsFind();
 
-protected:
+ protected:
   virtual ~nsFind();
 
   // Parameters set from the interface:
-  //nsCOMPtr<nsIDOMRange> mRange;   // search only in this range
+  // nsCOMPtr<nsIDOMRange> mRange;   // search only in this range
   bool mFindBackward;
   bool mCaseSensitive;
 
@@ -59,13 +62,11 @@ protected:
   bool IsVisibleNode(nsIDOMNode* aNode);
 
   // Move in the right direction for our search:
-  nsresult NextNode(nsIDOMRange* aSearchRange,
-                    nsIDOMRange* aStartPoint, nsIDOMRange* aEndPoint,
-                    bool aContinueOk);
+  nsresult NextNode(nsIDOMRange* aSearchRange, nsIDOMRange* aStartPoint,
+                    nsIDOMRange* aEndPoint, bool aContinueOk);
 
   // Get the first character from the next node (last if mFindBackward).
-  char16_t PeekNextChar(nsIDOMRange* aSearchRange,
-                        nsIDOMRange* aStartPoint,
+  char16_t PeekNextChar(nsIDOMRange* aSearchRange, nsIDOMRange* aStartPoint,
                         nsIDOMRange* aEndPoint);
 
   // Reset variables before returning -- don't hold any references.
@@ -79,4 +80,4 @@ protected:
   friend class PeekNextCharRestoreState;
 };
 
-#endif // nsFind_h__
+#endif  // nsFind_h__

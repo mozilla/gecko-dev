@@ -71,9 +71,8 @@ namespace mozilla {
 /**
  * Represents a compile-time sequence of integer indices.
  */
-template<size_t... Indices>
-struct IndexSequence
-{
+template <size_t... Indices>
+struct IndexSequence {
   static constexpr size_t Size() { return sizeof...(Indices); }
 };
 
@@ -81,35 +80,31 @@ namespace detail {
 
 // Helpers used by MakeIndexSequence.
 
-template<size_t... Indices>
-struct IndexTuple
-{
+template <size_t... Indices>
+struct IndexTuple {
   typedef IndexTuple<Indices..., sizeof...(Indices)> Next;
 };
 
 // Builds IndexTuple<0, 1, ..., N - 1>.
-template<size_t N>
-struct BuildIndexTuple
-{
+template <size_t N>
+struct BuildIndexTuple {
   typedef typename BuildIndexTuple<N - 1>::Type::Next Type;
 };
 
-template<>
-struct BuildIndexTuple<0>
-{
+template <>
+struct BuildIndexTuple<0> {
   typedef IndexTuple<> Type;
 };
 
-template<size_t N, typename IndexTuple>
+template <size_t N, typename IndexTuple>
 struct MakeIndexSequenceImpl;
 
-template<size_t N, size_t... Indices>
-struct MakeIndexSequenceImpl<N, IndexTuple<Indices...>>
-{
+template <size_t N, size_t... Indices>
+struct MakeIndexSequenceImpl<N, IndexTuple<Indices...>> {
   typedef IndexSequence<Indices...> Type;
 };
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * A utility for building an IndexSequence of consecutive indices.
@@ -117,11 +112,10 @@ struct MakeIndexSequenceImpl<N, IndexTuple<Indices...>>
  * Note: unlike std::make_index_sequence, this is not an alias template
  * to work around bugs in MSVC 2013.
  */
-template<size_t N>
-struct MakeIndexSequence
-{
-  typedef typename detail::MakeIndexSequenceImpl<N,
-    typename detail::BuildIndexTuple<N>::Type>::Type Type;
+template <size_t N>
+struct MakeIndexSequence {
+  typedef typename detail::MakeIndexSequenceImpl<
+      N, typename detail::BuildIndexTuple<N>::Type>::Type Type;
 };
 
 /**
@@ -132,12 +126,11 @@ struct MakeIndexSequence
  * Note: unlike std::index_sequence_for, this is not an alias template
  * to work around bugs in MSVC 2013.
  */
-template<typename... Types>
-struct IndexSequenceFor
-{
+template <typename... Types>
+struct IndexSequenceFor {
   typedef typename MakeIndexSequence<sizeof...(Types)>::Type Type;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_IndexSequence_h */

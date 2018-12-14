@@ -18,7 +18,7 @@ typedef MozPromise<ClientOpResult, nsresult, false> ClientOpPromise;
 
 typedef MozPromise<ClientState, nsresult, false> ClientStatePromise;
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // _mozilla_dom_ClientOpPromise_h
+#endif  // _mozilla_dom_ClientOpPromise_h

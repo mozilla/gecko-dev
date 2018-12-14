@@ -15,18 +15,13 @@ namespace mozilla {
 namespace dom {
 
 HTMLAllCollection::HTMLAllCollection(nsHTMLDocument* aDocument)
-  : mDocument(aDocument)
-{
+    : mDocument(aDocument) {
   MOZ_ASSERT(mDocument);
 }
 
-HTMLAllCollection::~HTMLAllCollection()
-{
-}
+HTMLAllCollection::~HTMLAllCollection() {}
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(HTMLAllCollection,
-                                      mDocument,
-                                      mCollection,
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(HTMLAllCollection, mDocument, mCollection,
                                       mNamedMap)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(HTMLAllCollection)
@@ -37,27 +32,15 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HTMLAllCollection)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-nsINode*
-HTMLAllCollection::GetParentObject() const
-{
-  return mDocument;
-}
+nsINode* HTMLAllCollection::GetParentObject() const { return mDocument; }
 
-uint32_t
-HTMLAllCollection::Length()
-{
-  return Collection()->Length(true);
-}
+uint32_t HTMLAllCollection::Length() { return Collection()->Length(true); }
 
-nsIContent*
-HTMLAllCollection::Item(uint32_t aIndex)
-{
+nsIContent* HTMLAllCollection::Item(uint32_t aIndex) {
   return Collection()->Item(aIndex);
 }
 
-nsContentList*
-HTMLAllCollection::Collection()
-{
+nsContentList* HTMLAllCollection::Collection() {
   if (!mCollection) {
     nsIDocument* document = mDocument;
     mCollection = document->GetElementsByTagName(NS_LITERAL_STRING("*"));
@@ -66,29 +49,16 @@ HTMLAllCollection::Collection()
   return mCollection;
 }
 
-static bool
-IsAllNamedElement(nsIContent* aContent)
-{
-  return aContent->IsAnyOfHTMLElements(nsGkAtoms::a,
-                                       nsGkAtoms::button,
-                                       nsGkAtoms::embed,
-                                       nsGkAtoms::form,
-                                       nsGkAtoms::iframe,
-                                       nsGkAtoms::img,
-                                       nsGkAtoms::input,
-                                       nsGkAtoms::map,
-                                       nsGkAtoms::meta,
-                                       nsGkAtoms::object,
-                                       nsGkAtoms::select,
-                                       nsGkAtoms::textarea,
-                                       nsGkAtoms::frame,
-                                       nsGkAtoms::frameset);
+static bool IsAllNamedElement(nsIContent* aContent) {
+  return aContent->IsAnyOfHTMLElements(
+      nsGkAtoms::a, nsGkAtoms::button, nsGkAtoms::embed, nsGkAtoms::form,
+      nsGkAtoms::iframe, nsGkAtoms::img, nsGkAtoms::input, nsGkAtoms::map,
+      nsGkAtoms::meta, nsGkAtoms::object, nsGkAtoms::select,
+      nsGkAtoms::textarea, nsGkAtoms::frame, nsGkAtoms::frameset);
 }
 
-static bool
-DocAllResultMatch(Element* aElement, int32_t aNamespaceID, nsAtom* aAtom,
-                  void* aData)
-{
+static bool DocAllResultMatch(Element* aElement, int32_t aNamespaceID,
+                              nsAtom* aAtom, void* aData) {
   if (aElement->GetID() == aAtom) {
     return true;
   }
@@ -107,22 +77,17 @@ DocAllResultMatch(Element* aElement, int32_t aNamespaceID, nsAtom* aAtom,
          val->GetAtomValue() == aAtom;
 }
 
-nsContentList*
-HTMLAllCollection::GetDocumentAllList(const nsAString& aID)
-{
-  return mNamedMap.LookupForAdd(aID).OrInsert(
-    [this, &aID] () {
-      RefPtr<nsAtom> id = NS_Atomize(aID);
-      return new nsContentList(mDocument, DocAllResultMatch, nullptr,
-                               nullptr, true, id);
-    });
+nsContentList* HTMLAllCollection::GetDocumentAllList(const nsAString& aID) {
+  return mNamedMap.LookupForAdd(aID).OrInsert([this, &aID]() {
+    RefPtr<nsAtom> id = NS_Atomize(aID);
+    return new nsContentList(mDocument, DocAllResultMatch, nullptr, nullptr,
+                             true, id);
+  });
 }
 
-void
-HTMLAllCollection::NamedGetter(const nsAString& aID,
-                               bool& aFound,
-                               Nullable<OwningNodeOrHTMLCollection>& aResult)
-{
+void HTMLAllCollection::NamedGetter(
+    const nsAString& aID, bool& aFound,
+    Nullable<OwningNodeOrHTMLCollection>& aResult) {
   if (aID.IsEmpty()) {
     aFound = false;
     aResult.SetNull();
@@ -156,18 +121,15 @@ HTMLAllCollection::NamedGetter(const nsAString& aID,
   aResult.SetNull();
 }
 
-void
-HTMLAllCollection::GetSupportedNames(nsTArray<nsString>& aNames)
-{
+void HTMLAllCollection::GetSupportedNames(nsTArray<nsString>& aNames) {
   // XXXbz this is very similar to nsContentList::GetSupportedNames,
   // but has to check IsAllNamedElement for the name case.
   AutoTArray<nsAtom*, 8> atoms;
   for (uint32_t i = 0; i < Length(); ++i) {
-    nsIContent *content = Item(i);
+    nsIContent* content = Item(i);
     if (content->HasID()) {
       nsAtom* id = content->GetID();
-      MOZ_ASSERT(id != nsGkAtoms::_empty,
-                 "Empty ids don't get atomized");
+      MOZ_ASSERT(id != nsGkAtoms::_empty, "Empty ids don't get atomized");
       if (!atoms.Contains(id)) {
         atoms.AppendElement(id);
       }
@@ -181,8 +143,7 @@ HTMLAllCollection::GetSupportedNames(nsTArray<nsString>& aNames)
       if (val && val->Type() == nsAttrValue::eAtom &&
           IsAllNamedElement(content)) {
         nsAtom* name = val->GetAtomValue();
-        MOZ_ASSERT(name != nsGkAtoms::_empty,
-                   "Empty names don't get atomized");
+        MOZ_ASSERT(name != nsGkAtoms::_empty, "Empty names don't get atomized");
         if (!atoms.Contains(name)) {
           atoms.AppendElement(name);
         }
@@ -197,12 +158,10 @@ HTMLAllCollection::GetSupportedNames(nsTArray<nsString>& aNames)
   }
 }
 
-
-JSObject*
-HTMLAllCollection::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLAllCollection::WrapObject(JSContext* aCx,
+                                        JS::Handle<JSObject*> aGivenProto) {
   return HTMLAllCollectionBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

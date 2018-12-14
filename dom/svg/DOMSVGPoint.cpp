@@ -23,48 +23,41 @@ namespace mozilla {
 // Helper class: AutoChangePointNotifier
 // Stack-based helper class to pair calls to WillChangePointList and
 // DidChangePointList.
-class MOZ_RAII AutoChangePointNotifier
-{
-public:
-  explicit AutoChangePointNotifier(DOMSVGPoint* aPoint MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : mPoint(aPoint)
-  {
+class MOZ_RAII AutoChangePointNotifier {
+ public:
+  explicit AutoChangePointNotifier(
+      DOMSVGPoint* aPoint MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mPoint(aPoint) {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     MOZ_ASSERT(mPoint, "Expecting non-null point");
     MOZ_ASSERT(mPoint->HasOwner(),
                "Expecting list to have an owner for notification");
-    mEmptyOrOldValue =
-      mPoint->Element()->WillChangePointList();
+    mEmptyOrOldValue = mPoint->Element()->WillChangePointList();
   }
 
-  ~AutoChangePointNotifier()
-  {
+  ~AutoChangePointNotifier() {
     mPoint->Element()->DidChangePointList(mEmptyOrOldValue);
     if (mPoint->mList->AttrIsAnimating()) {
       mPoint->Element()->AnimationNeedsResample();
     }
   }
 
-private:
+ private:
   DOMSVGPoint* const mPoint;
-  nsAttrValue  mEmptyOrOldValue;
+  nsAttrValue mEmptyOrOldValue;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-float
-DOMSVGPoint::X()
-{
+float DOMSVGPoint::X() {
   if (mIsAnimValItem && HasOwner()) {
-    Element()->FlushAnimations(); // May make HasOwner() == false
+    Element()->FlushAnimations();  // May make HasOwner() == false
   }
   return HasOwner() ? InternalItem().mX : mPt.mX;
 }
 
-void
-DOMSVGPoint::SetX(float aX, ErrorResult& rv)
-{
+void DOMSVGPoint::SetX(float aX, ErrorResult& rv) {
   if (mIsAnimValItem || mIsReadonly) {
     rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
     return;
@@ -81,18 +74,14 @@ DOMSVGPoint::SetX(float aX, ErrorResult& rv)
   mPt.mX = aX;
 }
 
-float
-DOMSVGPoint::Y()
-{
+float DOMSVGPoint::Y() {
   if (mIsAnimValItem && HasOwner()) {
-    Element()->FlushAnimations(); // May make HasOwner() == false
+    Element()->FlushAnimations();  // May make HasOwner() == false
   }
   return HasOwner() ? InternalItem().mY : mPt.mY;
 }
 
-void
-DOMSVGPoint::SetY(float aY, ErrorResult& rv)
-{
+void DOMSVGPoint::SetY(float aY, ErrorResult& rv) {
   if (mIsAnimValItem || mIsReadonly) {
     rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
     return;
@@ -109,9 +98,8 @@ DOMSVGPoint::SetY(float aY, ErrorResult& rv)
   mPt.mY = aY;
 }
 
-already_AddRefed<nsISVGPoint>
-DOMSVGPoint::MatrixTransform(dom::SVGMatrix& matrix)
-{
+already_AddRefed<nsISVGPoint> DOMSVGPoint::MatrixTransform(
+    dom::SVGMatrix& matrix) {
   float x = HasOwner() ? InternalItem().mX : mPt.mX;
   float y = HasOwner() ? InternalItem().mY : mPt.mY;
 

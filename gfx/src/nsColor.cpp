@@ -4,17 +4,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ArrayUtils.h"         // for ArrayLength
-#include "mozilla/mozalloc.h"           // for operator delete, etc
+#include "mozilla/ArrayUtils.h"  // for ArrayLength
+#include "mozilla/mozalloc.h"    // for operator delete, etc
 #include "mozilla/MathAlgorithms.h"
 
 #include "nsColor.h"
-#include <sys/types.h>                  // for int32_t
-#include "nsColorNames.h"               // for nsColorNames
-#include "nsDebug.h"                    // for NS_ASSERTION, etc
+#include <sys/types.h>     // for int32_t
+#include "nsColorNames.h"  // for nsColorNames
+#include "nsDebug.h"       // for NS_ASSERTION, etc
 #include "nsStaticNameTable.h"
-#include "nsString.h"                   // for nsAutoCString, nsString, etc
-#include "nscore.h"                     // for nsAString, etc
+#include "nsString.h"  // for nsAutoCString, nsString, etc
+#include "nscore.h"    // for nsAString, etc
 
 using namespace mozilla;
 
@@ -37,25 +37,23 @@ static const nscolor kColors[] = {
 
 static nsStaticCaseInsensitiveNameTable* gColorTable = nullptr;
 
-void nsColorNames::AddRefTable(void) 
-{
+void nsColorNames::AddRefTable(void) {
   NS_ASSERTION(!gColorTable, "pre existing array!");
   if (!gColorTable) {
     gColorTable =
-      new nsStaticCaseInsensitiveNameTable(kColorNames, eColorName_COUNT);
+        new nsStaticCaseInsensitiveNameTable(kColorNames, eColorName_COUNT);
   }
 }
 
-void nsColorNames::ReleaseTable(void)
-{
+void nsColorNames::ReleaseTable(void) {
   if (gColorTable) {
     delete gColorTable;
     gColorTable = nullptr;
   }
 }
 
-static int ComponentValue(const char16_t* aColorSpec, int aLen, int color, int dpc)
-{
+static int ComponentValue(const char16_t* aColorSpec, int aLen, int color,
+                          int dpc) {
   int component = 0;
   int index = (color * dpc);
   if (2 < dpc) {
@@ -65,22 +63,18 @@ static int ComponentValue(const char16_t* aColorSpec, int aLen, int color, int d
     char16_t ch = ((index < aLen) ? aColorSpec[index++] : '0');
     if (('0' <= ch) && (ch <= '9')) {
       component = (component * 16) + (ch - '0');
-    } else if ((('a' <= ch) && (ch <= 'f')) || 
-               (('A' <= ch) && (ch <= 'F'))) {
+    } else if ((('a' <= ch) && (ch <= 'f')) || (('A' <= ch) && (ch <= 'F'))) {
       // "ch&7" handles lower and uppercase hex alphabetics
       component = (component * 16) + (ch & 7) + 9;
-    }
-    else {  // not a hex digit, treat it like 0
+    } else {  // not a hex digit, treat it like 0
       component = (component * 16);
     }
   }
   return component;
 }
 
-bool
-NS_HexToRGBA(const nsAString& aColorSpec, nsHexColorType aType,
-             nscolor* aResult)
-{
+bool NS_HexToRGBA(const nsAString& aColorSpec, nsHexColorType aType,
+                  nscolor* aResult) {
   const char16_t* buffer = aColorSpec.BeginReading();
 
   int nameLen = aColorSpec.Length();
@@ -96,8 +90,7 @@ NS_HexToRGBA(const nsAString& aColorSpec, nsHexColorType aType,
   // Make sure the digits are legal
   for (int i = 0; i < nameLen; i++) {
     char16_t ch = buffer[i];
-    if (((ch >= '0') && (ch <= '9')) ||
-        ((ch >= 'a') && (ch <= 'f')) ||
+    if (((ch >= '0') && (ch <= '9')) || ((ch >= 'a') && (ch <= 'f')) ||
         ((ch >= 'A') && (ch <= 'F'))) {
       // Legal character
       continue;
@@ -136,8 +129,7 @@ NS_HexToRGBA(const nsAString& aColorSpec, nsHexColorType aType,
 
 // This implements part of the algorithm for legacy behavior described in
 // http://www.whatwg.org/specs/web-apps/current-work/complete/common-microsyntaxes.html#rules-for-parsing-a-legacy-color-value
-bool NS_LooseHexToRGB(const nsString& aColorSpec, nscolor* aResult)
-{
+bool NS_LooseHexToRGB(const nsString& aColorSpec, nscolor* aResult) {
   if (aColorSpec.EqualsLiteral("transparent")) {
     return false;
   }
@@ -173,8 +165,7 @@ bool NS_LooseHexToRGB(const nsString& aColorSpec, nscolor* aResult)
       MOZ_ASSERT(c * dpc < nameLen,
                  "should not pass end of string while newdpc > 2");
       char16_t ch = colorSpec[c * dpc];
-      if (('1' <= ch && ch <= '9') ||
-          ('A' <= ch && ch <= 'F') ||
+      if (('1' <= ch && ch <= '9') || ('A' <= ch && ch <= 'F') ||
           ('a' <= ch && ch <= 'f')) {
         haveNonzero = true;
         break;
@@ -200,8 +191,7 @@ bool NS_LooseHexToRGB(const nsString& aColorSpec, nscolor* aResult)
   return true;
 }
 
-bool NS_ColorNameToRGB(const nsAString& aColorName, nscolor* aResult)
-{
+bool NS_ColorNameToRGB(const nsAString& aColorName, nscolor* aResult) {
   if (!gColorTable) return false;
 
   int32_t id = gColorTable->Lookup(aColorName);
@@ -218,8 +208,7 @@ bool NS_ColorNameToRGB(const nsAString& aColorName, nscolor* aResult)
 
 // Returns kColorNames, an array of all possible color names, and sets
 // *aSizeArray to the size of that array. Do NOT call free() on this array.
-const char * const * NS_AllColorNames(size_t *aSizeArray)
-{
+const char* const* NS_AllColorNames(size_t* aSizeArray) {
   *aSizeArray = ArrayLength(kColorNames);
   return kColorNames;
 }
@@ -227,12 +216,10 @@ const char * const * NS_AllColorNames(size_t *aSizeArray)
 // Macro to blend two colors
 //
 // equivalent to target = (bg*(255-fgalpha) + fg*fgalpha)/255
-#define MOZ_BLEND(target, bg, fg, fgalpha)       \
-  FAST_DIVIDE_BY_255(target, (bg)*(255-fgalpha) + (fg)*(fgalpha))
+#define MOZ_BLEND(target, bg, fg, fgalpha) \
+  FAST_DIVIDE_BY_255(target, (bg) * (255 - fgalpha) + (fg) * (fgalpha))
 
-nscolor
-NS_ComposeColors(nscolor aBG, nscolor aFG)
-{
+nscolor NS_ComposeColors(nscolor aBG, nscolor aFG) {
   // This function uses colors that are non premultiplied alpha.
   int r, g, b, a;
 
@@ -241,7 +228,7 @@ NS_ComposeColors(nscolor aBG, nscolor aFG)
 
   // Compute the final alpha of the blended color
   // a = fgAlpha + bgAlpha*(255 - fgAlpha)/255;
-  FAST_DIVIDE_BY_255(a, bgAlpha*(255-fgAlpha));
+  FAST_DIVIDE_BY_255(a, bgAlpha * (255 - fgAlpha));
   a = fgAlpha + a;
   int blendAlpha;
   if (a == 0) {
@@ -249,7 +236,7 @@ NS_ComposeColors(nscolor aBG, nscolor aFG)
     // we preserve the color information of the foreground color.
     blendAlpha = 255;
   } else {
-    blendAlpha = (fgAlpha*255)/a;
+    blendAlpha = (fgAlpha * 255) / a;
   }
   MOZ_BLEND(r, NS_GET_R(aBG), NS_GET_R(aFG), blendAlpha);
   MOZ_BLEND(g, NS_GET_G(aBG), NS_GET_G(aFG), blendAlpha);
@@ -260,15 +247,12 @@ NS_ComposeColors(nscolor aBG, nscolor aFG)
 
 namespace mozilla {
 
-static uint32_t
-BlendColorComponent(uint32_t aBg, uint32_t aFg, uint32_t aFgAlpha)
-{
+static uint32_t BlendColorComponent(uint32_t aBg, uint32_t aFg,
+                                    uint32_t aFgAlpha) {
   return RoundingDivideBy255(aBg * (255 - aFgAlpha) + aFg * aFgAlpha);
 }
 
-nscolor
-LinearBlendColors(nscolor aBg, nscolor aFg, uint_fast8_t aFgRatio)
-{
+nscolor LinearBlendColors(nscolor aBg, nscolor aFg, uint_fast8_t aFgRatio) {
   // Common case that either pure background or pure foreground
   if (aFgRatio == 0) {
     return aBg;
@@ -309,51 +293,41 @@ LinearBlendColors(nscolor aBg, nscolor aFg, uint_fast8_t aFgRatio)
   return NS_RGBA(r, g, b, NSToIntRound(a * 255));
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
 // Functions to convert from HSL color space to RGB color space.
 // This is the algorithm described in the CSS3 specification
 
 // helper
-static float
-HSL_HueToRGB(float m1, float m2, float h)
-{
-  if (h < 0.0f)
-    h += 1.0f;
-  if (h > 1.0f)
-    h -= 1.0f;
-  if (h < (float)(1.0/6.0))
-    return m1 + (m2 - m1)*h*6.0f;
-  if (h < (float)(1.0/2.0))
-    return m2;
-  if (h < (float)(2.0/3.0))
-    return m1 + (m2 - m1)*((float)(2.0/3.0) - h)*6.0f;
-  return m1;      
+static float HSL_HueToRGB(float m1, float m2, float h) {
+  if (h < 0.0f) h += 1.0f;
+  if (h > 1.0f) h -= 1.0f;
+  if (h < (float)(1.0 / 6.0)) return m1 + (m2 - m1) * h * 6.0f;
+  if (h < (float)(1.0 / 2.0)) return m2;
+  if (h < (float)(2.0 / 3.0))
+    return m1 + (m2 - m1) * ((float)(2.0 / 3.0) - h) * 6.0f;
+  return m1;
 }
 
 // The float parameters are all expected to be in the range 0-1
-nscolor
-NS_HSL2RGB(float h, float s, float l)
-{
+nscolor NS_HSL2RGB(float h, float s, float l) {
   uint8_t r, g, b;
   float m1, m2;
   if (l <= 0.5f) {
-    m2 = l*(s+1);
+    m2 = l * (s + 1);
   } else {
-    m2 = l + s - l*s;
+    m2 = l + s - l * s;
   }
-  m1 = l*2 - m2;
+  m1 = l * 2 - m2;
   // We round, not floor, because that's how we handle
   // percentage RGB values.
-  r = ClampColor(255 * HSL_HueToRGB(m1, m2, h + 1.0f/3.0f));
+  r = ClampColor(255 * HSL_HueToRGB(m1, m2, h + 1.0f / 3.0f));
   g = ClampColor(255 * HSL_HueToRGB(m1, m2, h));
-  b = ClampColor(255 * HSL_HueToRGB(m1, m2, h - 1.0f/3.0f));
-  return NS_RGB(r, g, b);  
+  b = ClampColor(255 * HSL_HueToRGB(m1, m2, h - 1.0f / 3.0f));
+  return NS_RGB(r, g, b);
 }
 
-const char*
-NS_RGBToColorName(nscolor aColor)
-{
+const char* NS_RGBToColorName(nscolor aColor) {
   for (size_t idx = 0; idx < ArrayLength(kColors); ++idx) {
     if (kColors[idx] == aColor) {
       return kColorNames[idx];

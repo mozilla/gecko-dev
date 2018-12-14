@@ -56,22 +56,20 @@ namespace layout {
  */
 
 class ScrollbarActivity final : public nsIDOMEventListener,
-                                public nsARefreshObserver
-{
-public:
+                                public nsARefreshObserver {
+ public:
   explicit ScrollbarActivity(nsIScrollbarMediator* aScrollableFrame)
-   : mScrollableFrame(aScrollableFrame)
-   , mNestedActivityCounter(0)
-   , mIsActive(false)
-   , mIsFading(false)
-   , mListeningForScrollbarEvents(false)
-   , mListeningForScrollAreaEvents(false)
-   , mHScrollbarHovered(false)
-   , mVScrollbarHovered(false)
-   , mDisplayOnMouseMove(false)
-   , mScrollbarFadeBeginDelay(0)
-   , mScrollbarFadeDuration(0)
-  {
+      : mScrollableFrame(aScrollableFrame),
+        mNestedActivityCounter(0),
+        mIsActive(false),
+        mIsFading(false),
+        mListeningForScrollbarEvents(false),
+        mListeningForScrollAreaEvents(false),
+        mHScrollbarHovered(false),
+        mVScrollbarHovered(false),
+        mDisplayOnMouseMove(false),
+        mScrollbarFadeBeginDelay(0),
+        mScrollbarFadeDuration(0) {
     QueryLookAndFeelVals();
   }
 
@@ -88,25 +86,23 @@ public:
 
   static void FadeBeginTimerFired(nsITimer* aTimer, void* aSelf) {
     RefPtr<ScrollbarActivity> scrollbarActivity(
-      reinterpret_cast<ScrollbarActivity*>(aSelf));
+        reinterpret_cast<ScrollbarActivity*>(aSelf));
     scrollbarActivity->BeginFade();
   }
 
-protected:
+ protected:
   virtual ~ScrollbarActivity() {}
 
-  bool IsActivityOngoing()
-  { return mNestedActivityCounter > 0; }
+  bool IsActivityOngoing() { return mNestedActivityCounter > 0; }
   bool IsStillFading(TimeStamp aTime);
   void QueryLookAndFeelVals();
 
-  void HandleEventForScrollbar(const nsAString& aType,
-                               nsIContent* aTarget,
+  void HandleEventForScrollbar(const nsAString& aType, nsIContent* aTarget,
                                dom::Element* aScrollbar,
                                bool* aStoredHoverState);
 
   void SetIsActive(bool aNewActive);
-  bool SetIsFading(bool aNewFading); // returns false if 'this' was destroyed
+  bool SetIsFading(bool aNewFading);  // returns false if 'this' was destroyed
 
   void BeginFade();
   void EndFade();
@@ -124,7 +120,7 @@ protected:
   void RegisterWithRefreshDriver();
   void UnregisterFromRefreshDriver();
 
-  bool UpdateOpacity(TimeStamp aTime); // returns false if 'this' was destroyed
+  bool UpdateOpacity(TimeStamp aTime);  // returns false if 'this' was destroyed
   void HoveredScrollbar(dom::Element* aScrollbar);
 
   nsRefreshDriver* GetRefreshDriver();
@@ -139,8 +135,8 @@ protected:
   nsIScrollbarMediator* mScrollableFrame;
   TimeStamp mFadeBeginTime;
   nsCOMPtr<nsITimer> mFadeBeginTimer;
-  nsCOMPtr<nsIDOMEventTarget> mHorizontalScrollbar; // null while inactive
-  nsCOMPtr<nsIDOMEventTarget> mVerticalScrollbar;   // null while inactive
+  nsCOMPtr<nsIDOMEventTarget> mHorizontalScrollbar;  // null while inactive
+  nsCOMPtr<nsIDOMEventTarget> mVerticalScrollbar;    // null while inactive
   int mNestedActivityCounter;
   bool mIsActive;
   bool mIsFading;
@@ -155,7 +151,7 @@ protected:
   int mScrollbarFadeDuration;
 };
 
-} // namespace layout
-} // namespace mozilla
+}  // namespace layout
+}  // namespace mozilla
 
 #endif /* ScrollbarActivity_h___ */

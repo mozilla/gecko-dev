@@ -18,82 +18,68 @@
 #if defined(MOZ_WIDGET_ANDROID)
 #include "mozilla/widget/AndroidUiThread.h"
 
-static RefPtr<nsThread>
-GetUiThread()
-{
-  return mozilla::GetAndroidUiThread();
-}
+static RefPtr<nsThread> GetUiThread() { return mozilla::GetAndroidUiThread(); }
 #else
-static RefPtr<nsThread>
-GetUiThread()
-{
+static RefPtr<nsThread> GetUiThread() {
   MOZ_CRASH("Platform does not support UiCompositorController");
   return nullptr;
 }
-#endif // defined(MOZ_WIDGET_ANDROID)
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
-static bool
-IsOnUiThread()
-{
+static bool IsOnUiThread() {
   return GetUiThread()->SerialEventTarget()->IsOnCurrentThread();
 }
 
 namespace mozilla {
 namespace layers {
 
-
 // public:
 /* static */ RefPtr<UiCompositorControllerChild>
-UiCompositorControllerChild::CreateForSameProcess(const int64_t& aRootLayerTreeId)
-{
-  RefPtr<UiCompositorControllerChild> child = new UiCompositorControllerChild(0);
+UiCompositorControllerChild::CreateForSameProcess(
+    const int64_t& aRootLayerTreeId) {
+  RefPtr<UiCompositorControllerChild> child =
+      new UiCompositorControllerChild(0);
   child->mParent = new UiCompositorControllerParent(aRootLayerTreeId);
   GetUiThread()->Dispatch(
-    NewRunnableMethod("layers::UiCompositorControllerChild::OpenForSameProcess",
-                      child,
-                      &UiCompositorControllerChild::OpenForSameProcess),
-    nsIThread::DISPATCH_NORMAL);
+      NewRunnableMethod(
+          "layers::UiCompositorControllerChild::OpenForSameProcess", child,
+          &UiCompositorControllerChild::OpenForSameProcess),
+      nsIThread::DISPATCH_NORMAL);
   return child;
 }
 
 /* static */ RefPtr<UiCompositorControllerChild>
-UiCompositorControllerChild::CreateForGPUProcess(const uint64_t& aProcessToken,
-                                                 Endpoint<PUiCompositorControllerChild>&& aEndpoint)
-{
-  RefPtr<UiCompositorControllerChild> child = new UiCompositorControllerChild(aProcessToken);
+UiCompositorControllerChild::CreateForGPUProcess(
+    const uint64_t& aProcessToken,
+    Endpoint<PUiCompositorControllerChild>&& aEndpoint) {
+  RefPtr<UiCompositorControllerChild> child =
+      new UiCompositorControllerChild(aProcessToken);
 
   RefPtr<nsIRunnable> task =
-    NewRunnableMethod<Endpoint<PUiCompositorControllerChild>&&>(
-      "layers::UiCompositorControllerChild::OpenForGPUProcess",
-      child,
-      &UiCompositorControllerChild::OpenForGPUProcess,
-      Move(aEndpoint));
+      NewRunnableMethod<Endpoint<PUiCompositorControllerChild>&&>(
+          "layers::UiCompositorControllerChild::OpenForGPUProcess", child,
+          &UiCompositorControllerChild::OpenForGPUProcess, Move(aEndpoint));
 
   GetUiThread()->Dispatch(task.forget(), nsIThread::DISPATCH_NORMAL);
   return child;
 }
 
-bool
-UiCompositorControllerChild::Pause()
-{
+bool UiCompositorControllerChild::Pause() {
   if (!mIsOpen) {
     return false;
   }
   return SendPause();
 }
 
-bool
-UiCompositorControllerChild::Resume()
-{
+bool UiCompositorControllerChild::Resume() {
   if (!mIsOpen) {
     return false;
   }
   return SendResume();
 }
 
-bool
-UiCompositorControllerChild::ResumeAndResize(const int32_t& aWidth, const int32_t& aHeight)
-{
+bool UiCompositorControllerChild::ResumeAndResize(const int32_t& aWidth,
+                                                  const int32_t& aHeight) {
   if (!mIsOpen) {
     mResize = Some(gfx::IntSize(aWidth, aHeight));
     // Since we are caching these values, pretend the call succeeded.
@@ -102,18 +88,14 @@ UiCompositorControllerChild::ResumeAndResize(const int32_t& aWidth, const int32_
   return SendResumeAndResize(aWidth, aHeight);
 }
 
-bool
-UiCompositorControllerChild::InvalidateAndRender()
-{
+bool UiCompositorControllerChild::InvalidateAndRender() {
   if (!mIsOpen) {
     return false;
   }
   return SendInvalidateAndRender();
 }
 
-bool
-UiCompositorControllerChild::SetMaxToolbarHeight(const int32_t& aHeight)
-{
+bool UiCompositorControllerChild::SetMaxToolbarHeight(const int32_t& aHeight) {
   if (!mIsOpen) {
     mMaxToolbarHeight = Some(aHeight);
     // Since we are caching this value, pretend the call succeeded.
@@ -122,18 +104,16 @@ UiCompositorControllerChild::SetMaxToolbarHeight(const int32_t& aHeight)
   return SendMaxToolbarHeight(aHeight);
 }
 
-bool
-UiCompositorControllerChild::SetPinned(const bool& aPinned, const int32_t& aReason)
-{
+bool UiCompositorControllerChild::SetPinned(const bool& aPinned,
+                                            const int32_t& aReason) {
   if (!mIsOpen) {
     return false;
   }
   return SendPinned(aPinned, aReason);
 }
 
-bool
-UiCompositorControllerChild::ToolbarAnimatorMessageFromUI(const int32_t& aMessage)
-{
+bool UiCompositorControllerChild::ToolbarAnimatorMessageFromUI(
+    const int32_t& aMessage) {
   if (!mIsOpen) {
     return false;
   }
@@ -146,9 +126,7 @@ UiCompositorControllerChild::ToolbarAnimatorMessageFromUI(const int32_t& aMessag
   return SendToolbarAnimatorMessageFromUI(aMessage);
 }
 
-bool
-UiCompositorControllerChild::SetDefaultClearColor(const uint32_t& aColor)
-{
+bool UiCompositorControllerChild::SetDefaultClearColor(const uint32_t& aColor) {
   if (!mIsOpen) {
     mDefaultClearColor = Some(aColor);
     // Since we are caching this value, pretend the call succeeded.
@@ -158,9 +136,7 @@ UiCompositorControllerChild::SetDefaultClearColor(const uint32_t& aColor)
   return SendDefaultClearColor(aColor);
 }
 
-bool
-UiCompositorControllerChild::RequestScreenPixels()
-{
+bool UiCompositorControllerChild::RequestScreenPixels() {
   if (!mIsOpen) {
     return false;
   }
@@ -168,9 +144,8 @@ UiCompositorControllerChild::RequestScreenPixels()
   return SendRequestScreenPixels();
 }
 
-bool
-UiCompositorControllerChild::EnableLayerUpdateNotifications(const bool& aEnable)
-{
+bool UiCompositorControllerChild::EnableLayerUpdateNotifications(
+    const bool& aEnable) {
   if (!mIsOpen) {
     mLayerUpdateEnabled = Some(aEnable);
     // Since we are caching this value, pretend the call succeeded.
@@ -180,9 +155,8 @@ UiCompositorControllerChild::EnableLayerUpdateNotifications(const bool& aEnable)
   return SendEnableLayerUpdateNotifications(aEnable);
 }
 
-bool
-UiCompositorControllerChild::ToolbarPixelsToCompositor(Shmem& aMem, const ScreenIntSize& aSize)
-{
+bool UiCompositorControllerChild::ToolbarPixelsToCompositor(
+    Shmem& aMem, const ScreenIntSize& aSize) {
   if (!mIsOpen) {
     return false;
   }
@@ -190,15 +164,12 @@ UiCompositorControllerChild::ToolbarPixelsToCompositor(Shmem& aMem, const Screen
   return SendToolbarPixelsToCompositor(aMem, aSize);
 }
 
-void
-UiCompositorControllerChild::Destroy()
-{
+void UiCompositorControllerChild::Destroy() {
   if (!IsOnUiThread()) {
     GetUiThread()->Dispatch(
-      NewRunnableMethod("layers::UiCompositorControllerChild::Destroy",
-                        this,
-                        &UiCompositorControllerChild::Destroy),
-      nsIThread::DISPATCH_SYNC);
+        NewRunnableMethod("layers::UiCompositorControllerChild::Destroy", this,
+                          &UiCompositorControllerChild::Destroy),
+        nsIThread::DISPATCH_SYNC);
     return;
   }
 
@@ -209,29 +180,22 @@ UiCompositorControllerChild::Destroy()
   }
 }
 
-void
-UiCompositorControllerChild::SetBaseWidget(nsBaseWidget* aWidget)
-{
+void UiCompositorControllerChild::SetBaseWidget(nsBaseWidget* aWidget) {
   mWidget = aWidget;
 }
 
-bool
-UiCompositorControllerChild::AllocPixelBuffer(const int32_t aSize, Shmem* aMem)
-{
+bool UiCompositorControllerChild::AllocPixelBuffer(const int32_t aSize,
+                                                   Shmem* aMem) {
   MOZ_ASSERT(aSize > 0);
   return AllocShmem(aSize, ipc::SharedMemory::TYPE_BASIC, aMem);
 }
 
-bool
-UiCompositorControllerChild::DeallocPixelBuffer(Shmem& aMem)
-{
+bool UiCompositorControllerChild::DeallocPixelBuffer(Shmem& aMem) {
   return DeallocShmem(aMem);
 }
 
 // protected:
-void
-UiCompositorControllerChild::ActorDestroy(ActorDestroyReason aWhy)
-{
+void UiCompositorControllerChild::ActorDestroy(ActorDestroyReason aWhy) {
   mIsOpen = false;
   mParent = nullptr;
 
@@ -241,78 +205,66 @@ UiCompositorControllerChild::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-void
-UiCompositorControllerChild::DeallocPUiCompositorControllerChild()
-{
+void UiCompositorControllerChild::DeallocPUiCompositorControllerChild() {
   if (mParent) {
     mParent = nullptr;
   }
   Release();
 }
 
-void
-UiCompositorControllerChild::ProcessingError(Result aCode, const char* aReason)
-{
-  MOZ_RELEASE_ASSERT(aCode == MsgDropped, "Processing error in UiCompositorControllerChild");
+void UiCompositorControllerChild::ProcessingError(Result aCode,
+                                                  const char* aReason) {
+  MOZ_RELEASE_ASSERT(aCode == MsgDropped,
+                     "Processing error in UiCompositorControllerChild");
 }
 
-void
-UiCompositorControllerChild::HandleFatalError(const char* aName, const char* aMsg) const
-{
+void UiCompositorControllerChild::HandleFatalError(const char* aName,
+                                                   const char* aMsg) const {
   dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aName, aMsg, OtherPid());
 }
 
 mozilla::ipc::IPCResult
-UiCompositorControllerChild::RecvToolbarAnimatorMessageFromCompositor(const int32_t& aMessage)
-{
+UiCompositorControllerChild::RecvToolbarAnimatorMessageFromCompositor(
+    const int32_t& aMessage) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mWidget) {
     mWidget->RecvToolbarAnimatorMessageFromCompositor(aMessage);
   }
-#endif // defined(MOZ_WIDGET_ANDROID)
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-UiCompositorControllerChild::RecvRootFrameMetrics(const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom)
-{
+mozilla::ipc::IPCResult UiCompositorControllerChild::RecvRootFrameMetrics(
+    const ScreenPoint& aScrollOffset, const CSSToScreenScale& aZoom) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mWidget) {
     mWidget->UpdateRootFrameMetrics(aScrollOffset, aZoom);
   }
-#endif // defined(MOZ_WIDGET_ANDROID)
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-UiCompositorControllerChild::RecvScreenPixels(ipc::Shmem&& aMem, const ScreenIntSize& aSize)
-{
+mozilla::ipc::IPCResult UiCompositorControllerChild::RecvScreenPixels(
+    ipc::Shmem&& aMem, const ScreenIntSize& aSize) {
 #if defined(MOZ_WIDGET_ANDROID)
   if (mWidget) {
     mWidget->RecvScreenPixels(Move(aMem), aSize);
   }
-#endif // defined(MOZ_WIDGET_ANDROID)
+#endif  // defined(MOZ_WIDGET_ANDROID)
 
   return IPC_OK();
 }
 
 // private:
-UiCompositorControllerChild::UiCompositorControllerChild(const uint64_t& aProcessToken)
- : mIsOpen(false)
- , mProcessToken(aProcessToken)
- , mWidget(nullptr)
-{
-}
+UiCompositorControllerChild::UiCompositorControllerChild(
+    const uint64_t& aProcessToken)
+    : mIsOpen(false), mProcessToken(aProcessToken), mWidget(nullptr) {}
 
-UiCompositorControllerChild::~UiCompositorControllerChild()
-{
-}
+UiCompositorControllerChild::~UiCompositorControllerChild() {}
 
-void
-UiCompositorControllerChild::OpenForSameProcess()
-{
+void UiCompositorControllerChild::OpenForSameProcess() {
   MOZ_ASSERT(IsOnUiThread());
 
   mIsOpen = Open(mParent->GetIPCChannel(),
@@ -331,9 +283,8 @@ UiCompositorControllerChild::OpenForSameProcess()
   RecvToolbarAnimatorMessageFromCompositor(COMPOSITOR_CONTROLLER_OPEN);
 }
 
-void
-UiCompositorControllerChild::OpenForGPUProcess(Endpoint<PUiCompositorControllerChild>&& aEndpoint)
-{
+void UiCompositorControllerChild::OpenForGPUProcess(
+    Endpoint<PUiCompositorControllerChild>&& aEndpoint) {
   MOZ_ASSERT(IsOnUiThread());
 
   mIsOpen = aEndpoint.Bind(this);
@@ -353,9 +304,7 @@ UiCompositorControllerChild::OpenForGPUProcess(Endpoint<PUiCompositorControllerC
   RecvToolbarAnimatorMessageFromCompositor(COMPOSITOR_CONTROLLER_OPEN);
 }
 
-void
-UiCompositorControllerChild::SendCachedValues()
-{
+void UiCompositorControllerChild::SendCachedValues() {
   MOZ_ASSERT(mIsOpen);
   if (mResize) {
     SendResumeAndResize(mResize.ref().width, mResize.ref().height);
@@ -375,5 +324,5 @@ UiCompositorControllerChild::SendCachedValues()
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

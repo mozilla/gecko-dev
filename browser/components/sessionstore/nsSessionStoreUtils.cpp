@@ -12,18 +12,15 @@ using namespace mozilla::dom;
 
 namespace {
 
-class DynamicFrameEventFilter final : public nsIDOMEventListener
-{
-public:
+class DynamicFrameEventFilter final : public nsIDOMEventListener {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(DynamicFrameEventFilter)
 
   explicit DynamicFrameEventFilter(nsIDOMEventListener* aListener)
-    : mListener(aListener)
-  { }
+      : mListener(aListener) {}
 
-  NS_IMETHODIMP HandleEvent(nsIDOMEvent* aEvent) override
-  {
+  NS_IMETHODIMP HandleEvent(nsIDOMEvent* aEvent) override {
     if (mListener && TargetInNonDynamicDocShell(aEvent)) {
       mListener->HandleEvent(aEvent);
     }
@@ -31,11 +28,10 @@ public:
     return NS_OK;
   }
 
-private:
-  ~DynamicFrameEventFilter() { }
+ private:
+  ~DynamicFrameEventFilter() {}
 
-  bool TargetInNonDynamicDocShell(nsIDOMEvent* aEvent)
-  {
+  bool TargetInNonDynamicDocShell(nsIDOMEvent* aEvent) {
     EventTarget* target = aEvent->InternalDOMEvent()->GetTarget();
     if (!target) {
       return false;
@@ -69,14 +65,13 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DynamicFrameEventFilter)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DynamicFrameEventFilter)
 
-} // anonymous namespace
+}  // anonymous namespace
 
 NS_IMPL_ISUPPORTS(nsSessionStoreUtils, nsISessionStoreUtils)
 
 NS_IMETHODIMP
-nsSessionStoreUtils::ForEachNonDynamicChildFrame(mozIDOMWindowProxy* aWindow,
-                                                 nsISessionStoreUtilsFrameCallback* aCallback)
-{
+nsSessionStoreUtils::ForEachNonDynamicChildFrame(
+    mozIDOMWindowProxy* aWindow, nsISessionStoreUtilsFrameCallback* aCallback) {
   NS_ENSURE_TRUE(aWindow, NS_ERROR_INVALID_ARG);
 
   nsCOMPtr<nsPIDOMWindowOuter> outer = nsPIDOMWindowOuter::From(aWindow);
@@ -114,9 +109,8 @@ nsSessionStoreUtils::ForEachNonDynamicChildFrame(mozIDOMWindowProxy* aWindow,
 }
 
 NS_IMETHODIMP
-nsSessionStoreUtils::CreateDynamicFrameEventFilter(nsIDOMEventListener* aListener,
-                                                   nsIDOMEventListener** aResult)
-{
+nsSessionStoreUtils::CreateDynamicFrameEventFilter(
+    nsIDOMEventListener* aListener, nsIDOMEventListener** aResult) {
   NS_ENSURE_TRUE(aListener, NS_ERROR_INVALID_ARG);
 
   nsCOMPtr<nsIDOMEventListener> filter(new DynamicFrameEventFilter(aListener));

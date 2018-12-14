@@ -11,7 +11,7 @@
 // See mozmemory_wrap.h for more details. This file is part of libmozglue, so
 // it needs to use _impl suffixes.
 #define MALLOC_DECL(name, return_type, ...) \
-  extern "C" MOZ_MEMORY_API return_type name ## _impl(__VA_ARGS__);
+  extern "C" MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__);
 #include "malloc_decls.h"
 #include "mozilla/mozalloc.h"
 #endif
@@ -29,47 +29,34 @@
 
 namespace {
 
-struct CertStoreDeleter
-{
+struct CertStoreDeleter {
   typedef HCERTSTORE pointer;
-  void operator()(pointer aStore)
-  {
-    ::CertCloseStore(aStore, 0);
-  }
+  void operator()(pointer aStore) { ::CertCloseStore(aStore, 0); }
 };
 
-struct CryptMsgDeleter
-{
+struct CryptMsgDeleter {
   typedef HCRYPTMSG pointer;
-  void operator()(pointer aMsg)
-  {
-    ::CryptMsgClose(aMsg);
-  }
+  void operator()(pointer aMsg) { ::CryptMsgClose(aMsg); }
 };
 
-struct CertContextDeleter
-{
-  void operator()(PCCERT_CONTEXT aCertContext)
-  {
+struct CertContextDeleter {
+  void operator()(PCCERT_CONTEXT aCertContext) {
     ::CertFreeCertificateContext(aCertContext);
   }
 };
 
 typedef mozilla::UniquePtr<HCERTSTORE, CertStoreDeleter> CertStoreUniquePtr;
 typedef mozilla::UniquePtr<HCRYPTMSG, CryptMsgDeleter> CryptMsgUniquePtr;
-typedef mozilla::UniquePtr<const CERT_CONTEXT, CertContextDeleter> CertContextUniquePtr;
+typedef mozilla::UniquePtr<const CERT_CONTEXT, CertContextDeleter>
+    CertContextUniquePtr;
 
 static const DWORD kEncodingTypes = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING;
 
-class SignedBinary
-{
-public:
+class SignedBinary {
+ public:
   explicit SignedBinary(const wchar_t* aFilePath);
 
-  explicit operator bool() const
-  {
-    return mCertStore && mCryptMsg && mCertCtx;
-  }
+  explicit operator bool() const { return mCertStore && mCryptMsg && mCertCtx; }
 
   mozilla::UniquePtr<wchar_t[]> GetOrgName();
 
@@ -78,17 +65,16 @@ public:
   SignedBinary& operator=(const SignedBinary&) = delete;
   SignedBinary& operator=(SignedBinary&&) = delete;
 
-private:
+ private:
   bool VerifySignature(const wchar_t* aFilePath);
 
-private:
-  CertStoreUniquePtr    mCertStore;
-  CryptMsgUniquePtr     mCryptMsg;
-  CertContextUniquePtr  mCertCtx;
+ private:
+  CertStoreUniquePtr mCertStore;
+  CryptMsgUniquePtr mCryptMsg;
+  CertContextUniquePtr mCertCtx;
 };
 
-SignedBinary::SignedBinary(const wchar_t* aFilePath)
-{
+SignedBinary::SignedBinary(const wchar_t* aFilePath) {
   if (!VerifySignature(aFilePath)) {
     return;
   }
@@ -125,10 +111,9 @@ SignedBinary::SignedBinary(const wchar_t* aFilePath)
 
   auto certInfo = reinterpret_cast<CERT_INFO*>(certInfoBuf.get());
 
-  PCCERT_CONTEXT certCtx = CertFindCertificateInStore(mCertStore.get(),
-                                                      kEncodingTypes, 0,
-                                                      CERT_FIND_SUBJECT_CERT,
-                                                      certInfo, nullptr);
+  PCCERT_CONTEXT certCtx =
+      CertFindCertificateInStore(mCertStore.get(), kEncodingTypes, 0,
+                                 CERT_FIND_SUBJECT_CERT, certInfo, nullptr);
   if (!certCtx) {
     return;
   }
@@ -136,9 +121,7 @@ SignedBinary::SignedBinary(const wchar_t* aFilePath)
   mCertCtx.reset(certCtx);
 }
 
-bool
-SignedBinary::VerifySignature(const wchar_t* aFilePath)
-{
+bool SignedBinary::VerifySignature(const wchar_t* aFilePath) {
   WINTRUST_FILE_INFO fileInfo = {sizeof(fileInfo)};
   fileInfo.pcwszFilePath = aFilePath;
 
@@ -149,7 +132,7 @@ SignedBinary::VerifySignature(const wchar_t* aFilePath)
   trustData.pFile = &fileInfo;
   trustData.dwStateAction = WTD_STATEACTION_VERIFY;
 
-  const HWND hwnd = (HWND) INVALID_HANDLE_VALUE;
+  const HWND hwnd = (HWND)INVALID_HANDLE_VALUE;
   GUID policyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
   LONG result = WinVerifyTrust(hwnd, &policyGUID, &trustData);
 
@@ -159,12 +142,9 @@ SignedBinary::VerifySignature(const wchar_t* aFilePath)
   return result == ERROR_SUCCESS;
 }
 
-mozilla::UniquePtr<wchar_t[]>
-SignedBinary::GetOrgName()
-{
-  DWORD charCount = CertGetNameStringW(mCertCtx.get(),
-                                       CERT_NAME_SIMPLE_DISPLAY_TYPE, 0,
-                                       nullptr, nullptr, 0);
+mozilla::UniquePtr<wchar_t[]> SignedBinary::GetOrgName() {
+  DWORD charCount = CertGetNameStringW(
+      mCertCtx.get(), CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, nullptr, 0);
   if (charCount <= 1) {
     // Not found
     return nullptr;
@@ -178,19 +158,18 @@ SignedBinary::GetOrgName()
   return result;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 namespace mozilla {
 
-class AuthenticodeImpl : public Authenticode
-{
-public:
-  virtual UniquePtr<wchar_t[]> GetBinaryOrgName(const wchar_t* aFilePath) override;
+class AuthenticodeImpl : public Authenticode {
+ public:
+  virtual UniquePtr<wchar_t[]> GetBinaryOrgName(
+      const wchar_t* aFilePath) override;
 };
 
-UniquePtr<wchar_t[]>
-AuthenticodeImpl::GetBinaryOrgName(const wchar_t* aFilePath)
-{
+UniquePtr<wchar_t[]> AuthenticodeImpl::GetBinaryOrgName(
+    const wchar_t* aFilePath) {
   SignedBinary bin(aFilePath);
   if (!bin) {
     return nullptr;
@@ -201,11 +180,6 @@ AuthenticodeImpl::GetBinaryOrgName(const wchar_t* aFilePath)
 
 static AuthenticodeImpl sAuthenticodeImpl;
 
-Authenticode*
-GetAuthenticode()
-{
-  return &sAuthenticodeImpl;
-}
+Authenticode* GetAuthenticode() { return &sAuthenticodeImpl; }
 
-} // namespace mozilla
-
+}  // namespace mozilla

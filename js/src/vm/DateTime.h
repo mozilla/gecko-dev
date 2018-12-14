@@ -45,11 +45,9 @@ const unsigned SecondsPerDay = SecondsPerHour * 24;
 const double StartOfTime = -8.64e15;
 const double EndOfTime = 8.64e15;
 
-extern bool
-InitDateTimeState();
+extern bool InitDateTimeState();
 
-extern void
-FinishDateTimeState();
+extern void FinishDateTimeState();
 
 /*
  * Stores date/time information, particularly concerning the current local
@@ -97,96 +95,94 @@ FinishDateTimeState();
  * that accommodates near-DST-change dates better; we don't believe the
  * potential win from better caching offsets the loss from extra complexity.)
  */
-class DateTimeInfo
-{
-    static ExclusiveData<DateTimeInfo>* instance;
-    friend class ExclusiveData<DateTimeInfo>;
+class DateTimeInfo {
+  static ExclusiveData<DateTimeInfo>* instance;
+  friend class ExclusiveData<DateTimeInfo>;
 
-    friend bool InitDateTimeState();
-    friend void FinishDateTimeState();
+  friend bool InitDateTimeState();
+  friend void FinishDateTimeState();
 
-    DateTimeInfo();
+  DateTimeInfo();
 
-  public:
-    // The spec implicitly assumes DST and time zone adjustment information
-    // never change in the course of a function -- sometimes even across
-    // reentrancy.  So make critical sections as narrow as possible.
+ public:
+  // The spec implicitly assumes DST and time zone adjustment information
+  // never change in the course of a function -- sometimes even across
+  // reentrancy.  So make critical sections as narrow as possible.
 
-    /*
-     * Get the DST offset in milliseconds at a UTC time.  This is usually
-     * either 0 or |msPerSecond * SecondsPerHour|, but at least one exotic time
-     * zone (Lord Howe Island, Australia) has a fractional-hour offset, just to
-     * keep things interesting.
-     */
-    static int64_t getDSTOffsetMilliseconds(int64_t utcMilliseconds) {
-        auto guard = instance->lock();
-        return guard->internalGetDSTOffsetMilliseconds(utcMilliseconds);
-    }
+  /*
+   * Get the DST offset in milliseconds at a UTC time.  This is usually
+   * either 0 or |msPerSecond * SecondsPerHour|, but at least one exotic time
+   * zone (Lord Howe Island, Australia) has a fractional-hour offset, just to
+   * keep things interesting.
+   */
+  static int64_t getDSTOffsetMilliseconds(int64_t utcMilliseconds) {
+    auto guard = instance->lock();
+    return guard->internalGetDSTOffsetMilliseconds(utcMilliseconds);
+  }
 
-    /* ES5 15.9.1.7. */
-    static double localTZA() {
-        auto guard = instance->lock();
-        return guard->localTZA_;
-    }
+  /* ES5 15.9.1.7. */
+  static double localTZA() {
+    auto guard = instance->lock();
+    return guard->localTZA_;
+  }
 
-  private:
-    // We don't want anyone accidentally calling *only*
-    // DateTimeInfo::updateTimeZoneAdjustment() to respond to a system time
-    // zone change (missing the necessary poking of ICU as well), so ensure
-    // only JS::ResetTimeZone() can call this via access restrictions.
-    friend void JS::ResetTimeZone();
+ private:
+  // We don't want anyone accidentally calling *only*
+  // DateTimeInfo::updateTimeZoneAdjustment() to respond to a system time
+  // zone change (missing the necessary poking of ICU as well), so ensure
+  // only JS::ResetTimeZone() can call this via access restrictions.
+  friend void JS::ResetTimeZone();
 
-    static void updateTimeZoneAdjustment() {
-        auto guard = instance->lock();
-        guard->internalUpdateTimeZoneAdjustment();
-    }
+  static void updateTimeZoneAdjustment() {
+    auto guard = instance->lock();
+    guard->internalUpdateTimeZoneAdjustment();
+  }
 
-    /*
-     * The current local time zone adjustment, cached because retrieving this
-     * dynamically is Slow, and a certain venerable benchmark which shall not
-     * be named depends on it being fast.
-     *
-     * SpiderMonkey occasionally and arbitrarily updates this value from the
-     * system time zone to attempt to keep this reasonably up-to-date.  If
-     * temporary inaccuracy can't be tolerated, JSAPI clients may call
-     * JS::ResetTimeZone to forcibly sync this with the system time zone.
-     */
-    double localTZA_;
+  /*
+   * The current local time zone adjustment, cached because retrieving this
+   * dynamically is Slow, and a certain venerable benchmark which shall not
+   * be named depends on it being fast.
+   *
+   * SpiderMonkey occasionally and arbitrarily updates this value from the
+   * system time zone to attempt to keep this reasonably up-to-date.  If
+   * temporary inaccuracy can't be tolerated, JSAPI clients may call
+   * JS::ResetTimeZone to forcibly sync this with the system time zone.
+   */
+  double localTZA_;
 
-    /*
-     * Compute the DST offset at the given UTC time in seconds from the epoch.
-     * (getDSTOffsetMilliseconds attempts to return a cached value, but in case
-     * of a cache miss it calls this method.  The cache is represented through
-     * the offset* and *{Start,End}Seconds fields below.)
-     */
-    int64_t computeDSTOffsetMilliseconds(int64_t utcSeconds);
+  /*
+   * Compute the DST offset at the given UTC time in seconds from the epoch.
+   * (getDSTOffsetMilliseconds attempts to return a cached value, but in case
+   * of a cache miss it calls this method.  The cache is represented through
+   * the offset* and *{Start,End}Seconds fields below.)
+   */
+  int64_t computeDSTOffsetMilliseconds(int64_t utcSeconds);
 
-    int64_t offsetMilliseconds;
-    int64_t rangeStartSeconds, rangeEndSeconds; // UTC-based
+  int64_t offsetMilliseconds;
+  int64_t rangeStartSeconds, rangeEndSeconds;  // UTC-based
 
-    int64_t oldOffsetMilliseconds;
-    int64_t oldRangeStartSeconds, oldRangeEndSeconds; // UTC-based
+  int64_t oldOffsetMilliseconds;
+  int64_t oldRangeStartSeconds, oldRangeEndSeconds;  // UTC-based
 
-    /*
-     * Cached offset in seconds from the current UTC time to the current
-     * local standard time (i.e. not including any offset due to DST).
-     */
-    int32_t utcToLocalStandardOffsetSeconds;
+  /*
+   * Cached offset in seconds from the current UTC time to the current
+   * local standard time (i.e. not including any offset due to DST).
+   */
+  int32_t utcToLocalStandardOffsetSeconds;
 
-    static const int64_t MaxUnixTimeT = 2145859200; /* time_t 12/31/2037 */
+  static const int64_t MaxUnixTimeT = 2145859200; /* time_t 12/31/2037 */
 
-    static const int64_t RangeExpansionAmount = 30 * SecondsPerDay;
+  static const int64_t RangeExpansionAmount = 30 * SecondsPerDay;
 
-    int64_t internalGetDSTOffsetMilliseconds(int64_t utcMilliseconds);
-    void internalUpdateTimeZoneAdjustment();
+  int64_t internalGetDSTOffsetMilliseconds(int64_t utcMilliseconds);
+  void internalUpdateTimeZoneAdjustment();
 
-    void sanityCheck();
+  void sanityCheck();
 };
 
 enum class IcuTimeZoneStatus { Valid, NeedsUpdate };
 
-extern ExclusiveData<IcuTimeZoneStatus>*
-IcuTimeZoneState;
+extern ExclusiveData<IcuTimeZoneStatus>* IcuTimeZoneState;
 
 /**
  * ICU's default time zone, used for various date/time formatting operations
@@ -195,9 +191,8 @@ IcuTimeZoneState;
  * default time zone is required, to resync ICU's default time zone with
  * reality.
  */
-extern void
-ResyncICUDefaultTimeZone();
+extern void ResyncICUDefaultTimeZone();
 
-}  /* namespace js */
+} /* namespace js */
 
 #endif /* vm_DateTime_h */

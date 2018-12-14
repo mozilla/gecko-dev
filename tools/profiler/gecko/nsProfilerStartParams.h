@@ -10,21 +10,18 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-class nsProfilerStartParams : public nsIProfilerStartParams
-{
-public:
+class nsProfilerStartParams : public nsIProfilerStartParams {
+ public:
   // This class can be used on multiple threads. For example, it's used for the
   // observer notification from profiler_start, which can run on any thread but
   // posts the notification to the main thread.
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIPROFILERSTARTPARAMS
 
-  nsProfilerStartParams(uint32_t aEntries,
-                        double aInterval,
-                        uint32_t aFeatures,
+  nsProfilerStartParams(uint32_t aEntries, double aInterval, uint32_t aFeatures,
                         const nsTArray<nsCString>& aFilters);
 
-private:
+ private:
   virtual ~nsProfilerStartParams();
   uint32_t mEntries;
   double mInterval;

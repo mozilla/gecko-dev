@@ -14,11 +14,10 @@
 
 namespace mozilla {
 
-class ServoDocumentRule final : public dom::CSSMozDocumentRule
-{
-public:
-  ServoDocumentRule(RefPtr<RawServoDocumentRule> aRawRule,
-                    uint32_t aLine, uint32_t aColumn);
+class ServoDocumentRule final : public dom::CSSMozDocumentRule {
+ public:
+  ServoDocumentRule(RefPtr<RawServoDocumentRule> aRawRule, uint32_t aLine,
+                    uint32_t aColumn);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -39,15 +38,15 @@ public:
   void SetConditionText(const nsAString& aConditionText,
                         ErrorResult& aRv) final;
 
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const override;
+  size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
-private:
+ private:
   virtual ~ServoDocumentRule();
 
   RefPtr<RawServoDocumentRule> mRawRule;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoDocumentRule_h
+#endif  // mozilla_ServoDocumentRule_h

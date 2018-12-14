@@ -7,38 +7,38 @@
 #ifndef frontend_ErrorReporter_h
 #define frontend_ErrorReporter_h
 
-#include <stdarg.h> // for va_list
-#include <stddef.h> // for size_t
-#include <stdint.h> // for uint32_t
+#include <stdarg.h>  // for va_list
+#include <stddef.h>  // for size_t
+#include <stdint.h>  // for uint32_t
 
-#include "jsapi.h" // for JS::ReadOnlyCompileOptions
+#include "jsapi.h"  // for JS::ReadOnlyCompileOptions
 
 namespace js {
 namespace frontend {
 
-class ErrorReporter
-{
-  public:
-    virtual const JS::ReadOnlyCompileOptions& options() const = 0;
+class ErrorReporter {
+ public:
+  virtual const JS::ReadOnlyCompileOptions& options() const = 0;
 
-    virtual void lineAndColumnAt(size_t offset, uint32_t* line, uint32_t* column) const = 0;
-    virtual void currentLineAndColumn(uint32_t* line, uint32_t* column) const = 0;
+  virtual void lineAndColumnAt(size_t offset, uint32_t* line,
+                               uint32_t* column) const = 0;
+  virtual void currentLineAndColumn(uint32_t* line, uint32_t* column) const = 0;
 
-    virtual bool hasTokenizationStarted() const = 0;
-    virtual void reportErrorNoOffsetVA(unsigned errorNumber, va_list args) = 0;
-    virtual const char* getFilename() const = 0;
+  virtual bool hasTokenizationStarted() const = 0;
+  virtual void reportErrorNoOffsetVA(unsigned errorNumber, va_list args) = 0;
+  virtual const char* getFilename() const = 0;
 
-    void reportErrorNoOffset(unsigned errorNumber, ...) {
-        va_list args;
-        va_start(args, errorNumber);
+  void reportErrorNoOffset(unsigned errorNumber, ...) {
+    va_list args;
+    va_start(args, errorNumber);
 
-        reportErrorNoOffsetVA(errorNumber, args);
+    reportErrorNoOffsetVA(errorNumber, args);
 
-        va_end(args);
-    }
+    va_end(args);
+  }
 };
 
-} // namespace frontend
-} // namespace js
+}  // namespace frontend
+}  // namespace js
 
-#endif // frontend_ErrorReporter_h
+#endif  // frontend_ErrorReporter_h

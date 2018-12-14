@@ -102,7 +102,7 @@ void ProxyShowHideEvent(ProxyAccessible* aTarget, ProxyAccessible* aParent,
                         bool aInsert, bool aFromUser);
 void ProxySelectionEvent(ProxyAccessible* aTarget, ProxyAccessible* aWidget,
                          uint32_t aType);
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
-#endif // mozilla_a11y_Platform_h
+#endif  // mozilla_a11y_Platform_h

@@ -18,7 +18,7 @@ namespace mozilla {
  * Manages a set of NSViews to cover a LayoutDeviceIntRegion.
  */
 class ViewRegion {
-public:
+ public:
   ~ViewRegion();
 
   mozilla::LayoutDeviceIntRegion Region() { return mRegion; }
@@ -27,7 +27,8 @@ public:
    * Update the region.
    * @param aRegion  The new region.
    * @param aCoordinateConverter  The nsChildView to use for converting
-   *   LayoutDeviceIntRect device pixel coordinates into Cocoa NSRect coordinates.
+   *   LayoutDeviceIntRect device pixel coordinates into Cocoa NSRect
+   * coordinates.
    * @param aContainerView  The view that's going to be the superview of the
    *   NSViews which will be created for this region.
    * @param aViewCreationCallback  A block that instantiates new NSViews.
@@ -35,19 +36,18 @@ public:
    */
   bool UpdateRegion(const mozilla::LayoutDeviceIntRegion& aRegion,
                     const nsChildView& aCoordinateConverter,
-                    NSView* aContainerView,
-                    NSView* (^aViewCreationCallback)());
+                    NSView* aContainerView, NSView* (^aViewCreationCallback)());
 
   /**
    * Return an NSView from the region, if there is any.
    */
   NSView* GetAnyView() { return mViews.Length() > 0 ? mViews[0] : nil; }
 
-private:
+ private:
   mozilla::LayoutDeviceIntRegion mRegion;
   nsTArray<NSView*> mViews;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // ViewRegion_h
+#endif  // ViewRegion_h

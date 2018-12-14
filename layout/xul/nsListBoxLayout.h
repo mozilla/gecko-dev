@@ -14,20 +14,21 @@ class nsIFrame;
 typedef class nsIFrame nsIFrame;
 class nsBoxLayoutState;
 
-class nsListBoxLayout final : public nsGridRowGroupLayout
-{
-public:
+class nsListBoxLayout final : public nsGridRowGroupLayout {
+ public:
   nsListBoxLayout();
 
   // nsBoxLayout
   NS_IMETHOD XULLayout(nsIFrame* aBox, nsBoxLayoutState& aState) override;
-  virtual nsSize GetXULPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetXULMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nsSize GetXULMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULPrefSize(nsIFrame* aBox,
+                                nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMinSize(nsIFrame* aBox,
+                               nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetXULMaxSize(nsIFrame* aBox,
+                               nsBoxLayoutState& aBoxLayoutState) override;
 
-protected:
+ protected:
   NS_IMETHOD LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState);
 };
 
 #endif
-

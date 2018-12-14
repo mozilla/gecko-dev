@@ -9,30 +9,25 @@
 #include "mozilla/dom/HTMLImageElement.h"
 
 // Expand NS_IMPL_NS_NEW_HTML_ELEMENT(Picture) to add pref check.
-nsGenericHTMLElement*
-NS_NewHTMLPictureElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
-                         mozilla::dom::FromParser aFromParser)
-{
+nsGenericHTMLElement* NS_NewHTMLPictureElement(
+    already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
+    mozilla::dom::FromParser aFromParser) {
   return new mozilla::dom::HTMLPictureElement(aNodeInfo);
 }
 
 namespace mozilla {
 namespace dom {
 
-HTMLPictureElement::HTMLPictureElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : nsGenericHTMLElement(aNodeInfo)
-{
-}
+HTMLPictureElement::HTMLPictureElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : nsGenericHTMLElement(aNodeInfo) {}
 
-HTMLPictureElement::~HTMLPictureElement()
-{
-}
+HTMLPictureElement::~HTMLPictureElement() {}
 
 NS_IMPL_ELEMENT_CLONE(HTMLPictureElement)
 
-void
-HTMLPictureElement::RemoveChildAt_Deprecated(uint32_t aIndex, bool aNotify)
-{
+void HTMLPictureElement::RemoveChildAt_Deprecated(uint32_t aIndex,
+                                                  bool aNotify) {
   nsCOMPtr<nsIContent> child = GetChildAt_Deprecated(aIndex);
 
   if (child && child->IsHTMLElement(nsGkAtoms::img)) {
@@ -49,16 +44,14 @@ HTMLPictureElement::RemoveChildAt_Deprecated(uint32_t aIndex, bool aNotify)
         if (img) {
           img->PictureSourceRemoved(child->AsContent());
         }
-      } while ( (nextSibling = nextSibling->GetNextSibling()) );
+      } while ((nextSibling = nextSibling->GetNextSibling()));
     }
   }
 
   nsGenericHTMLElement::RemoveChildAt_Deprecated(aIndex, aNotify);
 }
 
-void
-HTMLPictureElement::RemoveChildNode(nsIContent* aKid, bool aNotify)
-{
+void HTMLPictureElement::RemoveChildNode(nsIContent* aKid, bool aNotify) {
   if (aKid && aKid->IsHTMLElement(nsGkAtoms::img)) {
     HTMLImageElement* img = HTMLImageElement::FromContent(aKid);
     if (img) {
@@ -73,19 +66,18 @@ HTMLPictureElement::RemoveChildNode(nsIContent* aKid, bool aNotify)
         if (img) {
           img->PictureSourceRemoved(aKid->AsContent());
         }
-      } while ( (nextSibling = nextSibling->GetNextSibling()) );
+      } while ((nextSibling = nextSibling->GetNextSibling()));
     }
   }
 
   nsGenericHTMLElement::RemoveChildNode(aKid, aNotify);
 }
 
-nsresult
-HTMLPictureElement::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
-                                      bool aNotify)
-{
+nsresult HTMLPictureElement::InsertChildBefore(nsIContent* aKid,
+                                               nsIContent* aBeforeThis,
+                                               bool aNotify) {
   nsresult rv =
-    nsGenericHTMLElement::InsertChildBefore(aKid, aBeforeThis, aNotify);
+      nsGenericHTMLElement::InsertChildBefore(aKid, aBeforeThis, aNotify);
 
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(aKid, rv);
@@ -104,17 +96,18 @@ HTMLPictureElement::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
         if (img) {
           img->PictureSourceAdded(aKid->AsContent());
         }
-      } while ( (nextSibling = nextSibling->GetNextSibling()) );
+      } while ((nextSibling = nextSibling->GetNextSibling()));
     }
   }
 
   return rv;
 }
 
-nsresult
-HTMLPictureElement::InsertChildAt_Deprecated(nsIContent* aKid, uint32_t aIndex, bool aNotify)
-{
-  nsresult rv = nsGenericHTMLElement::InsertChildAt_Deprecated(aKid, aIndex, aNotify);
+nsresult HTMLPictureElement::InsertChildAt_Deprecated(nsIContent* aKid,
+                                                      uint32_t aIndex,
+                                                      bool aNotify) {
+  nsresult rv =
+      nsGenericHTMLElement::InsertChildAt_Deprecated(aKid, aIndex, aNotify);
 
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(aKid, rv);
@@ -133,18 +126,17 @@ HTMLPictureElement::InsertChildAt_Deprecated(nsIContent* aKid, uint32_t aIndex, 
         if (img) {
           img->PictureSourceAdded(aKid->AsContent());
         }
-      } while ( (nextSibling = nextSibling->GetNextSibling()) );
+      } while ((nextSibling = nextSibling->GetNextSibling()));
     }
   }
 
   return rv;
 }
 
-JSObject*
-HTMLPictureElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLPictureElement::WrapNode(JSContext* aCx,
+                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLPictureElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

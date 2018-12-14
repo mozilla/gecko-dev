@@ -11,7 +11,7 @@
 #include "mozilla/dom/HistoryBinding.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsPIDOMWindow.h" // for GetParentObject
+#include "nsPIDOMWindow.h"  // for GetParentObject
 #include "nsStringFwd.h"
 #include "nsWrapperCache.h"
 
@@ -21,21 +21,21 @@ class nsIWeakReference;
 class nsPIDOMWindowInner;
 
 // Script "History" object
-class nsHistory final : public nsISupports,
-                        public nsWrapperCache
-{
-public:
+class nsHistory final : public nsISupports, public nsWrapperCache {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsHistory)
 
-public:
+ public:
   explicit nsHistory(nsPIDOMWindowInner* aInnerWindow);
 
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t GetLength(mozilla::ErrorResult& aRv) const;
-  mozilla::dom::ScrollRestoration GetScrollRestoration(mozilla::ErrorResult& aRv);
+  mozilla::dom::ScrollRestoration GetScrollRestoration(
+      mozilla::ErrorResult& aRv);
   void SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
                             mozilla::ErrorResult& aRv);
   void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
@@ -50,7 +50,7 @@ public:
                     const nsAString& aTitle, const nsAString& aUrl,
                     mozilla::ErrorResult& aRv);
 
-protected:
+ protected:
   virtual ~nsHistory();
 
   nsIDocShell* GetDocShell() const;

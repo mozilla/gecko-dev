@@ -19,19 +19,19 @@
 #ifdef MOZ_OLD_STYLE
 
 #define FORWARD_CONCRETE(method_, geckoargs_, servoargs_) \
-  if (IsGecko()) { \
-    return AsGecko()->method_ geckoargs_; \
-  } else { \
-    return AsServo()->method_ servoargs_; \
+  if (IsGecko()) {                                        \
+    return AsGecko()->method_ geckoargs_;                 \
+  } else {                                                \
+    return AsServo()->method_ servoargs_;                 \
   }
 
-#define FORWARD_WITH_PARENT(method_, parent_, args_) \
-  if (IsGecko()) { \
+#define FORWARD_WITH_PARENT(method_, parent_, args_)       \
+  if (IsGecko()) {                                         \
     auto* parent = parent_ ? parent_->AsGecko() : nullptr; \
-    return AsGecko()->method_ args_; \
-  } else { \
+    return AsGecko()->method_ args_;                       \
+  } else {                                                 \
     auto* parent = parent_ ? parent_->AsServo() : nullptr; \
-    return AsServo()->method_ args_; \
+    return AsServo()->method_ args_;                       \
   }
 
 #else
@@ -39,7 +39,7 @@
 #define FORWARD_CONCRETE(method_, geckoargs_, servoargs_) \
   return AsServo()->method_ servoargs_;
 
-#define FORWARD_WITH_PARENT(method_, parent_, args_) \
+#define FORWARD_WITH_PARENT(method_, parent_, args_)     \
   auto* parent = parent_ ? parent_->AsServo() : nullptr; \
   return AsServo()->method_ args_;
 
@@ -49,9 +49,7 @@
 
 namespace mozilla {
 
-void
-StyleSetHandle::Ptr::Delete()
-{
+void StyleSetHandle::Ptr::Delete() {
   if (mValue) {
     if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
@@ -65,68 +63,43 @@ StyleSetHandle::Ptr::Delete()
   }
 }
 
-void
-StyleSetHandle::Ptr::Init(nsPresContext* aPresContext)
-{
+void StyleSetHandle::Ptr::Init(nsPresContext* aPresContext) {
   FORWARD(Init, (aPresContext));
 }
 
-void
-StyleSetHandle::Ptr::BeginShutdown()
-{
-  FORWARD(BeginShutdown, ());
-}
+void StyleSetHandle::Ptr::BeginShutdown() { FORWARD(BeginShutdown, ()); }
 
-void
-StyleSetHandle::Ptr::Shutdown()
-{
-  FORWARD(Shutdown, ());
-}
+void StyleSetHandle::Ptr::Shutdown() { FORWARD(Shutdown, ()); }
 
-bool
-StyleSetHandle::Ptr::GetAuthorStyleDisabled() const
-{
+bool StyleSetHandle::Ptr::GetAuthorStyleDisabled() const {
   FORWARD(GetAuthorStyleDisabled, ());
 }
 
-void
-StyleSetHandle::Ptr::SetAuthorStyleDisabled(bool aStyleDisabled)
-{
+void StyleSetHandle::Ptr::SetAuthorStyleDisabled(bool aStyleDisabled) {
   FORWARD(SetAuthorStyleDisabled, (aStyleDisabled));
 }
 
-void
-StyleSetHandle::Ptr::BeginUpdate()
-{
-  FORWARD(BeginUpdate, ());
-}
+void StyleSetHandle::Ptr::BeginUpdate() { FORWARD(BeginUpdate, ()); }
 
-nsresult
-StyleSetHandle::Ptr::EndUpdate()
-{
-  FORWARD(EndUpdate, ());
-}
+nsresult StyleSetHandle::Ptr::EndUpdate() { FORWARD(EndUpdate, ()); }
 
 // resolve a style context
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
-                                     nsStyleContext* aParentContext,
-                                     LazyComputeBehavior aMayCompute)
-{
-  FORWARD_WITH_PARENT(ResolveStyleFor, aParentContext, (aElement, parent, aMayCompute));
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ResolveStyleFor(
+    dom::Element* aElement, nsStyleContext* aParentContext,
+    LazyComputeBehavior aMayCompute) {
+  FORWARD_WITH_PARENT(ResolveStyleFor, aParentContext,
+                      (aElement, parent, aMayCompute));
 }
 
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
-                                     nsStyleContext* aParentContext,
-                                     LazyComputeBehavior aMayCompute,
-                                     TreeMatchContext* aTreeMatchContext)
-{
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ResolveStyleFor(
+    dom::Element* aElement, nsStyleContext* aParentContext,
+    LazyComputeBehavior aMayCompute, TreeMatchContext* aTreeMatchContext) {
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
     MOZ_ASSERT(aTreeMatchContext);
     auto* parent = aParentContext ? aParentContext->AsGecko() : nullptr;
-    return AsGecko()->ResolveStyleFor(aElement, parent, aMayCompute, *aTreeMatchContext);
+    return AsGecko()->ResolveStyleFor(aElement, parent, aMayCompute,
+                                      *aTreeMatchContext);
 #else
     MOZ_CRASH("old style system disabled");
 #endif
@@ -136,85 +109,72 @@ StyleSetHandle::Ptr::ResolveStyleFor(dom::Element* aElement,
   return AsServo()->ResolveStyleFor(aElement, parent, aMayCompute);
 }
 
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleForText(nsIContent* aTextNode,
-                                         nsStyleContext* aParentContext)
-{
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ResolveStyleForText(
+    nsIContent* aTextNode, nsStyleContext* aParentContext) {
   FORWARD_WITH_PARENT(ResolveStyleForText, aParentContext, (aTextNode, parent));
 }
 
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleForPlaceholder()
-{
+StyleSetHandle::Ptr::ResolveStyleForPlaceholder() {
   FORWARD(ResolveStyleForPlaceholder, ());
 }
 
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveStyleForFirstLetterContinuation(nsStyleContext* aParentContext)
-{
-  FORWARD_WITH_PARENT(ResolveStyleForFirstLetterContinuation, aParentContext, (parent));
+StyleSetHandle::Ptr::ResolveStyleForFirstLetterContinuation(
+    nsStyleContext* aParentContext) {
+  FORWARD_WITH_PARENT(ResolveStyleForFirstLetterContinuation, aParentContext,
+                      (parent));
+}
+
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ResolvePseudoElementStyle(
+    dom::Element* aParentElement, CSSPseudoElementType aType,
+    nsStyleContext* aParentContext, dom::Element* aPseudoElement) {
+  FORWARD_WITH_PARENT(ResolvePseudoElementStyle, aParentContext,
+                      (aParentElement, aType, parent, aPseudoElement));
 }
 
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolvePseudoElementStyle(dom::Element* aParentElement,
-                                               CSSPseudoElementType aType,
-                                               nsStyleContext* aParentContext,
-                                               dom::Element* aPseudoElement)
-{
-  FORWARD_WITH_PARENT(ResolvePseudoElementStyle, aParentContext, (aParentElement, aType, parent, aPseudoElement));
+StyleSetHandle::Ptr::ResolveInheritingAnonymousBoxStyle(
+    nsAtom* aPseudoTag, nsStyleContext* aParentContext) {
+  FORWARD_WITH_PARENT(ResolveInheritingAnonymousBoxStyle, aParentContext,
+                      (aPseudoTag, parent));
 }
 
 already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveInheritingAnonymousBoxStyle(nsAtom* aPseudoTag,
-                                                        nsStyleContext* aParentContext)
-{
-  FORWARD_WITH_PARENT(ResolveInheritingAnonymousBoxStyle, aParentContext, (aPseudoTag, parent));
-}
-
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveNonInheritingAnonymousBoxStyle(nsAtom* aPseudoTag)
-{
+StyleSetHandle::Ptr::ResolveNonInheritingAnonymousBoxStyle(nsAtom* aPseudoTag) {
   FORWARD(ResolveNonInheritingAnonymousBoxStyle, (aPseudoTag));
 }
 
 #ifdef MOZ_XUL
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ResolveXULTreePseudoStyle(dom::Element* aParentElement,
-                                               nsICSSAnonBoxPseudo* aPseudoTag,
-                                               nsStyleContext* aParentContext,
-                                               const AtomArray& aInputWord)
-{
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ResolveXULTreePseudoStyle(
+    dom::Element* aParentElement, nsICSSAnonBoxPseudo* aPseudoTag,
+    nsStyleContext* aParentContext, const AtomArray& aInputWord) {
   FORWARD_WITH_PARENT(ResolveXULTreePseudoStyle, aParentContext,
                       (aParentElement, aPseudoTag, parent, aInputWord));
 }
 #endif
 
 // manage the set of style sheets in the style set
-nsresult
-StyleSetHandle::Ptr::AppendStyleSheet(SheetType aType, StyleSheet* aSheet)
-{
+nsresult StyleSetHandle::Ptr::AppendStyleSheet(SheetType aType,
+                                               StyleSheet* aSheet) {
   FORWARD_CONCRETE(AppendStyleSheet, (aType, aSheet->AsGecko()),
-                                     (aType, aSheet->AsServo()));
+                   (aType, aSheet->AsServo()));
 }
 
-nsresult
-StyleSetHandle::Ptr::PrependStyleSheet(SheetType aType, StyleSheet* aSheet)
-{
+nsresult StyleSetHandle::Ptr::PrependStyleSheet(SheetType aType,
+                                                StyleSheet* aSheet) {
   FORWARD_CONCRETE(PrependStyleSheet, (aType, aSheet->AsGecko()),
-                                      (aType, aSheet->AsServo()));
+                   (aType, aSheet->AsServo()));
 }
 
-nsresult
-StyleSetHandle::Ptr::RemoveStyleSheet(SheetType aType, StyleSheet* aSheet)
-{
+nsresult StyleSetHandle::Ptr::RemoveStyleSheet(SheetType aType,
+                                               StyleSheet* aSheet) {
   FORWARD_CONCRETE(RemoveStyleSheet, (aType, aSheet->AsGecko()),
-                                     (aType, aSheet->AsServo()));
+                   (aType, aSheet->AsServo()));
 }
 
-nsresult
-StyleSetHandle::Ptr::ReplaceSheets(SheetType aType,
-                       const nsTArray<RefPtr<StyleSheet>>& aNewSheets)
-{
+nsresult StyleSetHandle::Ptr::ReplaceSheets(
+    SheetType aType, const nsTArray<RefPtr<StyleSheet>>& aNewSheets) {
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
     nsTArray<RefPtr<CSSStyleSheet>> newSheets(aNewSheets.Length());
@@ -234,116 +194,86 @@ StyleSetHandle::Ptr::ReplaceSheets(SheetType aType,
   return AsServo()->ReplaceSheets(aType, newSheets);
 }
 
-nsresult
-StyleSetHandle::Ptr::InsertStyleSheetBefore(SheetType aType,
-                                StyleSheet* aNewSheet,
-                                StyleSheet* aReferenceSheet)
-{
-  FORWARD_CONCRETE(
-    InsertStyleSheetBefore,
-    (aType, aNewSheet->AsGecko(), aReferenceSheet->AsGecko()),
-    (aType, aNewSheet->AsServo(), aReferenceSheet->AsServo()));
+nsresult StyleSetHandle::Ptr::InsertStyleSheetBefore(
+    SheetType aType, StyleSheet* aNewSheet, StyleSheet* aReferenceSheet) {
+  FORWARD_CONCRETE(InsertStyleSheetBefore,
+                   (aType, aNewSheet->AsGecko(), aReferenceSheet->AsGecko()),
+                   (aType, aNewSheet->AsServo(), aReferenceSheet->AsServo()));
 }
 
-int32_t
-StyleSetHandle::Ptr::SheetCount(SheetType aType) const
-{
+int32_t StyleSetHandle::Ptr::SheetCount(SheetType aType) const {
   FORWARD(SheetCount, (aType));
 }
 
-StyleSheet*
-StyleSetHandle::Ptr::StyleSheetAt(SheetType aType, int32_t aIndex) const
-{
+StyleSheet* StyleSetHandle::Ptr::StyleSheetAt(SheetType aType,
+                                              int32_t aIndex) const {
   FORWARD(StyleSheetAt, (aType, aIndex));
 }
 
-void
-StyleSetHandle::Ptr::AppendAllXBLStyleSheets(nsTArray<StyleSheet*>& aArray) const
-{
+void StyleSetHandle::Ptr::AppendAllXBLStyleSheets(
+    nsTArray<StyleSheet*>& aArray) const {
   FORWARD(AppendAllXBLStyleSheets, (aArray));
 }
 
-nsresult
-StyleSetHandle::Ptr::RemoveDocStyleSheet(StyleSheet* aSheet)
-{
+nsresult StyleSetHandle::Ptr::RemoveDocStyleSheet(StyleSheet* aSheet) {
   FORWARD_CONCRETE(RemoveDocStyleSheet, (aSheet->AsGecko()),
-                                        (aSheet->AsServo()));
+                   (aSheet->AsServo()));
 }
 
-nsresult
-StyleSetHandle::Ptr::AddDocStyleSheet(StyleSheet* aSheet,
-                                      nsIDocument* aDocument)
-{
+nsresult StyleSetHandle::Ptr::AddDocStyleSheet(StyleSheet* aSheet,
+                                               nsIDocument* aDocument) {
   FORWARD_CONCRETE(AddDocStyleSheet, (aSheet->AsGecko(), aDocument),
-                                     (aSheet->AsServo(), aDocument));
+                   (aSheet->AsServo(), aDocument));
 }
 
-void
-StyleSetHandle::Ptr::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule)
-{
+void StyleSetHandle::Ptr::RuleRemoved(StyleSheet& aSheet, css::Rule& aRule) {
   FORWARD_CONCRETE(RuleRemoved, (*aSheet.AsGecko(), aRule),
-                                (*aSheet.AsServo(), aRule));
+                   (*aSheet.AsServo(), aRule));
 }
 
-void
-StyleSetHandle::Ptr::RuleAdded(StyleSheet& aSheet, css::Rule& aRule)
-{
+void StyleSetHandle::Ptr::RuleAdded(StyleSheet& aSheet, css::Rule& aRule) {
   FORWARD_CONCRETE(RuleAdded, (*aSheet.AsGecko(), aRule),
-                              (*aSheet.AsServo(), aRule));
+                   (*aSheet.AsServo(), aRule));
 }
 
-void
-StyleSetHandle::Ptr::RuleChanged(StyleSheet& aSheet, css::Rule* aRule)
-{
+void StyleSetHandle::Ptr::RuleChanged(StyleSheet& aSheet, css::Rule* aRule) {
   FORWARD_CONCRETE(RuleChanged, (*aSheet.AsGecko(), aRule),
-                                (*aSheet.AsServo(), aRule));
+                   (*aSheet.AsServo(), aRule));
 }
 
-void
-StyleSetHandle::Ptr::RecordStyleSheetChange(StyleSheet* aSheet,
-                                            StyleSheet::ChangeType aChangeType)
-{
+void StyleSetHandle::Ptr::RecordStyleSheetChange(
+    StyleSheet* aSheet, StyleSheet::ChangeType aChangeType) {
   FORWARD_CONCRETE(RecordStyleSheetChange, (aSheet->AsGecko(), aChangeType),
-                                           (aSheet->AsServo(), aChangeType));
+                   (aSheet->AsServo(), aChangeType));
 }
 
-void
-StyleSetHandle::Ptr::RecordShadowStyleChange(mozilla::dom::ShadowRoot& aShadowRoot)
-{
+void StyleSetHandle::Ptr::RecordShadowStyleChange(
+    mozilla::dom::ShadowRoot& aShadowRoot) {
   FORWARD(RecordShadowStyleChange, (aShadowRoot));
 }
 
-bool
-StyleSetHandle::Ptr::StyleSheetsHaveChanged() const
-{
+bool StyleSetHandle::Ptr::StyleSheetsHaveChanged() const {
   FORWARD(StyleSheetsHaveChanged, ());
 }
-nsRestyleHint
-StyleSetHandle::Ptr::MediumFeaturesChanged(mozilla::MediaFeatureChangeReason aReason)
-{
+nsRestyleHint StyleSetHandle::Ptr::MediumFeaturesChanged(
+    mozilla::MediaFeatureChangeReason aReason) {
   FORWARD(MediumFeaturesChanged, (aReason));
 }
-void
-StyleSetHandle::Ptr::InvalidateStyleForCSSRuleChanges()
-{
+void StyleSetHandle::Ptr::InvalidateStyleForCSSRuleChanges() {
   FORWARD(InvalidateStyleForCSSRuleChanges, ());
 }
 
 // check whether there is ::before/::after style for an element
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ProbePseudoElementStyle(dom::Element* aParentElement,
-                                             CSSPseudoElementType aType,
-                                             nsStyleContext* aParentContext)
-{
-  FORWARD_WITH_PARENT(ProbePseudoElementStyle, aParentContext, (aParentElement, aType, parent));
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ProbePseudoElementStyle(
+    dom::Element* aParentElement, CSSPseudoElementType aType,
+    nsStyleContext* aParentContext) {
+  FORWARD_WITH_PARENT(ProbePseudoElementStyle, aParentContext,
+                      (aParentElement, aType, parent));
 }
 
-already_AddRefed<nsStyleContext>
-StyleSetHandle::Ptr::ProbePseudoElementStyle(dom::Element* aParentElement,
-                                             CSSPseudoElementType aType,
-                                             nsStyleContext* aParentContext,
-                                             TreeMatchContext* aTreeMatchContext)
-{
+already_AddRefed<nsStyleContext> StyleSetHandle::Ptr::ProbePseudoElementStyle(
+    dom::Element* aParentElement, CSSPseudoElementType aType,
+    nsStyleContext* aParentContext, TreeMatchContext* aTreeMatchContext) {
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
     MOZ_ASSERT(aTreeMatchContext);
@@ -359,9 +289,7 @@ StyleSetHandle::Ptr::ProbePseudoElementStyle(dom::Element* aParentElement,
   return AsServo()->ProbePseudoElementStyle(aParentElement, aType, parent);
 }
 
-void
-StyleSetHandle::Ptr::RootStyleContextAdded()
-{
+void StyleSetHandle::Ptr::RootStyleContextAdded() {
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
     AsGecko()->RootStyleContextAdded();
@@ -374,9 +302,7 @@ StyleSetHandle::Ptr::RootStyleContextAdded()
   // Not needed.
 }
 
-void
-StyleSetHandle::Ptr::RootStyleContextRemoved()
-{
+void StyleSetHandle::Ptr::RootStyleContextRemoved() {
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
     AsGecko()->RootStyleContextRemoved();
@@ -389,39 +315,31 @@ StyleSetHandle::Ptr::RootStyleContextRemoved()
   // Not needed.
 }
 
-bool
-StyleSetHandle::Ptr::
-AppendFontFaceRules(nsTArray<nsFontFaceRuleContainer>& aArray)
-{
+bool StyleSetHandle::Ptr::AppendFontFaceRules(
+    nsTArray<nsFontFaceRuleContainer>& aArray) {
   FORWARD(AppendFontFaceRules, (aArray));
 }
 
-nsCSSCounterStyleRule*
-StyleSetHandle::Ptr::CounterStyleRuleForName(nsAtom* aName)
-{
+nsCSSCounterStyleRule* StyleSetHandle::Ptr::CounterStyleRuleForName(
+    nsAtom* aName) {
   FORWARD(CounterStyleRuleForName, (aName));
 }
 
 already_AddRefed<gfxFontFeatureValueSet>
-StyleSetHandle::Ptr::BuildFontFeatureValueSet()
-{
+StyleSetHandle::Ptr::BuildFontFeatureValueSet() {
   FORWARD(BuildFontFeatureValueSet, ());
 }
 
-bool
-StyleSetHandle::Ptr::EnsureUniqueInnerOnCSSSheets()
-{
+bool StyleSetHandle::Ptr::EnsureUniqueInnerOnCSSSheets() {
   FORWARD(EnsureUniqueInnerOnCSSSheets, ());
 }
 
-void
-StyleSetHandle::Ptr::SetNeedsRestyleAfterEnsureUniqueInner()
-{
+void StyleSetHandle::Ptr::SetNeedsRestyleAfterEnsureUniqueInner() {
   FORWARD(SetNeedsRestyleAfterEnsureUniqueInner, ());
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #undef FORWARD
 
-#endif // mozilla_StyleSetHandleInlines_h
+#endif  // mozilla_StyleSetHandleInlines_h

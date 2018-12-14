@@ -11,91 +11,72 @@
 
 namespace mozilla {
 
-class TaskQueue::EventTargetWrapper final : public nsISerialEventTarget
-{
+class TaskQueue::EventTargetWrapper final : public nsISerialEventTarget {
   RefPtr<TaskQueue> mTaskQueue;
 
-  ~EventTargetWrapper()
-  {
-  }
+  ~EventTargetWrapper() {}
 
-public:
-  explicit EventTargetWrapper(TaskQueue* aTaskQueue)
-    : mTaskQueue(aTaskQueue)
-  {
+ public:
+  explicit EventTargetWrapper(TaskQueue* aTaskQueue) : mTaskQueue(aTaskQueue) {
     MOZ_ASSERT(mTaskQueue);
   }
 
   NS_IMETHOD
-  DispatchFromScript(nsIRunnable* aEvent, uint32_t aFlags) override
-  {
+  DispatchFromScript(nsIRunnable* aEvent, uint32_t aFlags) override {
     nsCOMPtr<nsIRunnable> ref = aEvent;
     return Dispatch(ref.forget(), aFlags);
   }
 
   NS_IMETHOD
-  Dispatch(already_AddRefed<nsIRunnable> aEvent, uint32_t aFlags) override
-  {
+  Dispatch(already_AddRefed<nsIRunnable> aEvent, uint32_t aFlags) override {
     nsCOMPtr<nsIRunnable> runnable = aEvent;
     MonitorAutoLock mon(mTaskQueue->mQueueMonitor);
-    return mTaskQueue->DispatchLocked(/* passed by ref */runnable,
+    return mTaskQueue->DispatchLocked(/* passed by ref */ runnable,
                                       NormalDispatch);
   }
 
   NS_IMETHOD
-  DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t aFlags) override
-  {
+  DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t aFlags) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   NS_IMETHOD
-  IsOnCurrentThread(bool* aResult) override
-  {
+  IsOnCurrentThread(bool* aResult) override {
     *aResult = mTaskQueue->IsCurrentThreadIn();
     return NS_OK;
   }
 
   NS_IMETHOD_(bool)
-  IsOnCurrentThreadInfallible() override
-  {
+  IsOnCurrentThreadInfallible() override {
     return mTaskQueue->mTarget->IsOnCurrentThread();
   }
 
   NS_DECL_THREADSAFE_ISUPPORTS
 };
 
-NS_IMPL_ISUPPORTS(TaskQueue::EventTargetWrapper,
-                  nsIEventTarget,
+NS_IMPL_ISUPPORTS(TaskQueue::EventTargetWrapper, nsIEventTarget,
                   nsISerialEventTarget)
 
 TaskQueue::TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
-                     const char* aName,
-                     bool aRequireTailDispatch)
-  : AbstractThread(aRequireTailDispatch)
-  , mTarget(aTarget)
-  , mQueueMonitor("TaskQueue::Queue")
-  , mTailDispatcher(nullptr)
-  , mIsRunning(false)
-  , mIsShutdown(false)
-  , mName(aName)
-{
-}
+                     const char* aName, bool aRequireTailDispatch)
+    : AbstractThread(aRequireTailDispatch),
+      mTarget(aTarget),
+      mQueueMonitor("TaskQueue::Queue"),
+      mTailDispatcher(nullptr),
+      mIsRunning(false),
+      mIsShutdown(false),
+      mName(aName) {}
 
 TaskQueue::TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
                      bool aSupportsTailDispatch)
-  : TaskQueue(Move(aTarget), "Unnamed", aSupportsTailDispatch)
-{
-}
+    : TaskQueue(Move(aTarget), "Unnamed", aSupportsTailDispatch) {}
 
-TaskQueue::~TaskQueue()
-{
+TaskQueue::~TaskQueue() {
   MonitorAutoLock mon(mQueueMonitor);
   MOZ_ASSERT(mIsShutdown);
 }
 
-TaskDispatcher&
-TaskQueue::TailDispatcher()
-{
+TaskDispatcher& TaskQueue::TailDispatcher() {
   MOZ_ASSERT(IsCurrentThreadIn());
   MOZ_ASSERT(mTailDispatcher);
   return *mTailDispatcher;
@@ -103,17 +84,16 @@ TaskQueue::TailDispatcher()
 
 // Note aRunnable is passed by ref to support conditional ownership transfer.
 // See Dispatch() in TaskQueue.h for more details.
-nsresult
-TaskQueue::DispatchLocked(nsCOMPtr<nsIRunnable>& aRunnable,
-                          DispatchReason aReason)
-{
+nsresult TaskQueue::DispatchLocked(nsCOMPtr<nsIRunnable>& aRunnable,
+                                   DispatchReason aReason) {
   mQueueMonitor.AssertCurrentThreadOwns();
   if (mIsShutdown) {
     return NS_ERROR_FAILURE;
   }
 
   AbstractThread* currentThread;
-  if (aReason != TailDispatch && (currentThread = GetCurrent()) && RequiresTailDispatch(currentThread)) {
+  if (aReason != TailDispatch && (currentThread = GetCurrent()) &&
+      RequiresTailDispatch(currentThread)) {
     return currentThread->TailDispatcher().AddTask(this, aRunnable.forget());
   }
 
@@ -132,16 +112,12 @@ TaskQueue::DispatchLocked(nsCOMPtr<nsIRunnable>& aRunnable,
   return NS_OK;
 }
 
-void
-TaskQueue::AwaitIdle()
-{
+void TaskQueue::AwaitIdle() {
   MonitorAutoLock mon(mQueueMonitor);
   AwaitIdleLocked();
 }
 
-void
-TaskQueue::AwaitIdleLocked()
-{
+void TaskQueue::AwaitIdleLocked() {
   // Make sure there are no tasks for this queue waiting in the caller's tail
   // dispatcher.
   MOZ_ASSERT_IF(AbstractThread::GetCurrent(),
@@ -154,9 +130,7 @@ TaskQueue::AwaitIdleLocked()
   }
 }
 
-void
-TaskQueue::AwaitShutdownAndIdle()
-{
+void TaskQueue::AwaitShutdownAndIdle() {
   MOZ_ASSERT(!IsCurrentThreadIn());
   // Make sure there are no tasks for this queue waiting in the caller's tail
   // dispatcher.
@@ -170,9 +144,7 @@ TaskQueue::AwaitShutdownAndIdle()
   AwaitIdleLocked();
 }
 
-RefPtr<ShutdownPromise>
-TaskQueue::BeginShutdown()
-{
+RefPtr<ShutdownPromise> TaskQueue::BeginShutdown() {
   // Dispatch any tasks for this queue waiting in the caller's tail dispatcher,
   // since this is the last opportunity to do so.
   if (AbstractThread* currentThread = AbstractThread::GetCurrent()) {
@@ -187,37 +159,27 @@ TaskQueue::BeginShutdown()
   return p;
 }
 
-bool
-TaskQueue::IsEmpty()
-{
+bool TaskQueue::IsEmpty() {
   MonitorAutoLock mon(mQueueMonitor);
   return mTasks.empty();
 }
 
-uint32_t
-TaskQueue::ImpreciseLengthForHeuristics()
-{
+uint32_t TaskQueue::ImpreciseLengthForHeuristics() {
   MonitorAutoLock mon(mQueueMonitor);
   return mTasks.size();
 }
 
-bool
-TaskQueue::IsCurrentThreadIn()
-{
+bool TaskQueue::IsCurrentThreadIn() {
   bool in = mRunningThread == GetCurrentPhysicalThread();
   return in;
 }
 
-already_AddRefed<nsISerialEventTarget>
-TaskQueue::WrapAsEventTarget()
-{
+already_AddRefed<nsISerialEventTarget> TaskQueue::WrapAsEventTarget() {
   nsCOMPtr<nsISerialEventTarget> ref = new EventTargetWrapper(this);
   return ref.forget();
 }
 
-nsresult
-TaskQueue::Runner::Run()
-{
+nsresult TaskQueue::Runner::Run() {
   RefPtr<nsIRunnable> event;
   {
     MonitorAutoLock mon(mQueue->mQueueMonitor);
@@ -279,4 +241,4 @@ TaskQueue::Runner::Run()
   return NS_OK;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

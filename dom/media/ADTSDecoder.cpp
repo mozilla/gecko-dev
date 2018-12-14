@@ -10,17 +10,14 @@
 
 namespace mozilla {
 
-/* static */ bool
-ADTSDecoder::IsEnabled()
-{
+/* static */ bool ADTSDecoder::IsEnabled() {
   RefPtr<PDMFactory> platform = new PDMFactory();
   return platform->SupportsMimeType(NS_LITERAL_CSTRING("audio/mp4a-latm"),
                                     /* DecoderDoctorDiagnostics* */ nullptr);
 }
 
-/* static */ bool
-ADTSDecoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+/* static */ bool ADTSDecoder::IsSupportedType(
+    const MediaContainerType& aContainerType) {
   if (aContainerType.Type() == MEDIAMIMETYPE("audio/aac") ||
       aContainerType.Type() == MEDIAMIMETYPE("audio/aacp") ||
       aContainerType.Type() == MEDIAMIMETYPE("audio/x-aac")) {
@@ -31,4 +28,4 @@ ADTSDecoder::IsSupportedType(const MediaContainerType& aContainerType)
   return false;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

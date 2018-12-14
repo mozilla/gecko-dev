@@ -16,9 +16,8 @@
 #include "nsServiceManagerUtils.h"
 #include "ProfileJSONWriter.h"
 
-class nsProfiler final : public nsIProfiler, public nsIObserver
-{
-public:
+class nsProfiler final : public nsIProfiler, public nsIObserver {
+ public:
   nsProfiler();
 
   NS_DECL_ISUPPORTS
@@ -27,16 +26,15 @@ public:
 
   nsresult Init();
 
-  static nsProfiler* GetOrCreate()
-  {
+  static nsProfiler* GetOrCreate() {
     nsCOMPtr<nsIProfiler> iprofiler =
-      do_GetService("@mozilla.org/tools/profiler;1");
+        do_GetService("@mozilla.org/tools/profiler;1");
     return static_cast<nsProfiler*>(iprofiler.get());
   }
 
   void GatheredOOPProfile(const nsACString& aProfile);
 
-private:
+ private:
   ~nsProfiler();
 
   typedef mozilla::MozPromise<nsCString, nsresult, false> GatheringPromise;
@@ -62,5 +60,4 @@ private:
   bool mGathering;
 };
 
-#endif // nsProfiler_h
-
+#endif  // nsProfiler_h

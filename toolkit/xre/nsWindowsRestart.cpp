@@ -6,7 +6,8 @@
 // shared objects.
 
 #ifdef nsWindowsRestart_cpp
-#error "nsWindowsRestart.cpp is not a header file, and must only be included once."
+#error \
+    "nsWindowsRestart.cpp is not a header file, and must only be included once."
 #else
 #define nsWindowsRestart_cpp
 #endif
@@ -26,8 +27,7 @@
  * additional length if the string needs to be quoted and if characters need to
  * be escaped.
  */
-static int ArgStrLen(const wchar_t *s)
-{
+static int ArgStrLen(const wchar_t *s) {
   int backslashes = 0;
   int i = wcslen(s);
   BOOL hasDoubleQuote = wcschr(s, L'"') != nullptr;
@@ -35,7 +35,7 @@ static int ArgStrLen(const wchar_t *s)
   BOOL addDoubleQuotes = wcspbrk(s, L" \t") != nullptr;
 
   if (addDoubleQuotes) {
-    i += 2; // initial and final duoblequote
+    i += 2;  // initial and final duoblequote
   }
 
   if (hasDoubleQuote) {
@@ -44,7 +44,8 @@ static int ArgStrLen(const wchar_t *s)
         ++backslashes;
       } else {
         if (*s == '"') {
-          // Escape the doublequote and all backslashes preceding the doublequote
+          // Escape the doublequote and all backslashes preceding the
+          // doublequote
           i += backslashes + 1;
         }
 
@@ -67,15 +68,14 @@ static int ArgStrLen(const wchar_t *s)
  *
  * @return the end of the string
  */
-static wchar_t* ArgToString(wchar_t *d, const wchar_t *s)
-{
+static wchar_t *ArgToString(wchar_t *d, const wchar_t *s) {
   int backslashes = 0;
   BOOL hasDoubleQuote = wcschr(s, L'"') != nullptr;
   // Only add doublequotes if the string contains a space or a tab
   BOOL addDoubleQuotes = wcspbrk(s, L" \t") != nullptr;
 
   if (addDoubleQuotes) {
-    *d = '"'; // initial doublequote
+    *d = '"';  // initial doublequote
     ++d;
   }
 
@@ -86,7 +86,8 @@ static wchar_t* ArgToString(wchar_t *d, const wchar_t *s)
         ++backslashes;
       } else {
         if (*s == '"') {
-          // Escape the doublequote and all backslashes preceding the doublequote
+          // Escape the doublequote and all backslashes preceding the
+          // doublequote
           for (i = 0; i <= backslashes; ++i) {
             *d = '\\';
             ++d;
@@ -97,7 +98,8 @@ static wchar_t* ArgToString(wchar_t *d, const wchar_t *s)
       }
 
       *d = *s;
-      ++d; ++s;
+      ++d;
+      ++s;
     }
   } else {
     wcscpy(d, s);
@@ -105,7 +107,7 @@ static wchar_t* ArgToString(wchar_t *d, const wchar_t *s)
   }
 
   if (addDoubleQuotes) {
-    *d = '"'; // final doublequote
+    *d = '"';  // final doublequote
     ++d;
   }
 
@@ -118,23 +120,18 @@ static wchar_t* ArgToString(wchar_t *d, const wchar_t *s)
  *
  * argv is UTF8
  */
-wchar_t*
-MakeCommandLine(int argc, wchar_t **argv)
-{
+wchar_t *MakeCommandLine(int argc, wchar_t **argv) {
   int i;
   int len = 0;
 
   // The + 1 of the last argument handles the allocation for null termination
-  for (i = 0; i < argc; ++i)
-    len += ArgStrLen(argv[i]) + 1;
+  for (i = 0; i < argc; ++i) len += ArgStrLen(argv[i]) + 1;
 
   // Protect against callers that pass 0 arguments
-  if (len == 0)
-    len = 1;
+  if (len == 0) len = 1;
 
-  wchar_t *s = (wchar_t*) malloc(len * sizeof(wchar_t));
-  if (!s)
-    return nullptr;
+  wchar_t *s = (wchar_t *)malloc(len * sizeof(wchar_t));
+  if (!s) return nullptr;
 
   wchar_t *c = s;
   for (i = 0; i < argc; ++i) {
@@ -154,14 +151,11 @@ MakeCommandLine(int argc, wchar_t **argv)
  * Convert UTF8 to UTF16 without using the normal XPCOM goop, which we
  * can't link to updater.exe.
  */
-static char16_t*
-AllocConvertUTF8toUTF16(const char *arg)
-{
+static char16_t *AllocConvertUTF8toUTF16(const char *arg) {
   // UTF16 can't be longer in units than UTF8
   int len = strlen(arg);
   char16_t *s = new char16_t[(len + 1) * sizeof(char16_t)];
-  if (!s)
-    return nullptr;
+  if (!s) return nullptr;
 
   ConvertUTF8toUTF16 convert(s);
   convert.write(arg, len);
@@ -169,18 +163,14 @@ AllocConvertUTF8toUTF16(const char *arg)
   return s;
 }
 
-static void
-FreeAllocStrings(int argc, wchar_t **argv)
-{
+static void FreeAllocStrings(int argc, wchar_t **argv) {
   while (argc) {
     --argc;
-    delete [] argv[argc];
+    delete[] argv[argc];
   }
 
-  delete [] argv;
+  delete[] argv;
 }
-
-
 
 /**
  * Launch a child process with the specified arguments.
@@ -188,24 +178,17 @@ FreeAllocStrings(int argc, wchar_t **argv)
  * @note The form of this function that takes char **argv expects UTF-8
  */
 
-BOOL
-WinLaunchChild(const wchar_t *exePath,
-               int argc, wchar_t **argv,
-               HANDLE userToken = nullptr,
-               HANDLE *hProcess = nullptr);
+BOOL WinLaunchChild(const wchar_t *exePath, int argc, wchar_t **argv,
+                    HANDLE userToken = nullptr, HANDLE *hProcess = nullptr);
 
-BOOL
-WinLaunchChild(const wchar_t *exePath,
-               int argc, char **argv,
-               HANDLE userToken,
-               HANDLE *hProcess)
-{
-  wchar_t** argvConverted = new wchar_t*[argc];
-  if (!argvConverted)
-    return FALSE;
+BOOL WinLaunchChild(const wchar_t *exePath, int argc, char **argv,
+                    HANDLE userToken, HANDLE *hProcess) {
+  wchar_t **argvConverted = new wchar_t *[argc];
+  if (!argvConverted) return FALSE;
 
   for (int i = 0; i < argc; ++i) {
-      argvConverted[i] = reinterpret_cast<wchar_t*>(AllocConvertUTF8toUTF16(argv[i]));
+    argvConverted[i] =
+        reinterpret_cast<wchar_t *>(AllocConvertUTF8toUTF16(argv[i]));
     if (!argvConverted[i]) {
       FreeAllocStrings(i, argvConverted);
       return FALSE;
@@ -217,13 +200,8 @@ WinLaunchChild(const wchar_t *exePath,
   return ok;
 }
 
-BOOL
-WinLaunchChild(const wchar_t *exePath,
-               int argc,
-               wchar_t **argv,
-               HANDLE userToken,
-               HANDLE *hProcess)
-{
+BOOL WinLaunchChild(const wchar_t *exePath, int argc, wchar_t **argv,
+                    HANDLE userToken, HANDLE *hProcess) {
   wchar_t *cl;
   BOOL ok;
 
@@ -238,16 +216,14 @@ WinLaunchChild(const wchar_t *exePath,
   PROCESS_INFORMATION pi = {0};
 
   if (userToken == nullptr) {
-    ok = CreateProcessW(exePath,
-                        cl,
+    ok = CreateProcessW(exePath, cl,
                         nullptr,  // no special security attributes
                         nullptr,  // no special thread attributes
-                        FALSE, // don't inherit filehandles
-                        0,     // creation flags
+                        FALSE,    // don't inherit filehandles
+                        0,        // creation flags
                         nullptr,  // inherit my environment
                         nullptr,  // use my current directory
-                        &si,
-                        &pi);
+                        &si, &pi);
   } else {
     // Create an environment block for the process we're about to start using
     // the user's token.
@@ -256,17 +232,14 @@ WinLaunchChild(const wchar_t *exePath,
       environmentBlock = nullptr;
     }
 
-    ok = CreateProcessAsUserW(userToken,
-                              exePath,
-                              cl,
+    ok = CreateProcessAsUserW(userToken, exePath, cl,
                               nullptr,  // no special security attributes
                               nullptr,  // no special thread attributes
                               FALSE,    // don't inherit filehandles
                               0,        // creation flags
                               environmentBlock,
                               nullptr,  // use my current directory
-                              &si,
-                              &pi);
+                              &si, &pi);
 
     if (environmentBlock) {
       DestroyEnvironmentBlock(environmentBlock);
@@ -275,25 +248,21 @@ WinLaunchChild(const wchar_t *exePath,
 
   if (ok) {
     if (hProcess) {
-      *hProcess = pi.hProcess; // the caller now owns the HANDLE
+      *hProcess = pi.hProcess;  // the caller now owns the HANDLE
     } else {
       CloseHandle(pi.hProcess);
     }
     CloseHandle(pi.hThread);
   } else {
     LPVOID lpMsgBuf = nullptr;
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                  FORMAT_MESSAGE_FROM_SYSTEM |
-                  FORMAT_MESSAGE_IGNORE_INSERTS,
-                  nullptr,
-                  GetLastError(),
-                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                  (LPTSTR) &lpMsgBuf,
-                  0,
-                  nullptr);
-    wprintf(L"Error restarting: %s\n", lpMsgBuf ? static_cast<const wchar_t*>(lpMsgBuf) : L"(null)");
-    if (lpMsgBuf)
-      LocalFree(lpMsgBuf);
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                      FORMAT_MESSAGE_IGNORE_INSERTS,
+                  nullptr, GetLastError(),
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf,
+                  0, nullptr);
+    wprintf(L"Error restarting: %s\n",
+            lpMsgBuf ? static_cast<const wchar_t *>(lpMsgBuf) : L"(null)");
+    if (lpMsgBuf) LocalFree(lpMsgBuf);
   }
 
   free(cl);

@@ -12,8 +12,9 @@
 #include "mozilla/Maybe.h"
 
 namespace IPC {
-template <typename T> struct ParamTraits;
-} // namespace IPC
+template <typename T>
+struct ParamTraits;
+}  // namespace IPC
 
 namespace mozilla {
 
@@ -22,26 +23,22 @@ namespace layers {
 class AsyncDragMetrics {
   friend struct IPC::ParamTraits<mozilla::layers::AsyncDragMetrics>;
 
-public:
+ public:
   // IPC constructor
   AsyncDragMetrics()
-    : mViewId(0)
-    , mPresShellId(0)
-    , mDragStartSequenceNumber(0)
-    , mScrollbarDragOffset(0)
-  {}
+      : mViewId(0),
+        mPresShellId(0),
+        mDragStartSequenceNumber(0),
+        mScrollbarDragOffset(0) {}
 
-  AsyncDragMetrics(const FrameMetrics::ViewID& aViewId,
-                   uint32_t aPresShellId,
+  AsyncDragMetrics(const FrameMetrics::ViewID& aViewId, uint32_t aPresShellId,
                    uint64_t aDragStartSequenceNumber,
-                   CSSCoord aScrollbarDragOffset,
-                   ScrollDirection aDirection)
-    : mViewId(aViewId)
-    , mPresShellId(aPresShellId)
-    , mDragStartSequenceNumber(aDragStartSequenceNumber)
-    , mScrollbarDragOffset(aScrollbarDragOffset)
-    , mDirection(Some(aDirection))
-  {}
+                   CSSCoord aScrollbarDragOffset, ScrollDirection aDirection)
+      : mViewId(aViewId),
+        mPresShellId(aPresShellId),
+        mDragStartSequenceNumber(aDragStartSequenceNumber),
+        mScrollbarDragOffset(aScrollbarDragOffset),
+        mDirection(Some(aDirection)) {}
 
   FrameMetrics::ViewID mViewId;
   uint32_t mPresShellId;
@@ -50,7 +47,7 @@ public:
   Maybe<ScrollDirection> mDirection;
 };
 
-}
-}
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

@@ -26,8 +26,8 @@ class nsIDocument;
 namespace mozilla {
 namespace css {
 class Declaration;
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 /**
  * An |nsCSSCompressedDataBlock| holds a usually-immutable chunk of
@@ -35,25 +35,23 @@ class Declaration;
  * |css::Declaration|).  Mutation is accomplished through
  * |nsCSSExpandedDataBlock| or in some cases via direct slot access.
  */
-class nsCSSCompressedDataBlock
-{
-private:
+class nsCSSCompressedDataBlock {
+ private:
   friend class nsCSSExpandedDataBlock;
 
   // Only this class (via |CreateEmptyBlock|) or nsCSSExpandedDataBlock
   // (in |Compress|) can create compressed data blocks.
   explicit nsCSSCompressedDataBlock(uint32_t aNumProps)
-    : mStyleBits(0), mNumProps(aNumProps)
-  {}
+      : mStyleBits(0), mNumProps(aNumProps) {}
 
-public:
+ public:
   ~nsCSSCompressedDataBlock();
 
   /**
    * Do what |nsIStyleRule::MapRuleInfoInto| needs to do for a style
    * rule using this block for storage.
    */
-  void MapRuleInfoInto(nsRuleData *aRuleData) const;
+  void MapRuleInfoInto(nsRuleData* aRuleData) const;
 
   /**
    * Return the location at which the *value* for the property is
@@ -75,8 +73,7 @@ public:
    * returns true, the value in |aFromBlock| was erased.
    */
   bool TryReplaceValue(nsCSSPropertyID aProperty,
-                         nsCSSExpandedDataBlock& aFromBlock,
-                         bool* aChanged);
+                       nsCSSExpandedDataBlock& aFromBlock, bool* aChanged);
 
   /**
    * Clone this block, or return null on out-of-memory.
@@ -95,19 +92,18 @@ public:
   bool HasDefaultBorderImageOutset() const;
   bool HasDefaultBorderImageRepeat() const;
 
-  bool HasInheritedStyleData() const
-  {
+  bool HasInheritedStyleData() const {
     return mStyleBits & NS_STYLE_INHERITED_STRUCT_MASK;
   }
 
-private:
+ private:
   void* operator new(size_t aBaseSize, uint32_t aNumProps) {
     MOZ_ASSERT(aBaseSize == sizeof(nsCSSCompressedDataBlock),
                "unexpected size for nsCSSCompressedDataBlock");
     return ::operator new(aBaseSize + DataSize(aNumProps));
   }
 
-public:
+ public:
   // Ideally, |nsCSSPropertyID| would be |enum nsCSSPropertyID : int16_t|.  But
   // not all of the compilers we use are modern enough to support small
   // enums.  So we manually squeeze nsCSSPropertyID into 16 bits ourselves.
@@ -115,14 +111,14 @@ public:
   typedef int16_t CompressedCSSProperty;
   static const size_t MaxCompressedCSSProperty = INT16_MAX;
 
-private:
+ private:
   static size_t DataSize(uint32_t aNumProps) {
     return size_t(aNumProps) *
            (sizeof(nsCSSValue) + sizeof(CompressedCSSProperty));
   }
 
-  int32_t mStyleBits; // the structs for which we have data, according to
-                      // |nsCachedStyleData::GetBitForSID|.
+  int32_t mStyleBits;  // the structs for which we have data, according to
+                       // |nsCachedStyleData::GetBitForSID|.
   uint32_t mNumProps;
   // nsCSSValue elements are stored after these fields, and
   // nsCSSPropertyID elements are stored -- each one compressed as a
@@ -131,9 +127,7 @@ private:
   // this class make sure that the value and property elements are aligned
   // appropriately.
 
-  nsCSSValue* Values() const {
-    return (nsCSSValue*)(this + 1);
-  }
+  nsCSSValue* Values() const { return (nsCSSValue*)(this + 1); }
 
   CompressedCSSProperty* CompressedProperties() const {
     return (CompressedCSSProperty*)(Values() + mNumProps);
@@ -164,40 +158,39 @@ private:
     CompressedProperties()[i] = (CompressedCSSProperty)aProperty;
   }
 
-  void SetNumPropsToZero() {
-    mNumProps = 0;
-  }
+  void SetNumPropsToZero() { mNumProps = 0; }
 };
 
 // Make sure the values and properties are aligned appropriately.  (These
 // assertions are stronger than necessary to keep them simple.)
 static_assert(sizeof(nsCSSCompressedDataBlock) == 8,
               "nsCSSCompressedDataBlock's size has changed");
-static_assert(NS_ALIGNMENT_OF(nsCSSValue) == 4 || NS_ALIGNMENT_OF(nsCSSValue) == 8,
+static_assert(NS_ALIGNMENT_OF(nsCSSValue) == 4 ||
+                  NS_ALIGNMENT_OF(nsCSSValue) == 8,
               "nsCSSValue doesn't align with nsCSSCompressedDataBlock");
-static_assert(NS_ALIGNMENT_OF(nsCSSCompressedDataBlock::CompressedCSSProperty) == 2,
-              "CompressedCSSProperty doesn't align with nsCSSValue");
+static_assert(
+    NS_ALIGNMENT_OF(nsCSSCompressedDataBlock::CompressedCSSProperty) == 2,
+    "CompressedCSSProperty doesn't align with nsCSSValue");
 
 // Make sure that sizeof(CompressedCSSProperty) is big enough.
 static_assert(eCSSProperty_COUNT_no_shorthands <=
-              nsCSSCompressedDataBlock::MaxCompressedCSSProperty,
+                  nsCSSCompressedDataBlock::MaxCompressedCSSProperty,
               "nsCSSPropertyID doesn't fit in StoredSizeOfCSSProperty");
 
-class nsCSSExpandedDataBlock
-{
+class nsCSSExpandedDataBlock {
   friend class nsCSSCompressedDataBlock;
 
-public:
+ public:
   nsCSSExpandedDataBlock();
   ~nsCSSExpandedDataBlock();
 
-private:
+ private:
   /* Property storage may not be accessed directly; use AddLonghandProperty
    * and friends.
    */
   nsCSSValue mValues[eCSSProperty_COUNT_no_shorthands];
 
-public:
+ public:
   /**
    * Transfer all of the state from a pair of compressed data blocks
    * to this expanded block.  This expanded block must be clear
@@ -207,8 +200,8 @@ public:
    * passed.  (This is necessary because ownership of sub-objects
    * is transferred to the expanded block.)
    */
-  void Expand(nsCSSCompressedDataBlock *aNormalBlock,
-              nsCSSCompressedDataBlock *aImportantBlock);
+  void Expand(nsCSSCompressedDataBlock* aNormalBlock,
+              nsCSSCompressedDataBlock* aImportantBlock);
 
   /**
    * Allocate new compressed blocks and transfer all of the state
@@ -221,8 +214,8 @@ public:
    * aOrder is an array of nsCSSPropertyID values specifying the order
    * to store values in the two data blocks.
    */
-  void Compress(nsCSSCompressedDataBlock **aNormalBlock,
-                nsCSSCompressedDataBlock **aImportantBlock,
+  void Compress(nsCSSCompressedDataBlock** aNormalBlock,
+                nsCSSCompressedDataBlock** aImportantBlock,
                 const nsTArray<uint32_t>& aOrder);
 
   /**
@@ -265,8 +258,7 @@ public:
   bool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
                          nsCSSPropertyID aPropID,
                          mozilla::CSSEnabledState aEnabledState,
-                         bool aIsImportant,
-                         bool aOverrideImportant,
+                         bool aIsImportant, bool aOverrideImportant,
                          bool aMustCallValueAppended,
                          mozilla::css::Declaration* aDeclaration,
                          nsIDocument* aSheetDocument);
@@ -285,26 +277,23 @@ public:
 #endif
   }
 
-private:
+ private:
   /**
    * Compute the number of properties that will be present in the
    * result of |Compress|.
    */
-  void ComputeNumProps(uint32_t* aNumPropsNormal,
-                       uint32_t* aNumPropsImportant);
+  void ComputeNumProps(uint32_t* aNumPropsNormal, uint32_t* aNumPropsImportant);
 
-  void DoExpand(nsCSSCompressedDataBlock *aBlock, bool aImportant);
+  void DoExpand(nsCSSCompressedDataBlock* aBlock, bool aImportant);
 
   /**
    * Worker for TransferFromBlock; cannot be used with shorthands.
    */
   bool DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
-                             nsCSSPropertyID aPropID,
-                             bool aIsImportant,
-                             bool aOverrideImportant,
-                             bool aMustCallValueAppended,
-                             mozilla::css::Declaration* aDeclaration,
-                             nsIDocument* aSheetDocument);
+                           nsCSSPropertyID aPropID, bool aIsImportant,
+                           bool aOverrideImportant, bool aMustCallValueAppended,
+                           mozilla::css::Declaration* aDeclaration,
+                           nsIDocument* aSheetDocument);
 
 #ifdef DEBUG
   void DoAssertInitialState();
@@ -327,14 +316,12 @@ private:
    * property |aProperty|.
    */
   nsCSSValue* PropertyAt(nsCSSPropertyID aProperty) {
-    MOZ_ASSERT(0 <= aProperty &&
-               aProperty < eCSSProperty_COUNT_no_shorthands,
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
                "property out of range");
     return &mValues[aProperty];
   }
   const nsCSSValue* PropertyAt(nsCSSPropertyID aProperty) const {
-    MOZ_ASSERT(0 <= aProperty &&
-               aProperty < eCSSProperty_COUNT_no_shorthands,
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
                "property out of range");
     return &mValues[aProperty];
   }

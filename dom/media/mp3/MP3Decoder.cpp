@@ -11,16 +11,14 @@
 namespace mozilla {
 
 /* static */
-bool
-MP3Decoder::IsEnabled() {
+bool MP3Decoder::IsEnabled() {
   RefPtr<PDMFactory> platform = new PDMFactory();
   return platform->SupportsMimeType(NS_LITERAL_CSTRING("audio/mpeg"),
                                     /* DecoderDoctorDiagnostics* */ nullptr);
 }
 
 /* static */
-bool MP3Decoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+bool MP3Decoder::IsSupportedType(const MediaContainerType& aContainerType) {
   if (aContainerType.Type() == MEDIAMIMETYPE("audio/mp3") ||
       aContainerType.Type() == MEDIAMIMETYPE("audio/mpeg")) {
     return IsEnabled() && (aContainerType.ExtendedType().Codecs().IsEmpty() ||
@@ -29,4 +27,4 @@ bool MP3Decoder::IsSupportedType(const MediaContainerType& aContainerType)
   return false;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

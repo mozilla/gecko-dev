@@ -39,24 +39,18 @@
 // are instantiated by sending |alloc| and |init| messages, and are deallocated
 // in a memory-managed environment when their retain counts drop to 0 by
 // sending |release| messages.
-template<typename Type>
+template <typename Type>
 struct DefaultSingletonObjCTraits : public DefaultSingletonTraits<Type> {
-  static Type* New() {
-    return [[Type alloc] init];
-  }
+  static Type* New() { return [[Type alloc] init]; }
 
-  static void Delete(Type* object) {
-    [object release];
-  }
+  static void Delete(Type* object) { [object release]; }
 };
 
 // Exactly like Singleton, but without the DefaultSingletonObjCTraits as the
 // default trait class.  This makes it straightforward for Objective-C++ code
 // to hold Objective-C objects as singletons.
-template<typename Type,
-         typename Traits = DefaultSingletonObjCTraits<Type>,
-         typename DifferentiatingType = Type>
-class SingletonObjC : public Singleton<Type, Traits, DifferentiatingType> {
-};
+template <typename Type, typename Traits = DefaultSingletonObjCTraits<Type>,
+          typename DifferentiatingType = Type>
+class SingletonObjC : public Singleton<Type, Traits, DifferentiatingType> {};
 
 #endif  // BASE_SINGLETON_OBJC_H_

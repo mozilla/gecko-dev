@@ -7,39 +7,40 @@
 #ifndef nsTStringRepr_h
 #define nsTStringRepr_h
 
-#include <type_traits> // std::enable_if
+#include <type_traits>  // std::enable_if
 
 #include "mozilla/Char16.h"
 #include "mozilla/fallible.h"
 #include "nsStringFlags.h"
 #include "nsCharTraits.h"
 
-template <typename T> class nsTSubstringTuple;
-template <typename T> class nsTLiteralString;
+template <typename T>
+class nsTSubstringTuple;
+template <typename T>
+class nsTLiteralString;
 
 // The base for string comparators
-template <typename T> class nsTStringComparator
-{
-public:
+template <typename T>
+class nsTStringComparator {
+ public:
   typedef T char_type;
 
   nsTStringComparator() {}
 
-  virtual int operator()(const char_type*, const char_type*,
-                         uint32_t, uint32_t) const = 0;
+  virtual int operator()(const char_type*, const char_type*, uint32_t,
+                         uint32_t) const = 0;
 };
 
 // The default string comparator (case-sensitive comparision)
-template <typename T> class nsTDefaultStringComparator
-  : public nsTStringComparator<T>
-{
-public:
+template <typename T>
+class nsTDefaultStringComparator : public nsTStringComparator<T> {
+ public:
   typedef T char_type;
 
   nsTDefaultStringComparator() {}
 
-  virtual int operator()(const char_type*, const char_type*,
-                         uint32_t, uint32_t) const override;
+  virtual int operator()(const char_type*, const char_type*, uint32_t,
+                         uint32_t) const override;
 };
 
 extern template class nsTDefaultStringComparator<char>;
@@ -70,11 +71,13 @@ namespace mozilla {
 // Please note that we had to use a separate type `Q` for this to work. You
 // will get a semi-decent compiler error if you use `T` directly.
 
-template <typename CharType> using CharOnlyT =
-  typename std::enable_if<std::is_same<char, CharType>::value>::type;
+template <typename CharType>
+using CharOnlyT =
+    typename std::enable_if<std::is_same<char, CharType>::value>::type;
 
-template <typename CharType> using Char16OnlyT =
-  typename std::enable_if<std::is_same<char16_t, CharType>::value>::type;
+template <typename CharType>
+using Char16OnlyT =
+    typename std::enable_if<std::is_same<char16_t, CharType>::value>::type;
 
 namespace detail {
 
@@ -92,9 +95,9 @@ namespace detail {
 // NAMES:
 //   nsStringRepr for wide characters
 //   nsCStringRepr for narrow characters
-template <typename T> class nsTStringRepr
-{
-public:
+template <typename T>
+class nsTStringRepr {
+ public:
   typedef mozilla::fallible_t fallible_t;
 
   typedef T char_type;
@@ -125,94 +128,65 @@ public:
   typedef StringClassFlags ClassFlags;
 
   // Reading iterators.
-  const_char_iterator BeginReading() const
-  {
-    return mData;
-  }
-  const_char_iterator EndReading() const
-  {
-    return mData + mLength;
-  }
+  const_char_iterator BeginReading() const { return mData; }
+  const_char_iterator EndReading() const { return mData + mLength; }
 
   // Deprecated reading iterators.
-  const_iterator& BeginReading(const_iterator& aIter) const
-  {
+  const_iterator& BeginReading(const_iterator& aIter) const {
     aIter.mStart = mData;
     aIter.mEnd = mData + mLength;
     aIter.mPosition = aIter.mStart;
     return aIter;
   }
 
-  const_iterator& EndReading(const_iterator& aIter) const
-  {
+  const_iterator& EndReading(const_iterator& aIter) const {
     aIter.mStart = mData;
     aIter.mEnd = mData + mLength;
     aIter.mPosition = aIter.mEnd;
     return aIter;
   }
 
-  const_char_iterator& BeginReading(const_char_iterator& aIter) const
-  {
+  const_char_iterator& BeginReading(const_char_iterator& aIter) const {
     return aIter = mData;
   }
 
-  const_char_iterator& EndReading(const_char_iterator& aIter) const
-  {
+  const_char_iterator& EndReading(const_char_iterator& aIter) const {
     return aIter = mData + mLength;
   }
 
   // Accessors.
-  template <typename U, typename Dummy> struct raw_type { typedef const U* type; };
+  template <typename U, typename Dummy>
+  struct raw_type {
+    typedef const U* type;
+  };
 #if defined(MOZ_USE_CHAR16_WRAPPER)
-  template <typename Dummy> struct raw_type<char16_t, Dummy> { typedef char16ptr_t type; };
+  template <typename Dummy>
+  struct raw_type<char16_t, Dummy> {
+    typedef char16ptr_t type;
+  };
 #endif
 
   // Returns pointer to string data (not necessarily null-terminated)
-  const typename raw_type<T, int>::type Data() const
-  {
-    return mData;
-  }
+  const typename raw_type<T, int>::type Data() const { return mData; }
 
-  size_type Length() const
-  {
-    return mLength;
-  }
+  size_type Length() const { return mLength; }
 
-  DataFlags GetDataFlags() const
-  {
-    return mDataFlags;
-  }
+  DataFlags GetDataFlags() const { return mDataFlags; }
 
-  bool IsEmpty() const
-  {
-    return mLength == 0;
-  }
+  bool IsEmpty() const { return mLength == 0; }
 
-  bool IsLiteral() const
-  {
-    return !!(mDataFlags & DataFlags::LITERAL);
-  }
+  bool IsLiteral() const { return !!(mDataFlags & DataFlags::LITERAL); }
 
-  bool IsVoid() const
-  {
-    return !!(mDataFlags & DataFlags::VOIDED);
-  }
+  bool IsVoid() const { return !!(mDataFlags & DataFlags::VOIDED); }
 
-  bool IsTerminated() const
-  {
-    return !!(mDataFlags & DataFlags::TERMINATED);
-  }
+  bool IsTerminated() const { return !!(mDataFlags & DataFlags::TERMINATED); }
 
-  char_type CharAt(index_type aIndex) const
-  {
+  char_type CharAt(index_type aIndex) const {
     NS_ASSERTION(aIndex < mLength, "index exceeds allowable range");
     return mData[aIndex];
   }
 
-  char_type operator[](index_type aIndex) const
-  {
-    return CharAt(aIndex);
-  }
+  char_type operator[](index_type aIndex) const { return CharAt(aIndex); }
 
   char_type First() const;
 
@@ -221,8 +195,7 @@ public:
   size_type NS_FASTCALL CountChar(char_type) const;
   int32_t NS_FASTCALL FindChar(char_type, index_type aOffset = 0) const;
 
-  inline bool Contains(char_type aChar) const
-  {
+  inline bool Contains(char_type aChar) const {
     return FindChar(aChar) != kNotFound;
   }
 
@@ -240,13 +213,12 @@ public:
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = Char16OnlyT<Q>>
-  bool NS_FASTCALL Equals(char16ptr_t aData) const
-  {
+  bool NS_FASTCALL Equals(char16ptr_t aData) const {
     return Equals(static_cast<const char16_t*>(aData));
   }
   template <typename Q = T, typename EnableIfChar16 = Char16OnlyT<Q>>
-  bool NS_FASTCALL Equals(char16ptr_t aData, const comparator_type& aComp) const
-  {
+  bool NS_FASTCALL Equals(char16ptr_t aData,
+                          const comparator_type& aComp) const {
     return Equals(static_cast<const char16_t*>(aData), aComp);
   }
 #endif
@@ -266,9 +238,8 @@ public:
   // non-constant char array variable. Use EqualsASCII for them.
   // The template trick to acquire the array length at compile time without
   // using a macro is due to Corey Kosak, with much thanks.
-  template<int N>
-  inline bool EqualsLiteral(const char (&aStr)[N]) const
-  {
+  template <int N>
+  inline bool EqualsLiteral(const char (&aStr)[N]) const {
     return EqualsASCII(aStr, N - 1);
   }
 
@@ -287,36 +258,31 @@ public:
   // explicit size.  Do not attempt to use it with a regular char*
   // pointer, or with a non-constant char array variable. Use
   // LowerCaseEqualsASCII for them.
-  template<int N>
-  bool LowerCaseEqualsLiteral(const char (&aStr)[N]) const
-  {
+  template <int N>
+  bool LowerCaseEqualsLiteral(const char (&aStr)[N]) const {
     return LowerCaseEqualsASCII(aStr, N - 1);
   }
 
   // Returns true if this string overlaps with the given string fragment.
-  bool IsDependentOn(const char_type* aStart, const char_type* aEnd) const
-  {
-     // If it _isn't_ the case that one fragment starts after the other ends,
-     // or ends before the other starts, then, they conflict:
-     //
-     //   !(f2.begin >= f1.aEnd || f2.aEnd <= f1.begin)
-     //
-     // Simplified, that gives us:
+  bool IsDependentOn(const char_type* aStart, const char_type* aEnd) const {
+    // If it _isn't_ the case that one fragment starts after the other ends,
+    // or ends before the other starts, then, they conflict:
+    //
+    //   !(f2.begin >= f1.aEnd || f2.aEnd <= f1.begin)
+    //
+    // Simplified, that gives us:
     return (aStart < (mData + mLength) && aEnd > mData);
   }
 
-protected:
-  nsTStringRepr() = delete; // Never instantiate directly
+ protected:
+  nsTStringRepr() = delete;  // Never instantiate directly
 
-  constexpr
-  nsTStringRepr(char_type* aData, size_type aLength,
-               DataFlags aDataFlags, ClassFlags aClassFlags)
-    : mData(aData)
-    , mLength(aLength)
-    , mDataFlags(aDataFlags)
-    , mClassFlags(aClassFlags)
-  {
-  }
+  constexpr nsTStringRepr(char_type* aData, size_type aLength,
+                          DataFlags aDataFlags, ClassFlags aClassFlags)
+      : mData(aData),
+        mLength(aLength),
+        mDataFlags(aDataFlags),
+        mClassFlags(aClassFlags) {}
 
   char_type* mData;
   size_type mLength;
@@ -327,8 +293,8 @@ protected:
 extern template class nsTStringRepr<char>;
 extern template class nsTStringRepr<char16_t>;
 
-} // namespace detail
-} // namespace mozilla
+}  // namespace detail
+}  // namespace mozilla
 
 template <typename T>
 int NS_FASTCALL
@@ -337,66 +303,50 @@ Compare(const mozilla::detail::nsTStringRepr<T>& aLhs,
         const nsTStringComparator<T>& = nsTDefaultStringComparator<T>());
 
 template <typename T>
-inline bool
-operator!=(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator!=(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return !aLhs.Equals(aRhs);
 }
 
 template <typename T>
-inline bool
-operator!=(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const T* aRhs)
-{
+inline bool operator!=(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const T* aRhs) {
   return !aLhs.Equals(aRhs);
 }
 
 template <typename T>
-inline bool
-operator<(const mozilla::detail::nsTStringRepr<T>& aLhs,
-          const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator<(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                      const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return Compare(aLhs, aRhs) < 0;
 }
 
 template <typename T>
-inline bool
-operator<=(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator<=(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return Compare(aLhs, aRhs) <= 0;
 }
 
 template <typename T>
-inline bool
-operator==(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator==(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return aLhs.Equals(aRhs);
 }
 
 template <typename T>
-inline bool
-operator==(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const T* aRhs)
-{
+inline bool operator==(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const T* aRhs) {
   return aLhs.Equals(aRhs);
 }
 
 template <typename T>
-inline bool
-operator>=(const mozilla::detail::nsTStringRepr<T>& aLhs,
-           const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator>=(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                       const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return Compare(aLhs, aRhs) >= 0;
 }
 
 template <typename T>
-inline bool
-operator>(const mozilla::detail::nsTStringRepr<T>& aLhs,
-          const mozilla::detail::nsTStringRepr<T>& aRhs)
-{
+inline bool operator>(const mozilla::detail::nsTStringRepr<T>& aLhs,
+                      const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return Compare(aLhs, aRhs) > 0;
 }
 

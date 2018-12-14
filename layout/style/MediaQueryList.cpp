@@ -23,20 +23,14 @@ namespace dom {
 MediaQueryList::MediaQueryList(nsIDocument* aDocument,
                                const nsAString& aMediaQueryList,
                                CallerType aCallerType)
-  : mDocument(aDocument)
-  , mMatches(false)
-  , mMatchesValid(false)
-{
-  mMediaList =
-    MediaList::Create(aDocument->GetStyleBackendType(),
-                      aMediaQueryList,
-                      aCallerType);
+    : mDocument(aDocument), mMatches(false), mMatchesValid(false) {
+  mMediaList = MediaList::Create(aDocument->GetStyleBackendType(),
+                                 aMediaQueryList, aCallerType);
 
   KeepAliveIfHasListenersFor(ONCHANGE_STRING);
 }
 
-MediaQueryList::~MediaQueryList()
-{}
+MediaQueryList::~MediaQueryList() {}
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(MediaQueryList)
 
@@ -61,15 +55,11 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(MediaQueryList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MediaQueryList, DOMEventTargetHelper)
 
-void
-MediaQueryList::GetMedia(nsAString &aMedia)
-{
+void MediaQueryList::GetMedia(nsAString& aMedia) {
   mMediaList->GetText(aMedia);
 }
 
-bool
-MediaQueryList::Matches()
-{
+bool MediaQueryList::Matches() {
   if (!mMatchesValid) {
     MOZ_ASSERT(!HasListeners(),
                "when listeners present, must keep mMatches current");
@@ -79,9 +69,7 @@ MediaQueryList::Matches()
   return mMatches;
 }
 
-void
-MediaQueryList::AddListener(EventListener* aListener, ErrorResult& aRv)
-{
+void MediaQueryList::AddListener(EventListener* aListener, ErrorResult& aRv) {
   if (!aListener) {
     return;
   }
@@ -92,13 +80,10 @@ MediaQueryList::AddListener(EventListener* aListener, ErrorResult& aRv)
   AddEventListener(ONCHANGE_STRING, aListener, options, false, aRv);
 }
 
-void
-MediaQueryList::AddEventListener(const nsAString& aType,
-                                 EventListener* aCallback,
-                                 const AddEventListenerOptionsOrBoolean& aOptions,
-                                 const dom::Nullable<bool>& aWantsUntrusted,
-                                 ErrorResult& aRv)
-{
+void MediaQueryList::AddEventListener(
+    const nsAString& aType, EventListener* aCallback,
+    const AddEventListenerOptionsOrBoolean& aOptions,
+    const dom::Nullable<bool>& aWantsUntrusted, ErrorResult& aRv) {
   if (!mMatchesValid) {
     MOZ_ASSERT(!HasListeners(),
                "when listeners present, must keep mMatches current");
@@ -109,9 +94,8 @@ MediaQueryList::AddEventListener(const nsAString& aType,
                                          aWantsUntrusted, aRv);
 }
 
-void
-MediaQueryList::RemoveListener(EventListener* aListener, ErrorResult& aRv)
-{
+void MediaQueryList::RemoveListener(EventListener* aListener,
+                                    ErrorResult& aRv) {
   if (!aListener) {
     return;
   }
@@ -122,23 +106,15 @@ MediaQueryList::RemoveListener(EventListener* aListener, ErrorResult& aRv)
   RemoveEventListener(ONCHANGE_STRING, aListener, options, aRv);
 }
 
-bool
-MediaQueryList::HasListeners()
-{
-  return HasListenersFor(ONCHANGE_STRING);
-}
+bool MediaQueryList::HasListeners() { return HasListenersFor(ONCHANGE_STRING); }
 
-void
-MediaQueryList::Disconnect()
-{
+void MediaQueryList::Disconnect() {
   DisconnectFromOwner();
 
   IgnoreKeepAliveIfHasListenersFor(ONCHANGE_STRING);
 }
 
-void
-MediaQueryList::RecomputeMatches()
-{
+void MediaQueryList::RecomputeMatches() {
   mMatches = false;
 
   if (!mDocument) {
@@ -148,7 +124,8 @@ MediaQueryList::RecomputeMatches()
   if (mDocument->GetParentDocument()) {
     // Flush frames on the parent so our prescontext will get
     // recreated as needed.
-    mDocument->GetParentDocument()->FlushPendingNotifications(FlushType::Frames);
+    mDocument->GetParentDocument()->FlushPendingNotifications(
+        FlushType::Frames);
     // That might have killed our document, so recheck that.
     if (!mDocument) {
       return;
@@ -165,21 +142,14 @@ MediaQueryList::RecomputeMatches()
   mMatchesValid = true;
 }
 
-nsISupports*
-MediaQueryList::GetParentObject() const
-{
-  return mDocument;
-}
+nsISupports* MediaQueryList::GetParentObject() const { return mDocument; }
 
-JSObject*
-MediaQueryList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* MediaQueryList::WrapObject(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return MediaQueryListBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-MediaQueryList::MaybeNotify()
-{
+void MediaQueryList::MaybeNotify() {
   mMatchesValid = false;
 
   if (!HasListeners()) {
@@ -201,12 +171,12 @@ MediaQueryList::MaybeNotify()
   mMediaList->GetText(init.mMedia);
 
   RefPtr<MediaQueryListEvent> event =
-    MediaQueryListEvent::Constructor(this, ONCHANGE_STRING, init);
+      MediaQueryListEvent::Constructor(this, ONCHANGE_STRING, init);
   event->SetTrusted(true);
 
   bool dummy;
   DispatchEvent(event, &dummy);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

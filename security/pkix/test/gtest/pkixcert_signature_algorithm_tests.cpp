@@ -9,13 +9,10 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-static ByteString
-CreateCert(const char* issuerCN,
-           const char* subjectCN,
-           EndEntityOrCA endEntityOrCA,
-           const TestSignatureAlgorithm& signatureAlgorithm,
-           /*out*/ ByteString& subjectDER)
-{
+static ByteString CreateCert(const char* issuerCN, const char* subjectCN,
+                             EndEntityOrCA endEntityOrCA,
+                             const TestSignatureAlgorithm& signatureAlgorithm,
+                             /*out*/ ByteString& subjectDER) {
   static long serialNumberValue = 0;
   ++serialNumberValue;
   ByteString serialNumber(CreateEncodedSerialNumber(serialNumberValue));
@@ -28,40 +25,33 @@ CreateCert(const char* issuerCN,
 
   ByteString extensions[2];
   if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
-    extensions[0] =
-      CreateEncodedBasicConstraints(true, nullptr, Critical::Yes);
+    extensions[0] = CreateEncodedBasicConstraints(true, nullptr, Critical::Yes);
     EXPECT_FALSE(ENCODING_FAILED(extensions[0]));
   }
 
   ScopedTestKeyPair reusedKey(CloneReusedKeyPair());
-  ByteString certDER(CreateEncodedCertificate(v3, signatureAlgorithm,
-                                              serialNumber, issuerDER,
-                                              oneDayBeforeNow, oneDayAfterNow,
-                                              subjectDER, *reusedKey,
-                                              extensions, *reusedKey,
-                                              signatureAlgorithm));
+  ByteString certDER(CreateEncodedCertificate(
+      v3, signatureAlgorithm, serialNumber, issuerDER, oneDayBeforeNow,
+      oneDayAfterNow, subjectDER, *reusedKey, extensions, *reusedKey,
+      signatureAlgorithm));
   EXPECT_FALSE(ENCODING_FAILED(certDER));
   return certDER;
 }
 
-class AlgorithmTestsTrustDomain final : public DefaultCryptoTrustDomain
-{
-public:
+class AlgorithmTestsTrustDomain final : public DefaultCryptoTrustDomain {
+ public:
   AlgorithmTestsTrustDomain(const ByteString& rootDER,
                             const ByteString& rootSubjectDER,
-               /*optional*/ const ByteString& intDER,
-               /*optional*/ const ByteString& intSubjectDER)
-    : rootDER(rootDER)
-    , rootSubjectDER(rootSubjectDER)
-    , intDER(intDER)
-    , intSubjectDER(intSubjectDER)
-  {
-  }
+                            /*optional*/ const ByteString& intDER,
+                            /*optional*/ const ByteString& intSubjectDER)
+      : rootDER(rootDER),
+        rootSubjectDER(rootSubjectDER),
+        intDER(intDER),
+        intSubjectDER(intSubjectDER) {}
 
-private:
+ private:
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
-                      /*out*/ TrustLevel& trustLevel) override
-  {
+                      /*out*/ TrustLevel& trustLevel) override {
     if (InputEqualsByteString(candidateCert, rootDER)) {
       trustLevel = TrustLevel::TrustAnchor;
     } else {
@@ -70,9 +60,8 @@ private:
     return Success;
   }
 
-  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker, Time)
-                    override
-  {
+  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker,
+                    Time) override {
     ByteString* issuerDER = nullptr;
     if (InputEqualsByteString(encodedIssuerName, rootSubjectDER)) {
       issuerDER = &rootDER;
@@ -92,13 +81,11 @@ private:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         const Input*, const Input*) override
-  {
+                         const Input*, const Input*) override {
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
@@ -108,25 +95,19 @@ private:
   ByteString intSubjectDER;
 };
 
-static const TestSignatureAlgorithm NO_INTERMEDIATE
-{
-  TestPublicKeyAlgorithm(ByteString()),
-  TestDigestAlgorithmID::MD2,
-  ByteString(),
-  false
-};
+static const TestSignatureAlgorithm NO_INTERMEDIATE{
+    TestPublicKeyAlgorithm(ByteString()), TestDigestAlgorithmID::MD2,
+    ByteString(), false};
 
-struct ChainValidity final
-{
+struct ChainValidity final {
   ChainValidity(const TestSignatureAlgorithm& endEntitySignatureAlgorithm,
                 const TestSignatureAlgorithm& optionalIntSignatureAlgorithm,
                 const TestSignatureAlgorithm& rootSignatureAlgorithm,
                 bool isValid)
-    : endEntitySignatureAlgorithm(endEntitySignatureAlgorithm)
-    , optionalIntermediateSignatureAlgorithm(optionalIntSignatureAlgorithm)
-    , rootSignatureAlgorithm(rootSignatureAlgorithm)
-    , isValid(isValid)
-  { }
+      : endEntitySignatureAlgorithm(endEntitySignatureAlgorithm),
+        optionalIntermediateSignatureAlgorithm(optionalIntSignatureAlgorithm),
+        rootSignatureAlgorithm(rootSignatureAlgorithm),
+        isValid(isValid) {}
 
   // In general, a certificate is generated for each of these.  However, if
   // optionalIntermediateSignatureAlgorithm is NO_INTERMEDIATE, then only 2
@@ -139,72 +120,50 @@ struct ChainValidity final
   bool isValid;
 };
 
-static const ChainValidity CHAIN_VALIDITY[] =
-{
-  // The trust anchor may have a signature with an unsupported signature
-  // algorithm.
-  ChainValidity(sha256WithRSAEncryption(),
-                NO_INTERMEDIATE,
-                md5WithRSAEncryption(),
-                true),
-  ChainValidity(sha256WithRSAEncryption(),
-                NO_INTERMEDIATE,
-                md2WithRSAEncryption(),
-                true),
+static const ChainValidity CHAIN_VALIDITY[] = {
+    // The trust anchor may have a signature with an unsupported signature
+    // algorithm.
+    ChainValidity(sha256WithRSAEncryption(), NO_INTERMEDIATE,
+                  md5WithRSAEncryption(), true),
+    ChainValidity(sha256WithRSAEncryption(), NO_INTERMEDIATE,
+                  md2WithRSAEncryption(), true),
 
-  // Certificates that are not trust anchors must not have a signature with an
-  // unsupported signature algorithm.
-  ChainValidity(md5WithRSAEncryption(),
-                NO_INTERMEDIATE,
-                sha256WithRSAEncryption(),
-                false),
-  ChainValidity(md2WithRSAEncryption(),
-                NO_INTERMEDIATE,
-                sha256WithRSAEncryption(),
-                false),
-  ChainValidity(md2WithRSAEncryption(),
-                NO_INTERMEDIATE,
-                md5WithRSAEncryption(),
-                false),
-  ChainValidity(sha256WithRSAEncryption(),
-                md5WithRSAEncryption(),
-                sha256WithRSAEncryption(),
-                false),
-  ChainValidity(sha256WithRSAEncryption(),
-                md2WithRSAEncryption(),
-                sha256WithRSAEncryption(),
-                false),
-  ChainValidity(sha256WithRSAEncryption(),
-                md2WithRSAEncryption(),
-                md5WithRSAEncryption(),
-                false),
+    // Certificates that are not trust anchors must not have a signature with an
+    // unsupported signature algorithm.
+    ChainValidity(md5WithRSAEncryption(), NO_INTERMEDIATE,
+                  sha256WithRSAEncryption(), false),
+    ChainValidity(md2WithRSAEncryption(), NO_INTERMEDIATE,
+                  sha256WithRSAEncryption(), false),
+    ChainValidity(md2WithRSAEncryption(), NO_INTERMEDIATE,
+                  md5WithRSAEncryption(), false),
+    ChainValidity(sha256WithRSAEncryption(), md5WithRSAEncryption(),
+                  sha256WithRSAEncryption(), false),
+    ChainValidity(sha256WithRSAEncryption(), md2WithRSAEncryption(),
+                  sha256WithRSAEncryption(), false),
+    ChainValidity(sha256WithRSAEncryption(), md2WithRSAEncryption(),
+                  md5WithRSAEncryption(), false),
 };
 
 class pkixcert_IsValidChainForAlgorithm
-  : public ::testing::Test
-  , public ::testing::WithParamInterface<ChainValidity>
-{
-};
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<ChainValidity> {};
 
 ::std::ostream& operator<<(::std::ostream& os,
-                           const pkixcert_IsValidChainForAlgorithm&)
-{
+                           const pkixcert_IsValidChainForAlgorithm&) {
   return os << "TODO (bug 1318770)";
 }
 
-::std::ostream& operator<<(::std::ostream& os, const ChainValidity&)
-{
+::std::ostream& operator<<(::std::ostream& os, const ChainValidity&) {
   return os << "TODO (bug 1318770)";
 }
 
-TEST_P(pkixcert_IsValidChainForAlgorithm, IsValidChainForAlgorithm)
-{
+TEST_P(pkixcert_IsValidChainForAlgorithm, IsValidChainForAlgorithm) {
   const ChainValidity& chainValidity(GetParam());
   const char* rootCN = "CN=Root";
   ByteString rootSubjectDER;
-  ByteString rootEncoded(
-    CreateCert(rootCN, rootCN, EndEntityOrCA::MustBeCA,
-               chainValidity.rootSignatureAlgorithm, rootSubjectDER));
+  ByteString rootEncoded(CreateCert(rootCN, rootCN, EndEntityOrCA::MustBeCA,
+                                    chainValidity.rootSignatureAlgorithm,
+                                    rootSubjectDER));
   EXPECT_FALSE(ENCODING_FAILED(rootEncoded));
   EXPECT_FALSE(ENCODING_FAILED(rootSubjectDER));
 
@@ -215,36 +174,34 @@ TEST_P(pkixcert_IsValidChainForAlgorithm, IsValidChainForAlgorithm)
   ByteString intermediateEncoded;
 
   // If the the algorithmIdentifier is empty, then it's NO_INTERMEDIATE.
-  if (!chainValidity.optionalIntermediateSignatureAlgorithm
-                    .algorithmIdentifier.empty()) {
+  if (!chainValidity.optionalIntermediateSignatureAlgorithm.algorithmIdentifier
+           .empty()) {
     intermediateEncoded =
-      CreateCert(rootCN, intermediateCN, EndEntityOrCA::MustBeCA,
-                 chainValidity.optionalIntermediateSignatureAlgorithm,
-                 intermediateSubjectDER);
+        CreateCert(rootCN, intermediateCN, EndEntityOrCA::MustBeCA,
+                   chainValidity.optionalIntermediateSignatureAlgorithm,
+                   intermediateSubjectDER);
     EXPECT_FALSE(ENCODING_FAILED(intermediateEncoded));
     EXPECT_FALSE(ENCODING_FAILED(intermediateSubjectDER));
     issuerCN = intermediateCN;
   }
 
-  AlgorithmTestsTrustDomain trustDomain(rootEncoded, rootSubjectDER,
-                                        intermediateEncoded,
-                                        intermediateSubjectDER);
+  AlgorithmTestsTrustDomain trustDomain(
+      rootEncoded, rootSubjectDER, intermediateEncoded, intermediateSubjectDER);
 
   const char* endEntityCN = "CN=End Entity";
   ByteString endEntitySubjectDER;
-  ByteString endEntityEncoded(
-    CreateCert(issuerCN, endEntityCN, EndEntityOrCA::MustBeEndEntity,
-               chainValidity.endEntitySignatureAlgorithm,
-               endEntitySubjectDER));
+  ByteString endEntityEncoded(CreateCert(
+      issuerCN, endEntityCN, EndEntityOrCA::MustBeEndEntity,
+      chainValidity.endEntitySignatureAlgorithm, endEntitySubjectDER));
   EXPECT_FALSE(ENCODING_FAILED(endEntityEncoded));
   EXPECT_FALSE(ENCODING_FAILED(endEntitySubjectDER));
 
   Input endEntity;
-  ASSERT_EQ(Success, endEntity.Init(endEntityEncoded.data(),
-                                    endEntityEncoded.length()));
+  ASSERT_EQ(Success,
+            endEntity.Init(endEntityEncoded.data(), endEntityEncoded.length()));
   Result expectedResult = chainValidity.isValid
-                        ? Success
-                        : Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
+                              ? Success
+                              : Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
   ASSERT_EQ(expectedResult,
             BuildCertChain(trustDomain, endEntity, Now(),
                            EndEntityOrCA::MustBeEndEntity,

@@ -13,16 +13,14 @@ namespace mozilla {
 BaseMediaMgrError::BaseMediaMgrError(const nsAString& aName,
                                      const nsAString& aMessage,
                                      const nsAString& aConstraint)
-  : mName(aName)
-  , mMessage(aMessage)
-  , mConstraint(aConstraint)
-{
+    : mName(aName), mMessage(aMessage), mConstraint(aConstraint) {
   if (mMessage.IsEmpty()) {
     if (mName.EqualsLiteral("NotFoundError")) {
       mMessage.AssignLiteral("The object can not be found here.");
     } else if (mName.EqualsLiteral("NotAllowedError")) {
-      mMessage.AssignLiteral("The request is not allowed by the user agent "
-                             "or the platform in the current context.");
+      mMessage.AssignLiteral(
+          "The request is not allowed by the user agent "
+          "or the platform in the current context.");
     } else if (mName.EqualsLiteral("SecurityError")) {
       mMessage.AssignLiteral("The operation is insecure.");
     } else if (mName.EqualsLiteral("NotReadableError")) {
@@ -37,18 +35,15 @@ BaseMediaMgrError::BaseMediaMgrError(const nsAString& aName,
   }
 }
 
-
 NS_IMPL_ISUPPORTS0(MediaMgrError)
 
 namespace dom {
 
-MediaStreamError::MediaStreamError(
-    nsPIDOMWindowInner* aParent,
-    const nsAString& aName,
-    const nsAString& aMessage,
-    const nsAString& aConstraint)
-  : BaseMediaMgrError(aName, aMessage, aConstraint)
-  , mParent(aParent) {}
+MediaStreamError::MediaStreamError(nsPIDOMWindowInner* aParent,
+                                   const nsAString& aName,
+                                   const nsAString& aMessage,
+                                   const nsAString& aConstraint)
+    : BaseMediaMgrError(aName, aMessage, aConstraint), mParent(aParent) {}
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(MediaStreamError, mParent)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(MediaStreamError)
@@ -59,29 +54,20 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamError)
   NS_INTERFACE_MAP_ENTRY(MediaStreamError)
 NS_INTERFACE_MAP_END
 
-JSObject*
-MediaStreamError::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* MediaStreamError::WrapObject(JSContext* aCx,
+                                       JS::Handle<JSObject*> aGivenProto) {
   return MediaStreamErrorBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-MediaStreamError::GetName(nsAString& aName) const
-{
-  aName = mName;
-}
+void MediaStreamError::GetName(nsAString& aName) const { aName = mName; }
 
-void
-MediaStreamError::GetMessage(nsAString& aMessage) const
-{
+void MediaStreamError::GetMessage(nsAString& aMessage) const {
   aMessage = mMessage;
 }
 
-void
-MediaStreamError::GetConstraint(nsAString& aConstraint) const
-{
+void MediaStreamError::GetConstraint(nsAString& aConstraint) const {
   aConstraint = mConstraint;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

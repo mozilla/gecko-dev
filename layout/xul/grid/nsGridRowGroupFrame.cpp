@@ -19,39 +19,31 @@
 
 already_AddRefed<nsBoxLayout> NS_NewGridRowGroupLayout();
 
-nsIFrame*
-NS_NewGridRowGroupFrame(nsIPresShell* aPresShell,
-                        nsStyleContext* aContext)
-{
+nsIFrame* NS_NewGridRowGroupFrame(nsIPresShell* aPresShell,
+                                  nsStyleContext* aContext) {
   nsCOMPtr<nsBoxLayout> layout = NS_NewGridRowGroupLayout();
   return new (aPresShell) nsGridRowGroupFrame(aContext, layout);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsGridRowGroupFrame)
 
-
 /**
- * This is redefined because row groups have a funny property. If they are flexible
- * then their flex must be equal to the sum of their children's flexes.
+ * This is redefined because row groups have a funny property. If they are
+ * flexible then their flex must be equal to the sum of their children's flexes.
  */
-nscoord
-nsGridRowGroupFrame::GetXULFlex()
-{
+nscoord nsGridRowGroupFrame::GetXULFlex() {
   // if we are flexible out flexibility is determined by our columns.
   // so first get the our flex. If not 0 then our flex is the sum of
   // our columns flexes.
 
-  if (!DoesNeedRecalc(mFlex))
-     return mFlex;
+  if (!DoesNeedRecalc(mFlex)) return mFlex;
 
-  if (nsBoxFrame::GetXULFlex() == 0)
-    return 0;
+  if (nsBoxFrame::GetXULFlex() == 0) return 0;
 
   // ok we are flexible add up our children
   nscoord totalFlex = 0;
   nsIFrame* child = nsBox::GetChildXULBox(this);
-  while (child)
-  {
+  while (child) {
     totalFlex += child->GetXULFlex();
     child = GetNextXULBox(child);
   }
@@ -60,5 +52,3 @@ nsGridRowGroupFrame::GetXULFlex()
 
   return totalFlex;
 }
-
-

@@ -16,20 +16,13 @@
 namespace mozilla {
 namespace layers {
 
-AnimationMetricsTracker::AnimationMetricsTracker()
-  : mMaxLayerAreaAnimated(0)
-{
-}
+AnimationMetricsTracker::AnimationMetricsTracker() : mMaxLayerAreaAnimated(0) {}
 
-AnimationMetricsTracker::~AnimationMetricsTracker()
-{
-}
+AnimationMetricsTracker::~AnimationMetricsTracker() {}
 
-void
-AnimationMetricsTracker::UpdateAnimationInProgress(AnimationProcessTypes aActive,
-                                                   uint64_t aLayerArea,
-                                                   TimeDuration aVsyncInterval)
-{
+void AnimationMetricsTracker::UpdateAnimationInProgress(
+    AnimationProcessTypes aActive, uint64_t aLayerArea,
+    TimeDuration aVsyncInterval) {
   bool inProgress = (aActive != AnimationProcessTypes::eNone);
   MOZ_ASSERT(inProgress || aLayerArea == 0);
   if (mCurrentAnimationStart && !inProgress) {
@@ -46,57 +39,48 @@ AnimationMetricsTracker::UpdateAnimationInProgress(AnimationProcessTypes aActive
     }
   }
 
-  UpdateAnimationThroughput("chrome",
-                            (aActive & AnimationProcessTypes::eChrome) != AnimationProcessTypes::eNone,
-                            mChromeAnimation,
-                            aVsyncInterval,
-                            Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_CHROME,
-                            Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_CHROME);
-  UpdateAnimationThroughput("content",
-                            (aActive & AnimationProcessTypes::eContent) != AnimationProcessTypes::eNone,
-                            mContentAnimation,
-                            aVsyncInterval,
-                            Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_CONTENT,
-                            Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_CONTENT);
+  UpdateAnimationThroughput(
+      "chrome",
+      (aActive & AnimationProcessTypes::eChrome) !=
+          AnimationProcessTypes::eNone,
+      mChromeAnimation, aVsyncInterval,
+      Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_CHROME,
+      Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_CHROME);
+  UpdateAnimationThroughput(
+      "content",
+      (aActive & AnimationProcessTypes::eContent) !=
+          AnimationProcessTypes::eNone,
+      mContentAnimation, aVsyncInterval,
+      Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_CONTENT,
+      Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_CONTENT);
 }
 
-void
-AnimationMetricsTracker::UpdateApzAnimationInProgress(bool aInProgress,
-                                                      TimeDuration aVsyncInterval)
-{
-  UpdateAnimationThroughput("apz",
-                            aInProgress,
-                            mApzAnimation,
-                            aVsyncInterval,
-                            Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_APZ,
-                            Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_APZ);
+void AnimationMetricsTracker::UpdateApzAnimationInProgress(
+    bool aInProgress, TimeDuration aVsyncInterval) {
+  UpdateAnimationThroughput(
+      "apz", aInProgress, mApzAnimation, aVsyncInterval,
+      Telemetry::COMPOSITOR_ANIMATION_THROUGHPUT_APZ,
+      Telemetry::COMPOSITOR_ANIMATION_MAX_CONTIGUOUS_DROPS_APZ);
 }
 
-void
-AnimationMetricsTracker::AnimationStarted()
-{
-}
+void AnimationMetricsTracker::AnimationStarted() {}
 
-void
-AnimationMetricsTracker::AnimationEnded()
-{
+void AnimationMetricsTracker::AnimationEnded() {
   MOZ_ASSERT(mCurrentAnimationStart);
 
-  Telemetry::AccumulateTimeDelta(Telemetry::COMPOSITOR_ANIMATION_DURATION, mCurrentAnimationStart);
-  Telemetry::Accumulate(Telemetry::COMPOSITOR_ANIMATION_MAX_LAYER_AREA, mMaxLayerAreaAnimated);
+  Telemetry::AccumulateTimeDelta(Telemetry::COMPOSITOR_ANIMATION_DURATION,
+                                 mCurrentAnimationStart);
+  Telemetry::Accumulate(Telemetry::COMPOSITOR_ANIMATION_MAX_LAYER_AREA,
+                        mMaxLayerAreaAnimated);
   AMT_LOG("Ended animation; duration: %f ms, area: %" PRIu64 "\n",
-    (TimeStamp::Now() - mCurrentAnimationStart).ToMilliseconds(),
-    mMaxLayerAreaAnimated);
+          (TimeStamp::Now() - mCurrentAnimationStart).ToMilliseconds(),
+          mMaxLayerAreaAnimated);
 }
 
-void
-AnimationMetricsTracker::UpdateAnimationThroughput(const char* aLabel,
-                                                   bool aInProgress,
-                                                   AnimationData& aAnimation,
-                                                   TimeDuration aVsyncInterval,
-                                                   Telemetry::HistogramID aThroughputHistogram,
-                                                   Telemetry::HistogramID aMaxDropsHistogram)
-{
+void AnimationMetricsTracker::UpdateAnimationThroughput(
+    const char* aLabel, bool aInProgress, AnimationData& aAnimation,
+    TimeDuration aVsyncInterval, Telemetry::HistogramID aThroughputHistogram,
+    Telemetry::HistogramID aMaxDropsHistogram) {
   if (aInProgress && !aAnimation.mStart) {
     // the animation just started
     aAnimation.mStart = TimeStamp::Now();
@@ -108,7 +92,8 @@ AnimationMetricsTracker::UpdateAnimationThroughput(const char* aLabel,
     // the animation continues
     aAnimation.mFrameCount++;
     TimeStamp now = TimeStamp::Now();
-    aAnimation.mLongestFrame = std::max(aAnimation.mLongestFrame, now - aAnimation.mLastFrameTime);
+    aAnimation.mLongestFrame =
+        std::max(aAnimation.mLongestFrame, now - aAnimation.mLastFrameTime);
     aAnimation.mLastFrameTime = now;
   } else if (!aInProgress && aAnimation.mStart) {
     // the animation just ended
@@ -134,10 +119,11 @@ AnimationMetricsTracker::UpdateAnimationThroughput(const char* aLabel,
     // it's taken during the composition process and the amount of work done
     // between the vsync signal and the Timestamp::Now() call may vary slightly
     // from one composite to another.
-    uint32_t expectedFrameCount = std::lround(animationLength.ToMilliseconds() / vsyncIntervalMs);
+    uint32_t expectedFrameCount =
+        std::lround(animationLength.ToMilliseconds() / vsyncIntervalMs);
     AMT_LOG("Type %s ran for %fms (interval: %fms), %u frames (expected: %u)\n",
-        aLabel, animationLength.ToMilliseconds(), vsyncIntervalMs,
-        aAnimation.mFrameCount, expectedFrameCount);
+            aLabel, animationLength.ToMilliseconds(), vsyncIntervalMs,
+            aAnimation.mFrameCount, expectedFrameCount);
     if (expectedFrameCount <= 0) {
       // Graceful handling of probably impossible thing, unless the clock
       // changes while running?
@@ -148,19 +134,23 @@ AnimationMetricsTracker::UpdateAnimationThroughput(const char* aLabel,
 
     // Scale up by 1000 because telemetry takes ints, truncate intentionally
     // to avoid artificial inflation of the result.
-    uint32_t frameHitRatio = (uint32_t)(1000.0f * aAnimation.mFrameCount / expectedFrameCount);
+    uint32_t frameHitRatio =
+        (uint32_t)(1000.0f * aAnimation.mFrameCount / expectedFrameCount);
     Telemetry::Accumulate(aThroughputHistogram, frameHitRatio);
     AMT_LOG("Reported frameHitRatio %u\n", frameHitRatio);
 
     // Get the longest frame time (make sure to check the final frame as well)
-    TimeDuration longestFrame = std::max(aAnimation.mLongestFrame, now - aAnimation.mLastFrameTime);
+    TimeDuration longestFrame =
+        std::max(aAnimation.mLongestFrame, now - aAnimation.mLastFrameTime);
     // As above, we round to get the frame count. Additionally we subtract one
     // from the frame count to get the number of dropped frames.
-    uint32_t framesDropped = std::lround(longestFrame.ToMilliseconds() / vsyncIntervalMs) - 1;
-    AMT_LOG("Longest frame was %fms (%d drops)\n", longestFrame.ToMilliseconds(), framesDropped);
+    uint32_t framesDropped =
+        std::lround(longestFrame.ToMilliseconds() / vsyncIntervalMs) - 1;
+    AMT_LOG("Longest frame was %fms (%d drops)\n",
+            longestFrame.ToMilliseconds(), framesDropped);
     Telemetry::Accumulate(aMaxDropsHistogram, framesDropped);
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

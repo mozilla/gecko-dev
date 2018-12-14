@@ -20,18 +20,20 @@
 class nsISSLStatus;
 class nsIChannel;
 
-#define NS_SECURE_BROWSER_UI_CID \
-{ 0xcc75499a, 0x1dd1, 0x11b2, {0x8a, 0x82, 0xca, 0x41, 0x0a, 0xc9, 0x07, 0xb8}}
-
+#define NS_SECURE_BROWSER_UI_CID                     \
+  {                                                  \
+    0xcc75499a, 0x1dd1, 0x11b2, {                    \
+      0x8a, 0x82, 0xca, 0x41, 0x0a, 0xc9, 0x07, 0xb8 \
+    }                                                \
+  }
 
 class nsSecureBrowserUIImpl : public nsISecureBrowserUI,
                               public nsIWebProgressListener,
                               public nsSupportsWeakReference,
-                              public nsISSLStatusProvider
-{
+                              public nsISSLStatusProvider {
   friend class mozilla::ReentrancyGuard;
 
-public:
+ public:
   nsSecureBrowserUIImpl();
 
   NS_DECL_ISUPPORTS
@@ -39,8 +41,8 @@ public:
   NS_DECL_NSISECUREBROWSERUI
   NS_DECL_NSISSLSTATUSPROVIDER
 
-protected:
-  virtual ~nsSecureBrowserUIImpl() {};
+ protected:
+  virtual ~nsSecureBrowserUIImpl(){};
 
   nsWeakPtr mWindow;
   nsWeakPtr mDocShell;
@@ -71,21 +73,23 @@ protected:
   bool mRestoreSubrequests;
   bool mOnLocationChangeSeen;
 #ifdef DEBUG
-  bool mEntered; // For ReentrancyGuard.
+  bool mEntered;  // For ReentrancyGuard.
 #endif
 
-  static already_AddRefed<nsISupports> ExtractSecurityInfo(nsIRequest* aRequest);
-  nsresult MapInternalToExternalState(uint32_t* aState, lockIconState lock, bool ev);
+  static already_AddRefed<nsISupports> ExtractSecurityInfo(
+      nsIRequest* aRequest);
+  nsresult MapInternalToExternalState(uint32_t* aState, lockIconState lock,
+                                      bool ev);
   void UpdateSecurityState(nsIRequest* aRequest, bool withNewLocation,
                            bool withUpdateStatus);
   void TellTheWorld(nsIRequest* aRequest);
 
-  void EvaluateAndUpdateSecurityState(nsIRequest* aRequest, nsISupports *info,
+  void EvaluateAndUpdateSecurityState(nsIRequest* aRequest, nsISupports* info,
                                       bool withNewLocation, bool withNewSink);
   void UpdateSubrequestMembers(nsISupports* securityInfo, nsIRequest* request);
 
-  void ObtainEventSink(nsIChannel *channel,
-                       nsCOMPtr<nsISecurityEventSink> &sink);
+  void ObtainEventSink(nsIChannel* channel,
+                       nsCOMPtr<nsISecurityEventSink>& sink);
 
   nsCOMPtr<nsISSLStatus> mSSLStatus;
   nsCOMPtr<nsISupports> mCurrentToplevelSecurityInfo;
@@ -93,4 +97,4 @@ protected:
   PLDHashTable mTransferringRequests;
 };
 
-#endif // nsSecureBrowserUIImpl_h
+#endif  // nsSecureBrowserUIImpl_h

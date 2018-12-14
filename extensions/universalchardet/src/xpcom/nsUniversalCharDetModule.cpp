@@ -26,27 +26,25 @@ NS_DEFINE_NAMED_CID(NS_JA_PSMDETECTOR_CID);
 NS_DEFINE_NAMED_CID(NS_JA_STRING_PSMDETECTOR_CID);
 
 static const mozilla::Module::CIDEntry kChardetCIDs[] = {
-  { &kNS_JA_PSMDETECTOR_CID, false, nullptr, nsJAPSMDetectorConstructor },
-  { &kNS_JA_STRING_PSMDETECTOR_CID, false, nullptr, nsJAStringPSMDetectorConstructor },
-  { nullptr }
-};
+    {&kNS_JA_PSMDETECTOR_CID, false, nullptr, nsJAPSMDetectorConstructor},
+    {&kNS_JA_STRING_PSMDETECTOR_CID, false, nullptr,
+     nsJAStringPSMDetectorConstructor},
+    {nullptr}};
 
 static const mozilla::Module::ContractIDEntry kChardetContracts[] = {
-  { NS_CHARSET_DETECTOR_CONTRACTID_BASE "ja_parallel_state_machine", &kNS_JA_PSMDETECTOR_CID },
-  { NS_STRCDETECTOR_CONTRACTID_BASE "ja_parallel_state_machine", &kNS_JA_STRING_PSMDETECTOR_CID },
-  { nullptr }
-};
+    {NS_CHARSET_DETECTOR_CONTRACTID_BASE "ja_parallel_state_machine",
+     &kNS_JA_PSMDETECTOR_CID},
+    {NS_STRCDETECTOR_CONTRACTID_BASE "ja_parallel_state_machine",
+     &kNS_JA_STRING_PSMDETECTOR_CID},
+    {nullptr}};
 
 static const mozilla::Module::CategoryEntry kChardetCategories[] = {
-  { NS_CHARSET_DETECTOR_CATEGORY, "ja_parallel_state_machine", NS_CHARSET_DETECTOR_CONTRACTID_BASE "ja_parallel_state_machine" },
-  { nullptr }
-};
+    {NS_CHARSET_DETECTOR_CATEGORY, "ja_parallel_state_machine",
+     NS_CHARSET_DETECTOR_CONTRACTID_BASE "ja_parallel_state_machine"},
+    {nullptr}};
 
-static const mozilla::Module kChardetModule = {
-  mozilla::Module::kVersion,
-  kChardetCIDs,
-  kChardetContracts,
-  kChardetCategories
-};
+static const mozilla::Module kChardetModule = {mozilla::Module::kVersion,
+                                               kChardetCIDs, kChardetContracts,
+                                               kChardetCategories};
 
 NSMODULE_DEFN(nsUniversalCharDetModule) = &kChardetModule;

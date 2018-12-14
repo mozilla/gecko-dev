@@ -10,7 +10,7 @@
 #include "nscore.h"
 #include "nsID.h"
 #include "nsIFactory.h"
-#include "nsCOMPtr.h" // for already_AddRefed
+#include "nsCOMPtr.h"  // for already_AddRefed
 
 namespace mozilla {
 
@@ -20,17 +20,15 @@ namespace mozilla {
  * (cids/contractids/categoryentries) are unused for modules which are loaded
  * via a module loader.
  */
-struct Module
-{
+struct Module {
   static const unsigned int kVersion = 60;
 
   struct CIDEntry;
 
   typedef already_AddRefed<nsIFactory> (*GetFactoryProcPtr)(
-    const Module& module, const CIDEntry& entry);
+      const Module& module, const CIDEntry& entry);
 
-  typedef nsresult (*ConstructorProcPtr)(nsISupports* aOuter,
-                                         const nsIID& aIID,
+  typedef nsresult (*ConstructorProcPtr)(nsISupports* aOuter, const nsIID& aIID,
                                          void** aResult);
 
   typedef nsresult (*LoadFuncPtr)();
@@ -40,10 +38,9 @@ struct Module
    * This selector allows CIDEntrys to be marked so that they're only loaded
    * into certain kinds of processes. Selectors can be combined.
    */
-  enum ProcessSelector
-  {
-    ANY_PROCESS          = 0x0,
-    MAIN_PROCESS_ONLY    = 0x1,
+  enum ProcessSelector {
+    ANY_PROCESS = 0x0,
+    MAIN_PROCESS_ONLY = 0x1,
     CONTENT_PROCESS_ONLY = 0x2,
 
     /**
@@ -58,8 +55,7 @@ struct Module
    * The constructor callback is an implementation detail of the default binary
    * loader and may be null.
    */
-  struct CIDEntry
-  {
+  struct CIDEntry {
     const nsCID* cid;
     bool service;
     GetFactoryProcPtr getFactoryProc;
@@ -67,15 +63,13 @@ struct Module
     ProcessSelector processSelector;
   };
 
-  struct ContractIDEntry
-  {
+  struct ContractIDEntry {
     const char* contractid;
     nsID const* cid;
     ProcessSelector processSelector;
   };
 
-  struct CategoryEntry
-  {
+  struct CategoryEntry {
     const char* category;
     const char* entry;
     const char* value;
@@ -128,30 +122,34 @@ struct Module
   ProcessSelector selector;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #if defined(MOZILLA_INTERNAL_API)
-#  define NSMODULE_NAME(_name) _name##_NSModule
-#  if defined(_MSC_VER)
-#    pragma section(".kPStaticModules$M", read)
-#    pragma comment(linker, "/merge:.kPStaticModules=.rdata")
-#    define NSMODULE_SECTION __declspec(allocate(".kPStaticModules$M"), dllexport)
-#  elif defined(__GNUC__)
-#    if defined(__ELF__)
-#      define NSMODULE_SECTION __attribute__((section(".kPStaticModules"), visibility("default")))
-#    elif defined(__MACH__)
-#      define NSMODULE_SECTION __attribute__((section("__DATA, .kPStaticModules"), visibility("default")))
-#    elif defined (_WIN32)
-#      define NSMODULE_SECTION __attribute__((section(".kPStaticModules"), dllexport))
-#    endif
-#  endif
-#  if !defined(NSMODULE_SECTION)
-#    error Do not know how to define sections.
-#  endif
-#  define NSMODULE_DEFN(_name) extern NSMODULE_SECTION mozilla::Module const *const NSMODULE_NAME(_name)
+#define NSMODULE_NAME(_name) _name##_NSModule
+#if defined(_MSC_VER)
+#pragma section(".kPStaticModules$M", read)
+#pragma comment(linker, "/merge:.kPStaticModules=.rdata")
+#define NSMODULE_SECTION __declspec(allocate(".kPStaticModules$M"), dllexport)
+#elif defined(__GNUC__)
+#if defined(__ELF__)
+#define NSMODULE_SECTION \
+  __attribute__((section(".kPStaticModules"), visibility("default")))
+#elif defined(__MACH__)
+#define NSMODULE_SECTION \
+  __attribute__((section("__DATA, .kPStaticModules"), visibility("default")))
+#elif defined(_WIN32)
+#define NSMODULE_SECTION __attribute__((section(".kPStaticModules"), dllexport))
+#endif
+#endif
+#if !defined(NSMODULE_SECTION)
+#error Do not know how to define sections.
+#endif
+#define NSMODULE_DEFN(_name) \
+  extern NSMODULE_SECTION mozilla::Module const* const NSMODULE_NAME(_name)
 #else
-#  define NSMODULE_NAME(_name) NSModule
-#  define NSMODULE_DEFN(_name) extern "C" NS_EXPORT mozilla::Module const *const NSModule
+#define NSMODULE_NAME(_name) NSModule
+#define NSMODULE_DEFN(_name) \
+  extern "C" NS_EXPORT mozilla::Module const* const NSModule
 #endif
 
-#endif // mozilla_Module_h
+#endif  // mozilla_Module_h

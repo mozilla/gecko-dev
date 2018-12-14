@@ -12,11 +12,10 @@
 
 namespace mozilla {
 
-void
-CachedInheritingStyles::Insert(ServoStyleContext* aStyle)
-{
+void CachedInheritingStyles::Insert(ServoStyleContext* aStyle) {
   MOZ_ASSERT(aStyle);
-  MOZ_ASSERT(aStyle->IsInheritingAnonBox() || aStyle->IsLazilyCascadedPseudoElement());
+  MOZ_ASSERT(aStyle->IsInheritingAnonBox() ||
+             aStyle->IsLazilyCascadedPseudoElement());
 
   if (IsEmpty()) {
     RefPtr<ServoStyleContext> s = aStyle;
@@ -33,9 +32,7 @@ CachedInheritingStyles::Insert(ServoStyleContext* aStyle)
   }
 }
 
-ServoStyleContext*
-CachedInheritingStyles::Lookup(nsAtom* aPseudoTag) const
-{
+ServoStyleContext* CachedInheritingStyles::Lookup(nsAtom* aPseudoTag) const {
   MOZ_ASSERT(nsCSSAnonBoxes::IsInheritingAnonBox(aPseudoTag) ||
              nsCSSPseudoElements::IsPseudoElement(aPseudoTag));
   if (IsIndirect()) {
@@ -52,9 +49,8 @@ CachedInheritingStyles::Lookup(nsAtom* aPseudoTag) const
   return direct && direct->GetPseudo() == aPseudoTag ? direct : nullptr;
 }
 
-void
-CachedInheritingStyles::AddSizeOfIncludingThis(nsWindowSizes& aSizes, size_t* aCVsSize) const
-{
+void CachedInheritingStyles::AddSizeOfIncludingThis(nsWindowSizes& aSizes,
+                                                    size_t* aCVsSize) const {
   if (IsIndirect()) {
     for (auto& style : *AsIndirect()) {
       if (!aSizes.mState.HaveSeenPtr(style)) {
@@ -71,4 +67,4 @@ CachedInheritingStyles::AddSizeOfIncludingThis(nsWindowSizes& aSizes, size_t* aC
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

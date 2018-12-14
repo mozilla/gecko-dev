@@ -12,20 +12,16 @@
 namespace mozilla {
 namespace dom {
 
-class ChannelSplitterNodeEngine final : public AudioNodeEngine
-{
-public:
+class ChannelSplitterNodeEngine final : public AudioNodeEngine {
+ public:
   explicit ChannelSplitterNodeEngine(ChannelSplitterNode* aNode)
-    : AudioNodeEngine(aNode)
-  {
+      : AudioNodeEngine(aNode) {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
   void ProcessBlocksOnPorts(AudioNodeStream* aStream,
-                            const OutputChunks& aInput,
-                            OutputChunks& aOutput,
-                            bool* aFinished) override
-  {
+                            const OutputChunks& aInput, OutputChunks& aOutput,
+                            bool* aFinished) override {
     MOZ_ASSERT(aInput.Length() == 1, "Should only have one input port");
 
     aOutput.SetLength(OutputCount());
@@ -35,8 +31,7 @@ public:
         aOutput[i].AllocateChannels(1);
         AudioBlockCopyChannelWithScale(
             static_cast<const float*>(aInput[0].mChannelData[i]),
-            aInput[0].mVolume,
-            aOutput[i].ChannelFloatsForWrite(0));
+            aInput[0].mVolume, aOutput[i].ChannelFloatsForWrite(0));
       } else {
         // Pad with silent channels if needed
         aOutput[i].SetNull(WEBAUDIO_BLOCK_SIZE);
@@ -44,31 +39,24 @@ public:
     }
   }
 
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override
-  {
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 };
 
 ChannelSplitterNode::ChannelSplitterNode(AudioContext* aContext,
                                          uint16_t aOutputCount)
-  : AudioNode(aContext,
-              2,
-              ChannelCountMode::Max,
-              ChannelInterpretation::Speakers)
-  , mOutputCount(aOutputCount)
-{
-  mStream = AudioNodeStream::Create(aContext,
-                                    new ChannelSplitterNodeEngine(this),
-                                    AudioNodeStream::NO_STREAM_FLAGS,
-                                    aContext->Graph());
+    : AudioNode(aContext, 2, ChannelCountMode::Max,
+                ChannelInterpretation::Speakers),
+      mOutputCount(aOutputCount) {
+  mStream = AudioNodeStream::Create(
+      aContext, new ChannelSplitterNodeEngine(this),
+      AudioNodeStream::NO_STREAM_FLAGS, aContext->Graph());
 }
 
-/* static */ already_AddRefed<ChannelSplitterNode>
-ChannelSplitterNode::Create(AudioContext& aAudioContext,
-                            const ChannelSplitterOptions& aOptions,
-                            ErrorResult& aRv)
-{
+/* static */ already_AddRefed<ChannelSplitterNode> ChannelSplitterNode::Create(
+    AudioContext& aAudioContext, const ChannelSplitterOptions& aOptions,
+    ErrorResult& aRv) {
   if (aAudioContext.CheckClosed(aRv)) {
     return nullptr;
   }
@@ -80,7 +68,7 @@ ChannelSplitterNode::Create(AudioContext& aAudioContext,
   }
 
   RefPtr<ChannelSplitterNode> audioNode =
-    new ChannelSplitterNode(&aAudioContext, aOptions.mNumberOfOutputs);
+      new ChannelSplitterNode(&aAudioContext, aOptions.mNumberOfOutputs);
 
   audioNode->Initialize(aOptions, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -90,11 +78,10 @@ ChannelSplitterNode::Create(AudioContext& aAudioContext,
   return audioNode.forget();
 }
 
-JSObject*
-ChannelSplitterNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ChannelSplitterNode::WrapObject(JSContext* aCx,
+                                          JS::Handle<JSObject*> aGivenProto) {
   return ChannelSplitterNodeBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

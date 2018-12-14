@@ -16,20 +16,22 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-#define PREF_PP_ENABLED               "browser.safebrowsing.passwords.enabled"
-#define PREF_PASSWORD_ALLOW_TABLE     "urlclassifier.passwordAllowTable"
+#define PREF_PP_ENABLED "browser.safebrowsing.passwords.enabled"
+#define PREF_PASSWORD_ALLOW_TABLE "urlclassifier.passwordAllowTable"
 
 static bool sPasswordProtectionEnabled = false;
 
 // MOZ_LOG=LoginReputation:5
 LazyLogModule gLoginReputationLogModule("LoginReputation");
-#define LR_LOG(args) MOZ_LOG(gLoginReputationLogModule, mozilla::LogLevel::Debug, args)
-#define LR_LOG_ENABLED() MOZ_LOG_TEST(gLoginReputationLogModule, mozilla::LogLevel::Debug)
+#define LR_LOG(args) \
+  MOZ_LOG(gLoginReputationLogModule, mozilla::LogLevel::Debug, args)
+#define LR_LOG_ENABLED() \
+  MOZ_LOG_TEST(gLoginReputationLogModule, mozilla::LogLevel::Debug)
 
 static Atomic<bool> gShuttingDown(false);
 
 static const char* kObservedPrefs[] = {
-  PREF_PASSWORD_ALLOW_TABLE,
+    PREF_PASSWORD_ALLOW_TABLE,
 };
 
 // -------------------------------------------------------------------------
@@ -37,18 +39,14 @@ static const char* kObservedPrefs[] = {
 //
 // Concrete class for nsILoginReputationQuery to hold query parameters
 //
-class ReputationQueryParam final : public nsILoginReputationQuery
-{
-public:
+class ReputationQueryParam final : public nsILoginReputationQuery {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSILOGINREPUTATIONQUERY
 
-  explicit ReputationQueryParam(nsIURI* aURI)
-    : mURI(aURI)
-  {
-  };
+  explicit ReputationQueryParam(nsIURI* aURI) : mURI(aURI){};
 
-private:
+ private:
   ~ReputationQueryParam() = default;
 
   nsCOMPtr<nsIURI> mURI;
@@ -57,8 +55,7 @@ private:
 NS_IMPL_ISUPPORTS(ReputationQueryParam, nsILoginReputationQuery)
 
 NS_IMETHODIMP
-ReputationQueryParam::GetFormURI(nsIURI** aURI)
-{
+ReputationQueryParam::GetFormURI(nsIURI** aURI) {
   NS_IF_ADDREF(*aURI = mURI);
   return NS_OK;
 }
@@ -69,13 +66,13 @@ ReputationQueryParam::GetFormURI(nsIURI** aURI)
 // This class is a wrapper that encapsulate asynchronous callback API provided
 // by DBService into a MozPromise callback.
 //
-class LoginWhitelist final : public nsIURIClassifierCallback
-{
-public:
+class LoginWhitelist final : public nsIURIClassifierCallback {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURICLASSIFIERCALLBACK
 
-  RefPtr<ReputationPromise> QueryLoginWhitelist(nsILoginReputationQuery* aParam);
+  RefPtr<ReputationPromise> QueryLoginWhitelist(
+      nsILoginReputationQuery* aParam);
 
   LoginWhitelist() = default;
 
@@ -84,7 +81,7 @@ public:
 
   void UpdateWhitelistTables();
 
-private:
+ private:
   ~LoginWhitelist() = default;
 
   nsCString mTables;
@@ -95,17 +92,13 @@ private:
 
 NS_IMPL_ISUPPORTS(LoginWhitelist, nsIURIClassifierCallback)
 
-nsresult
-LoginWhitelist::Init()
-{
+nsresult LoginWhitelist::Init() {
   UpdateWhitelistTables();
 
   return NS_OK;
 }
 
-nsresult
-LoginWhitelist::Uninit()
-{
+nsresult LoginWhitelist::Uninit() {
   // Reject all query promise before releasing.
   for (uint8_t i = 0; i < mQueryPromises.Length(); i++) {
     mQueryPromises[i]->Reject(NS_ERROR_ABORT, __func__);
@@ -115,20 +108,17 @@ LoginWhitelist::Uninit()
   return NS_OK;
 }
 
-RefPtr<ReputationPromise>
-LoginWhitelist::QueryLoginWhitelist(nsILoginReputationQuery* aParam)
-{
+RefPtr<ReputationPromise> LoginWhitelist::QueryLoginWhitelist(
+    nsILoginReputationQuery* aParam) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsresult rv;
   UniquePtr<MozPromiseHolder<ReputationPromise>> holder =
-    MakeUnique<MozPromiseHolder<ReputationPromise>>();
+      MakeUnique<MozPromiseHolder<ReputationPromise>>();
   RefPtr<ReputationPromise> p = holder->Ensure(__func__);
 
   // Return rejected promise while there is an error.
-  auto fail = MakeScopeExit([&] () {
-    holder->Reject(rv, __func__);
-  });
+  auto fail = MakeScopeExit([&]() { holder->Reject(rv, __func__); });
 
   nsCOMPtr<nsIURI> uri;
   rv = aParam->GetFormURI(getter_AddRefs(uri));
@@ -137,7 +127,7 @@ LoginWhitelist::QueryLoginWhitelist(nsILoginReputationQuery* aParam)
   }
 
   nsCOMPtr<nsIURIClassifier> uriClassifier =
-    do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return p;
   }
@@ -154,12 +144,10 @@ LoginWhitelist::QueryLoginWhitelist(nsILoginReputationQuery* aParam)
   return p;
 }
 
-nsresult
-LoginWhitelist::OnClassifyComplete(nsresult aErrorCode,
-                                   const nsACString& aLists,
-                                   const nsACString& aProvider,
-                                   const nsACString& aFullHash)
-{
+nsresult LoginWhitelist::OnClassifyComplete(nsresult aErrorCode,
+                                            const nsACString& aLists,
+                                            const nsACString& aProvider,
+                                            const nsACString& aFullHash) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gShuttingDown) {
@@ -169,7 +157,7 @@ LoginWhitelist::OnClassifyComplete(nsresult aErrorCode,
   LR_LOG(("OnClassifyComplete : list = %s", aLists.BeginReading()));
 
   UniquePtr<MozPromiseHolder<ReputationPromise>> holder =
-    Move(mQueryPromises.ElementAt(0));
+      Move(mQueryPromises.ElementAt(0));
   mQueryPromises.RemoveElementAt(0);
 
   if (NS_FAILED(aErrorCode)) {
@@ -186,39 +174,33 @@ LoginWhitelist::OnClassifyComplete(nsresult aErrorCode,
   return NS_OK;
 }
 
-void
-LoginWhitelist::UpdateWhitelistTables()
-{
+void LoginWhitelist::UpdateWhitelistTables() {
   Preferences::GetCString(PREF_PASSWORD_ALLOW_TABLE, mTables);
 }
 
 // -------------------------------------------------------------------------
 // LoginReputationService
 //
-NS_IMPL_ISUPPORTS(LoginReputationService,
-                  nsILoginReputationService,
+NS_IMPL_ISUPPORTS(LoginReputationService, nsILoginReputationService,
                   nsIObserver)
 
-LoginReputationService*
-  LoginReputationService::gLoginReputationService = nullptr;
+LoginReputationService* LoginReputationService::gLoginReputationService =
+    nullptr;
 
 // static
 already_AddRefed<LoginReputationService>
-LoginReputationService::GetSingleton()
-{
+LoginReputationService::GetSingleton() {
   if (!gLoginReputationService) {
     gLoginReputationService = new LoginReputationService();
   }
   return do_AddRef(gLoginReputationService);
 }
 
-LoginReputationService::LoginReputationService()
-{
+LoginReputationService::LoginReputationService() {
   LR_LOG(("Login reputation service starting up"));
 }
 
-LoginReputationService::~LoginReputationService()
-{
+LoginReputationService::~LoginReputationService() {
   LR_LOG(("Login reputation service shutting down"));
 
   MOZ_ASSERT(gLoginReputationService == this);
@@ -227,24 +209,24 @@ LoginReputationService::~LoginReputationService()
 }
 
 NS_IMETHODIMP
-LoginReputationService::Init()
-{
+LoginReputationService::Init() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  Preferences::AddBoolVarCache(&sPasswordProtectionEnabled, PREF_PP_ENABLED, true);
+  Preferences::AddBoolVarCache(&sPasswordProtectionEnabled, PREF_PP_ENABLED,
+                               true);
 
   switch (XRE_GetProcessType()) {
-  case GeckoProcessType_Default:
-    LR_LOG(("Init login reputation service in parent"));
-    break;
-  case GeckoProcessType_Content:
-    LR_LOG(("Init login reputation service in child"));
-    // Login reputation service in child process will only forward request to
-    // parent, return here to skip unnecessary initialization.
-    return NS_OK;
-  default:
-    // No other process type is supported!
-    return NS_ERROR_NOT_AVAILABLE;
+    case GeckoProcessType_Default:
+      LR_LOG(("Init login reputation service in parent"));
+      break;
+    case GeckoProcessType_Content:
+      LR_LOG(("Init login reputation service in child"));
+      // Login reputation service in child process will only forward request to
+      // parent, return here to skip unnecessary initialization.
+      return NS_OK;
+    default:
+      // No other process type is supported!
+      return NS_ERROR_NOT_AVAILABLE;
   }
 
   // The initialization below only happens in parent process.
@@ -262,9 +244,7 @@ LoginReputationService::Init()
   return NS_OK;
 }
 
-nsresult
-LoginReputationService::Enable()
-{
+nsresult LoginReputationService::Enable() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(sPasswordProtectionEnabled);
 
@@ -280,9 +260,7 @@ LoginReputationService::Enable()
   return NS_OK;
 }
 
-nsresult
-LoginReputationService::Disable()
-{
+nsresult LoginReputationService::Disable() {
   MOZ_ASSERT(XRE_IsParentProcess());
 
   LR_LOG(("Disable login reputation service"));
@@ -302,9 +280,7 @@ LoginReputationService::Disable()
   return NS_OK;
 }
 
-nsresult
-LoginReputationService::Shutdown()
-{
+nsresult LoginReputationService::Shutdown() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(gShuttingDown);
@@ -321,16 +297,15 @@ LoginReputationService::Shutdown()
 
 // static
 already_AddRefed<nsILoginReputationQuery>
-LoginReputationService::ConstructQueryParam(nsIURI* aURI)
-{
+LoginReputationService::ConstructQueryParam(nsIURI* aURI) {
   RefPtr<ReputationQueryParam> param = new ReputationQueryParam(aURI);
   return param.forget();
 }
 
 NS_IMETHODIMP
-LoginReputationService::QueryReputationAsync(nsIDOMHTMLInputElement* aInput,
-                                             nsILoginReputationQueryCallback* aCallback)
-{
+LoginReputationService::QueryReputationAsync(
+    nsIDOMHTMLInputElement* aInput,
+    nsILoginReputationQueryCallback* aCallback) {
   NS_ENSURE_ARG_POINTER(aInput);
 
   LR_LOG(("QueryReputationAsync() [this=%p]", this));
@@ -361,7 +336,7 @@ LoginReputationService::QueryReputationAsync(nsIDOMHTMLInputElement* aInput,
     }
   } else {
     nsCOMPtr<nsILoginReputationQuery> query =
-      LoginReputationService::ConstructQueryParam(documentURI);
+        LoginReputationService::ConstructQueryParam(documentURI);
 
     nsresult rv = QueryReputation(query, aCallback);
     return rv;
@@ -371,9 +346,9 @@ LoginReputationService::QueryReputationAsync(nsIDOMHTMLInputElement* aInput,
 }
 
 NS_IMETHODIMP
-LoginReputationService::QueryReputation(nsILoginReputationQuery* aQuery,
-                                        nsILoginReputationQueryCallback* aCallback)
-{
+LoginReputationService::QueryReputation(
+    nsILoginReputationQuery* aQuery,
+    nsILoginReputationQueryCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ENSURE_ARG_POINTER(aQuery);
@@ -383,22 +358,21 @@ LoginReputationService::QueryReputation(nsILoginReputationQuery* aQuery,
 
   if (gShuttingDown || !sPasswordProtectionEnabled) {
     LR_LOG(("QueryReputation() abort [this=%p]", this));
-    aCallback->OnComplete(NS_ERROR_ABORT, nsILoginReputationVerdictType::UNSPECIFIED);
+    aCallback->OnComplete(NS_ERROR_ABORT,
+                          nsILoginReputationVerdictType::UNSPECIFIED);
     return NS_OK;
   }
 
-  // mQueryRequests is an array used to maintain the ownership of |QueryRequest|.
-  // We ensure that |QueryRequest| is always valid until Finish() is
-  // called or LoginReputationService is shutdown.
+  // mQueryRequests is an array used to maintain the ownership of
+  // |QueryRequest|. We ensure that |QueryRequest| is always valid until
+  // Finish() is called or LoginReputationService is shutdown.
   auto* request =
-    mQueryRequests.AppendElement(MakeUnique<QueryRequest>(aQuery, aCallback));
+      mQueryRequests.AppendElement(MakeUnique<QueryRequest>(aQuery, aCallback));
 
   return QueryLoginWhitelist(request->get());
 }
 
-nsresult
-LoginReputationService::QueryLoginWhitelist(QueryRequest* aRequest)
-{
+nsresult LoginReputationService::QueryLoginWhitelist(QueryRequest* aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ENSURE_ARG_POINTER(aRequest);
@@ -412,67 +386,71 @@ LoginReputationService::QueryLoginWhitelist(QueryRequest* aRequest)
 
   RefPtr<LoginReputationService> self = this;
 
-  mLoginWhitelist->QueryLoginWhitelist(aRequest->mParam)->Then(
-    GetCurrentThreadSerialEventTarget(), __func__,
-    [self, aRequest, startTimeMs](VerdictType aResolveValue) -> void {
-      // Promise is resolved if url is found in google-provided whitelist.
-      MOZ_ASSERT(NS_IsMainThread());
-      MOZ_ASSERT(aResolveValue == nsILoginReputationVerdictType::SAFE);
+  mLoginWhitelist->QueryLoginWhitelist(aRequest->mParam)
+      ->Then(
+          GetCurrentThreadSerialEventTarget(), __func__,
+          [self, aRequest, startTimeMs](VerdictType aResolveValue) -> void {
+            // Promise is resolved if url is found in google-provided whitelist.
+            MOZ_ASSERT(NS_IsMainThread());
+            MOZ_ASSERT(aResolveValue == nsILoginReputationVerdictType::SAFE);
 
-      LR_LOG(("Query login whitelist [request = %p, result = SAFE]",
-              aRequest));
+            LR_LOG(("Query login whitelist [request = %p, result = SAFE]",
+                    aRequest));
 
-      AccumulateTimeDelta(LOGIN_REPUTATION_LOGIN_WHITELIST_LOOKUP_TIME,
-                          startTimeMs);
+            AccumulateTimeDelta(LOGIN_REPUTATION_LOGIN_WHITELIST_LOOKUP_TIME,
+                                startTimeMs);
 
-      Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT,
-        nsILoginReputationVerdictType::SAFE);
+            Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT,
+                       nsILoginReputationVerdictType::SAFE);
 
-      self->Finish(aRequest, NS_OK, nsILoginReputationVerdictType::SAFE);
-    },
-    [self, aRequest, startTimeMs](nsresult rv) -> void {
-      // Promise is rejected if url cannot be found in google-provided whitelist.
-      // or there is an error.
-      if (NS_FAILED(rv)) {
-        if (LR_LOG_ENABLED()) {
-          nsAutoCString errorName;
-          mozilla::GetErrorName(rv, errorName);
-          LR_LOG(("Error in QueryLoginWhitelist() [request = %p, rv = %s]",
-                  aRequest, errorName.get()));
-        }
+            self->Finish(aRequest, NS_OK, nsILoginReputationVerdictType::SAFE);
+          },
+          [self, aRequest, startTimeMs](nsresult rv) -> void {
+            // Promise is rejected if url cannot be found in google-provided
+            // whitelist. or there is an error.
+            if (NS_FAILED(rv)) {
+              if (LR_LOG_ENABLED()) {
+                nsAutoCString errorName;
+                mozilla::GetErrorName(rv, errorName);
+                LR_LOG(
+                    ("Error in QueryLoginWhitelist() [request = %p, rv = %s]",
+                     aRequest, errorName.get()));
+              }
 
-        // Don't record the lookup time when there is an error, only record the
-        // result here.
-        Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT, 2); // 2 is error
-      } else {
-        AccumulateTimeDelta(LOGIN_REPUTATION_LOGIN_WHITELIST_LOOKUP_TIME,
-                            startTimeMs);
+              // Don't record the lookup time when there is an error, only
+              // record the result here.
+              Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT,
+                         2);  // 2 is error
+            } else {
+              AccumulateTimeDelta(LOGIN_REPUTATION_LOGIN_WHITELIST_LOOKUP_TIME,
+                                  startTimeMs);
 
-        Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT,
-          nsILoginReputationVerdictType::UNSPECIFIED);
+              Accumulate(LOGIN_REPUTATION_LOGIN_WHITELIST_RESULT,
+                         nsILoginReputationVerdictType::UNSPECIFIED);
 
-        LR_LOG(("Query login whitelist cannot find the URL [request = %p]",
-                aRequest));
-      }
+              LR_LOG(
+                  ("Query login whitelist cannot find the URL [request = %p]",
+                   aRequest));
+            }
 
-      // Check trust-based whitelisting if we can't find the url in login whitelist
-      self->Finish(aRequest, rv, nsILoginReputationVerdictType::UNSPECIFIED);
-    });
+            // Check trust-based whitelisting if we can't find the url in login
+            // whitelist
+            self->Finish(aRequest, rv,
+                         nsILoginReputationVerdictType::UNSPECIFIED);
+          });
 
   return NS_OK;
 }
 
-nsresult
-LoginReputationService::Finish(const QueryRequest* aRequest,
-                               nsresult aStatus,
-                               VerdictType aVerdict)
-{
+nsresult LoginReputationService::Finish(const QueryRequest* aRequest,
+                                        nsresult aStatus,
+                                        VerdictType aVerdict) {
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ENSURE_ARG_POINTER(aRequest);
 
-  LR_LOG(("Query login reputation end [request = %p, result = %s]",
-          aRequest, VerdictTypeToString(aVerdict).get()));
+  LR_LOG(("Query login reputation end [request = %p, result = %s]", aRequest,
+          VerdictTypeToString(aVerdict).get()));
 
   // Since we are shutting down, don't bother call back to child process.
   if (gShuttingDown) {
@@ -481,8 +459,9 @@ LoginReputationService::Finish(const QueryRequest* aRequest,
 
   aRequest->mCallback->OnComplete(aStatus, aVerdict);
 
-  // QueryRequest may not follow the same order when we queued it in ::QueryReputation
-  // because one query request may be finished earlier than the other.
+  // QueryRequest may not follow the same order when we queued it in
+  // ::QueryReputation because one query request may be finished earlier than
+  // the other.
   uint32_t idx = 0;
   for (; idx < mQueryRequests.Length(); idx++) {
     if (mQueryRequests[idx].get() == aRequest) {
@@ -498,12 +477,9 @@ LoginReputationService::Finish(const QueryRequest* aRequest,
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-LoginReputationService::Observe(nsISupports *aSubject,
-                                const char *aTopic,
-                                const char16_t *aData)
-{
+LoginReputationService::Observe(nsISupports* aSubject, const char* aTopic,
+                                const char16_t* aData) {
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     nsDependentString data(aData);
 
@@ -528,10 +504,8 @@ LoginReputationService::Observe(nsISupports *aSubject,
 }
 
 // static
-nsCString
-LoginReputationService::VerdictTypeToString(VerdictType aVerdict)
-{
-  switch(aVerdict) {
+nsCString LoginReputationService::VerdictTypeToString(VerdictType aVerdict) {
+  switch (aVerdict) {
     case nsILoginReputationVerdictType::UNSPECIFIED:
       return nsCString("Unspecified");
     case nsILoginReputationVerdictType::LOW_REPUTATION:

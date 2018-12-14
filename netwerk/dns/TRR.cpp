@@ -36,15 +36,16 @@ namespace net {
 #undef LOG
 extern mozilla::LazyLogModule gHostResolverLog;
 #define LOG(args) MOZ_LOG(gHostResolverLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(mozilla::net::gHostResolverLog, mozilla::LogLevel::Debug)
+#define LOG_ENABLED() \
+  MOZ_LOG_TEST(mozilla::net::gHostResolverLog, mozilla::LogLevel::Debug)
 
-NS_IMPL_ISUPPORTS(TRR, nsIHttpPushListener, nsIInterfaceRequestor, nsIStreamListener, nsIRunnable)
+NS_IMPL_ISUPPORTS(TRR, nsIHttpPushListener, nsIInterfaceRequestor,
+                  nsIStreamListener, nsIRunnable)
 
 const uint8_t kDNS_CLASS_IN = 1;
 
 NS_IMETHODIMP
-TRR::Notify(nsITimer *aTimer)
-{
+TRR::Notify(nsITimer *aTimer) {
   if (aTimer == mTimeout) {
     mTimeout = nullptr;
     Cancel();
@@ -57,23 +58,21 @@ TRR::Notify(nsITimer *aTimer)
 
 // convert a given host request to a DOH 'body'
 //
-nsresult
-TRR::DohEncode(nsCString &aBody)
-{
+nsresult TRR::DohEncode(nsCString &aBody) {
   aBody.Truncate();
   // Header
   aBody += '\0';
-  aBody += '\0'; // 16 bit id
-  aBody += 0x01; // |QR|   Opcode  |AA|TC|RD| Set the RD bit
-  aBody += '\0'; // |RA|   Z    |   RCODE   |
+  aBody += '\0';  // 16 bit id
+  aBody += 0x01;  // |QR|   Opcode  |AA|TC|RD| Set the RD bit
+  aBody += '\0';  // |RA|   Z    |   RCODE   |
   aBody += '\0';
-  aBody += 1;    // QDCOUNT (number of entries in the question section)
+  aBody += 1;  // QDCOUNT (number of entries in the question section)
   aBody += '\0';
-  aBody += '\0'; // ANCOUNT
+  aBody += '\0';  // ANCOUNT
   aBody += '\0';
-  aBody += '\0'; // NSCOUNT
+  aBody += '\0';  // NSCOUNT
   aBody += '\0';
-  aBody += '\0'; // ARCOUNT
+  aBody += '\0';  // ARCOUNT
 
   // Question
 
@@ -102,24 +101,23 @@ TRR::DohEncode(nsCString &aBody)
     aBody += static_cast<unsigned char>(labelLength);
     nsDependentCSubstring label = Substring(mHost, offset, labelLength);
     aBody.Append(label);
-    if(!dotFound) {
-      aBody += '\0'; // terminate with a final zero
+    if (!dotFound) {
+      aBody += '\0';  // terminate with a final zero
       break;
     }
-    offset += labelLength + 1; // move over label and dot
-  } while(1);
+    offset += labelLength + 1;  // move over label and dot
+  } while (1);
 
-  aBody += '\0'; // upper 8 bit TYPE
+  aBody += '\0';  // upper 8 bit TYPE
   aBody += static_cast<uint8_t>(mType);
-  aBody += '\0'; // upper 8 bit CLASS
+  aBody += '\0';           // upper 8 bit CLASS
   aBody += kDNS_CLASS_IN;  // IN - "the Internet"
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TRR::Run()
-{
+TRR::Run() {
   MOZ_ASSERT(NS_IsMainThread());
   if ((gTRRService == nullptr) || NS_FAILED(SendHTTPRequest())) {
     FailData();
@@ -128,13 +126,12 @@ TRR::Run()
   return NS_OK;
 }
 
-nsresult
-TRR::SendHTTPRequest()
-{
+nsresult TRR::SendHTTPRequest() {
   // This is essentially the "run" method - created from nsHostResolver
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 
-  if ((mType != TRRTYPE_A) && (mType != TRRTYPE_AAAA) && (mType != TRRTYPE_NS)) {
+  if ((mType != TRRTYPE_A) && (mType != TRRTYPE_AAAA) &&
+      (mType != TRRTYPE_NS)) {
     // limit the calling interface because nsHostResolver has explicit slots for
     // these types
     return NS_ERROR_FAILURE;
@@ -157,7 +154,8 @@ TRR::SendHTTPRequest()
 
     /* For GET requests, the outgoing packet needs to be Base64url-encoded and
        then appended to the end of the URI. */
-    rv = Base64URLEncode(tmp.Length(), reinterpret_cast<const unsigned char *>(tmp.get()),
+    rv = Base64URLEncode(tmp.Length(),
+                         reinterpret_cast<const unsigned char *>(tmp.get()),
                          Base64URLEncodePaddingPolicy::Omit, body);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -179,15 +177,13 @@ TRR::SendHTTPRequest()
     return rv;
   }
 
-  rv = NS_NewChannel(getter_AddRefs(mChannel),
-                     dnsURI,
+  rv = NS_NewChannel(getter_AddRefs(mChannel), dnsURI,
                      nsContentUtils::GetSystemPrincipal(),
                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                      nsIContentPolicy::TYPE_OTHER,
-                     nullptr,   // PerformanceStorage
-                     nullptr, // aLoadGroup
-                     this,
-                     nsIRequest::LOAD_ANONYMOUS, ios);
+                     nullptr,  // PerformanceStorage
+                     nullptr,  // aLoadGroup
+                     this, nsIRequest::LOAD_ANONYMOUS, ios);
   if (NS_FAILED(rv)) {
     LOG(("TRR:SendHTTPRequest: NewChannel failed!\n"));
     return rv;
@@ -198,25 +194,27 @@ TRR::SendHTTPRequest()
     return NS_ERROR_UNEXPECTED;
   }
 
-  rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
-                                     NS_LITERAL_CSTRING("application/dns-udpwireformat"),
-                                     false);
+  rv = httpChannel->SetRequestHeader(
+      NS_LITERAL_CSTRING("Accept"),
+      NS_LITERAL_CSTRING("application/dns-udpwireformat"), false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString cred;
   gTRRService->GetCredentials(cred);
-  if (!cred.IsEmpty()){
-    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Authorization"), cred, false);
+  if (!cred.IsEmpty()) {
+    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Authorization"),
+                                       cred, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(mChannel);
+  nsCOMPtr<nsIHttpChannelInternal> internalChannel =
+      do_QueryInterface(mChannel);
   if (!internalChannel) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  // setting a small stream window means the h2 stack won't pipeline a window update
-  // with each HEADERS or reply to a DATA with a WINDOW UPDATE
+  // setting a small stream window means the h2 stack won't pipeline a window
+  // update with each HEADERS or reply to a DATA with a WINDOW UPDATE
   rv = internalChannel->SetInitialRwin(127 * 1024);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = internalChannel->SetTrr(true);
@@ -239,20 +237,20 @@ TRR::SendHTTPRequest()
     rv = NS_NewCStringInputStream(getter_AddRefs(uploadStream), body);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = uploadChannel->ExplicitSetUploadStream(uploadStream,
-                                                NS_LITERAL_CSTRING("application/dns-udpwireformat"),
-                                                body.Length(),
-                                                NS_LITERAL_CSTRING("POST"), false);
+    rv = uploadChannel->ExplicitSetUploadStream(
+        uploadStream, NS_LITERAL_CSTRING("application/dns-udpwireformat"),
+        body.Length(), NS_LITERAL_CSTRING("POST"), false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   // set the *default* response content type
-  if (NS_FAILED(httpChannel->SetContentType(NS_LITERAL_CSTRING("application/dns-udpwireformat")))) {
+  if (NS_FAILED(httpChannel->SetContentType(
+          NS_LITERAL_CSTRING("application/dns-udpwireformat")))) {
     LOG(("TRR::SendHTTPRequest: couldn't set content-type!\n"));
   }
   if (NS_SUCCEEDED(httpChannel->AsyncOpen2(this))) {
-    NS_NewTimerWithCallback(getter_AddRefs(mTimeout),
-                            this, gTRRService->GetRequestTimeout(),
+    NS_NewTimerWithCallback(getter_AddRefs(mTimeout), this,
+                            gTRRService->GetRequestTimeout(),
                             nsITimer::TYPE_ONE_SHOT);
     return NS_OK;
   }
@@ -261,8 +259,7 @@ TRR::SendHTTPRequest()
 }
 
 NS_IMETHODIMP
-TRR::GetInterface(const nsIID &iid, void **result)
-{
+TRR::GetInterface(const nsIID &iid, void **result) {
   if (!iid.Equals(NS_GET_IID(nsIHttpPushListener))) {
     return NS_ERROR_NO_INTERFACE;
   }
@@ -272,9 +269,8 @@ TRR::GetInterface(const nsIID &iid, void **result)
   return NS_OK;
 }
 
-nsresult
-TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
-{
+nsresult TRR::DohDecodeQuery(const nsCString &query, nsCString &host,
+                             enum TrrType &type) {
   FallibleTArray<uint8_t> binary;
   bool found_dns = false;
   LOG(("TRR::DohDecodeQuery %s!\n", query.get()));
@@ -283,7 +279,7 @@ TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
   nsCCharSeparatedTokenizer tokenizer(query, '&');
   nsAutoCString data;
   while (tokenizer.hasMoreTokens()) {
-    const nsACString& token = tokenizer.nextToken();
+    const nsACString &token = tokenizer.nextToken();
     nsDependentCSubstring dns = Substring(token, 0, 4);
     nsAutoCString check(dns);
     if (check.Equals("dns=")) {
@@ -298,8 +294,8 @@ TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  nsresult rv = Base64URLDecode(data,
-                                Base64URLDecodePaddingPolicy::Ignore, binary);
+  nsresult rv =
+      Base64URLDecode(data, Base64URLDecodePaddingPolicy::Ignore, binary);
   NS_ENSURE_SUCCESS(rv, rv);
   uint32_t avail = binary.Length();
   if (avail < 12) {
@@ -332,7 +328,7 @@ TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
       }
       host.Append((const char *)(&binary[0]) + index + 1, length);
     }
-    index += 1 + length; // skip length byte + label
+    index += 1 + length;  // skip length byte + label
   } while (length);
 
   LOG(("TRR::DohDecodeQuery host %s\n", host.get()));
@@ -343,7 +339,7 @@ TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
   uint16_t i16 = 0;
   i16 += binary[index] << 8;
   i16 += binary[index + 1];
-  index += 4; // skip question's type, class
+  index += 4;  // skip question's type, class
   type = (enum TrrType)i16;
 
   LOG(("TRR::DohDecodeQuery type %d\n", (int)type));
@@ -351,9 +347,7 @@ TRR::DohDecodeQuery(const nsCString &query, nsCString &host, enum TrrType &type)
   return NS_OK;
 }
 
-nsresult
-TRR::ReceivePush(nsIHttpChannel *pushed, nsHostRecord *pushedRec)
-{
+nsresult TRR::ReceivePush(nsIHttpChannel *pushed, nsHostRecord *pushedRec) {
   if (!mHostResolver) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -369,18 +363,17 @@ TRR::ReceivePush(nsIHttpChannel *pushed, nsHostRecord *pushedRec)
 
   PRNetAddr tempAddr;
   if (NS_FAILED(DohDecodeQuery(query, mHost, mType)) ||
-      (PR_StringToNetAddr(mHost.get(), &tempAddr) == PR_SUCCESS)) { // literal
+      (PR_StringToNetAddr(mHost.get(), &tempAddr) == PR_SUCCESS)) {  // literal
     LOG(("TRR::ReceivePush failed to decode %s\n", mHost.get()));
     return NS_ERROR_UNEXPECTED;
   }
 
   RefPtr<nsHostRecord> hostRecord;
   nsresult rv;
-  rv = mHostResolver->GetHostRecord(mHost.get(),
-                                    pushedRec->flags, pushedRec->af,
-                                    pushedRec->pb, pushedRec->netInterface,
-                                    pushedRec->originSuffix,
-                                    getter_AddRefs(hostRecord));
+  rv = mHostResolver->GetHostRecord(
+      mHost.get(), pushedRec->flags, pushedRec->af, pushedRec->pb,
+      pushedRec->netInterface, pushedRec->originSuffix,
+      getter_AddRefs(hostRecord));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -403,8 +396,7 @@ TRR::ReceivePush(nsIHttpChannel *pushed, nsHostRecord *pushedRec)
 }
 
 NS_IMETHODIMP
-TRR::OnPush(nsIHttpChannel *associated, nsIHttpChannel *pushed)
-{
+TRR::OnPush(nsIHttpChannel *associated, nsIHttpChannel *pushed) {
   LOG(("TRR::OnPush entry\n"));
   MOZ_ASSERT(associated == mChannel);
   if (!mRec) {
@@ -416,31 +408,25 @@ TRR::OnPush(nsIHttpChannel *associated, nsIHttpChannel *pushed)
 }
 
 NS_IMETHODIMP
-TRR::OnStartRequest(nsIRequest *aRequest,
-                    nsISupports *aContext)
-{
+TRR::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext) {
   LOG(("TRR::OnStartRequest %p %s %d\n", this, mHost.get(), mType));
   mStartTime = TimeStamp::Now();
   return NS_OK;
 }
 
-static uint16_t get16bit(unsigned char *aData, int index)
-{
+static uint16_t get16bit(unsigned char *aData, int index) {
   return ((aData[index] << 8) | aData[index + 1]);
 }
 
-static uint32_t get32bit(unsigned char *aData, int index)
-{
-  return (aData[index] << 24) | (aData[index+1] << 16) |
-    (aData[index+2] << 8) | aData[index+3];
+static uint32_t get32bit(unsigned char *aData, int index) {
+  return (aData[index] << 24) | (aData[index + 1] << 16) |
+         (aData[index + 2] << 8) | aData[index + 3];
 }
 
 //
 // DohDecode() collects the TTL and the IP addresses in the response
 //
-nsresult
-TRR::DohDecode()
-{
+nsresult TRR::DohDecode() {
   // The response has a 12 byte header followed by the question (returned)
   // and then the answer. The answer section itself contains the name, type
   // and class again and THEN the record data.
@@ -472,7 +458,7 @@ TRR::DohDecode()
     return NS_ERROR_FAILURE;
   }
 
-  uint16_t questionRecords = get16bit(mResponse, 4); // qdcount
+  uint16_t questionRecords = get16bit(mResponse, 4);  // qdcount
   // iterate over the single(?) host name in question
   while (questionRecords) {
     do {
@@ -489,12 +475,12 @@ TRR::DohDecode()
         }
         host.Append(((char *)mResponse) + index + 1, length);
       }
-      index += 1 + length; // skip length byte + label
+      index += 1 + length;  // skip length byte + label
     } while (length);
     if (mBodySize < (index + 4)) {
       return NS_ERROR_ILLEGAL_VALUE;
     }
-    index += 4; // skip question's type, class
+    index += 4;  // skip question's type, class
     questionRecords--;
   }
 
@@ -541,11 +527,10 @@ TRR::DohDecode()
     }
     uint16_t TYPE = get16bit(mResponse, index);
 
-    if ((TYPE != TRRTYPE_CNAME) &&
-        (TYPE != static_cast<uint16_t>(mType))) {
+    if ((TYPE != TRRTYPE_CNAME) && (TYPE != static_cast<uint16_t>(mType))) {
       // Not the same type as was asked for nor CNAME
-      LOG(("TRR: Dohdecode:%d asked for type %d got %d\n", __LINE__,
-           mType, TYPE));
+      LOG(("TRR: Dohdecode:%d asked for type %d got %d\n", __LINE__, mType,
+           TYPE));
       return NS_ERROR_UNEXPECTED;
     }
     index += 2;
@@ -590,88 +575,87 @@ TRR::DohDecode()
     // - NS (TYPE 2): N bytes
 
     nsresult rv;
-    switch(TYPE) {
-    case TRRTYPE_A:
-      if (RDLENGTH != 4) {
-        LOG(("TRR bad length for A (%u)\n", RDLENGTH));
-        return NS_ERROR_UNEXPECTED;
-      }
-      rv = mDNS.Add(TTL, mResponse, index, RDLENGTH,
-                    mAllowRFC1918);
-      if (NS_FAILED(rv)) {
-        LOG(("TRR:DohDecode failed: local IP addresses or unknown IP family\n"));
-        return rv;
-      }
-      break;
-    case TRRTYPE_AAAA:
-      if (RDLENGTH != 16) {
-        LOG(("TRR bad length for AAAA (%u)\n", RDLENGTH));
-        return NS_ERROR_UNEXPECTED;
-      }
-      rv = mDNS.Add(TTL, mResponse, index, RDLENGTH,
-                    mAllowRFC1918);
-      if (NS_FAILED(rv)) {
-        LOG(("TRR got unique/local IPv6 address!\n"));
-        return rv;
-      }
-      break;
+    switch (TYPE) {
+      case TRRTYPE_A:
+        if (RDLENGTH != 4) {
+          LOG(("TRR bad length for A (%u)\n", RDLENGTH));
+          return NS_ERROR_UNEXPECTED;
+        }
+        rv = mDNS.Add(TTL, mResponse, index, RDLENGTH, mAllowRFC1918);
+        if (NS_FAILED(rv)) {
+          LOG(
+              ("TRR:DohDecode failed: local IP addresses or unknown IP "
+               "family\n"));
+          return rv;
+        }
+        break;
+      case TRRTYPE_AAAA:
+        if (RDLENGTH != 16) {
+          LOG(("TRR bad length for AAAA (%u)\n", RDLENGTH));
+          return NS_ERROR_UNEXPECTED;
+        }
+        rv = mDNS.Add(TTL, mResponse, index, RDLENGTH, mAllowRFC1918);
+        if (NS_FAILED(rv)) {
+          LOG(("TRR got unique/local IPv6 address!\n"));
+          return rv;
+        }
+        break;
 
-    case TRRTYPE_NS:
-      break;
-    case TRRTYPE_CNAME:
-      if (mCname.IsEmpty()) {
-        uint8_t clength = 0;
-        unsigned int cindex = index;
-        do {
-          if (cindex >= mBodySize) {
-            LOG(("TRR: bad cname packet\n"));
-            return NS_ERROR_ILLEGAL_VALUE;
-          }
-          clength = static_cast<uint8_t>(mResponse[cindex]);
-          if ((clength & 0xc0) == 0xc0) {
-            // name pointer, get the new offset (14 bits)
-            if ((cindex +1) >= mBodySize) {
+      case TRRTYPE_NS:
+        break;
+      case TRRTYPE_CNAME:
+        if (mCname.IsEmpty()) {
+          uint8_t clength = 0;
+          unsigned int cindex = index;
+          do {
+            if (cindex >= mBodySize) {
+              LOG(("TRR: bad cname packet\n"));
               return NS_ERROR_ILLEGAL_VALUE;
             }
-            // extract the new index position for the next label
-            uint16_t newpos = (clength & 0x3f) << 8 | mResponse[cindex+1];
-            cindex = newpos;
-            continue;
-          } else if (clength & 0xc0) {
-            // any of those bits set individually is an error
-            LOG(("TRR: bad cname packet\n"));
-            return NS_ERROR_ILLEGAL_VALUE;
-          } else {
-            cindex++;
-          }
-          if (clength) {
-            if (!mCname.IsEmpty()) {
-              mCname.Append(".");
-            }
-            if ((cindex + clength) > mBodySize) {
+            clength = static_cast<uint8_t>(mResponse[cindex]);
+            if ((clength & 0xc0) == 0xc0) {
+              // name pointer, get the new offset (14 bits)
+              if ((cindex + 1) >= mBodySize) {
+                return NS_ERROR_ILLEGAL_VALUE;
+              }
+              // extract the new index position for the next label
+              uint16_t newpos = (clength & 0x3f) << 8 | mResponse[cindex + 1];
+              cindex = newpos;
+              continue;
+            } else if (clength & 0xc0) {
+              // any of those bits set individually is an error
+              LOG(("TRR: bad cname packet\n"));
               return NS_ERROR_ILLEGAL_VALUE;
+            } else {
+              cindex++;
             }
-            mCname.Append((const char *)(&mResponse[cindex]), clength);
-            cindex += clength; // skip label
-          }
-        } while (clength);
+            if (clength) {
+              if (!mCname.IsEmpty()) {
+                mCname.Append(".");
+              }
+              if ((cindex + clength) > mBodySize) {
+                return NS_ERROR_ILLEGAL_VALUE;
+              }
+              mCname.Append((const char *)(&mResponse[cindex]), clength);
+              cindex += clength;  // skip label
+            }
+          } while (clength);
 
-        LOG(("TRR::DohDecode CNAME host %s => %s\n",
-             host.get(), mCname.get()));
-      }
-      else {
-        LOG(("TRR::DohDecode CNAME - ignoring another entry\n"));
-      }
-      break;
-    default:
-      // skip unknown record types
-      LOG(("TRR unsupported TYPE (%u) RDLENGTH %u\n", TYPE, RDLENGTH));
-      break;
+          LOG(("TRR::DohDecode CNAME host %s => %s\n", host.get(),
+               mCname.get()));
+        } else {
+          LOG(("TRR::DohDecode CNAME - ignoring another entry\n"));
+        }
+        break;
+      default:
+        // skip unknown record types
+        LOG(("TRR unsupported TYPE (%u) RDLENGTH %u\n", TYPE, RDLENGTH));
+        break;
     }
 
     index += RDLENGTH;
-    LOG(("done with record type %u len %u index now %u of %u\n",
-         TYPE, RDLENGTH, index, mBodySize));
+    LOG(("done with record type %u len %u index now %u of %u\n", TYPE, RDLENGTH,
+         index, mBodySize));
     answerRecords--;
   }
 
@@ -711,9 +695,9 @@ TRR::DohDecode()
     if (mBodySize < (index + 8)) {
       return NS_ERROR_ILLEGAL_VALUE;
     }
-    index += 2; // type
-    index += 2; // class
-    index += 4; // ttl
+    index += 2;  // type
+    index += 2;  // class
+    index += 4;  // ttl
 
     // 16 bit RDLENGTH
     if (mBodySize < (index + 2)) {
@@ -766,9 +750,9 @@ TRR::DohDecode()
     if (mBodySize < (index + 8)) {
       return NS_ERROR_ILLEGAL_VALUE;
     }
-    index += 2; // type
-    index += 2; // class
-    index += 4; // ttl
+    index += 2;  // type
+    index += 2;  // class
+    index += 4;  // ttl
 
     // 16 bit RDLENGTH
     if (mBodySize < (index + 2)) {
@@ -800,14 +784,12 @@ TRR::DohDecode()
   return NS_OK;
 }
 
-nsresult
-TRR::ReturnData()
-{
+nsresult TRR::ReturnData() {
   // create and populate an AddrInfo instance to pass on
   nsAutoPtr<AddrInfo> ai(new AddrInfo(mHost.get(), mType));
   DOHaddr *item;
   uint32_t ttl = AddrInfo::NO_TTL_DATA;
-  while ((item = static_cast<DOHaddr*>(mDNS.mAddresses.popFirst()))) {
+  while ((item = static_cast<DOHaddr *>(mDNS.mAddresses.popFirst()))) {
     PRNetAddr prAddr;
     NetAddrToPRNetAddr(&item->mNet, &prAddr);
     auto *addrElement = new NetAddrElement(&prAddr);
@@ -829,9 +811,7 @@ TRR::ReturnData()
   return NS_OK;
 }
 
-nsresult
-TRR::FailData()
-{
+nsresult TRR::FailData() {
   if (!mHostResolver) {
     return NS_ERROR_FAILURE;
   }
@@ -845,9 +825,7 @@ TRR::FailData()
   return NS_OK;
 }
 
-nsresult
-TRR::On200Response()
-{
+nsresult TRR::On200Response() {
   // decode body and create an AddrInfo struct for the response
   nsresult rv = DohDecode();
 
@@ -855,11 +833,11 @@ TRR::On200Response()
     if (!mCname.IsEmpty()) {
       if (!--mCnameLoop) {
         LOG(("TRR::On200Response CNAME loop, eject!\n"));
-      } else  {
-        LOG(("TRR::On200Response CNAME %s => %s (%u)\n", mHost.get(), mCname.get(),
-             mCnameLoop));
-        RefPtr<TRR> trr = new TRR(mHostResolver, mRec, mCname,
-                                  mType, mCnameLoop, mPB);
+      } else {
+        LOG(("TRR::On200Response CNAME %s => %s (%u)\n", mHost.get(),
+             mCname.get(), mCnameLoop));
+        RefPtr<TRR> trr =
+            new TRR(mHostResolver, mRec, mCname, mType, mCnameLoop, mPB);
         rv = NS_DispatchToMainThread(trr);
         if (NS_SUCCEEDED(rv)) {
           return rv;
@@ -876,15 +854,12 @@ TRR::On200Response()
   return NS_ERROR_FAILURE;
 }
 
-
 NS_IMETHODIMP
-TRR::OnStopRequest(nsIRequest *aRequest,
-                   nsISupports *aContext,
-                   nsresult aStatusCode)
-{
+TRR::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
+                   nsresult aStatusCode) {
   // The dtor will be run after the function returns
-  LOG(("TRR:OnStopRequest %p %s %d failed=%d code=%X\n",
-       this, mHost.get(), mType, mFailed, (unsigned int)aStatusCode));
+  LOG(("TRR:OnStopRequest %p %s %d failed=%d code=%X\n", this, mHost.get(),
+       mType, mFailed, (unsigned int)aStatusCode));
   nsCOMPtr<nsIChannel> channel;
   channel.swap(mChannel);
 
@@ -899,7 +874,8 @@ TRR::OnStopRequest(nsIRequest *aRequest,
     httpChannel->GetContentType(contentType);
     if (contentType.Length() &&
         !contentType.LowerCaseEqualsLiteral("application/dns-udpwireformat")) {
-      // try and parse missing content-types, but otherwise require udpwireformat
+      // try and parse missing content-types, but otherwise require
+      // udpwireformat
       LOG(("TRR:OnStopRequest %p %s %d should fail due to content type %s\n",
            this, mHost.get(), mType, contentType.get()));
       FailData();
@@ -914,41 +890,39 @@ TRR::OnStopRequest(nsIRequest *aRequest,
         return rv;
       }
     } else {
-      LOG(("TRR:OnStopRequest:%d %p rv %x httpStatus %d\n", __LINE__,
-           this, (int)rv, httpStatus));
+      LOG(("TRR:OnStopRequest:%d %p rv %x httpStatus %d\n", __LINE__, this,
+           (int)rv, httpStatus));
     }
   }
 
-  LOG(("TRR:OnStopRequest %p status %x mFailed %d\n",
-       this, (int)aStatusCode, mFailed));
+  LOG(("TRR:OnStopRequest %p status %x mFailed %d\n", this, (int)aStatusCode,
+       mFailed));
   FailData();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TRR::OnDataAvailable(nsIRequest *aRequest,
-                     nsISupports *aContext,
-                     nsIInputStream *aInputStream,
-                     uint64_t aOffset,
-                     const uint32_t aCount)
-{
-  LOG(("TRR:OnDataAvailable %p %s %d failed=%d aCount=%u\n",
-       this, mHost.get(), mType, mFailed, (unsigned int)aCount));
+TRR::OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext,
+                     nsIInputStream *aInputStream, uint64_t aOffset,
+                     const uint32_t aCount) {
+  LOG(("TRR:OnDataAvailable %p %s %d failed=%d aCount=%u\n", this, mHost.get(),
+       mType, mFailed, (unsigned int)aCount));
   // receive DNS response into the local buffer
   if (mFailed) {
     return NS_ERROR_FAILURE;
   }
 
   if (aCount + mBodySize > kMaxSize) {
-    LOG(("TRR::OnDataAvailable:%d fail\n",  __LINE__));
+    LOG(("TRR::OnDataAvailable:%d fail\n", __LINE__));
     mFailed = true;
     return NS_ERROR_FAILURE;
   }
 
   uint32_t count;
-  nsresult rv = aInputStream->Read((char *)mResponse + mBodySize, aCount, &count);
+  nsresult rv =
+      aInputStream->Read((char *)mResponse + mBodySize, aCount, &count);
   if (NS_FAILED(rv)) {
-    LOG(("TRR::OnDataAvailable:%d fail\n",  __LINE__));
+    LOG(("TRR::OnDataAvailable:%d fail\n", __LINE__));
     mFailed = true;
     return rv;
   }
@@ -957,24 +931,22 @@ TRR::OnDataAvailable(nsIRequest *aRequest,
   return NS_OK;
 }
 
-nsresult
-DOHresp::Add(uint32_t TTL, unsigned char *dns, int index, uint16_t len,
-             bool aLocalAllowed)
-{
+nsresult DOHresp::Add(uint32_t TTL, unsigned char *dns, int index, uint16_t len,
+                      bool aLocalAllowed) {
   nsAutoPtr<DOHaddr> doh(new DOHaddr);
   NetAddr *addr = &doh->mNet;
   if (4 == len) {
     // IPv4
     addr->inet.family = AF_INET;
-    addr->inet.port = 0; // unknown
+    addr->inet.port = 0;  // unknown
     addr->inet.ip = ntohl(get32bit(dns, index));
   } else if (16 == len) {
     // IPv6
     addr->inet6.family = AF_INET6;
-    addr->inet6.port = 0;     // unknown
-    addr->inet6.flowinfo = 0; // unknown
-    addr->inet6.scope_id = 0; // unknown
-    for(int i = 0; i < 16; i++, index++) {
+    addr->inet6.port = 0;      // unknown
+    addr->inet6.flowinfo = 0;  // unknown
+    addr->inet6.scope_id = 0;  // unknown
+    for (int i = 0; i < 16; i++, index++) {
       addr->inet6.ip.u8[i] = dns[index];
     }
   } else {
@@ -995,35 +967,28 @@ DOHresp::Add(uint32_t TTL, unsigned char *dns, int index, uint16_t len,
   return NS_OK;
 }
 
-class ProxyCancel : public Runnable
-{
-public:
-  explicit ProxyCancel(TRR *aTRR)
-    : Runnable("proxyTrrCancel")
-    , mTRR(aTRR)
-  { }
+class ProxyCancel : public Runnable {
+ public:
+  explicit ProxyCancel(TRR *aTRR) : Runnable("proxyTrrCancel"), mTRR(aTRR) {}
 
-  NS_IMETHOD Run() override
-  {
+  NS_IMETHOD Run() override {
     mTRR->Cancel();
     mTRR = nullptr;
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<TRR> mTRR;
 };
 
-void
-TRR::Cancel()
-{
+void TRR::Cancel() {
   if (!NS_IsMainThread()) {
     NS_DispatchToMainThread(new ProxyCancel(this));
     return;
   }
   if (mChannel) {
-    LOG(("TRR: %p canceling Channel %p %s %d\n", this,
-         mChannel.get(), mHost.get(), mType));
+    LOG(("TRR: %p canceling Channel %p %s %d\n", this, mChannel.get(),
+         mHost.get(), mType));
     mChannel->Cancel(NS_ERROR_ABORT);
   }
 }
@@ -1032,4 +997,4 @@ TRR::Cancel()
 
 // namespace
 }
-}
+}  // namespace mozilla

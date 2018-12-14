@@ -17,36 +17,29 @@ NS_IMPL_ISUPPORTS(nsRedirectHistoryEntry, nsIRedirectHistoryEntry)
 nsRedirectHistoryEntry::nsRedirectHistoryEntry(nsIPrincipal* aPrincipal,
                                                nsIURI* aReferrer,
                                                const nsACString& aRemoteAddress)
-  : mPrincipal(aPrincipal)
-  , mReferrer(aReferrer)
-  , mRemoteAddress(aRemoteAddress)
-{
-}
+    : mPrincipal(aPrincipal),
+      mReferrer(aReferrer),
+      mRemoteAddress(aRemoteAddress) {}
 
-nsRedirectHistoryEntry::~nsRedirectHistoryEntry()
-{
-}
+nsRedirectHistoryEntry::~nsRedirectHistoryEntry() {}
 
 NS_IMETHODIMP
-nsRedirectHistoryEntry::GetRemoteAddress(nsACString &result)
-{
+nsRedirectHistoryEntry::GetRemoteAddress(nsACString& result) {
   result = mRemoteAddress;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsRedirectHistoryEntry::GetReferrerURI(nsIURI** referrer)
-{
+nsRedirectHistoryEntry::GetReferrerURI(nsIURI** referrer) {
   NS_IF_ADDREF(*referrer = mReferrer);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsRedirectHistoryEntry::GetPrincipal(nsIPrincipal** principal)
-{
+nsRedirectHistoryEntry::GetPrincipal(nsIPrincipal** principal) {
   NS_IF_ADDREF(*principal = mPrincipal);
   return NS_OK;
 }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

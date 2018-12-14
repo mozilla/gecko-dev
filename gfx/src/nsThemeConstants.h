@@ -310,4 +310,4 @@ enum ThemeWidgetType : uint8_t {
   ThemeWidgetType_COUNT
 };
 
-#endif // nsThemeConstants_h_
+#endif  // nsThemeConstants_h_

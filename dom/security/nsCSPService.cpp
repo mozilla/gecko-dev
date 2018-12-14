@@ -28,24 +28,18 @@ bool CSPService::sCSPEnabled = true;
 
 static LazyLogModule gCspPRLog("CSP");
 
-CSPService::CSPService()
-{
+CSPService::CSPService() {
   Preferences::AddBoolVarCache(&sCSPEnabled, "security.csp.enable");
 }
 
-CSPService::~CSPService()
-{
-  mAppStatusCache.Clear();
-}
+CSPService::~CSPService() { mAppStatusCache.Clear(); }
 
 NS_IMPL_ISUPPORTS(CSPService, nsIContentPolicy, nsIChannelEventSink)
 
 // Helper function to identify protocols and content types not subject to CSP.
-bool
-subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
-
+bool subjectToCSP(nsIURI *aURI, nsContentPolicyType aContentType) {
   nsContentPolicyType contentType =
-    nsContentUtils::InternalContentPolicyTypeToExternal(aContentType);
+      nsContentUtils::InternalContentPolicyTypeToExternal(aContentType);
 
   // These content types are not subject to CSP content policy checks:
   // TYPE_CSP_REPORT -- csp can't block csp reports
@@ -110,7 +104,8 @@ subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   if (NS_SUCCEEDED(rv) && match) {
     return true;
   }
-  rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE, &match);
+  rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
+                           &match);
   if (NS_SUCCEEDED(rv) && match) {
     return false;
   }
@@ -120,23 +115,18 @@ subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
 
 /* nsIContentPolicy implementation */
 NS_IMETHODIMP
-CSPService::ShouldLoad(uint32_t aContentType,
-                       nsIURI *aContentLocation,
-                       nsIURI *aRequestOrigin,
-                       nsISupports *aRequestContext,
-                       const nsACString &aMimeTypeGuess,
-                       nsISupports *aExtra,
-                       nsIPrincipal *aRequestPrincipal,
-                       int16_t *aDecision)
-{
+CSPService::ShouldLoad(uint32_t aContentType, nsIURI *aContentLocation,
+                       nsIURI *aRequestOrigin, nsISupports *aRequestContext,
+                       const nsACString &aMimeTypeGuess, nsISupports *aExtra,
+                       nsIPrincipal *aRequestPrincipal, int16_t *aDecision) {
   if (!aContentLocation) {
     return NS_ERROR_FAILURE;
   }
 
   if (MOZ_LOG_TEST(gCspPRLog, LogLevel::Debug)) {
     MOZ_LOG(gCspPRLog, LogLevel::Debug,
-           ("CSPService::ShouldLoad called for %s",
-           aContentLocation->GetSpecOrDefault().get()));
+            ("CSPService::ShouldLoad called for %s",
+             aContentLocation->GetSpecOrDefault().get()));
   }
 
   // default decision, CSP can revise it if there's a policy to enforce
@@ -157,10 +147,11 @@ CSPService::ShouldLoad(uint32_t aContentType,
   // principal. Otherwise, use the document principal.
   nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
   nsCOMPtr<nsIPrincipal> principal;
-  if (!node || (aRequestPrincipal &&
-                BasePrincipal::Cast(aRequestPrincipal)->OverridesCSP(node->NodePrincipal()))) {
+  if (!node ||
+      (aRequestPrincipal && BasePrincipal::Cast(aRequestPrincipal)
+                                ->OverridesCSP(node->NodePrincipal()))) {
     principal = aRequestPrincipal;
-  } else  {
+  } else {
     principal = node->NodePrincipal();
   }
   if (!principal) {
@@ -180,13 +171,11 @@ CSPService::ShouldLoad(uint32_t aContentType,
     if (preloadCsp) {
       // obtain the enforcement decision
       // (don't pass aExtra, we use that slot for redirects)
-      rv = preloadCsp->ShouldLoad(aContentType,
-                                  aContentLocation,
-                                  aRequestOrigin,
-                                  aRequestContext,
-                                  aMimeTypeGuess,
-                                  nullptr, // aExtra
-                                  aDecision);
+      rv =
+          preloadCsp->ShouldLoad(aContentType, aContentLocation, aRequestOrigin,
+                                 aRequestContext, aMimeTypeGuess,
+                                 nullptr,  // aExtra
+                                 aDecision);
       NS_ENSURE_SUCCESS(rv, rv);
 
       // if the preload policy already denied the load, then there
@@ -205,28 +194,18 @@ CSPService::ShouldLoad(uint32_t aContentType,
   if (csp) {
     // obtain the enforcement decision
     // (don't pass aExtra, we use that slot for redirects)
-    rv = csp->ShouldLoad(aContentType,
-                         aContentLocation,
-                         aRequestOrigin,
-                         aRequestContext,
-                         aMimeTypeGuess,
-                         nullptr,
-                         aDecision);
+    rv = csp->ShouldLoad(aContentType, aContentLocation, aRequestOrigin,
+                         aRequestContext, aMimeTypeGuess, nullptr, aDecision);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-CSPService::ShouldProcess(uint32_t         aContentType,
-                          nsIURI           *aContentLocation,
-                          nsIURI           *aRequestOrigin,
-                          nsISupports      *aRequestContext,
-                          const nsACString &aMimeTypeGuess,
-                          nsISupports      *aExtra,
-                          nsIPrincipal     *aRequestPrincipal,
-                          int16_t          *aDecision)
-{
+CSPService::ShouldProcess(uint32_t aContentType, nsIURI *aContentLocation,
+                          nsIURI *aRequestOrigin, nsISupports *aRequestContext,
+                          const nsACString &aMimeTypeGuess, nsISupports *aExtra,
+                          nsIPrincipal *aRequestPrincipal, int16_t *aDecision) {
   if (!aContentLocation) {
     return NS_ERROR_FAILURE;
   }
@@ -234,7 +213,7 @@ CSPService::ShouldProcess(uint32_t         aContentType,
   if (MOZ_LOG_TEST(gCspPRLog, LogLevel::Debug)) {
     MOZ_LOG(gCspPRLog, LogLevel::Debug,
             ("CSPService::ShouldProcess called for %s",
-            aContentLocation->GetSpecOrDefault().get()));
+             aContentLocation->GetSpecOrDefault().get()));
   }
 
   // ShouldProcess is only relevant to TYPE_OBJECT, so let's convert the
@@ -243,30 +222,23 @@ CSPService::ShouldProcess(uint32_t         aContentType,
   // Note that we should still pass the internal contentPolicyType
   // (aContentType) to ShouldLoad().
   uint32_t policyType =
-    nsContentUtils::InternalContentPolicyTypeToExternal(aContentType);
+      nsContentUtils::InternalContentPolicyTypeToExternal(aContentType);
 
   if (policyType != nsIContentPolicy::TYPE_OBJECT) {
     *aDecision = nsIContentPolicy::ACCEPT;
     return NS_OK;
   }
 
-  return ShouldLoad(aContentType,
-                    aContentLocation,
-                    aRequestOrigin,
-                    aRequestContext,
-                    aMimeTypeGuess,
-                    aExtra,
-                    aRequestPrincipal,
+  return ShouldLoad(aContentType, aContentLocation, aRequestOrigin,
+                    aRequestContext, aMimeTypeGuess, aExtra, aRequestPrincipal,
                     aDecision);
 }
 
 /* nsIChannelEventSink implementation */
 NS_IMETHODIMP
 CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
-                                   nsIChannel *newChannel,
-                                   uint32_t flags,
-                                   nsIAsyncVerifyRedirectCallback *callback)
-{
+                                   nsIChannel *newChannel, uint32_t flags,
+                                   nsIAsyncVerifyRedirectCallback *callback) {
   net::nsAsyncRedirectAutoCallback autoCallback(callback);
 
   nsCOMPtr<nsIURI> newUri;
@@ -312,7 +284,7 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
    * type. See Bug 1219453.
    */
   policyType =
-    nsContentUtils::InternalContentPolicyTypeToExternalOrWorker(policyType);
+      nsContentUtils::InternalContentPolicyTypeToExternalOrWorker(policyType);
 
   int16_t aDecision = nsIContentPolicy::ACCEPT;
   // 1) Apply speculative CSP for preloads
@@ -322,13 +294,14 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 
     if (preloadCsp) {
       // Pass  originalURI as aExtra to indicate the redirect
-      preloadCsp->ShouldLoad(policyType,     // load type per nsIContentPolicy (uint32_t)
-                             newUri,         // nsIURI
-                             nullptr,        // nsIURI
-                             nullptr,        // nsISupports
-                             EmptyCString(), // ACString - MIME guess
-                             originalUri,    // aExtra
-                             &aDecision);
+      preloadCsp->ShouldLoad(
+          policyType,      // load type per nsIContentPolicy (uint32_t)
+          newUri,          // nsIURI
+          nullptr,         // nsIURI
+          nullptr,         // nsISupports
+          EmptyCString(),  // ACString - MIME guess
+          originalUri,     // aExtra
+          &aDecision);
 
       // if the preload policy already denied the load, then there
       // is no point in checking the real policy
@@ -346,12 +319,12 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 
   if (csp) {
     // Pass  originalURI as aExtra to indicate the redirect
-    csp->ShouldLoad(policyType,     // load type per nsIContentPolicy (uint32_t)
-                    newUri,         // nsIURI
-                    nullptr,        // nsIURI
-                    nullptr,        // nsISupports
-                    EmptyCString(), // ACString - MIME guess
-                    originalUri,    // aExtra
+    csp->ShouldLoad(policyType,  // load type per nsIContentPolicy (uint32_t)
+                    newUri,      // nsIURI
+                    nullptr,     // nsIURI
+                    nullptr,     // nsISupports
+                    EmptyCString(),  // ACString - MIME guess
+                    originalUri,     // aExtra
                     &aDecision);
   }
 

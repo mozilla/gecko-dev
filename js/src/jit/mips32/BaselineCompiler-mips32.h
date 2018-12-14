@@ -12,15 +12,14 @@
 namespace js {
 namespace jit {
 
-class BaselineCompilerMIPS : public BaselineCompilerMIPSShared
-{
-  protected:
-    BaselineCompilerMIPS(JSContext* cx, TempAllocator& alloc, JSScript* script);
+class BaselineCompilerMIPS : public BaselineCompilerMIPSShared {
+ protected:
+  BaselineCompilerMIPS(JSContext* cx, TempAllocator& alloc, JSScript* script);
 };
 
 typedef BaselineCompilerMIPS BaselineCompilerSpecific;
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_mips32_BaselineCompiler_mips32_h */

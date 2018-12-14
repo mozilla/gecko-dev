@@ -24,68 +24,54 @@ namespace dom {
 class FetchStreamHolder;
 class WorkerHolder;
 
-class FetchStream final : public nsIInputStreamCallback
-                        , public nsIObserver
-                        , public nsSupportsWeakReference
-{
-public:
+class FetchStream final : public nsIInputStreamCallback,
+                          public nsIObserver,
+                          public nsSupportsWeakReference {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAMCALLBACK
   NS_DECL_NSIOBSERVER
 
-  static void
-  Create(JSContext* aCx, FetchStreamHolder* aStreamHolder,
-         nsIGlobalObject* aGlobal, nsIInputStream* aInputStream,
-         JS::MutableHandle<JSObject*> aStream, ErrorResult& aRv);
+  static void Create(JSContext* aCx, FetchStreamHolder* aStreamHolder,
+                     nsIGlobalObject* aGlobal, nsIInputStream* aInputStream,
+                     JS::MutableHandle<JSObject*> aStream, ErrorResult& aRv);
 
-  void
-  Close();
+  void Close();
 
-  static nsresult
-  RetrieveInputStream(void* aUnderlyingReadableStreamSource,
-                      nsIInputStream** aInputStream);
+  static nsresult RetrieveInputStream(void* aUnderlyingReadableStreamSource,
+                                      nsIInputStream** aInputStream);
 
-private:
+ private:
   FetchStream(nsIGlobalObject* aGlobal, FetchStreamHolder* aStreamHolder,
               nsIInputStream* aInputStream);
   ~FetchStream();
 
-  static void
-  RequestDataCallback(JSContext* aCx, JS::HandleObject aStream,
-                      void* aUnderlyingSource, uint8_t aFlags,
-                      size_t aDesiredSize);
+  static void RequestDataCallback(JSContext* aCx, JS::HandleObject aStream,
+                                  void* aUnderlyingSource, uint8_t aFlags,
+                                  size_t aDesiredSize);
 
-  static void
-  WriteIntoReadRequestCallback(JSContext* aCx, JS::HandleObject aStream,
-                               void* aUnderlyingSource, uint8_t aFlags,
-                               void* aBuffer, size_t aLength,
-                               size_t* aByteWritten);
+  static void WriteIntoReadRequestCallback(
+      JSContext* aCx, JS::HandleObject aStream, void* aUnderlyingSource,
+      uint8_t aFlags, void* aBuffer, size_t aLength, size_t* aByteWritten);
 
-  static JS::Value
-  CancelCallback(JSContext* aCx, JS::HandleObject aStream,
-                 void* aUnderlyingSource, uint8_t aFlags,
-                 JS::HandleValue aReason);
+  static JS::Value CancelCallback(JSContext* aCx, JS::HandleObject aStream,
+                                  void* aUnderlyingSource, uint8_t aFlags,
+                                  JS::HandleValue aReason);
 
-  static void
-  ClosedCallback(JSContext* aCx, JS::HandleObject aStream,
-                 void* aUnderlyingSource, uint8_t aFlags);
+  static void ClosedCallback(JSContext* aCx, JS::HandleObject aStream,
+                             void* aUnderlyingSource, uint8_t aFlags);
 
-  static void
-  ErroredCallback(JSContext* aCx, JS::HandleObject aStream,
-                  void* aUnderlyingSource, uint8_t aFlags,
-                  JS::HandleValue reason);
+  static void ErroredCallback(JSContext* aCx, JS::HandleObject aStream,
+                              void* aUnderlyingSource, uint8_t aFlags,
+                              JS::HandleValue reason);
 
-  static void
-  FinalizeCallback(void* aUnderlyingSource, uint8_t aFlags);
+  static void FinalizeCallback(void* aUnderlyingSource, uint8_t aFlags);
 
-  void
-  ErrorPropagation(JSContext* aCx, JS::HandleObject aStream, nsresult aRv);
+  void ErrorPropagation(JSContext* aCx, JS::HandleObject aStream, nsresult aRv);
 
-  void
-  CloseAndReleaseObjects(JSContext* aCx, JS::HandleObject aSteam);
+  void CloseAndReleaseObjects(JSContext* aCx, JS::HandleObject aSteam);
 
-  void
-  ReleaseObjects();
+  void ReleaseObjects();
 
   // Common methods
 
@@ -125,7 +111,7 @@ private:
   UniquePtr<WorkerHolder> mWorkerHolder;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FetchStream_h
+#endif  // mozilla_dom_FetchStream_h

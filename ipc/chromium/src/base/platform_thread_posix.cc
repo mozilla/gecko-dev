@@ -29,7 +29,7 @@
 #if defined(OS_MACOSX)
 namespace base {
 void InitThreading();
-}  // namespace
+}  // namespace base
 #endif
 
 static void* ThreadFunc(void* closure) {
@@ -41,8 +41,8 @@ static void* ThreadFunc(void* closure) {
 
 // static
 PlatformThreadId PlatformThread::CurrentId() {
-  // Pthreads doesn't have the concept of a thread ID, so we have to reach down
-  // into the kernel.
+// Pthreads doesn't have the concept of a thread ID, so we have to reach down
+// into the kernel.
 #if defined(OS_MACOSX)
   mach_port_t port = mach_thread_self();
   mach_port_deallocate(mach_task_self(), port);
@@ -50,7 +50,7 @@ PlatformThreadId PlatformThread::CurrentId() {
 #elif defined(OS_LINUX)
   return syscall(__NR_gettid);
 #elif defined(OS_OPENBSD) || defined(OS_SOLARIS) || defined(__GLIBC__)
-  return (intptr_t) (pthread_self());
+  return (intptr_t)(pthread_self());
 #elif defined(OS_NETBSD)
   return _lwp_self();
 #elif defined(OS_DRAGONFLY)
@@ -61,9 +61,7 @@ PlatformThreadId PlatformThread::CurrentId() {
 }
 
 // static
-void PlatformThread::YieldCurrentThread() {
-  sched_yield();
-}
+void PlatformThread::YieldCurrentThread() { sched_yield(); }
 
 // static
 void PlatformThread::Sleep(int duration_ms) {
@@ -89,18 +87,17 @@ void PlatformThread::SetName(const char* name) {
   // the process name for the LWP.  We don't want to do this for the main
   // thread because that would rename the process, causing tools like killall
   // to stop working.
-  if (PlatformThread::CurrentId() == getpid())
-    return;
+  if (PlatformThread::CurrentId() == getpid()) return;
 
-  // http://0pointer.de/blog/projects/name-your-threads.html
-  // Set the name for the LWP (which gets truncated to 15 characters).
-  // Note that glibc also has a 'pthread_setname_np' api, but it may not be
-  // available everywhere and it's only benefit over using prctl directly is
-  // that it can set the name of threads other than the current thread.
+    // http://0pointer.de/blog/projects/name-your-threads.html
+    // Set the name for the LWP (which gets truncated to 15 characters).
+    // Note that glibc also has a 'pthread_setname_np' api, but it may not be
+    // available everywhere and it's only benefit over using prctl directly is
+    // that it can set the name of threads other than the current thread.
 #if defined(OS_LINUX)
-  prctl(PR_SET_NAME, reinterpret_cast<uintptr_t>(name), 0, 0, 0); 
+  prctl(PR_SET_NAME, reinterpret_cast<uintptr_t>(name), 0, 0, 0);
 #elif defined(OS_NETBSD)
-  pthread_setname_np(pthread_self(), "%s", (void *)name);
+  pthread_setname_np(pthread_self(), "%s", (void*)name);
 #elif defined(OS_BSD) && !defined(__GLIBC__)
   pthread_set_name_np(pthread_self(), name);
 #elif defined(OS_SOLARIS)
@@ -108,7 +105,7 @@ void PlatformThread::SetName(const char* name) {
 #else
 #endif
 }
-#endif // !OS_MACOSX
+#endif  // !OS_MACOSX
 
 namespace {
 
@@ -129,8 +126,7 @@ bool CreateThread(size_t stack_size, bool joinable,
     pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
   }
 
-  if (stack_size > 0)
-    pthread_attr_setstacksize(&attributes, stack_size);
+  if (stack_size > 0) pthread_attr_setstacksize(&attributes, stack_size);
 
   success = !pthread_create(thread_handle, &attributes, ThreadFunc, delegate);
 
@@ -143,8 +139,8 @@ bool CreateThread(size_t stack_size, bool joinable,
 // static
 bool PlatformThread::Create(size_t stack_size, Delegate* delegate,
                             PlatformThreadHandle* thread_handle) {
-  return CreateThread(stack_size, true /* joinable thread */,
-                      delegate, thread_handle);
+  return CreateThread(stack_size, true /* joinable thread */, delegate,
+                      thread_handle);
 }
 
 // static

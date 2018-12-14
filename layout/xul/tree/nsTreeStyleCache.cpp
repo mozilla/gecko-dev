@@ -13,34 +13,24 @@
 #include "mozilla/StyleSetHandleInlines.h"
 
 nsTreeStyleCache::Transition::Transition(DFAState aState, nsAtom* aSymbol)
-  : mState(aState), mInputSymbol(aSymbol)
-{
-}
+    : mState(aState), mInputSymbol(aSymbol) {}
 
-bool
-nsTreeStyleCache::Transition::operator==(const Transition& aOther) const
-{
+bool nsTreeStyleCache::Transition::operator==(const Transition& aOther) const {
   return aOther.mState == mState && aOther.mInputSymbol == mInputSymbol;
 }
 
-uint32_t
-nsTreeStyleCache::Transition::Hash() const
-{
-  // Make a 32-bit integer that combines the low-order 16 bits of the state and the input symbol.
+uint32_t nsTreeStyleCache::Transition::Hash() const {
+  // Make a 32-bit integer that combines the low-order 16 bits of the state and
+  // the input symbol.
   uint32_t hb = mState << 16;
   uint32_t lb = (NS_PTR_TO_UINT32(mInputSymbol.get()) << 16) >> 16;
-  return hb+lb;
+  return hb + lb;
 }
 
-
 // The style context cache impl
-nsStyleContext*
-nsTreeStyleCache::GetStyleContext(nsPresContext* aPresContext,
-                                  nsIContent* aContent,
-                                  nsStyleContext* aContext,
-                                  nsICSSAnonBoxPseudo* aPseudoElement,
-                                  const AtomArray & aInputWord)
-{
+nsStyleContext* nsTreeStyleCache::GetStyleContext(
+    nsPresContext* aPresContext, nsIContent* aContent, nsStyleContext* aContext,
+    nsICSSAnonBoxPseudo* aPseudoElement, const AtomArray& aInputWord) {
   MOZ_ASSERT(nsCSSAnonBoxes::IsTreePseudoElement(aPseudoElement));
 
   uint32_t count = aInputWord.Length();
@@ -82,11 +72,12 @@ nsTreeStyleCache::GetStyleContext(nsPresContext* aPresContext,
   }
   if (!result) {
     // We missed the cache. Resolve this pseudo-style.
-    RefPtr<nsStyleContext> newResult = aPresContext->StyleSet()->
-        ResolveXULTreePseudoStyle(aContent->AsElement(),
-                                  aPseudoElement, aContext, aInputWord);
+    RefPtr<nsStyleContext> newResult =
+        aPresContext->StyleSet()->ResolveXULTreePseudoStyle(
+            aContent->AsElement(), aPseudoElement, aContext, aInputWord);
 
-    // Put the style context in our table, transferring the owning reference to the table.
+    // Put the style context in our table, transferring the owning reference to
+    // the table.
     if (!mCache) {
       mCache = new StyleContextCache();
     }
@@ -96,4 +87,3 @@ nsTreeStyleCache::GetStyleContext(nsPresContext* aPresContext,
 
   return result;
 }
-

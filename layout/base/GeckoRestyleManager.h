@@ -27,17 +27,16 @@ class nsStyleChangeList;
 struct TreeMatchContext;
 
 namespace mozilla {
-  enum class CSSPseudoElementType : uint8_t;
-  class EventStates;
-  struct UndisplayedNode;
+enum class CSSPseudoElementType : uint8_t;
+class EventStates;
+struct UndisplayedNode;
 
 namespace dom {
-  class Element;
-} // namespace dom
+class Element;
+}  // namespace dom
 
-class GeckoRestyleManager final : public RestyleManager
-{
-public:
+class GeckoRestyleManager final : public RestyleManager {
+ public:
   typedef RestyleManager base_type;
 
   friend class RestyleTracker;
@@ -45,31 +44,25 @@ public:
 
   explicit GeckoRestyleManager(nsPresContext* aPresContext);
 
-protected:
-  ~GeckoRestyleManager() override
-  {
+ protected:
+  ~GeckoRestyleManager() override {
     MOZ_ASSERT(!mReframingStyleContexts,
                "temporary member should be nulled out before destruction");
   }
 
-public:
+ public:
   // Forwarded nsIDocumentObserver method, to handle restyling (and
   // passing the notification to the frame).
-  void ContentStateChanged(nsIContent* aContent,
-                           EventStates aStateMask);
+  void ContentStateChanged(nsIContent* aContent, EventStates aStateMask);
 
   // Forwarded nsIMutationObserver method, to handle restyling.
-  void AttributeWillChange(Element* aElement,
-                           int32_t  aNameSpaceID,
-                           nsAtom* aAttribute,
-                           int32_t  aModType,
+  void AttributeWillChange(Element* aElement, int32_t aNameSpaceID,
+                           nsAtom* aAttribute, int32_t aModType,
                            const nsAttrValue* aNewValue);
   // Forwarded nsIMutationObserver method, to handle restyling (and
   // passing the notification to the frame).
-  void AttributeChanged(Element* aElement,
-                        int32_t  aNameSpaceID,
-                        nsAtom* aAttribute,
-                        int32_t  aModType,
+  void AttributeChanged(Element* aElement, int32_t aNameSpaceID,
+                        nsAtom* aAttribute, int32_t aModType,
                         const nsAttrValue* aOldValue);
 
   // Whether rule matching should skip styles associated with animation
@@ -89,7 +82,7 @@ public:
    */
   nsresult ReparentStyleContext(nsIFrame* aFrame);
 
-private:
+ private:
   /**
    * Reparent the descendants of aFrame.  This is used by ReparentStyleContext
    * and shouldn't be called by anyone else.  aProviderChild, if non-null, is a
@@ -98,33 +91,28 @@ private:
    */
   void ReparentFrameDescendants(nsIFrame* aFrame, nsIFrame* aProviderChild);
 
-public:
-  void ClearSelectors() {
-    mPendingRestyles.ClearSelectors();
-  }
+ public:
+  void ClearSelectors() { mPendingRestyles.ClearSelectors(); }
 
   void PostRestyleEventForLazyConstruction() { PostRestyleEventInternal(); }
 
-private:
+ private:
   void PostRestyleEventInternal();
 
   // Used when restyling an element with a frame.
-  void ComputeAndProcessStyleChange(nsIFrame*              aFrame,
-                                    nsChangeHint           aMinChange,
-                                    RestyleTracker&        aRestyleTracker,
-                                    nsRestyleHint          aRestyleHint,
+  void ComputeAndProcessStyleChange(nsIFrame* aFrame, nsChangeHint aMinChange,
+                                    RestyleTracker& aRestyleTracker,
+                                    nsRestyleHint aRestyleHint,
                                     const RestyleHintData& aRestyleHintData);
 
   // Used when restyling a display:contents element.
-  void ComputeAndProcessStyleChange(GeckoStyleContext*     aNewContext,
-                                    Element*               aElement,
-                                    nsChangeHint           aMinChange,
-                                    RestyleTracker&        aRestyleTracker,
-                                    nsRestyleHint          aRestyleHint,
+  void ComputeAndProcessStyleChange(GeckoStyleContext* aNewContext,
+                                    Element* aElement, nsChangeHint aMinChange,
+                                    RestyleTracker& aRestyleTracker,
+                                    nsRestyleHint aRestyleHint,
                                     const RestyleHintData& aRestyleHintData);
 
-public:
-
+ public:
   /**
    * In order to start CSS transitions on elements that are being
    * reframed, we need to stash their style contexts somewhere during
@@ -137,9 +125,9 @@ public:
    * context.
    */
   typedef nsRefPtrHashtable<nsRefPtrHashKey<nsIContent>, GeckoStyleContext>
-            ReframingStyleContextTable;
+      ReframingStyleContextTable;
   class MOZ_STACK_CLASS ReframingStyleContexts final {
-  public:
+   public:
     /**
      * Construct a ReframingStyleContexts object.  The caller must
      * ensure that aRestyleManager lives at least as long as the
@@ -155,32 +143,37 @@ public:
       if (pseudoType == CSSPseudoElementType::NotPseudo) {
         mElementContexts.Put(aContent, aStyleContext);
       } else if (pseudoType == CSSPseudoElementType::before) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentbefore);
+        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
+                   nsGkAtoms::mozgeneratedcontentbefore);
         mBeforePseudoContexts.Put(aContent->GetParent(), aStyleContext);
       } else if (pseudoType == CSSPseudoElementType::after) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentafter);
+        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
+                   nsGkAtoms::mozgeneratedcontentafter);
         mAfterPseudoContexts.Put(aContent->GetParent(), aStyleContext);
       }
     }
 
     GeckoStyleContext* Get(nsIContent* aContent,
-                        CSSPseudoElementType aPseudoType) {
+                           CSSPseudoElementType aPseudoType) {
       MOZ_ASSERT(aContent);
       if (aPseudoType == CSSPseudoElementType::NotPseudo) {
         return mElementContexts.GetWeak(aContent);
       }
       if (aPseudoType == CSSPseudoElementType::before) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentbefore);
+        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
+                   nsGkAtoms::mozgeneratedcontentbefore);
         return mBeforePseudoContexts.GetWeak(aContent->GetParent());
       }
       if (aPseudoType == CSSPseudoElementType::after) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() == nsGkAtoms::mozgeneratedcontentafter);
+        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
+                   nsGkAtoms::mozgeneratedcontentafter);
         return mAfterPseudoContexts.GetWeak(aContent->GetParent());
       }
       MOZ_ASSERT(false, "unexpected aPseudoType");
       return nullptr;
     }
-  private:
+
+   private:
     GeckoRestyleManager* mRestyleManager;
     AutoRestore<ReframingStyleContexts*> mRestorePointer;
     ReframingStyleContextTable mElementContexts;
@@ -205,12 +198,12 @@ public:
    * For the pseudo-elements, aContent must be the anonymous content
    * that we're creating for that pseudo-element, not the real element.
    */
-  static bool
-  TryInitiatingTransition(nsPresContext* aPresContext, nsIContent* aContent,
-                          GeckoStyleContext* aOldStyleContext,
-                          RefPtr<GeckoStyleContext>* aNewStyleContext /* inout */);
+  static bool TryInitiatingTransition(
+      nsPresContext* aPresContext, nsIContent* aContent,
+      GeckoStyleContext* aOldStyleContext,
+      RefPtr<GeckoStyleContext>* aNewStyleContext /* inout */);
 
-public:
+ public:
   // Process any pending restyles. This should be called after
   // CreateNeededFrames.
   // Note: It's the caller's responsibility to make sure to wrap a
@@ -220,14 +213,14 @@ public:
   // itself.
   void ProcessPendingRestyles();
 
-private:
+ private:
   // ProcessPendingRestyles calls into one of our RestyleTracker
   // objects.  It then calls back to these functions at the beginning
   // and end of its work.
   void BeginProcessingRestyles(RestyleTracker& aRestyleTracker);
   void EndProcessingRestyles();
 
-public:
+ public:
   // Update styles for animations that are running on the compositor and
   // whose updating is suppressed on the main thread (to save
   // unnecessary work), while leaving all other aspects of style
@@ -266,8 +259,7 @@ public:
   // in the restyle hint is harmless; some callers (e.g.,
   // nsPresContext::MediaFeatureValuesChanged) might do this for their
   // own reasons.)
-  void RebuildAllStyleData(nsChangeHint aExtraHint,
-                           nsRestyleHint aRestyleHint);
+  void RebuildAllStyleData(nsChangeHint aExtraHint, nsRestyleHint aRestyleHint);
 
   /**
    * Notify the frame constructor that an element needs to have its
@@ -279,12 +271,11 @@ public:
    *                        descendants.
    * @param aRestyleHintData: Additional data to go with aRestyleHint.
    */
-  void PostRestyleEvent(Element* aElement,
-                        nsRestyleHint aRestyleHint,
+  void PostRestyleEvent(Element* aElement, nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint,
                         const RestyleHintData* aRestyleHintData = nullptr);
 
-public:
+ public:
   /**
    * Asynchronously clear style data from the root frame downwards and ensure
    * it will all be rebuilt. This is safe to call anytime; it will schedule
@@ -309,9 +300,7 @@ public:
    * Returns whether a restyle event currently being processed by this
    * GeckoRestyleManager should be logged.
    */
-  bool ShouldLogRestyle() {
-    return ShouldLogRestyle(PresContext());
-  }
+  bool ShouldLogRestyle() { return ShouldLogRestyle(PresContext()); }
 
   /**
    * Returns whether a restyle event currently being processed for the
@@ -319,8 +308,7 @@ public:
    */
   static bool ShouldLogRestyle(nsPresContext* aPresContext) {
     return aPresContext->RestyleLoggingEnabled() &&
-           (!aPresContext->TransitionManager()->
-               InAnimationOnlyStyleUpdate() ||
+           (!aPresContext->TransitionManager()->InAnimationOnlyStyleUpdate() ||
             AnimationRestyleLoggingEnabled());
   }
 
@@ -348,7 +336,7 @@ public:
   bool IsProcessingRestyles() { return mIsProcessingRestyles; }
   bool HasPendingRestyles() const;
 
-private:
+ private:
   inline nsStyleSet* StyleSet() const {
     MOZ_ASSERT(PresContext()->StyleSet()->IsGecko(),
                "GeckoRestyleManager should only be used with a Gecko-flavored "
@@ -358,11 +346,9 @@ private:
 
   /* aMinHint is the minimal change that should be made to the element */
   // XXXbz do we really need the aPrimaryFrame argument here?
-  void RestyleElement(Element*        aElement,
-                      nsIFrame*       aPrimaryFrame,
-                      nsChangeHint    aMinHint,
-                      RestyleTracker& aRestyleTracker,
-                      nsRestyleHint   aRestyleHint,
+  void RestyleElement(Element* aElement, nsIFrame* aPrimaryFrame,
+                      nsChangeHint aMinHint, RestyleTracker& aRestyleTracker,
+                      nsRestyleHint aRestyleHint,
                       const RestyleHintData& aRestyleHintData);
 
   void StartRebuildAllStyleData(RestyleTracker& aRestyleTracker);
@@ -371,8 +357,7 @@ private:
   bool ShouldStartRebuildAllFor(RestyleTracker& aRestyleTracker) {
     // When we process our primary restyle tracker and we have a pending
     // rebuild-all, we need to process it.
-    return mDoRebuildAllStyleData &&
-           &aRestyleTracker == &mPendingRestyles;
+    return mDoRebuildAllStyleData && &aRestyleTracker == &mPendingRestyles;
   }
 
   void ProcessRestyles(RestyleTracker& aRestyleTracker) {
@@ -384,7 +369,7 @@ private:
     }
   }
 
-private:
+ private:
   // True if we need to reconstruct the rule tree the next time we
   // process restyles.
   bool mDoRebuildAllStyleData : 1;
@@ -416,9 +401,8 @@ private:
  * An ElementRestyler is created for *each* element in a subtree that we
  * recompute styles for.
  */
-class ElementRestyler final
-{
-public:
+class ElementRestyler final {
+ public:
   typedef mozilla::dom::Element Element;
 
   struct ContextToClear {
@@ -427,8 +411,7 @@ public:
   };
 
   // Construct for the root of the subtree that we're restyling.
-  ElementRestyler(nsPresContext* aPresContext,
-                  nsIFrame* aFrame,
+  ElementRestyler(nsPresContext* aPresContext, nsIFrame* aFrame,
                   nsStyleChangeList* aChangeList,
                   nsChangeHint aHintsHandledByAncestors,
                   RestyleTracker& aRestyleTracker,
@@ -439,11 +422,8 @@ public:
                   nsTArray<RefPtr<GeckoStyleContext>>& aSwappedStructOwners);
 
   // Construct for an element whose parent is being restyled.
-  enum ConstructorFlags {
-    FOR_OUT_OF_FLOW_CHILD = 1<<0
-  };
-  ElementRestyler(const ElementRestyler& aParentRestyler,
-                  nsIFrame* aFrame,
+  enum ConstructorFlags { FOR_OUT_OF_FLOW_CHILD = 1 << 0 };
+  ElementRestyler(const ElementRestyler& aParentRestyler, nsIFrame* aFrame,
                   uint32_t aConstructorFlags);
 
   // Construct for a frame whose parent is being restyled, but whose
@@ -458,8 +438,7 @@ public:
                   nsIFrame* aFrame);
 
   // For restyling undisplayed content only (mFrame==null).
-  ElementRestyler(nsPresContext* aPresContext,
-                  nsIContent* aContent,
+  ElementRestyler(nsPresContext* aPresContext, nsIContent* aContent,
                   nsStyleChangeList* aChangeList,
                   nsChangeHint aHintsHandledByAncestors,
                   RestyleTracker& aRestyleTracker,
@@ -492,27 +471,21 @@ public:
    * Called from GeckoRestyleManager::ComputeAndProcessStyleChange to restyle
    * children of a display:contents element.
    */
-  void RestyleChildrenOfDisplayContentsElement(nsIFrame*       aParentFrame,
-                                               GeckoStyleContext* aNewContext,
-                                               nsChangeHint    aMinHint,
-                                               RestyleTracker& aRestyleTracker,
-                                               nsRestyleHint   aRestyleHint,
-                                               const RestyleHintData&
-                                                 aRestyleHintData);
+  void RestyleChildrenOfDisplayContentsElement(
+      nsIFrame* aParentFrame, GeckoStyleContext* aNewContext,
+      nsChangeHint aMinHint, RestyleTracker& aRestyleTracker,
+      nsRestyleHint aRestyleHint, const RestyleHintData& aRestyleHintData);
 
   /**
    * Re-resolve the style contexts for a frame tree, building aChangeList
    * based on the resulting style changes, plus aMinChange applied to aFrame.
    */
-  static void ComputeStyleChangeFor(nsIFrame*          aFrame,
-                                    nsStyleChangeList* aChangeList,
-                                    nsChangeHint       aMinChange,
-                                    RestyleTracker&    aRestyleTracker,
-                                    nsRestyleHint      aRestyleHint,
-                                    const RestyleHintData& aRestyleHintData,
-                                    nsTArray<ContextToClear>& aContextsToClear,
-                                    nsTArray<RefPtr<GeckoStyleContext>>&
-                                      aSwappedStructOwners);
+  static void ComputeStyleChangeFor(
+      nsIFrame* aFrame, nsStyleChangeList* aChangeList, nsChangeHint aMinChange,
+      RestyleTracker& aRestyleTracker, nsRestyleHint aRestyleHint,
+      const RestyleHintData& aRestyleHintData,
+      nsTArray<ContextToClear>& aContextsToClear,
+      nsTArray<RefPtr<GeckoStyleContext>>& aSwappedStructOwners);
 
 #ifdef RESTYLE_LOGGING
   bool ShouldLogRestyle() {
@@ -520,7 +493,7 @@ public:
   }
 #endif
 
-private:
+ private:
   inline nsStyleSet* StyleSet() const;
 
   // Enum class for the result of RestyleSelf, which indicates whether the
@@ -546,8 +519,7 @@ private:
     eContinueAndForceDescendants
   };
 
-  struct SwapInstruction
-  {
+  struct SwapInstruction {
     RefPtr<GeckoStyleContext> mOldContext;
     RefPtr<GeckoStyleContext> mNewContext;
     uint32_t mStructsToSwap;
@@ -556,8 +528,7 @@ private:
   /**
    * First half of Restyle().
    */
-  RestyleResult RestyleSelf(nsIFrame* aSelf,
-                            nsRestyleHint aRestyleHint,
+  RestyleResult RestyleSelf(nsIFrame* aSelf, nsRestyleHint aRestyleHint,
                             uint32_t* aSwappedStructs,
                             nsTArray<SwapInstruction>& aSwaps);
 
@@ -596,9 +567,9 @@ private:
   /**
    * Helpers for Restyle().
    */
-  bool MoveStyleContextsForContentChildren(nsIFrame* aParent,
-                                           GeckoStyleContext* aOldContext,
-                                           nsTArray<GeckoStyleContext*>& aContextsToMove);
+  bool MoveStyleContextsForContentChildren(
+      nsIFrame* aParent, GeckoStyleContext* aOldContext,
+      nsTArray<GeckoStyleContext*>& aContextsToMove);
   bool MoveStyleContextsForChildren(GeckoStyleContext* aOldContext);
 
   /**
@@ -606,8 +577,7 @@ private:
    */
   void CaptureChange(GeckoStyleContext* aOldContext,
                      GeckoStyleContext* aNewContext,
-                     nsChangeHint aChangeToAssume,
-                     uint32_t* aEqualStructs,
+                     nsChangeHint aChangeToAssume, uint32_t* aEqualStructs,
                      uint32_t* aSamePointerStructs);
   void ComputeRestyleResultFromFrame(nsIFrame* aSelf,
                                      RestyleResult& aRestyleResult,
@@ -630,16 +600,15 @@ private:
   void DoRestyleUndisplayedDescendants(nsRestyleHint aChildRestyleHint,
                                        nsIContent* aParent,
                                        GeckoStyleContext* aParentStyleContext);
-  void RestyleUndisplayedNodes(nsRestyleHint      aChildRestyleHint,
-                               UndisplayedNode*   aUndisplayed,
-                               nsIContent*        aUndisplayedParent,
-                               GeckoStyleContext*    aParentStyleContext,
+  void RestyleUndisplayedNodes(nsRestyleHint aChildRestyleHint,
+                               UndisplayedNode* aUndisplayed,
+                               nsIContent* aUndisplayedParent,
+                               GeckoStyleContext* aParentStyleContext,
                                const StyleDisplay aDisplay);
   void MaybeReframeForBeforePseudo();
   void MaybeReframeForAfterPseudo(nsIFrame* aFrame);
   void MaybeReframeForPseudo(CSSPseudoElementType aPseudoType,
-                             nsIFrame* aGenConParentFrame,
-                             nsIFrame* aFrame,
+                             nsIFrame* aGenConParentFrame, nsIFrame* aFrame,
                              nsIContent* aContent,
                              GeckoStyleContext* aStyleContext);
 #ifdef DEBUG
@@ -647,8 +616,7 @@ private:
   bool MustReframeForAfterPseudo(nsIFrame* aFrame);
 #endif
   bool MustReframeForPseudo(CSSPseudoElementType aPseudoType,
-                            nsIFrame* aGenConParentFrame,
-                            nsIFrame* aFrame,
+                            nsIFrame* aGenConParentFrame, nsIFrame* aFrame,
                             nsIContent* aContent,
                             GeckoStyleContext* aStyleContext);
   void RestyleContentChildren(nsIFrame* aParent,
@@ -662,19 +630,14 @@ private:
     eNotifyIfShown
   };
 
-  enum A11yNotificationType {
-    eDontNotify,
-    eNotifyShown,
-    eNotifyHidden
-  };
+  enum A11yNotificationType { eDontNotify, eNotifyShown, eNotifyHidden };
 
   // These methods handle the eRestyle_SomeDescendants hint by traversing
   // down the frame tree (and then when reaching undisplayed content,
   // the flattened content tree) find elements that match a selector
   // in mSelectorsForDescendants and call AddPendingRestyle for them.
   void ConditionallyRestyleChildren();
-  void ConditionallyRestyleChildren(nsIFrame* aFrame,
-                                    Element* aRestyleRoot);
+  void ConditionallyRestyleChildren(nsIFrame* aFrame, Element* aRestyleRoot);
   void ConditionallyRestyleContentChildren(nsIFrame* aFrame,
                                            Element* aRestyleRoot);
   void ConditionallyRestyleUndisplayedDescendants(nsIFrame* aFrame,
@@ -698,7 +661,7 @@ private:
   static nsCString RestyleResultToString(RestyleResult aRestyleResult);
 #endif
 
-private:
+ private:
   nsPresContext* const mPresContext;
   nsIFrame* const mFrame;
   nsIContent* const mParentContent;
@@ -719,7 +682,7 @@ private:
   RestyleTracker& mRestyleTracker;
   nsTArray<nsCSSSelector*>& mSelectorsForDescendants;
   TreeMatchContext& mTreeMatchContext;
-  nsIFrame* mResolvedChild; // child that provides our parent style context
+  nsIFrame* mResolvedChild;  // child that provides our parent style context
   // Array of style context subtrees in which we need to clear out cached
   // structs at the end of the restyle (after change hints have been
   // processed).
@@ -750,21 +713,21 @@ private:
  * (and further ancestors) may be display:contents nodes which have
  * not yet been pushed onto TreeMatchContext.
  */
-class MOZ_RAII AutoDisplayContentsAncestorPusher final
-{
+class MOZ_RAII AutoDisplayContentsAncestorPusher final {
  public:
   typedef mozilla::dom::Element Element;
   AutoDisplayContentsAncestorPusher(TreeMatchContext& aTreeMatchContext,
-                                    nsPresContext*    aPresContext,
-                                    nsIContent*       aParent);
+                                    nsPresContext* aPresContext,
+                                    nsIContent* aParent);
   ~AutoDisplayContentsAncestorPusher();
   bool IsEmpty() const { return mAncestors.Length() == 0; }
-private:
+
+ private:
   TreeMatchContext& mTreeMatchContext;
   nsPresContext* const mPresContext;
   AutoTArray<mozilla::dom::Element*, 4> mAncestors;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_GeckoRestyleManager_h */

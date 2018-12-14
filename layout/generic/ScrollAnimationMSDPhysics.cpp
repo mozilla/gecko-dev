@@ -10,18 +10,16 @@
 using namespace mozilla;
 
 ScrollAnimationMSDPhysics::ScrollAnimationMSDPhysics(const nsPoint& aStartPos)
- : mStartPos(aStartPos)
- , mModelX(0, 0, 0, gfxPrefs::SmoothScrollMSDPhysicsRegularSpringConstant(), 1)
- , mModelY(0, 0, 0, gfxPrefs::SmoothScrollMSDPhysicsRegularSpringConstant(), 1)
- , mIsFirstIteration(true)
-{
-}
+    : mStartPos(aStartPos),
+      mModelX(0, 0, 0, gfxPrefs::SmoothScrollMSDPhysicsRegularSpringConstant(),
+              1),
+      mModelY(0, 0, 0, gfxPrefs::SmoothScrollMSDPhysicsRegularSpringConstant(),
+              1),
+      mIsFirstIteration(true) {}
 
-void
-ScrollAnimationMSDPhysics::Update(const TimeStamp& aTime,
-                                  const nsPoint& aDestination,
-                                  const nsSize& aCurrentVelocity)
-{
+void ScrollAnimationMSDPhysics::Update(const TimeStamp& aTime,
+                                       const nsPoint& aDestination,
+                                       const nsSize& aCurrentVelocity) {
   double springConstant = ComputeSpringConstant(aTime);
 
   // mLastSimulatedTime is the most recent time that this animation has been
@@ -48,9 +46,8 @@ ScrollAnimationMSDPhysics::Update(const TimeStamp& aTime,
   mIsFirstIteration = false;
 }
 
-double
-ScrollAnimationMSDPhysics::ComputeSpringConstant(const TimeStamp& aTime)
-{
+double ScrollAnimationMSDPhysics::ComputeSpringConstant(
+    const TimeStamp& aTime) {
   if (!mPreviousEventTime) {
     mPreviousEventTime = aTime;
     mPreviousDelta = TimeDuration();
@@ -70,7 +67,8 @@ ScrollAnimationMSDPhysics::ComputeSpringConstant(const TimeStamp& aTime)
 
   if (previousDelta &&
       deltaMS >= gfxPrefs::SmoothScrollMSDPhysicsSlowdownMinDeltaMS() &&
-      deltaMS >= previousDelta.ToMilliseconds() * gfxPrefs::SmoothScrollMSDPhysicsSlowdownMinDeltaRatio()) {
+      deltaMS >= previousDelta.ToMilliseconds() *
+                     gfxPrefs::SmoothScrollMSDPhysicsSlowdownMinDeltaRatio()) {
     // The rate of events has slowed (the time delta between events has
     // increased) enough that we think that the current scroll motion is coming
     // to a stop. Use a stiffer spring in order to reach the destination more
@@ -81,9 +79,7 @@ ScrollAnimationMSDPhysics::ComputeSpringConstant(const TimeStamp& aTime)
   return gfxPrefs::SmoothScrollMSDPhysicsRegularSpringConstant();
 }
 
-void
-ScrollAnimationMSDPhysics::SimulateUntil(const TimeStamp& aTime)
-{
+void ScrollAnimationMSDPhysics::SimulateUntil(const TimeStamp& aTime) {
   if (!mLastSimulatedTime || aTime < mLastSimulatedTime) {
     return;
   }
@@ -93,17 +89,13 @@ ScrollAnimationMSDPhysics::SimulateUntil(const TimeStamp& aTime)
   mLastSimulatedTime = aTime;
 }
 
-nsPoint
-ScrollAnimationMSDPhysics::PositionAt(const TimeStamp& aTime)
-{
+nsPoint ScrollAnimationMSDPhysics::PositionAt(const TimeStamp& aTime) {
   SimulateUntil(aTime);
   return nsPoint(NSToCoordRound(mModelX.GetPosition()),
                  NSToCoordRound(mModelY.GetPosition()));
 }
 
-nsSize
-ScrollAnimationMSDPhysics::VelocityAt(const TimeStamp& aTime)
-{
+nsSize ScrollAnimationMSDPhysics::VelocityAt(const TimeStamp& aTime) {
   SimulateUntil(aTime);
   return nsSize(NSToCoordRound(mModelX.GetVelocity()),
                 NSToCoordRound(mModelY.GetVelocity()));

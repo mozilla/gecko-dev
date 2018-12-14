@@ -24,13 +24,11 @@ namespace mozilla {
  * MediaEngineSources. That is, for MediaEngineSources that support more than
  * one concurrent allocation.
  */
-class AllocationHandle
-{
+class AllocationHandle {
   ~AllocationHandle() = default;
 
-public:
-  static uint64_t GetUniqueId()
-  {
+ public:
+  static uint64_t GetUniqueId() {
     static uint64_t sId = 0;
 
     MOZ_ASSERT(MediaManager::GetIfExists());
@@ -44,14 +42,12 @@ public:
   AllocationHandle() = delete;
   AllocationHandle(const dom::MediaTrackConstraints& aConstraints,
                    const ipc::PrincipalInfo& aPrincipalInfo,
-                   const MediaEnginePrefs& aPrefs,
-                   const nsString& aDeviceId)
-    : mId(GetUniqueId())
-    , mDeviceId(aDeviceId)
-    , mPrincipalInfo(aPrincipalInfo)
-    , mConstraints(aConstraints)
-    , mPrefs(aPrefs)
-  {}
+                   const MediaEnginePrefs& aPrefs, const nsString& aDeviceId)
+      : mId(GetUniqueId()),
+        mDeviceId(aDeviceId),
+        mPrincipalInfo(aPrincipalInfo),
+        mConstraints(aConstraints),
+        mPrefs(aPrefs) {}
 
   const uint64_t mId;
   const nsString mDeviceId;
@@ -60,6 +56,6 @@ public:
   MediaEnginePrefs mPrefs;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // AllocationHandle_h
+#endif  // AllocationHandle_h

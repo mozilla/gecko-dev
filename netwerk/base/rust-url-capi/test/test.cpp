@@ -7,26 +7,22 @@
 #include <assert.h>
 #include "../src/rust-url-capi.h"
 
-class StringContainer
-{
-public:
-  StringContainer()
-  {
+class StringContainer {
+ public:
+  StringContainer() {
     mBuffer = nullptr;
     mLength = 0;
   }
 
-  ~StringContainer()
-  {
+  ~StringContainer() {
     free(mBuffer);
     mBuffer = nullptr;
   }
 
-  void SetSize(size_t size)
-  {
+  void SetSize(size_t size) {
     mLength = size;
     if (mBuffer) {
-      char* originalBuffer = mBuffer;
+      char *originalBuffer = mBuffer;
       if (!(mBuffer = (char *)realloc(originalBuffer, size))) {
         free(originalBuffer);
       }
@@ -35,12 +31,9 @@ public:
     mBuffer = (char *)malloc(size);
   }
 
-  char * GetBuffer()
-  {
-    return mBuffer;
-  }
+  char *GetBuffer() { return mBuffer; }
 
-  void CheckEquals(const char * ref) {
+  void CheckEquals(const char *ref) {
     int32_t refLen = strlen(ref);
     printf("CheckEquals: %s (len:%d)\n", ref, refLen);
     if (refLen != mLength || strncmp(mBuffer, ref, mLength)) {
@@ -52,36 +45,35 @@ public:
     }
     printf("-> OK\n");
   }
-private:
+
+ private:
   int32_t mLength;
-  char * mBuffer;
+  char *mBuffer;
 };
 
-extern "C" int32_t c_fn_set_size(void * container, size_t size)
-{
-  ((StringContainer *) container)->SetSize(size);
+extern "C" int32_t c_fn_set_size(void *container, size_t size) {
+  ((StringContainer *)container)->SetSize(size);
   return 0;
 }
 
-extern "C" char * c_fn_get_buffer(void * container)
-{
-  return ((StringContainer *) container)->GetBuffer();
+extern "C" char *c_fn_get_buffer(void *container) {
+  return ((StringContainer *)container)->GetBuffer();
 }
 
-#define TEST_CALL(func, expected)                  \
-{                                                  \
-  int32_t code = func;                             \
-  printf("%s -> code %d\n", #func, code);          \
-  assert(code == expected);                        \
-  printf("-> OK\n");                               \
-}                                                  \
-
+#define TEST_CALL(func, expected)           \
+  {                                         \
+    int32_t code = func;                    \
+    printf("%s -> code %d\n", #func, code); \
+    assert(code == expected);               \
+    printf("-> OK\n");                      \
+  }
 
 int main() {
   // Create URL
-  rusturl_ptr url = rusturl_new("http://example.com/path/some/file.txt",
-                                strlen("http://example.com/path/some/file.txt"));
-  assert(url); // Check we have a URL
+  rusturl_ptr url =
+      rusturl_new("http://example.com/path/some/file.txt",
+                  strlen("http://example.com/path/some/file.txt"));
+  assert(url);  // Check we have a URL
 
   StringContainer container;
 
@@ -92,10 +84,14 @@ int main() {
   container.CheckEquals("test.com");
   TEST_CALL(rusturl_get_path(url, &container), 0);
   container.CheckEquals("/path/some/file.txt");
-  TEST_CALL(rusturl_set_path(url, "hello/../else.txt", strlen("hello/../else.txt")), 0);
+  TEST_CALL(
+      rusturl_set_path(url, "hello/../else.txt", strlen("hello/../else.txt")),
+      0);
   TEST_CALL(rusturl_get_path(url, &container), 0);
   container.CheckEquals("/else.txt");
-  TEST_CALL(rusturl_resolve(url, "./bla/file.txt", strlen("./bla/file.txt"), &container), 0);
+  TEST_CALL(rusturl_resolve(url, "./bla/file.txt", strlen("./bla/file.txt"),
+                            &container),
+            0);
   container.CheckEquals("http://test.com/bla/file.txt");
   TEST_CALL(rusturl_get_scheme(url, &container), 0);
   container.CheckEquals("http");
@@ -113,7 +109,9 @@ int main() {
   TEST_CALL(rusturl_set_password(url, "", strlen("")), 0);
   TEST_CALL(rusturl_get_spec(url, &container), 0);
   container.CheckEquals("http://test.com/else.txt");
-  TEST_CALL(rusturl_set_host_and_port(url, "example.org:1234", strlen("example.org:1234")), 0);
+  TEST_CALL(rusturl_set_host_and_port(url, "example.org:1234",
+                                      strlen("example.org:1234")),
+            0);
   TEST_CALL(rusturl_get_host(url, &container), 0);
   container.CheckEquals("example.org");
   assert(rusturl_get_port(url) == 1234);
@@ -131,9 +129,8 @@ int main() {
   // Free the URL
   rusturl_free(url);
 
-  url = rusturl_new("http://example.com/#",
-                                strlen("http://example.com/#"));
-  assert(url); // Check we have a URL
+  url = rusturl_new("http://example.com/#", strlen("http://example.com/#"));
+  assert(url);  // Check we have a URL
 
   assert(rusturl_has_fragment(url) == 1);
   TEST_CALL(rusturl_set_fragment(url, "", 0), 0);

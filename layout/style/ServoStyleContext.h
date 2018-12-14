@@ -18,15 +18,13 @@ namespace mozilla {
 
 namespace dom {
 class Element;
-} // namespace dom
+}  // namespace dom
 
 MOZ_DEFINE_MALLOC_ENCLOSING_SIZE_OF(ServoComputedValuesMallocEnclosingSizeOf)
 
-class ServoStyleContext final : public nsStyleContext
-{
-public:
-  ServoStyleContext(nsPresContext* aPresContext,
-                    nsAtom* aPseudoTag,
+class ServoStyleContext final : public nsStyleContext {
+ public:
+  ServoStyleContext(nsPresContext* aPresContext, nsAtom* aPseudoTag,
                     CSSPseudoElementType aPseudoType,
                     ServoComputedDataForgotten aComputedValues);
 
@@ -36,36 +34,34 @@ public:
   void AddRef() { Servo_StyleContext_AddRef(this); }
   void Release() { Servo_StyleContext_Release(this); }
 
-  ServoStyleContext* GetStyleIfVisited() const
-  {
+  ServoStyleContext* GetStyleIfVisited() const {
     return ComputedData()->visited_style.mPtr;
   }
 
-  bool IsLazilyCascadedPseudoElement() const
-  {
+  bool IsLazilyCascadedPseudoElement() const {
     return IsPseudoElement() &&
            !nsCSSPseudoElements::IsEagerlyCascadedInServo(GetPseudoType());
   }
 
-  ServoStyleContext* GetCachedInheritingAnonBoxStyle(nsAtom* aAnonBox) const
-  {
+  ServoStyleContext* GetCachedInheritingAnonBoxStyle(nsAtom* aAnonBox) const {
     MOZ_ASSERT(nsCSSAnonBoxes::IsInheritingAnonBox(aAnonBox));
     return mCachedInheritingStyles.Lookup(aAnonBox);
   }
 
-  void SetCachedInheritedAnonBoxStyle(nsAtom* aAnonBox, ServoStyleContext* aStyle)
-  {
+  void SetCachedInheritedAnonBoxStyle(nsAtom* aAnonBox,
+                                      ServoStyleContext* aStyle) {
     MOZ_ASSERT(!GetCachedInheritingAnonBoxStyle(aAnonBox));
     mCachedInheritingStyles.Insert(aStyle);
   }
 
-  ServoStyleContext* GetCachedLazyPseudoStyle(CSSPseudoElementType aPseudo) const;
+  ServoStyleContext* GetCachedLazyPseudoStyle(
+      CSSPseudoElementType aPseudo) const;
 
-  void SetCachedLazyPseudoStyle(ServoStyleContext* aStyle)
-  {
+  void SetCachedLazyPseudoStyle(ServoStyleContext* aStyle) {
     MOZ_ASSERT(aStyle->GetPseudo() && !aStyle->IsAnonBox());
     MOZ_ASSERT(!GetCachedLazyPseudoStyle(aStyle->GetPseudoType()));
-    MOZ_ASSERT(!IsLazilyCascadedPseudoElement(), "lazy pseudos can't inherit lazy pseudos");
+    MOZ_ASSERT(!IsLazilyCascadedPseudoElement(),
+               "lazy pseudos can't inherit lazy pseudos");
     MOZ_ASSERT(aStyle->IsLazilyCascadedPseudoElement());
 
     // Since we're caching lazy pseudo styles on the ComputedValues of the
@@ -77,7 +73,8 @@ public:
     //
     // The one place this optimization breaks is with pseudo-elements that
     // support state (like :hover). So we just avoid sharing in those cases.
-    if (nsCSSPseudoElements::PseudoElementSupportsUserActionState(aStyle->GetPseudoType())) {
+    if (nsCSSPseudoElements::PseudoElementSupportsUserActionState(
+            aStyle->GetPseudoType())) {
       return;
     }
 
@@ -93,8 +90,7 @@ public:
   // The |aCVsSize| outparam on this function is where the actual CVs size
   // value is added. It's done that way because the callers know which value
   // the size should be added to.
-  void AddSizeOfIncludingThis(nsWindowSizes& aSizes, size_t* aCVsSize) const
-  {
+  void AddSizeOfIncludingThis(nsWindowSizes& aSizes, size_t* aCVsSize) const {
     // Note: |this| sits within a servo_arc::Arc, i.e. it is preceded by a
     // refcount. So we need to measure it with a function that can handle an
     // interior pointer. We use ServoComputedValuesMallocEnclosingSizeOf to
@@ -104,7 +100,7 @@ public:
     mCachedInheritingStyles.AddSizeOfIncludingThis(aSizes, aCVsSize);
   }
 
-private:
+ private:
   nsPresContext* mPresContext;
   ServoComputedData mSource;
 
@@ -112,6 +108,6 @@ private:
   CachedInheritingStyles mCachedInheritingStyles;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoStyleContext_h
+#endif  // mozilla_ServoStyleContext_h

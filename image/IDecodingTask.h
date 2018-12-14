@@ -24,18 +24,13 @@ class Decoder;
 class RasterImage;
 
 /// A priority hint that DecodePool can use when scheduling an IDecodingTask.
-enum class TaskPriority : uint8_t
-{
-  eLow,
-  eHigh
-};
+enum class TaskPriority : uint8_t { eLow, eHigh };
 
 /**
  * An interface for tasks which can execute on the ImageLib DecodePool.
  */
-class IDecodingTask : public IResumable
-{
-public:
+class IDecodingTask : public IResumable {
+ public:
   /// Run the task.
   virtual void Run() = 0;
 
@@ -49,18 +44,17 @@ public:
   /// DecodePool. Subclasses can override this if they need different behavior.
   void Resume() override;
 
-protected:
-  virtual ~IDecodingTask() { }
+ protected:
+  virtual ~IDecodingTask() {}
 
   /// Notify @aImage of @aDecoder's progress.
-  void NotifyProgress(NotNull<RasterImage*> aImage,
-                      NotNull<Decoder*> aDecoder);
+  void NotifyProgress(NotNull<RasterImage*> aImage, NotNull<Decoder*> aDecoder);
 
   /// Notify @aImage that @aDecoder has finished.
   void NotifyDecodeComplete(NotNull<RasterImage*> aImage,
                             NotNull<Decoder*> aDecoder);
 
-private:
+ private:
   void EnsureHasEventTarget(NotNull<RasterImage*> aImage);
 
   bool IsOnEventTarget() const;
@@ -68,13 +62,11 @@ private:
   nsCOMPtr<nsIEventTarget> mEventTarget;
 };
 
-
 /**
  * An IDecodingTask implementation for metadata decodes of images.
  */
-class MetadataDecodingTask final : public IDecodingTask
-{
-public:
+class MetadataDecodingTask final : public IDecodingTask {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MetadataDecodingTask, override)
 
   explicit MetadataDecodingTask(NotNull<Decoder*> aDecoder);
@@ -90,8 +82,8 @@ public:
   // page load.
   TaskPriority Priority() const override { return TaskPriority::eHigh; }
 
-private:
-  virtual ~MetadataDecodingTask() { }
+ private:
+  virtual ~MetadataDecodingTask() {}
 
   /// Mutex protecting access to mDecoder.
   Mutex mMutex;
@@ -99,14 +91,12 @@ private:
   NotNull<RefPtr<Decoder>> mDecoder;
 };
 
-
 /**
  * An IDecodingTask implementation for anonymous decoders - that is, decoders
  * with no associated Image object.
  */
-class AnonymousDecodingTask final : public IDecodingTask
-{
-public:
+class AnonymousDecodingTask final : public IDecodingTask {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AnonymousDecodingTask, override)
 
   explicit AnonymousDecodingTask(NotNull<Decoder*> aDecoder);
@@ -119,15 +109,15 @@ public:
   // Anonymous decoders normally get all their data at once. We have tests where
   // they don't; in these situations, the test re-runs them manually. So no
   // matter what, we don't want to resume by posting a task to the DecodePool.
-  void Resume() override { }
+  void Resume() override {}
 
-private:
-  virtual ~AnonymousDecodingTask() { }
+ private:
+  virtual ~AnonymousDecodingTask() {}
 
   NotNull<RefPtr<Decoder>> mDecoder;
 };
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla
 
-#endif // mozilla_image_IDecodingTask_h
+#endif  // mozilla_image_IDecodingTask_h

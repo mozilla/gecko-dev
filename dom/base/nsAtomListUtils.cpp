@@ -12,15 +12,12 @@
 #include "nsAtom.h"
 #include "nsStaticAtom.h"
 
-/* static */ bool
-nsAtomListUtils::IsMember(nsAtom *aAtom,
-                          const nsStaticAtomSetup* aSetup,
-                          uint32_t aCount)
-{
-    for (const nsStaticAtomSetup *setup = aSetup, *setup_end = aSetup + aCount;
-         setup != setup_end; ++setup) {
-        if (aAtom == *(setup->mAtomp))
-            return true;
-    }
-    return false;
+/* static */ bool nsAtomListUtils::IsMember(nsAtom *aAtom,
+                                            const nsStaticAtomSetup *aSetup,
+                                            uint32_t aCount) {
+  for (const nsStaticAtomSetup *setup = aSetup, *setup_end = aSetup + aCount;
+       setup != setup_end; ++setup) {
+    if (aAtom == *(setup->mAtomp)) return true;
+  }
+  return false;
 }

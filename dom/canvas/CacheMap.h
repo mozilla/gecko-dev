@@ -18,114 +18,101 @@ namespace detail {
 class CacheMapUntypedEntry;
 }
 
-class CacheMapInvalidator
-{
-    friend class detail::CacheMapUntypedEntry;
+class CacheMapInvalidator {
+  friend class detail::CacheMapUntypedEntry;
 
-    mutable std::unordered_set<const detail::CacheMapUntypedEntry*> mCacheEntries;
+  mutable std::unordered_set<const detail::CacheMapUntypedEntry*> mCacheEntries;
 
-public:
-    ~CacheMapInvalidator() {
-        InvalidateCaches();
-    }
+ public:
+  ~CacheMapInvalidator() { InvalidateCaches(); }
 
-    void InvalidateCaches() const;
+  void InvalidateCaches() const;
 };
 
 namespace detail {
 
-class CacheMapUntypedEntry
-{
-    template<typename, typename> friend class CacheMap;
+class CacheMapUntypedEntry {
+  template <typename, typename>
+  friend class CacheMap;
 
-private:
-    const std::vector<const CacheMapInvalidator*> mInvalidators;
+ private:
+  const std::vector<const CacheMapInvalidator*> mInvalidators;
 
-protected:
-    CacheMapUntypedEntry(std::vector<const CacheMapInvalidator*>&& invalidators);
-    ~CacheMapUntypedEntry();
+ protected:
+  CacheMapUntypedEntry(std::vector<const CacheMapInvalidator*>&& invalidators);
+  ~CacheMapUntypedEntry();
 
-public:
-    virtual void Invalidate() const = 0;
+ public:
+  virtual void Invalidate() const = 0;
 };
 
 struct DerefLess final {
-    template<typename T>
-    bool operator ()(const T* const a, const T* const b) const {
-        return *a < *b;
-    }
+  template <typename T>
+  bool operator()(const T* const a, const T* const b) const {
+    return *a < *b;
+  }
 };
 
-} // namespace detail
+}  // namespace detail
 
+template <typename KeyT, typename ValueT>
+class CacheMap final {
+  class Entry final : public detail::CacheMapUntypedEntry {
+   public:
+    CacheMap& mParent;
+    const KeyT mKey;
+    const ValueT mValue;
 
-template<typename KeyT, typename ValueT>
-class CacheMap final
-{
-    class Entry final : public detail::CacheMapUntypedEntry {
-    public:
-        CacheMap& mParent;
-        const KeyT mKey;
-        const ValueT mValue;
+    Entry(std::vector<const CacheMapInvalidator*>&& invalidators,
+          CacheMap& parent, KeyT&& key, ValueT&& value)
+        : detail::CacheMapUntypedEntry(Move(invalidators)),
+          mParent(parent),
+          mKey(Move(key)),
+          mValue(Move(value)) {}
 
-        Entry(std::vector<const CacheMapInvalidator*>&& invalidators, CacheMap& parent,
-              KeyT&& key, ValueT&& value)
-            : detail::CacheMapUntypedEntry(Move(invalidators))
-            , mParent(parent)
-            , mKey(Move(key))
-            , mValue(Move(value))
-        { }
-
-        void Invalidate() const override {
-            const auto erased = mParent.mMap.erase(&mKey);
-            MOZ_ALWAYS_TRUE( erased == 1 );
-        }
-
-        bool operator <(const Entry& x) const {
-            return mKey < x.mKey;
-        }
-    };
-
-    typedef std::map<const KeyT*, UniquePtr<const Entry>, detail::DerefLess> MapT;
-    MapT mMap;
-
-public:
-    const ValueT* Insert(KeyT&& key, ValueT&& value,
-                         std::vector<const CacheMapInvalidator*>&& invalidators)
-    {
-        UniquePtr<const Entry> entry( new Entry(Move(invalidators), *this, Move(key),
-                                                Move(value)) );
-
-        typename MapT::value_type insertable{
-            &entry->mKey,
-            nullptr
-        };
-        insertable.second = Move(entry);
-
-        const auto res = mMap.insert(Move(insertable));
-        const auto& didInsert = res.second;
-        MOZ_ALWAYS_TRUE( didInsert );
-
-        const auto& itr = res.first;
-        return &itr->second->mValue;
+    void Invalidate() const override {
+      const auto erased = mParent.mMap.erase(&mKey);
+      MOZ_ALWAYS_TRUE(erased == 1);
     }
 
-    const ValueT* Find(const KeyT& key) const {
-        const auto itr = mMap.find(&key);
-        if (itr == mMap.end())
-            return nullptr;
+    bool operator<(const Entry& x) const { return mKey < x.mKey; }
+  };
 
-        return &itr->second->mValue;
-    }
+  typedef std::map<const KeyT*, UniquePtr<const Entry>, detail::DerefLess> MapT;
+  MapT mMap;
 
-    void Invalidate() {
-        while (mMap.size()) {
-            const auto& itr = mMap.begin();
-            itr->second->Invalidate();
-        }
+ public:
+  const ValueT* Insert(KeyT&& key, ValueT&& value,
+                       std::vector<const CacheMapInvalidator*>&& invalidators) {
+    UniquePtr<const Entry> entry(
+        new Entry(Move(invalidators), *this, Move(key), Move(value)));
+
+    typename MapT::value_type insertable{&entry->mKey, nullptr};
+    insertable.second = Move(entry);
+
+    const auto res = mMap.insert(Move(insertable));
+    const auto& didInsert = res.second;
+    MOZ_ALWAYS_TRUE(didInsert);
+
+    const auto& itr = res.first;
+    return &itr->second->mValue;
+  }
+
+  const ValueT* Find(const KeyT& key) const {
+    const auto itr = mMap.find(&key);
+    if (itr == mMap.end()) return nullptr;
+
+    return &itr->second->mValue;
+  }
+
+  void Invalidate() {
+    while (mMap.size()) {
+      const auto& itr = mMap.begin();
+      itr->second->Invalidate();
     }
+  }
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // MOZILLA_CACHE_MAP_H_
+#endif  // MOZILLA_CACHE_MAP_H_

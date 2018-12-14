@@ -98,9 +98,9 @@ MOZ_BEGIN_EXTERN_C
 #endif
 
 // Replace-malloc library initialization function. See top of this file
-MOZ_REPLACE_PUBLIC void
-replace_init(malloc_table_t*, struct ReplaceMallocBridge**) MOZ_REPLACE_WEAK;
+MOZ_REPLACE_PUBLIC void replace_init(
+    malloc_table_t*, struct ReplaceMallocBridge**) MOZ_REPLACE_WEAK;
 
 MOZ_END_EXTERN_C
 
-#endif // replace_malloc_h
+#endif  // replace_malloc_h

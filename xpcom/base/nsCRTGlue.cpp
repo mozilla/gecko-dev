@@ -28,9 +28,7 @@
 
 using namespace mozilla;
 
-const char*
-NS_strspnp(const char* aDelims, const char* aStr)
-{
+const char* NS_strspnp(const char* aDelims, const char* aStr) {
   const char* d;
   do {
     for (d = aDelims; *d != '\0'; ++d) {
@@ -44,9 +42,7 @@ NS_strspnp(const char* aDelims, const char* aStr)
   return aStr;
 }
 
-char*
-NS_strtok(const char* aDelims, char** aStr)
-{
+char* NS_strtok(const char* aDelims, char** aStr) {
   if (!*aStr) {
     return nullptr;
   }
@@ -74,9 +70,7 @@ NS_strtok(const char* aDelims, char** aStr)
   return ret;
 }
 
-uint32_t
-NS_strlen(const char16_t* aString)
-{
+uint32_t NS_strlen(const char16_t* aString) {
   MOZ_ASSERT(aString);
   const char16_t* end;
 
@@ -87,9 +81,7 @@ NS_strlen(const char16_t* aString)
   return end - aString;
 }
 
-int
-NS_strcmp(const char16_t* aStrA, const char16_t* aStrB)
-{
+int NS_strcmp(const char16_t* aStrA, const char16_t* aStrB) {
   while (*aStrB) {
     int r = *aStrA - *aStrB;
     if (r) {
@@ -103,9 +95,7 @@ NS_strcmp(const char16_t* aStrA, const char16_t* aStrB)
   return *aStrA != '\0';
 }
 
-int
-NS_strncmp(const char16_t* aStrA, const char16_t* aStrB, size_t aLen)
-{
+int NS_strncmp(const char16_t* aStrA, const char16_t* aStrB, size_t aLen) {
   while (aLen && *aStrB) {
     int r = *aStrA - *aStrB;
     if (r) {
@@ -120,17 +110,13 @@ NS_strncmp(const char16_t* aStrA, const char16_t* aStrB, size_t aLen)
   return aLen ? *aStrA != '\0' : 0;
 }
 
-char16_t*
-NS_strdup(const char16_t* aString)
-{
+char16_t* NS_strdup(const char16_t* aString) {
   uint32_t len = NS_strlen(aString);
   return NS_strndup(aString, len);
 }
 
-template<typename CharT>
-CharT*
-NS_strndup(const CharT* aString, uint32_t aLen)
-{
+template <typename CharT>
+CharT* NS_strndup(const CharT* aString, uint32_t aLen) {
   auto newBuf = (CharT*)moz_xmalloc((aLen + 1) * sizeof(CharT));
   if (newBuf) {
     memcpy(newBuf, aString, aLen * sizeof(CharT));
@@ -142,9 +128,7 @@ NS_strndup(const CharT* aString, uint32_t aLen)
 template char16_t* NS_strndup<char16_t>(const char16_t* aString, uint32_t aLen);
 template char* NS_strndup<char>(const char* aString, uint32_t aLen);
 
-char*
-NS_strdup(const char* aString)
-{
+char* NS_strdup(const char* aString) {
   uint32_t len = strlen(aString);
   char* str = (char*)moz_xmalloc(len + 1);
   if (str) {
@@ -208,27 +192,17 @@ const unsigned char nsLowerUpperUtils::kLower2Upper[256] = {
 
 // clang-format on
 
-bool
-NS_IsUpper(char aChar)
-{
+bool NS_IsUpper(char aChar) {
   return aChar != (char)nsLowerUpperUtils::kUpper2Lower[(unsigned char)aChar];
 }
 
-bool
-NS_IsLower(char aChar)
-{
+bool NS_IsLower(char aChar) {
   return aChar != (char)nsLowerUpperUtils::kLower2Upper[(unsigned char)aChar];
 }
 
-bool
-NS_IsAscii(char16_t aChar)
-{
-  return (0x0080 > aChar);
-}
+bool NS_IsAscii(char16_t aChar) { return (0x0080 > aChar); }
 
-bool
-NS_IsAscii(const char16_t* aString)
-{
+bool NS_IsAscii(const char16_t* aString) {
   while (*aString) {
     if (0x0080 <= *aString) {
       return false;
@@ -238,9 +212,7 @@ NS_IsAscii(const char16_t* aString)
   return true;
 }
 
-bool
-NS_IsAscii(const char* aString)
-{
+bool NS_IsAscii(const char* aString) {
   while (*aString) {
     if (0x80 & *aString) {
       return false;
@@ -250,9 +222,7 @@ NS_IsAscii(const char* aString)
   return true;
 }
 
-bool
-NS_IsAscii(const char* aString, uint32_t aLength)
-{
+bool NS_IsAscii(const char* aString, uint32_t aLength) {
   const char* end = aString + aLength;
   while (aString < end) {
     if (0x80 & *aString) {
@@ -263,47 +233,33 @@ NS_IsAscii(const char* aString, uint32_t aLength)
   return true;
 }
 
-bool
-NS_IsAsciiAlpha(char16_t aChar)
-{
-  return (aChar >= 'A' && aChar <= 'Z') ||
-         (aChar >= 'a' && aChar <= 'z');
+bool NS_IsAsciiAlpha(char16_t aChar) {
+  return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z');
 }
 
-bool
-NS_IsAsciiWhitespace(char16_t aChar)
-{
-  return aChar == ' ' ||
-         aChar == '\r' ||
-         aChar == '\n' ||
-         aChar == '\t';
+bool NS_IsAsciiWhitespace(char16_t aChar) {
+  return aChar == ' ' || aChar == '\r' || aChar == '\n' || aChar == '\t';
 }
 
-bool
-NS_IsAsciiDigit(char16_t aChar)
-{
-  return aChar >= '0' && aChar <= '9';
-}
+bool NS_IsAsciiDigit(char16_t aChar) { return aChar >= '0' && aChar <= '9'; }
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
-void
-NS_MakeRandomString(char* aBuf, int32_t aBufLen)
-{
+void NS_MakeRandomString(char* aBuf, int32_t aBufLen) {
 #define TABLE_SIZE 36
-  static const char table[] = {
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
-    '4', '5', '6', '7', '8', '9'
-  };
+  static const char table[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+                               'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+                               's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0',
+                               '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
   // turn PR_Now() into milliseconds since epoch
   // and salt rand with that.
   static unsigned int seed = 0;
   if (seed == 0) {
     double fpTime = double(PR_Now());
-    seed = (unsigned int)(fpTime * 1e-6 + 0.5); // use 1e-6, granularity of PR_Now() on the mac is seconds
+    seed = (unsigned int)(fpTime * 1e-6 + 0.5);  // use 1e-6, granularity of
+                                                 // PR_Now() on the mac is
+                                                 // seconds
     srand(seed);
   }
 
@@ -317,17 +273,15 @@ NS_MakeRandomString(char* aBuf, int32_t aBufLen)
 #endif
 
 #ifdef HAVE_VA_COPY
-#define VARARGS_ASSIGN(foo, bar)        VA_COPY(foo,bar)
+#define VARARGS_ASSIGN(foo, bar) VA_COPY(foo, bar)
 #elif defined(HAVE_VA_LIST_AS_ARRAY)
-#define VARARGS_ASSIGN(foo, bar)     foo[0] = bar[0]
+#define VARARGS_ASSIGN(foo, bar) foo[0] = bar[0]
 #else
-#define VARARGS_ASSIGN(foo, bar)     (foo) = (bar)
+#define VARARGS_ASSIGN(foo, bar) (foo) = (bar)
 #endif
 
 #if defined(XP_WIN)
-void
-vprintf_stderr(const char* aFmt, va_list aArgs)
-{
+void vprintf_stderr(const char* aFmt, va_list aArgs) {
   if (IsDebuggerPresent()) {
     int lengthNeeded = _vscprintf(aFmt, aArgs);
     if (lengthNeeded) {
@@ -355,31 +309,23 @@ vprintf_stderr(const char* aFmt, va_list aArgs)
 }
 
 #elif defined(ANDROID)
-void
-vprintf_stderr(const char* aFmt, va_list aArgs)
-{
+void vprintf_stderr(const char* aFmt, va_list aArgs) {
   __android_log_vprint(ANDROID_LOG_INFO, "Gecko", aFmt, aArgs);
 }
 #else
-void
-vprintf_stderr(const char* aFmt, va_list aArgs)
-{
+void vprintf_stderr(const char* aFmt, va_list aArgs) {
   vfprintf(stderr, aFmt, aArgs);
 }
 #endif
 
-void
-printf_stderr(const char* aFmt, ...)
-{
+void printf_stderr(const char* aFmt, ...) {
   va_list args;
   va_start(args, aFmt);
   vprintf_stderr(aFmt, args);
   va_end(args);
 }
 
-void
-fprintf_stderr(FILE* aFile, const char* aFmt, ...)
-{
+void fprintf_stderr(FILE* aFile, const char* aFmt, ...) {
   va_list args;
   va_start(args, aFmt);
   if (aFile == stderr) {

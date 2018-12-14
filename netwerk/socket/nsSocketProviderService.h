@@ -8,11 +8,10 @@
 
 #include "nsISocketProviderService.h"
 
-class nsSocketProviderService : public nsISocketProviderService
-{
+class nsSocketProviderService : public nsISocketProviderService {
   virtual ~nsSocketProviderService() {}
 
-public:
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISOCKETPROVIDERSERVICE
 

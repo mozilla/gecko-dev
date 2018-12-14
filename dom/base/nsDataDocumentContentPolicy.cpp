@@ -25,9 +25,7 @@ NS_IMPL_ISUPPORTS(nsDataDocumentContentPolicy, nsIContentPolicy)
 // Helper method for ShouldLoad()
 // Checks a URI for the given flags.  Returns true if the URI has the flags,
 // and false if not (or if we weren't able to tell).
-static bool
-HasFlags(nsIURI* aURI, uint32_t aURIFlags)
-{
+static bool HasFlags(nsIURI *aURI, uint32_t aURIFlags) {
   bool hasFlags;
   nsresult rv = NS_URIChainHasFlags(aURI, aURIFlags, &hasFlags);
   return NS_SUCCEEDED(rv) && hasFlags;
@@ -37,17 +35,15 @@ HasFlags(nsIURI* aURI, uint32_t aURIFlags)
 // CHECK_PRINCIPAL_AND_DATA in nsContentPolicyUtils is still valid.
 // nsContentPolicyUtils may not pass all the parameters to ShouldLoad.
 NS_IMETHODIMP
-nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
-                                        nsIURI *aContentLocation,
-                                        nsIURI *aRequestingLocation,
-                                        nsISupports *aRequestingContext,
-                                        const nsACString &aMimeGuess,
-                                        nsISupports *aExtra,
-                                        nsIPrincipal *aRequestPrincipal,
-                                        int16_t *aDecision)
-{
-  MOZ_ASSERT(aContentType == nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
-             "We should only see external content policy types here.");
+nsDataDocumentContentPolicy::ShouldLoad(
+    uint32_t aContentType, nsIURI *aContentLocation,
+    nsIURI *aRequestingLocation, nsISupports *aRequestingContext,
+    const nsACString &aMimeGuess, nsISupports *aExtra,
+    nsIPrincipal *aRequestPrincipal, int16_t *aDecision) {
+  MOZ_ASSERT(
+      aContentType ==
+          nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
+      "We should only see external content policy types here.");
 
   *aDecision = nsIContentPolicy::ACCEPT;
   // Look for the document.  In most cases, aRequestingContext is a node.
@@ -56,7 +52,8 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
   if (node) {
     doc = node->OwnerDoc();
   } else {
-    if (nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryInterface(aRequestingContext)) {
+    if (nsCOMPtr<nsPIDOMWindowOuter> window =
+            do_QueryInterface(aRequestingContext)) {
       doc = window->GetDoc();
     }
   }
@@ -69,13 +66,14 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
   // Nothing else is OK to load for data documents
   if (doc->IsLoadedAsData()) {
     // ...but let static (print/print preview) documents to load fonts.
-    if (!doc->IsStaticDocument() || aContentType != nsIContentPolicy::TYPE_FONT) {
+    if (!doc->IsStaticDocument() ||
+        aContentType != nsIContentPolicy::TYPE_FONT) {
       *aDecision = nsIContentPolicy::REJECT_TYPE;
       return NS_OK;
     }
   }
 
-  nsIDocument* docToCheckForImage = doc->GetDisplayDocument();
+  nsIDocument *docToCheckForImage = doc->GetDisplayDocument();
   if (!docToCheckForImage) {
     docToCheckForImage = doc;
   }
@@ -97,13 +95,12 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
 
       // Report error, if we can.
       if (node) {
-        nsIPrincipal* requestingPrincipal = node->NodePrincipal();
+        nsIPrincipal *requestingPrincipal = node->NodePrincipal();
         RefPtr<nsIURI> principalURI;
-        nsresult rv =
-          requestingPrincipal->GetURI(getter_AddRefs(principalURI));
+        nsresult rv = requestingPrincipal->GetURI(getter_AddRefs(principalURI));
         if (NS_SUCCEEDED(rv) && principalURI) {
-          nsScriptSecurityManager::ReportError(
-            nullptr, "ExternalDataError", principalURI, aContentLocation);
+          nsScriptSecurityManager::ReportError(nullptr, "ExternalDataError",
+                                               principalURI, aContentLocation);
         }
       }
     } else if ((aContentType == nsIContentPolicy::TYPE_IMAGE ||
@@ -145,15 +142,11 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
 }
 
 NS_IMETHODIMP
-nsDataDocumentContentPolicy::ShouldProcess(uint32_t aContentType,
-                                           nsIURI *aContentLocation,
-                                           nsIURI *aRequestingLocation,
-                                           nsISupports *aRequestingContext,
-                                           const nsACString &aMimeGuess,
-                                           nsISupports *aExtra,
-                                           nsIPrincipal *aRequestPrincipal,
-                                           int16_t *aDecision)
-{
+nsDataDocumentContentPolicy::ShouldProcess(
+    uint32_t aContentType, nsIURI *aContentLocation,
+    nsIURI *aRequestingLocation, nsISupports *aRequestingContext,
+    const nsACString &aMimeGuess, nsISupports *aExtra,
+    nsIPrincipal *aRequestPrincipal, int16_t *aDecision) {
   return ShouldLoad(aContentType, aContentLocation, aRequestingLocation,
                     aRequestingContext, aMimeGuess, aExtra, aRequestPrincipal,
                     aDecision);

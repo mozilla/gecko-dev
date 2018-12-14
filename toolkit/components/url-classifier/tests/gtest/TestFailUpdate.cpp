@@ -10,21 +10,20 @@ using namespace mozilla::safebrowsing;
 static const char* kFilesInV2[] = {".pset", ".sbstore"};
 static const char* kFilesInV4[] = {".pset", ".metadata"};
 
-#define V2_TABLE  "gtest-malware-simple"
+#define V2_TABLE "gtest-malware-simple"
 #define V4_TABLE1 "goog-malware-proto"
 #define V4_TABLE2 "goog-phish-proto"
 
-#define ROOT_DIR        NS_LITERAL_STRING("safebrowsing")
-#define SB_FILE(x, y)   NS_ConvertUTF8toUTF16(nsPrintfCString("%s%s",x, y))
+#define ROOT_DIR NS_LITERAL_STRING("safebrowsing")
+#define SB_FILE(x, y) NS_ConvertUTF8toUTF16(nsPrintfCString("%s%s", x, y))
 
-template<typename T, size_t N>
-void CheckFileExist(const char* table, const T (&files)[N], bool expectExists)
-{
+template <typename T, size_t N>
+void CheckFileExist(const char* table, const T (&files)[N], bool expectExists) {
   for (uint32_t i = 0; i < N; i++) {
     // This is just a quick way to know if this is v4 table
     NS_ConvertUTF8toUTF16 SUB_DIR(strstr(table, "-proto") ? "google4" : "");
-    nsCOMPtr<nsIFile> file =
-      GetFile(nsTArray<nsString> { ROOT_DIR, SUB_DIR, SB_FILE(table, files[i]) });
+    nsCOMPtr<nsIFile> file = GetFile(
+        nsTArray<nsString>{ROOT_DIR, SUB_DIR, SB_FILE(table, files[i])});
 
     bool exists;
     file->Exists(&exists);
@@ -33,8 +32,7 @@ void CheckFileExist(const char* table, const T (&files)[N], bool expectExists)
   }
 }
 
-TEST(FailUpdate, CheckTableReset)
-{
+TEST(FailUpdate, CheckTableReset) {
   const bool FULL_UPDATE = true;
   const bool PARTIAL_UPDATE = false;
 

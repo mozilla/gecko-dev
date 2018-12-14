@@ -36,9 +36,8 @@ using namespace mozilla;
 ////////////////////////////////////////////////////////////////////////
 // inDOMViewNode
 
-class inDOMViewNode
-{
-public:
+class inDOMViewNode {
+ public:
   inDOMViewNode() {}
   explicit inDOMViewNode(nsIDOMNode* aNode);
   ~inDOMViewNode();
@@ -56,71 +55,53 @@ public:
   bool hasSubDocument;
 };
 
-inDOMViewNode::inDOMViewNode(nsIDOMNode* aNode) :
-  node(aNode),
-  parent(nullptr),
-  next(nullptr),
-  previous(nullptr),
-  level(0),
-  isOpen(false),
-  isContainer(false),
-  hasAnonymous(false),
-  hasSubDocument(false)
-{
+inDOMViewNode::inDOMViewNode(nsIDOMNode* aNode)
+    : node(aNode),
+      parent(nullptr),
+      next(nullptr),
+      previous(nullptr),
+      level(0),
+      isOpen(false),
+      isContainer(false),
+      hasAnonymous(false),
+      hasSubDocument(false) {}
 
-}
-
-inDOMViewNode::~inDOMViewNode()
-{
-}
+inDOMViewNode::~inDOMViewNode() {}
 
 ////////////////////////////////////////////////////////////////////////
 
-inDOMView::inDOMView() :
-  mShowAnonymous(false),
-  mShowSubDocuments(false),
-  mShowWhitespaceNodes(true),
-  mShowAccessibleNodes(false),
-  mWhatToShow(dom::NodeFilterBinding::SHOW_ALL)
-{
-}
+inDOMView::inDOMView()
+    : mShowAnonymous(false),
+      mShowSubDocuments(false),
+      mShowWhitespaceNodes(true),
+      mShowAccessibleNodes(false),
+      mWhatToShow(dom::NodeFilterBinding::SHOW_ALL) {}
 
-inDOMView::~inDOMView()
-{
-  SetRootNode(nullptr);
-}
-
+inDOMView::~inDOMView() { SetRootNode(nullptr); }
 
 ////////////////////////////////////////////////////////////////////////
 // nsISupports
 
-NS_IMPL_ISUPPORTS(inDOMView,
-                  inIDOMView,
-                  nsITreeView,
-                  nsIMutationObserver)
+NS_IMPL_ISUPPORTS(inDOMView, inIDOMView, nsITreeView, nsIMutationObserver)
 
 ////////////////////////////////////////////////////////////////////////
 // inIDOMView
 
 NS_IMETHODIMP
-inDOMView::GetRootNode(nsIDOMNode** aNode)
-{
+inDOMView::GetRootNode(nsIDOMNode** aNode) {
   *aNode = mRootNode;
   NS_IF_ADDREF(*aNode);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetRootNode(nsIDOMNode* aNode)
-{
-  if (mTree)
-    mTree->BeginUpdateBatch();
+inDOMView::SetRootNode(nsIDOMNode* aNode) {
+  if (mTree) mTree->BeginUpdateBatch();
 
   if (mRootDocument) {
     // remove previous document observer
     nsCOMPtr<nsINode> doc(do_QueryInterface(mRootDocument));
-    if (doc)
-      doc->RemoveMutationObserver(this);
+    if (doc) doc->RemoveMutationObserver(this);
   }
 
   RemoveAllNodes();
@@ -150,15 +131,13 @@ inDOMView::SetRootNode(nsIDOMNode* aNode)
     mRootDocument = nullptr;
   }
 
-  if (mTree)
-    mTree->EndUpdateBatch();
+  if (mTree) mTree->EndUpdateBatch();
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetNodeFromRowIndex(int32_t rowIndex, nsIDOMNode **_retval)
-{
+inDOMView::GetNodeFromRowIndex(int32_t rowIndex, nsIDOMNode** _retval) {
   inDOMViewNode* viewNode = nullptr;
   RowToNode(rowIndex, &viewNode);
   if (!viewNode) return NS_ERROR_FAILURE;
@@ -169,86 +148,73 @@ inDOMView::GetNodeFromRowIndex(int32_t rowIndex, nsIDOMNode **_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::GetRowIndexFromNode(nsIDOMNode *node, int32_t *_retval)
-{
+inDOMView::GetRowIndexFromNode(nsIDOMNode* node, int32_t* _retval) {
   NodeToRow(node, _retval);
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-inDOMView::GetShowAnonymousContent(bool *aShowAnonymousContent)
-{
+inDOMView::GetShowAnonymousContent(bool* aShowAnonymousContent) {
   *aShowAnonymousContent = mShowAnonymous;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetShowAnonymousContent(bool aShowAnonymousContent)
-{
+inDOMView::SetShowAnonymousContent(bool aShowAnonymousContent) {
   mShowAnonymous = aShowAnonymousContent;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetShowSubDocuments(bool *aShowSubDocuments)
-{
+inDOMView::GetShowSubDocuments(bool* aShowSubDocuments) {
   *aShowSubDocuments = mShowSubDocuments;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetShowSubDocuments(bool aShowSubDocuments)
-{
+inDOMView::SetShowSubDocuments(bool aShowSubDocuments) {
   mShowSubDocuments = aShowSubDocuments;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetShowWhitespaceNodes(bool *aShowWhitespaceNodes)
-{
+inDOMView::GetShowWhitespaceNodes(bool* aShowWhitespaceNodes) {
   *aShowWhitespaceNodes = mShowWhitespaceNodes;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetShowWhitespaceNodes(bool aShowWhitespaceNodes)
-{
+inDOMView::SetShowWhitespaceNodes(bool aShowWhitespaceNodes) {
   mShowWhitespaceNodes = aShowWhitespaceNodes;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetShowAccessibleNodes(bool *aShowAccessibleNodes)
-{
+inDOMView::GetShowAccessibleNodes(bool* aShowAccessibleNodes) {
   *aShowAccessibleNodes = mShowAccessibleNodes;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetShowAccessibleNodes(bool aShowAccessibleNodes)
-{
+inDOMView::SetShowAccessibleNodes(bool aShowAccessibleNodes) {
   mShowAccessibleNodes = aShowAccessibleNodes;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetWhatToShow(uint32_t *aWhatToShow)
-{
+inDOMView::GetWhatToShow(uint32_t* aWhatToShow) {
   *aWhatToShow = mWhatToShow;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetWhatToShow(uint32_t aWhatToShow)
-{
+inDOMView::SetWhatToShow(uint32_t aWhatToShow) {
   mWhatToShow = aWhatToShow;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::Rebuild()
-{
+inDOMView::Rebuild() {
   nsCOMPtr<nsIDOMNode> root;
   GetRootNode(getter_AddRefs(root));
   SetRootNode(root);
@@ -259,22 +225,17 @@ inDOMView::Rebuild()
 // nsITreeView
 
 NS_IMETHODIMP
-inDOMView::GetRowCount(int32_t *aRowCount)
-{
+inDOMView::GetRowCount(int32_t* aRowCount) {
   *aRowCount = GetRowCount();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetRowProperties(int32_t index, nsAString& aProps)
-{
-  return NS_OK;
-}
+inDOMView::GetRowProperties(int32_t index, nsAString& aProps) { return NS_OK; }
 
 NS_IMETHODIMP
 inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
-                             nsAString& aProps)
-{
+                             nsAString& aProps) {
   inDOMViewNode* node = nullptr;
   RowToNode(row, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -338,26 +299,22 @@ inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
 }
 
 NS_IMETHODIMP
-inDOMView::GetColumnProperties(nsITreeColumn* col, nsAString& aProps)
-{
+inDOMView::GetColumnProperties(nsITreeColumn* col, nsAString& aProps) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetImageSrc(int32_t row, nsITreeColumn* col, nsAString& _retval)
-{
+inDOMView::GetImageSrc(int32_t row, nsITreeColumn* col, nsAString& _retval) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetCellValue(int32_t row, nsITreeColumn* col, nsAString& _retval)
-{
+inDOMView::GetCellValue(int32_t row, nsITreeColumn* col, nsAString& _retval) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetCellText(int32_t row, nsITreeColumn* col, nsAString& _retval)
-{
+inDOMView::GetCellText(int32_t row, nsITreeColumn* col, nsAString& _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(row, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -385,7 +342,10 @@ inDOMView::GetCellText(int32_t row, nsITreeColumn* col, nsAString& _retval)
     if (StringBeginsWith(colID, NS_LITERAL_STRING("col@"))) {
       if (domNode->IsElement()) {
         nsAutoString attr;
-        colID.Right(attr, colID.Length()-4); // have to use this because Substring is crashing on me!
+        colID.Right(
+            attr,
+            colID.Length() -
+                4);  // have to use this because Substring is crashing on me!
         domNode->AsElement()->GetAttribute(attr, _retval);
       }
     }
@@ -395,8 +355,7 @@ inDOMView::GetCellText(int32_t row, nsITreeColumn* col, nsAString& _retval)
 }
 
 NS_IMETHODIMP
-inDOMView::IsContainer(int32_t index, bool *_retval)
-{
+inDOMView::IsContainer(int32_t index, bool* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(index, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -406,8 +365,7 @@ inDOMView::IsContainer(int32_t index, bool *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::IsContainerOpen(int32_t index, bool *_retval)
-{
+inDOMView::IsContainerOpen(int32_t index, bool* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(index, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -417,8 +375,7 @@ inDOMView::IsContainerOpen(int32_t index, bool *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::IsContainerEmpty(int32_t index, bool *_retval)
-{
+inDOMView::IsContainerEmpty(int32_t index, bool* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(index, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -428,8 +385,7 @@ inDOMView::IsContainerEmpty(int32_t index, bool *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::GetLevel(int32_t index, int32_t *_retval)
-{
+inDOMView::GetLevel(int32_t index, int32_t* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(index, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -439,8 +395,7 @@ inDOMView::GetLevel(int32_t index, int32_t *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::GetParentIndex(int32_t rowIndex, int32_t *_retval)
-{
+inDOMView::GetParentIndex(int32_t rowIndex, int32_t* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(rowIndex, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -468,8 +423,7 @@ inDOMView::GetParentIndex(int32_t rowIndex, int32_t *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::HasNextSibling(int32_t rowIndex, int32_t afterIndex, bool *_retval)
-{
+inDOMView::HasNextSibling(int32_t rowIndex, int32_t afterIndex, bool* _retval) {
   inDOMViewNode* node = nullptr;
   RowToNode(rowIndex, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -480,8 +434,7 @@ inDOMView::HasNextSibling(int32_t rowIndex, int32_t afterIndex, bool *_retval)
 }
 
 NS_IMETHODIMP
-inDOMView::ToggleOpenState(int32_t index)
-{
+inDOMView::ToggleOpenState(int32_t index) {
   inDOMViewNode* node = nullptr;
   RowToNode(index, &node);
   if (!node) return NS_ERROR_FAILURE;
@@ -495,134 +448,103 @@ inDOMView::ToggleOpenState(int32_t index)
   // Update the twisty.
   mTree->InvalidateRow(index);
 
-  mTree->RowCountChanged(index+1, GetRowCount() - oldCount);
+  mTree->RowCountChanged(index + 1, GetRowCount() - oldCount);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetTree(nsITreeBoxObject *tree)
-{
+inDOMView::SetTree(nsITreeBoxObject* tree) {
   mTree = tree;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::GetSelection(nsITreeSelection * *aSelection)
-{
+inDOMView::GetSelection(nsITreeSelection** aSelection) {
   *aSelection = mSelection;
   NS_IF_ADDREF(*aSelection);
   return NS_OK;
 }
 
-NS_IMETHODIMP inDOMView::SetSelection(nsITreeSelection * aSelection)
-{
+NS_IMETHODIMP inDOMView::SetSelection(nsITreeSelection* aSelection) {
   mSelection = aSelection;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SelectionChanged()
-{
+inDOMView::SelectionChanged() { return NS_OK; }
+
+NS_IMETHODIMP
+inDOMView::SetCellValue(int32_t row, nsITreeColumn* col,
+                        const nsAString& value) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetCellValue(int32_t row, nsITreeColumn* col, const nsAString& value)
-{
+inDOMView::SetCellText(int32_t row, nsITreeColumn* col,
+                       const nsAString& value) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::SetCellText(int32_t row, nsITreeColumn* col, const nsAString& value)
-{
+inDOMView::CycleHeader(nsITreeColumn* col) { return NS_OK; }
+
+NS_IMETHODIMP
+inDOMView::CycleCell(int32_t row, nsITreeColumn* col) { return NS_OK; }
+
+NS_IMETHODIMP
+inDOMView::IsEditable(int32_t row, nsITreeColumn* col, bool* _retval) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::CycleHeader(nsITreeColumn* col)
-{
+inDOMView::IsSelectable(int32_t row, nsITreeColumn* col, bool* _retval) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::CycleCell(int32_t row, nsITreeColumn* col)
-{
-  return NS_OK;
-}
+inDOMView::IsSeparator(int32_t index, bool* _retval) { return NS_OK; }
 
 NS_IMETHODIMP
-inDOMView::IsEditable(int32_t row, nsITreeColumn* col, bool *_retval)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-inDOMView::IsSelectable(int32_t row, nsITreeColumn* col, bool *_retval)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMView::IsSeparator(int32_t index, bool *_retval)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMView::IsSorted(bool *_retval)
-{
-  return NS_OK;
-}
+inDOMView::IsSorted(bool* _retval) { return NS_OK; }
 
 NS_IMETHODIMP
 inDOMView::CanDrop(int32_t index, int32_t orientation,
-                   nsIDOMDataTransfer* aDataTransfer, bool *_retval)
-{
+                   nsIDOMDataTransfer* aDataTransfer, bool* _retval) {
   *_retval = false;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::Drop(int32_t row, int32_t orientation, nsIDOMDataTransfer* aDataTransfer)
-{
+inDOMView::Drop(int32_t row, int32_t orientation,
+                nsIDOMDataTransfer* aDataTransfer) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::PerformAction(const char16_t *action)
-{
+inDOMView::PerformAction(const char16_t* action) { return NS_OK; }
+
+NS_IMETHODIMP
+inDOMView::PerformActionOnRow(const char16_t* action, int32_t row) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-inDOMView::PerformActionOnRow(const char16_t *action, int32_t row)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-inDOMView::PerformActionOnCell(const char16_t* action, int32_t row, nsITreeColumn* col)
-{
+inDOMView::PerformActionOnCell(const char16_t* action, int32_t row,
+                               nsITreeColumn* col) {
   return NS_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////
 // nsIMutationObserver
 
-void
-inDOMView::NodeWillBeDestroyed(const nsINode* aNode)
-{
+void inDOMView::NodeWillBeDestroyed(const nsINode* aNode) {
   NS_NOTREACHED("Document destroyed while we're holding a strong ref to it");
 }
 
-void
-inDOMView::AttributeChanged(dom::Element* aElement,
-                            int32_t aNameSpaceID, nsAtom* aAttribute,
-                            int32_t aModType,
-                            const nsAttrValue* aOldValue)
-{
+void inDOMView::AttributeChanged(dom::Element* aElement, int32_t aNameSpaceID,
+                                 nsAtom* aAttribute, int32_t aModType,
+                                 const nsAttrValue* aOldValue) {
   if (!mTree) {
     return;
   }
@@ -691,9 +613,8 @@ inDOMView::AttributeChanged(dom::Element* aElement,
     inDOMViewNode* insertNode = nullptr;
     RowToNode(attrRow, &insertNode);
     if (insertNode) {
-      if (contentNode &&
-          insertNode->level <= contentNode->level) {
-        RowToNode(attrRow-1, &insertNode);
+      if (contentNode && insertNode->level <= contentNode->level) {
+        RowToNode(attrRow - 1, &insertNode);
         InsertLinkAfter(newNode, insertNode);
       } else
         InsertLinkBefore(newNode, insertNode);
@@ -701,9 +622,9 @@ inDOMView::AttributeChanged(dom::Element* aElement,
     InsertNode(newNode, attrRow);
     mTree->RowCountChanged(attrRow, 1);
   } else if (aModType == dom::MutationEventBinding::REMOVAL) {
-    // At this point, the attribute is already gone from the DOM, but is still represented
-    // in our mRows array.  Search through the content node's children for the corresponding
-    // node and remove it.
+    // At this point, the attribute is already gone from the DOM, but is still
+    // represented in our mRows array.  Search through the content node's
+    // children for the corresponding node and remove it.
 
     // get the row of the content node
     inDOMViewNode* contentNode = nullptr;
@@ -723,9 +644,9 @@ inDOMView::AttributeChanged(dom::Element* aElement,
     // search for the attribute node that was removed
     inDOMViewNode* checkNode = nullptr;
     int32_t row = 0;
-    for (row = contentRow+1; row < GetRowCount(); ++row) {
+    for (row = contentRow + 1; row < GetRowCount(); ++row) {
       checkNode = GetNodeAt(row);
-      if (checkNode->level == baseLevel+1) {
+      if (checkNode->level == baseLevel + 1) {
         nsCOMPtr<nsIAttribute> attr = do_QueryInterface(checkNode->node);
         domAttr = static_cast<dom::Attr*>(attr.get());
         if (domAttr) {
@@ -739,16 +660,12 @@ inDOMView::AttributeChanged(dom::Element* aElement,
           }
         }
       }
-      if (checkNode->level <= baseLevel)
-        break;
+      if (checkNode->level <= baseLevel) break;
     }
-
- }
+  }
 }
 
-void
-inDOMView::ContentAppended(nsIContent* aFirstNewContent)
-{
+void inDOMView::ContentAppended(nsIContent* aFirstNewContent) {
   if (!mTree) {
     return;
   }
@@ -758,9 +675,8 @@ inDOMView::ContentAppended(nsIContent* aFirstNewContent)
   }
 }
 
-static already_AddRefed<nsIDOMNode>
-GetParentForNode(nsINode* aChild, bool aShowAnonymous)
-{
+static already_AddRefed<nsIDOMNode> GetParentForNode(nsINode* aChild,
+                                                     bool aShowAnonymous) {
   MOZ_ASSERT(aChild);
   nsINode* parent = InspectorUtils::GetParentForNode(*aChild, aShowAnonymous);
 
@@ -768,11 +684,8 @@ GetParentForNode(nsINode* aChild, bool aShowAnonymous)
   return parentDOMNode.forget();
 }
 
-void
-inDOMView::ContentInserted(nsIContent* aChild)
-{
-  if (!mTree)
-    return;
+void inDOMView::ContentInserted(nsIContent* aChild) {
+  if (!mTree) return;
 
   nsresult rv;
   nsCOMPtr<nsIDOMNode> childDOMNode(do_QueryInterface(aChild));
@@ -780,11 +693,9 @@ inDOMView::ContentInserted(nsIContent* aChild)
 
   // find the inDOMViewNode for the parent of the inserted content
   int32_t parentRow = 0;
-  if (NS_FAILED(rv = NodeToRow(parent, &parentRow)))
-    return;
+  if (NS_FAILED(rv = NodeToRow(parent, &parentRow))) return;
   inDOMViewNode* parentNode = nullptr;
-  if (NS_FAILED(rv = RowToNode(parentRow, &parentNode)))
-    return;
+  if (NS_FAILED(rv = RowToNode(parentRow, &parentNode))) return;
 
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
@@ -800,25 +711,25 @@ inDOMView::ContentInserted(nsIContent* aChild)
 
   // get the previous sibling of the inserted content
   // This should probably be done on the flattened tree instead.
-  nsCOMPtr<nsIDOMNode> previous = do_QueryInterface(aChild->GetPreviousSibling());
+  nsCOMPtr<nsIDOMNode> previous =
+      do_QueryInterface(aChild->GetPreviousSibling());
   inDOMViewNode* previousNode = nullptr;
 
   int32_t row = 0;
   if (previous) {
     // find the inDOMViewNode for the previous sibling of the inserted content
     int32_t previousRow = 0;
-    if (NS_FAILED(rv = NodeToRow(previous, &previousRow)))
-      return;
-    if (NS_FAILED(rv = RowToNode(previousRow, &previousNode)))
-      return;
+    if (NS_FAILED(rv = NodeToRow(previous, &previousRow))) return;
+    if (NS_FAILED(rv = RowToNode(previousRow, &previousNode))) return;
 
     // get the last descendant of the previous row, which is the row
     // after which to insert this new row
     GetLastDescendantOf(previousNode, previousRow, &row);
     ++row;
   } else {
-    // there is no previous sibling, so the new row will be inserted after the parent
-    row = parentRow+1;
+    // there is no previous sibling, so the new row will be inserted after the
+    // parent
+    row = parentRow + 1;
   }
 
   inDOMViewNode* newNode = CreateNode(childDOMNode, parentNode);
@@ -827,7 +738,8 @@ inDOMView::ContentInserted(nsIContent* aChild)
     InsertLinkAfter(newNode, previousNode);
   } else {
     int32_t firstChildRow;
-    if (NS_SUCCEEDED(GetFirstDescendantOf(parentNode, parentRow, &firstChildRow))) {
+    if (NS_SUCCEEDED(
+            GetFirstDescendantOf(parentNode, parentRow, &firstChildRow))) {
       inDOMViewNode* firstChild;
       RowToNode(firstChildRow, &firstChild);
       InsertLinkBefore(newNode, firstChild);
@@ -840,22 +752,18 @@ inDOMView::ContentInserted(nsIContent* aChild)
   mTree->RowCountChanged(row, 1);
 }
 
-void
-inDOMView::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling)
-{
-  if (!mTree)
-    return;
+void inDOMView::ContentRemoved(nsIContent* aChild,
+                               nsIContent* aPreviousSibling) {
+  if (!mTree) return;
 
   nsresult rv;
 
   // find the inDOMViewNode for the old child
   nsCOMPtr<nsIDOMNode> oldDOMNode(do_QueryInterface(aChild));
   int32_t row = 0;
-  if (NS_FAILED(rv = NodeToRow(oldDOMNode, &row)))
-    return;
+  if (NS_FAILED(rv = NodeToRow(oldDOMNode, &row))) return;
   inDOMViewNode* oldNode;
-  if (NS_FAILED(rv = RowToNode(row, &oldNode)))
-    return;
+  if (NS_FAILED(rv = RowToNode(row, &oldNode))) return;
 
   nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
 
@@ -868,8 +776,7 @@ inDOMView::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling)
   // but if we're open it's more.
   int32_t oldCount = GetRowCount();
 
-  if (oldNode->isOpen)
-    CollapseNode(row);
+  if (oldNode->isOpen) CollapseNode(row);
 
   RemoveLink(oldNode);
   RemoveNode(row);
@@ -889,29 +796,20 @@ inDOMView::ContentRemoved(nsIContent* aChild, nsIContent* aPreviousSibling)
 
 //////// NODE MANAGEMENT
 
-inDOMViewNode*
-inDOMView::GetNodeAt(int32_t aRow)
-{
+inDOMViewNode* inDOMView::GetNodeAt(int32_t aRow) {
   return mNodes.ElementAt(aRow);
 }
 
-int32_t
-inDOMView::GetRowCount()
-{
-  return mNodes.Length();
-}
+int32_t inDOMView::GetRowCount() { return mNodes.Length(); }
 
-int32_t
-inDOMView::NodeToRow(inDOMViewNode* aNode)
-{
+int32_t inDOMView::NodeToRow(inDOMViewNode* aNode) {
   return mNodes.IndexOf(aNode);
 }
 
-inDOMViewNode*
-inDOMView::CreateNode(nsIDOMNode* aNode, inDOMViewNode* aParent)
-{
+inDOMViewNode* inDOMView::CreateNode(nsIDOMNode* aNode,
+                                     inDOMViewNode* aParent) {
   inDOMViewNode* viewNode = new inDOMViewNode(aNode);
-  viewNode->level = aParent ? aParent->level+1 : 0;
+  viewNode->level = aParent ? aParent->level + 1 : 0;
   viewNode->parent = aParent;
 
   nsCOMArray<nsIDOMNode> grandKids;
@@ -920,73 +818,53 @@ inDOMView::CreateNode(nsIDOMNode* aNode, inDOMViewNode* aParent)
   return viewNode;
 }
 
-bool
-inDOMView::RowOutOfBounds(int32_t aRow, int32_t aCount)
-{
-  return aRow < 0 || aRow >= GetRowCount() || aCount+aRow > GetRowCount();
+bool inDOMView::RowOutOfBounds(int32_t aRow, int32_t aCount) {
+  return aRow < 0 || aRow >= GetRowCount() || aCount + aRow > GetRowCount();
 }
 
-void
-inDOMView::AppendNode(inDOMViewNode* aNode)
-{
+void inDOMView::AppendNode(inDOMViewNode* aNode) {
   mNodes.AppendElement(aNode);
 }
 
-void
-inDOMView::InsertNode(inDOMViewNode* aNode, int32_t aRow)
-{
+void inDOMView::InsertNode(inDOMViewNode* aNode, int32_t aRow) {
   if (RowOutOfBounds(aRow, 1))
     AppendNode(aNode);
   else
     mNodes.InsertElementAt(aRow, aNode);
 }
 
-void
-inDOMView::RemoveNode(int32_t aRow)
-{
-  if (RowOutOfBounds(aRow, 1))
-    return;
+void inDOMView::RemoveNode(int32_t aRow) {
+  if (RowOutOfBounds(aRow, 1)) return;
 
   delete GetNodeAt(aRow);
   mNodes.RemoveElementAt(aRow);
 }
 
-void
-inDOMView::ReplaceNode(inDOMViewNode* aNode, int32_t aRow)
-{
-  if (RowOutOfBounds(aRow, 1))
-    return;
+void inDOMView::ReplaceNode(inDOMViewNode* aNode, int32_t aRow) {
+  if (RowOutOfBounds(aRow, 1)) return;
 
   delete GetNodeAt(aRow);
   mNodes.ElementAt(aRow) = aNode;
 }
 
-void
-inDOMView::InsertNodes(nsTArray<inDOMViewNode*>& aNodes, int32_t aRow)
-{
-  if (aRow < 0 || aRow > GetRowCount())
-    return;
+void inDOMView::InsertNodes(nsTArray<inDOMViewNode*>& aNodes, int32_t aRow) {
+  if (aRow < 0 || aRow > GetRowCount()) return;
 
   mNodes.InsertElementsAt(aRow, aNodes);
 }
 
-void
-inDOMView::RemoveNodes(int32_t aRow, int32_t aCount)
-{
-  if (aRow < 0)
-    return;
+void inDOMView::RemoveNodes(int32_t aRow, int32_t aCount) {
+  if (aRow < 0) return;
 
   int32_t rowCount = GetRowCount();
-  for (int32_t i = aRow; i < aRow+aCount && i < rowCount; ++i) {
+  for (int32_t i = aRow; i < aRow + aCount && i < rowCount; ++i) {
     delete GetNodeAt(i);
   }
 
   mNodes.RemoveElementsAt(aRow, aCount);
 }
 
-void
-inDOMView::RemoveAllNodes()
-{
+void inDOMView::RemoveAllNodes() {
   int32_t rowCount = GetRowCount();
   for (int32_t i = 0; i < rowCount; ++i) {
     delete GetNodeAt(i);
@@ -995,15 +873,12 @@ inDOMView::RemoveAllNodes()
   mNodes.Clear();
 }
 
-void
-inDOMView::ExpandNode(int32_t aRow)
-{
+void inDOMView::ExpandNode(int32_t aRow) {
   inDOMViewNode* node = nullptr;
   RowToNode(aRow, &node);
 
   nsCOMArray<nsIDOMNode> kids;
-  GetChildNodesFor(node ? node->node : mRootNode,
-                   kids);
+  GetChildNodesFor(node ? node->node : mRootNode, kids);
   int32_t kidCount = kids.Count();
 
   nsTArray<inDOMViewNode*> list(kidCount);
@@ -1015,21 +890,17 @@ inDOMView::ExpandNode(int32_t aRow)
     newNode = CreateNode(kids[i], node);
     list.AppendElement(newNode);
 
-    if (prevNode)
-      prevNode->next = newNode;
+    if (prevNode) prevNode->next = newNode;
     newNode->previous = prevNode;
     prevNode = newNode;
   }
 
-  InsertNodes(list, aRow+1);
+  InsertNodes(list, aRow + 1);
 
-  if (node)
-    node->isOpen = true;
+  if (node) node->isOpen = true;
 }
 
-void
-inDOMView::CollapseNode(int32_t aRow)
-{
+void inDOMView::CollapseNode(int32_t aRow) {
   inDOMViewNode* node = nullptr;
   nsresult rv = RowToNode(aRow, &node);
   if (NS_FAILED(rv)) {
@@ -1039,26 +910,21 @@ inDOMView::CollapseNode(int32_t aRow)
   int32_t row = 0;
   GetLastDescendantOf(node, aRow, &row);
 
-  RemoveNodes(aRow+1, row-aRow);
+  RemoveNodes(aRow + 1, row - aRow);
 
   node->isOpen = false;
 }
 
 //////// NODE AND ROW CONVERSION
 
-nsresult
-inDOMView::RowToNode(int32_t aRow, inDOMViewNode** aNode)
-{
-  if (aRow < 0 || aRow >= GetRowCount())
-    return NS_ERROR_FAILURE;
+nsresult inDOMView::RowToNode(int32_t aRow, inDOMViewNode** aNode) {
+  if (aRow < 0 || aRow >= GetRowCount()) return NS_ERROR_FAILURE;
 
   *aNode = GetNodeAt(aRow);
   return NS_OK;
 }
 
-nsresult
-inDOMView::NodeToRow(nsIDOMNode* aNode, int32_t* aRow)
-{
+nsresult inDOMView::NodeToRow(nsIDOMNode* aNode, int32_t* aRow) {
   int32_t rowCount = GetRowCount();
   for (int32_t i = 0; i < rowCount; ++i) {
     if (GetNodeAt(i)->node == aNode) {
@@ -1073,84 +939,67 @@ inDOMView::NodeToRow(nsIDOMNode* aNode, int32_t* aRow)
 
 //////// NODE HIERARCHY MUTATION
 
-void
-inDOMView::InsertLinkAfter(inDOMViewNode* aNode, inDOMViewNode* aInsertAfter)
-{
-  if (aInsertAfter->next)
-    aInsertAfter->next->previous = aNode;
+void inDOMView::InsertLinkAfter(inDOMViewNode* aNode,
+                                inDOMViewNode* aInsertAfter) {
+  if (aInsertAfter->next) aInsertAfter->next->previous = aNode;
   aNode->next = aInsertAfter->next;
   aInsertAfter->next = aNode;
   aNode->previous = aInsertAfter;
 }
 
-void
-inDOMView::InsertLinkBefore(inDOMViewNode* aNode, inDOMViewNode* aInsertBefore)
-{
-  if (aInsertBefore->previous)
-    aInsertBefore->previous->next = aNode;
+void inDOMView::InsertLinkBefore(inDOMViewNode* aNode,
+                                 inDOMViewNode* aInsertBefore) {
+  if (aInsertBefore->previous) aInsertBefore->previous->next = aNode;
   aNode->previous = aInsertBefore->previous;
   aInsertBefore->previous = aNode;
   aNode->next = aInsertBefore;
 }
 
-void
-inDOMView::RemoveLink(inDOMViewNode* aNode)
-{
-  if (aNode->previous)
-    aNode->previous->next = aNode->next;
-  if (aNode->next)
-    aNode->next->previous = aNode->previous;
+void inDOMView::RemoveLink(inDOMViewNode* aNode) {
+  if (aNode->previous) aNode->previous->next = aNode->next;
+  if (aNode->next) aNode->next->previous = aNode->previous;
 }
 
-void
-inDOMView::ReplaceLink(inDOMViewNode* aNewNode, inDOMViewNode* aOldNode)
-{
-  if (aOldNode->previous)
-    aOldNode->previous->next = aNewNode;
-  if (aOldNode->next)
-    aOldNode->next->previous = aNewNode;
+void inDOMView::ReplaceLink(inDOMViewNode* aNewNode, inDOMViewNode* aOldNode) {
+  if (aOldNode->previous) aOldNode->previous->next = aNewNode;
+  if (aOldNode->next) aOldNode->next->previous = aNewNode;
   aNewNode->next = aOldNode->next;
   aNewNode->previous = aOldNode->previous;
 }
 
 //////// NODE HIERARCHY UTILITIES
 
-nsresult
-inDOMView::GetFirstDescendantOf(inDOMViewNode* aNode, int32_t aRow, int32_t* aResult)
-{
+nsresult inDOMView::GetFirstDescendantOf(inDOMViewNode* aNode, int32_t aRow,
+                                         int32_t* aResult) {
   // get the first node that is a descendant of the previous sibling
   int32_t row = 0;
   inDOMViewNode* node;
-  for (row = aRow+1; row < GetRowCount(); ++row) {
+  for (row = aRow + 1; row < GetRowCount(); ++row) {
     node = GetNodeAt(row);
     if (node->parent == aNode) {
       *aResult = row;
       return NS_OK;
     }
-    if (node->level <= aNode->level)
-      break;
+    if (node->level <= aNode->level) break;
   }
   return NS_ERROR_FAILURE;
 }
 
-nsresult
-inDOMView::GetLastDescendantOf(inDOMViewNode* aNode, int32_t aRow, int32_t* aResult)
-{
+nsresult inDOMView::GetLastDescendantOf(inDOMViewNode* aNode, int32_t aRow,
+                                        int32_t* aResult) {
   // get the last node that is a descendant of the previous sibling
   int32_t row = 0;
-  for (row = aRow+1; row < GetRowCount(); ++row) {
-    if (GetNodeAt(row)->level <= aNode->level)
-      break;
+  for (row = aRow + 1; row < GetRowCount(); ++row) {
+    if (GetNodeAt(row)->level <= aNode->level) break;
   }
-  *aResult = row-1;
+  *aResult = row - 1;
   return NS_OK;
 }
 
 //////// DOM UTILITIES
 
-nsresult
-inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
-{
+nsresult inDOMView::GetChildNodesFor(nsIDOMNode* aNode,
+                                     nsCOMArray<nsIDOMNode>& aResult) {
   NS_ENSURE_ARG(aNode);
   // attribute nodes
   if (mWhatToShow & dom::NodeFilterBinding::SHOW_ATTRIBUTE) {
@@ -1165,7 +1014,7 @@ inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
     MOZ_ASSERT(node);
 
     nsCOMPtr<nsINodeList> kids =
-      InspectorUtils::GetChildrenForNode(*node, mShowAnonymous);
+        InspectorUtils::GetChildrenForNode(*node, mShowAnonymous);
     if (kids) {
       AppendKidsToArray(kids, aResult);
     }
@@ -1173,7 +1022,7 @@ inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
 
   if (mShowSubDocuments) {
     nsCOMPtr<nsIDOMNode> domdoc =
-      do_QueryInterface(inLayoutUtils::GetSubDocumentFor(aNode));
+        do_QueryInterface(inLayoutUtils::GetSubDocumentFor(aNode));
     if (domdoc) {
       aResult.AppendObject(domdoc);
     }
@@ -1182,10 +1031,8 @@ inDOMView::GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult)
   return NS_OK;
 }
 
-void
-inDOMView::AppendKidsToArray(nsINodeList* aKids,
-                             nsCOMArray<nsIDOMNode>& aArray)
-{
+void inDOMView::AppendKidsToArray(nsINodeList* aKids,
+                                  nsCOMArray<nsIDOMNode>& aArray) {
   for (uint32_t i = 0, len = aKids->Length(); i < len; ++i) {
     nsIContent* kid = aKids->Item(i);
     uint16_t nodeType = kid->NodeType();
@@ -1218,10 +1065,8 @@ inDOMView::AppendKidsToArray(nsINodeList* aKids,
   }
 }
 
-nsresult
-inDOMView::AppendAttrsToArray(nsDOMAttributeMap* aAttributes,
-                              nsCOMArray<nsIDOMNode>& aArray)
-{
+nsresult inDOMView::AppendAttrsToArray(nsDOMAttributeMap* aAttributes,
+                                       nsCOMArray<nsIDOMNode>& aArray) {
   uint32_t l = aAttributes->Length();
   for (uint32_t i = 0; i < l; ++i) {
     aArray.AppendElement(aAttributes->Item(i));

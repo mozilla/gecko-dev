@@ -9,9 +9,7 @@
 
 namespace mozilla {
 
-XREAppData&
-XREAppData::operator=(const StaticXREAppData& aOther)
-{
+XREAppData& XREAppData::operator=(const StaticXREAppData& aOther) {
   vendor = aOther.vendor;
   name = aOther.name;
   remotingName = aOther.remotingName;
@@ -29,9 +27,7 @@ XREAppData::operator=(const StaticXREAppData& aOther)
   return *this;
 }
 
-XREAppData&
-XREAppData::operator=(const XREAppData& aOther)
-{
+XREAppData& XREAppData::operator=(const XREAppData& aOther) {
   directory = aOther.directory;
   vendor = aOther.vendor;
   name = aOther.name;
@@ -54,4 +50,4 @@ XREAppData::operator=(const XREAppData& aOther)
   return *this;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

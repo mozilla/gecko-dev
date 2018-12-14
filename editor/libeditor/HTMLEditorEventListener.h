@@ -13,28 +13,23 @@ namespace mozilla {
 
 class EditorBase;
 
-class HTMLEditorEventListener final : public EditorEventListener
-{
-public:
-  HTMLEditorEventListener()
-  {
-  }
+class HTMLEditorEventListener final : public EditorEventListener {
+ public:
+  HTMLEditorEventListener() {}
 
-  virtual ~HTMLEditorEventListener()
-  {
-  }
+  virtual ~HTMLEditorEventListener() {}
 
   /**
    * Connect() fails if aEditorBase isn't an HTMLEditor instance.
    */
   virtual nsresult Connect(EditorBase* aEditorBase) override;
 
-protected:
+ protected:
   virtual nsresult MouseDown(nsIDOMMouseEvent* aMouseEvent) override;
   virtual nsresult MouseUp(nsIDOMMouseEvent* aMouseEvent) override;
   virtual nsresult MouseClick(nsIDOMMouseEvent* aMouseEvent) override;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef HTMLEditorEventListener_h
+#endif  // #ifndef HTMLEditorEventListener_h

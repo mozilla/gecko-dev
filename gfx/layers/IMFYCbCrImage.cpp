@@ -18,37 +18,30 @@ namespace mozilla {
 namespace layers {
 
 IMFYCbCrImage::IMFYCbCrImage(IMFMediaBuffer* aBuffer, IMF2DBuffer* a2DBuffer)
-  : RecyclingPlanarYCbCrImage(nullptr)
-  , mBuffer(aBuffer)
-  , m2DBuffer(a2DBuffer)
-{}
+    : RecyclingPlanarYCbCrImage(nullptr),
+      mBuffer(aBuffer),
+      m2DBuffer(a2DBuffer) {}
 
-IMFYCbCrImage::~IMFYCbCrImage()
-{
+IMFYCbCrImage::~IMFYCbCrImage() {
   if (m2DBuffer) {
     m2DBuffer->Unlock2D();
-  }
-  else {
+  } else {
     mBuffer->Unlock();
   }
 }
 
-static already_AddRefed<IDirect3DTexture9>
-InitTextures(IDirect3DDevice9* aDevice,
-             const IntSize &aSize,
-            _D3DFORMAT aFormat,
-            RefPtr<IDirect3DSurface9>& aSurface,
-            HANDLE& aHandle,
-            D3DLOCKED_RECT& aLockedRect)
-{
+static already_AddRefed<IDirect3DTexture9> InitTextures(
+    IDirect3DDevice9* aDevice, const IntSize& aSize, _D3DFORMAT aFormat,
+    RefPtr<IDirect3DSurface9>& aSurface, HANDLE& aHandle,
+    D3DLOCKED_RECT& aLockedRect) {
   if (!aDevice) {
     return nullptr;
   }
 
   RefPtr<IDirect3DTexture9> result;
-  if (FAILED(aDevice->CreateTexture(aSize.width, aSize.height,
-                                    1, 0, aFormat, D3DPOOL_DEFAULT,
-                                    getter_AddRefs(result), &aHandle))) {
+  if (FAILED(aDevice->CreateTexture(aSize.width, aSize.height, 1, 0, aFormat,
+                                    D3DPOOL_DEFAULT, getter_AddRefs(result),
+                                    &aHandle))) {
     return nullptr;
   }
   if (!result) {
@@ -56,8 +49,8 @@ InitTextures(IDirect3DDevice9* aDevice,
   }
 
   RefPtr<IDirect3DTexture9> tmpTexture;
-  if (FAILED(aDevice->CreateTexture(aSize.width, aSize.height,
-                                    1, 0, aFormat, D3DPOOL_SYSTEMMEM,
+  if (FAILED(aDevice->CreateTexture(aSize.width, aSize.height, 1, 0, aFormat,
+                                    D3DPOOL_SYSTEMMEM,
                                     getter_AddRefs(tmpTexture), nullptr))) {
     return nullptr;
   }
@@ -75,11 +68,9 @@ InitTextures(IDirect3DDevice9* aDevice,
   return result.forget();
 }
 
-static bool
-FinishTextures(IDirect3DDevice9* aDevice,
-               IDirect3DTexture9* aTexture,
-               IDirect3DSurface9* aSurface)
-{
+static bool FinishTextures(IDirect3DDevice9* aDevice,
+                           IDirect3DTexture9* aTexture,
+                           IDirect3DSurface9* aSurface) {
   if (!aDevice) {
     return false;
   }
@@ -102,9 +93,8 @@ FinishTextures(IDirect3DDevice9* aDevice,
   return true;
 }
 
-DXGIYCbCrTextureData*
-IMFYCbCrImage::GetD3D11TextureData(Data aData, gfx::IntSize aSize)
-{
+DXGIYCbCrTextureData* IMFYCbCrImage::GetD3D11TextureData(Data aData,
+                                                         gfx::IntSize aSize) {
   HRESULT hr;
   RefPtr<ID3D10Multithread> mt;
 
@@ -133,8 +123,8 @@ IMFYCbCrImage::GetD3D11TextureData(Data aData, gfx::IntSize aSize)
     return nullptr;
   }
 
-  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM,
-                                aData.mYSize.width, aData.mYSize.height, 1, 1);
+  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM, aData.mYSize.width,
+                                aData.mYSize.height, 1, 1);
 
   // WebRender requests keyed mutex
   if (device == gfx::DeviceManagerDx::Get()->GetCompositorDevice() &&
@@ -154,7 +144,6 @@ IMFYCbCrImage::GetD3D11TextureData(Data aData, gfx::IntSize aSize)
   RefPtr<ID3D11Texture2D> textureCb;
   hr = device->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(textureCb));
   NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
-
 
   RefPtr<ID3D11Texture2D> textureCr;
   hr = device->CreateTexture2D(&newDesc, nullptr, getter_AddRefs(textureCr));
@@ -181,22 +170,24 @@ IMFYCbCrImage::GetD3D11TextureData(Data aData, gfx::IntSize aSize)
     box.back = 1;
     box.right = aData.mYSize.width;
     box.bottom = aData.mYSize.height;
-    ctx->UpdateSubresource(textureY, 0, &box, aData.mYChannel, aData.mYStride, 0);
+    ctx->UpdateSubresource(textureY, 0, &box, aData.mYChannel, aData.mYStride,
+                           0);
 
     box.right = aData.mCbCrSize.width;
     box.bottom = aData.mCbCrSize.height;
-    ctx->UpdateSubresource(textureCb, 0, &box, aData.mCbChannel, aData.mCbCrStride, 0);
-    ctx->UpdateSubresource(textureCr, 0, &box, aData.mCrChannel, aData.mCbCrStride, 0);
+    ctx->UpdateSubresource(textureCb, 0, &box, aData.mCbChannel,
+                           aData.mCbCrStride, 0);
+    ctx->UpdateSubresource(textureCr, 0, &box, aData.mCrChannel,
+                           aData.mCbCrStride, 0);
   }
 
-  return DXGIYCbCrTextureData::Create(textureY, textureCb, textureCr,
-                                      aSize, aData.mYSize, aData.mCbCrSize,
+  return DXGIYCbCrTextureData::Create(textureY, textureCb, textureCr, aSize,
+                                      aData.mYSize, aData.mCbCrSize,
                                       aData.mYUVColorSpace);
 }
 
-TextureClient*
-IMFYCbCrImage::GetD3D11TextureClient(KnowsCompositor* aForwarder)
-{
+TextureClient* IMFYCbCrImage::GetD3D11TextureClient(
+    KnowsCompositor* aForwarder) {
   DXGIYCbCrTextureData* textureData = GetD3D11TextureData(mData, GetSize());
 
   if (textureData == nullptr) {
@@ -204,25 +195,19 @@ IMFYCbCrImage::GetD3D11TextureClient(KnowsCompositor* aForwarder)
   }
 
   mTextureClient = TextureClient::CreateWithData(
-    textureData, TextureFlags::DEFAULT,
-    aForwarder->GetTextureForwarder()
-  );
+      textureData, TextureFlags::DEFAULT, aForwarder->GetTextureForwarder());
 
   return mTextureClient;
 }
 
-TextureClient*
-IMFYCbCrImage::GetTextureClient(KnowsCompositor* aForwarder)
-{
+TextureClient* IMFYCbCrImage::GetTextureClient(KnowsCompositor* aForwarder) {
   if (mTextureClient) {
     return mTextureClient;
   }
 
-  RefPtr<ID3D11Device> device =
-    gfx::DeviceManagerDx::Get()->GetContentDevice();
+  RefPtr<ID3D11Device> device = gfx::DeviceManagerDx::Get()->GetContentDevice();
   if (!device) {
-    device =
-      gfx::DeviceManagerDx::Get()->GetCompositorDevice();
+    device = gfx::DeviceManagerDx::Get()->GetCompositorDevice();
   }
 
   if (!device || !aForwarder->SupportsD3D11()) {
@@ -231,5 +216,5 @@ IMFYCbCrImage::GetTextureClient(KnowsCompositor* aForwarder)
   return GetD3D11TextureClient(aForwarder);
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

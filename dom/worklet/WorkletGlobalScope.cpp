@@ -38,25 +38,20 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WorkletGlobalScope)
 NS_INTERFACE_MAP_END
 
 WorkletGlobalScope::WorkletGlobalScope(nsPIDOMWindowInner* aWindow)
-  : mWindow(aWindow)
-{
+    : mWindow(aWindow) {
   MOZ_ASSERT(aWindow);
 }
 
-WorkletGlobalScope::~WorkletGlobalScope()
-{
-}
+WorkletGlobalScope::~WorkletGlobalScope() {}
 
-JSObject*
-WorkletGlobalScope::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* WorkletGlobalScope::WrapObject(JSContext* aCx,
+                                         JS::Handle<JSObject*> aGivenProto) {
   MOZ_CRASH("We should never get here!");
   return nullptr;
 }
 
-already_AddRefed<Console>
-WorkletGlobalScope::GetConsole(JSContext* aCx, ErrorResult& aRv)
-{
+already_AddRefed<Console> WorkletGlobalScope::GetConsole(JSContext* aCx,
+                                                         ErrorResult& aRv) {
   if (!mConsole) {
     mConsole = Console::Create(aCx, mWindow, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
@@ -68,9 +63,7 @@ WorkletGlobalScope::GetConsole(JSContext* aCx, ErrorResult& aRv)
   return console.forget();
 }
 
-void
-WorkletGlobalScope::Dump(const Optional<nsAString>& aString) const
-{
+void WorkletGlobalScope::Dump(const Optional<nsAString>& aString) const {
   if (!DOMPrefs::DumpEnabled()) {
     return;
   }
@@ -89,5 +82,5 @@ WorkletGlobalScope::Dump(const Optional<nsAString>& aString) const
   fflush(stdout);
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

@@ -44,8 +44,8 @@
  * Offline tests are separated in three different groups:
  *  * TestFuzzyPolicies - complete random ASCII input
  *  * TestFuzzyPoliciesIncDir - a directory name followed by random ASCII
- *  * TestFuzzyPoliciesIncDirLimASCII - a directory name followed by limited ASCII
- *    which represents more likely user input.
+ *  * TestFuzzyPoliciesIncDirLimASCII - a directory name followed by limited
+ * ASCII which represents more likely user input.
  *
  *  We run each of this categories |kFuzzyRuns| times.
  */
@@ -61,16 +61,15 @@ static const uint32_t kFuzzyExpectedPolicyCount = 111;
 
 static const uint32_t kMaxPolicyLength = 96;
 
-struct PolicyTest
-{
+struct PolicyTest {
   char policy[kMaxPolicyLength];
   char expectedResult[kMaxPolicyLength];
 };
 
-nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies which should fail to parse
-                 const char* aPolicy,
-                 const char* aExpectedResult) {
-
+nsresult runTest(uint32_t aExpectedPolicyCount,  // this should be 0 for
+                                                 // policies which should fail
+                                                 // to parse
+                 const char* aPolicy, const char* aExpectedResult) {
   nsresult rv;
 
   // we init the csp with http://www.selfuri.com
@@ -81,12 +80,12 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
   nsCOMPtr<nsIPrincipal> selfURIPrincipal;
   mozilla::OriginAttributes attrs;
   selfURIPrincipal =
-    mozilla::BasePrincipal::CreateCodebasePrincipal(selfURI, attrs);
+      mozilla::BasePrincipal::CreateCodebasePrincipal(selfURI, attrs);
   NS_ENSURE_TRUE(selfURIPrincipal, NS_ERROR_FAILURE);
 
   // create a CSP object
   nsCOMPtr<nsIContentSecurityPolicy> csp =
-    do_CreateInstance(NS_CSPCONTEXT_CONTRACTID, &rv);
+      do_CreateInstance(NS_CSPCONTEXT_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // for testing the parser we only need to set a principal which is needed
@@ -111,10 +110,10 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
   rv = csp->GetPolicyCount(&actualPolicyCount);
   NS_ENSURE_SUCCESS(rv, rv);
   if (actualPolicyCount != aExpectedPolicyCount) {
-    EXPECT_TRUE(false) <<
-      "Actual policy count not equal to expected policy count (" <<
-      actualPolicyCount << " != " << aExpectedPolicyCount <<
-      ") for policy: " << aPolicy;
+    EXPECT_TRUE(false)
+        << "Actual policy count not equal to expected policy count ("
+        << actualPolicyCount << " != " << aExpectedPolicyCount
+        << ") for policy: " << aPolicy;
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -132,10 +131,9 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!NS_ConvertUTF16toUTF8(parsedPolicyStr).EqualsASCII(aExpectedResult)) {
-    EXPECT_TRUE(false) <<
-      "Actual policy does not match expected policy (" <<
-      NS_ConvertUTF16toUTF8(parsedPolicyStr).get() << " != " <<
-      aExpectedResult << ")";
+    EXPECT_TRUE(false) << "Actual policy does not match expected policy ("
+                       << NS_ConvertUTF16toUTF8(parsedPolicyStr).get()
+                       << " != " << aExpectedResult << ")";
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -144,30 +142,33 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
 
 // ============================= run Tests ========================
 
-nsresult runTestSuite(const PolicyTest* aPolicies,
-                      uint32_t aPolicyCount,
+nsresult runTestSuite(const PolicyTest* aPolicies, uint32_t aPolicyCount,
                       uint32_t aExpectedPolicyCount) {
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   bool experimentalEnabledCache = false;
   bool strictDynamicEnabledCache = false;
-  if (prefs)
-  {
-    prefs->GetBoolPref("security.csp.experimentalEnabled", &experimentalEnabledCache);
+  if (prefs) {
+    prefs->GetBoolPref("security.csp.experimentalEnabled",
+                       &experimentalEnabledCache);
     prefs->SetBoolPref("security.csp.experimentalEnabled", true);
 
-    prefs->GetBoolPref("security.csp.enableStrictDynamic", &strictDynamicEnabledCache);
+    prefs->GetBoolPref("security.csp.enableStrictDynamic",
+                       &strictDynamicEnabledCache);
     prefs->SetBoolPref("security.csp.enableStrictDynamic", true);
   }
 
   for (uint32_t i = 0; i < aPolicyCount; i++) {
-    rv = runTest(aExpectedPolicyCount, aPolicies[i].policy, aPolicies[i].expectedResult);
+    rv = runTest(aExpectedPolicyCount, aPolicies[i].policy,
+                 aPolicies[i].expectedResult);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   if (prefs) {
-    prefs->SetBoolPref("security.csp.experimentalEnabled", experimentalEnabledCache);
-    prefs->SetBoolPref("security.csp.enableStrictDynamic", strictDynamicEnabledCache);
+    prefs->SetBoolPref("security.csp.experimentalEnabled",
+                       experimentalEnabledCache);
+    prefs->SetBoolPref("security.csp.enableStrictDynamic",
+                       strictDynamicEnabledCache);
   }
 
   return NS_OK;
@@ -175,11 +176,9 @@ nsresult runTestSuite(const PolicyTest* aPolicies,
 
 // ============================= TestDirectives ========================
 
-TEST(CSPParser, Directives)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, Directives) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "connect-src xn--mnchen-3ya.de",
       "connect-src http://xn--mnchen-3ya.de"},
     { "default-src http://www.example.com",
@@ -224,7 +223,7 @@ TEST(CSPParser, Directives)
       "worker-src https://example.com" },
     { "worker-src http://worker.com; frame-src http://frame.com; child-src http://child.com",
       "worker-src http://worker.com; frame-src http://frame.com; child-src http://child.com" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -233,11 +232,9 @@ TEST(CSPParser, Directives)
 
 // ============================= TestKeywords ========================
 
-TEST(CSPParser, Keywords)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, Keywords) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "script-src 'self'",
       "script-src http://www.selfuri.com" },
     { "script-src 'unsafe-inline'",
@@ -250,7 +247,7 @@ TEST(CSPParser, Keywords)
       "script-src 'none'" },
     { "img-src 'none'; script-src 'unsafe-eval' 'unsafe-inline'; default-src 'self'",
       "img-src 'none'; script-src 'unsafe-eval' 'unsafe-inline'; default-src http://www.selfuri.com" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -259,11 +256,9 @@ TEST(CSPParser, Keywords)
 
 // =================== TestIgnoreUpperLowerCasePolicies ==============
 
-TEST(CSPParser, IgnoreUpperLowerCasePolicies)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, IgnoreUpperLowerCasePolicies) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "script-src 'SELF'",
       "script-src http://www.selfuri.com" },
     { "sCriPt-src 'Unsafe-Inline'",
@@ -298,7 +293,7 @@ TEST(CSPParser, IgnoreUpperLowerCasePolicies)
       "sandbox allow-forms"},
     { "require-SRI-for sCript stYle",
       "require-sri-for script style"},
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -307,11 +302,9 @@ TEST(CSPParser, IgnoreUpperLowerCasePolicies)
 
 // ========================= TestPaths ===============================
 
-TEST(CSPParser, Paths)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, Paths) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "script-src http://www.example.com",
       "script-src http://www.example.com" },
     { "script-src http://www.example.com/",
@@ -398,7 +391,7 @@ TEST(CSPParser, Paths)
       "script-src http://www.example.com:88/.js" },
     { "script-src https://foo.com/_abc/abc_/_/_a_b_c_",
       "script-src https://foo.com/_abc/abc_/_/_a_b_c_" }
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -407,11 +400,9 @@ TEST(CSPParser, Paths)
 
 // ======================== TestSimplePolicies =======================
 
-TEST(CSPParser, SimplePolicies)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, SimplePolicies) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "default-src *",
       "default-src *" },
     { "default-src https:",
@@ -476,7 +467,7 @@ TEST(CSPParser, SimplePolicies)
       "upgrade-insecure-requests" },
     { "sandbox allow-scripts allow-forms  ",
       "sandbox allow-scripts allow-forms" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -485,11 +476,9 @@ TEST(CSPParser, SimplePolicies)
 
 // =================== TestPoliciesWithInvalidSrc ====================
 
-TEST(CSPParser, PoliciesWithInvalidSrc)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, PoliciesWithInvalidSrc) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "script-src 'self'; SCRIPT-SRC http://www.example.com",
       "script-src http://www.selfuri.com" },
     { "script-src 'none' test.com; script-src example.com",
@@ -572,21 +561,19 @@ TEST(CSPParser, PoliciesWithInvalidSrc)
       "require-sri-for script"},
     { "sandbox    foo",
       "sandbox"},
-    // clang-format on
+      // clang-format on
   };
 
   // amount of tests - 1, because the latest should be ignored.
-  uint32_t policyCount = (sizeof(policies) / sizeof(PolicyTest)) -1;
+  uint32_t policyCount = (sizeof(policies) / sizeof(PolicyTest)) - 1;
   ASSERT_TRUE(NS_SUCCEEDED(runTestSuite(policies, policyCount, 1)));
 }
 
 // ============================= TestBadPolicies =======================
 
-TEST(CSPParser, BadPolicies)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, BadPolicies) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "script-sr 'self", "" },
     { "", "" },
     { "; ; ; ; ; ; ;", "" },
@@ -599,7 +586,7 @@ TEST(CSPParser, BadPolicies)
     { "require-sri-for foo", ""},
     { "report-uri", ""},
     { "report-uri http://:foo", ""},
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -608,11 +595,9 @@ TEST(CSPParser, BadPolicies)
 
 // ======================= TestGoodGeneratedPolicies =================
 
-TEST(CSPParser, GoodGeneratedPolicies)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, GoodGeneratedPolicies) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "default-src 'self'; img-src *",
       "default-src http://www.selfuri.com; img-src *" },
     { "report-uri /policy",
@@ -829,7 +814,7 @@ TEST(CSPParser, GoodGeneratedPolicies)
       "default-src http://www.selfuri.com; frame-ancestors http://www.selfuri.com" },
     { "frame-ancestors http://bar.com/foo.png",
       "frame-ancestors http://bar.com/foo.png" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -838,11 +823,9 @@ TEST(CSPParser, GoodGeneratedPolicies)
 
 // ==================== TestBadGeneratedPolicies ====================
 
-TEST(CSPParser, BadGeneratedPolicies)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, BadGeneratedPolicies) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "foo.*.bar", ""},
     { "foo!bar.com", ""},
     { "x.*.a.com", ""},
@@ -857,7 +840,7 @@ TEST(CSPParser, BadGeneratedPolicies)
     { "http://other:pass1@self.com/foo", ""},
     { "http://user1:pass1@self.com/foo", ""},
     { "http://username:password@self.com/bar", ""},
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -866,14 +849,12 @@ TEST(CSPParser, BadGeneratedPolicies)
 
 // ============ TestGoodGeneratedPoliciesForPathHandling =============
 
-TEST(CSPParser, GoodGeneratedPoliciesForPathHandling)
-{
+TEST(CSPParser, GoodGeneratedPoliciesForPathHandling) {
   // Once bug 808292 (Implement path-level host-source matching to CSP)
   // lands we have to update the expected output to include the parsed path
 
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "img-src http://test1.example.com",
       "img-src http://test1.example.com" },
     { "img-src http://test1.example.com/",
@@ -982,7 +963,7 @@ TEST(CSPParser, GoodGeneratedPoliciesForPathHandling)
       "img-src https://test1.example.com/abc////////////def/" },
     { "img-src https://test1.example.com/abc////////////",
       "img-src https://test1.example.com/abc////////////" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -991,11 +972,9 @@ TEST(CSPParser, GoodGeneratedPoliciesForPathHandling)
 
 // ============== TestBadGeneratedPoliciesForPathHandling ============
 
-TEST(CSPParser, BadGeneratedPoliciesForPathHandling)
-{
-  static const PolicyTest policies[] =
-  {
-    // clang-format off
+TEST(CSPParser, BadGeneratedPoliciesForPathHandling) {
+  static const PolicyTest policies[] = {
+      // clang-format off
     { "img-src test1.example.com:88path-1/",
       "img-src 'none'" },
     { "img-src test1.example.com:80.js",
@@ -1010,7 +989,7 @@ TEST(CSPParser, BadGeneratedPoliciesForPathHandling)
       "img-src 'none'" },
     { "img-src http://test1.example.com:80abc",
       "img-src 'none'" },
-    // clang-format on
+      // clang-format on
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -1022,9 +1001,10 @@ TEST(CSPParser, BadGeneratedPoliciesForPathHandling)
 // Use a policy, eliminate one character at a time,
 // and feed it as input to the parser.
 
-TEST(CSPParser, ShorteningPolicies)
-{
-  char pol[] = "default-src http://www.sub1.sub2.example.com:88/path1/path2/ 'unsafe-inline' 'none'";
+TEST(CSPParser, ShorteningPolicies) {
+  char pol[] =
+      "default-src http://www.sub1.sub2.example.com:88/path1/path2/ "
+      "'unsafe-inline' 'none'";
   uint32_t len = static_cast<uint32_t>(sizeof(pol));
 
   PolicyTest testPol[1];
@@ -1033,23 +1013,22 @@ TEST(CSPParser, ShorteningPolicies)
   while (--len) {
     memset(&testPol[0].policy, '\0', kMaxPolicyLength * sizeof(char));
     memcpy(&testPol[0].policy, &pol, len * sizeof(char));
-    ASSERT_TRUE(NS_SUCCEEDED(runTestSuite(testPol, 1,
-                                          kFuzzyExpectedPolicyCount)));
+    ASSERT_TRUE(
+        NS_SUCCEEDED(runTestSuite(testPol, 1, kFuzzyExpectedPolicyCount)));
   }
 }
 
-// ============================= TestFuzzyPolicies ===================
+  // ============================= TestFuzzyPolicies ===================
 
-// We generate kFuzzyRuns inputs by (pseudo) randomly picking from the 128
-// ASCII characters; feed them to the parser and verfy that the parser
-// handles the input gracefully.
-//
-// Please note, that by using srand(0) we get deterministic results!
+  // We generate kFuzzyRuns inputs by (pseudo) randomly picking from the 128
+  // ASCII characters; feed them to the parser and verfy that the parser
+  // handles the input gracefully.
+  //
+  // Please note, that by using srand(0) we get deterministic results!
 
 #if RUN_OFFLINE_TESTS
 
-TEST(CSPParser, FuzzyPolicies)
-{
+TEST(CSPParser, FuzzyPolicies) {
   // init srand with 0 so we get same results
   srand(0);
 
@@ -1066,23 +1045,22 @@ TEST(CSPParser, FuzzyPolicies)
       // fill the policy array with random ASCII chars
       testPol[0].policy[i] = static_cast<char>(rand() % 128);
     }
-    ASSERT_TRUE(NS_SUCCEEDED(runTestSuite(testPol, 1,
-                                          kFuzzyExpectedPolicyCount)));
+    ASSERT_TRUE(
+        NS_SUCCEEDED(runTestSuite(testPol, 1, kFuzzyExpectedPolicyCount)));
   }
 }
 
 #endif
 
-// ======================= TestFuzzyPoliciesIncDir ===================
+  // ======================= TestFuzzyPoliciesIncDir ===================
 
-// In a similar fashion as in TestFuzzyPolicies, we again (pseudo) randomly
-// generate input for the parser, but this time also include a valid directive
-// followed by the random input.
+  // In a similar fashion as in TestFuzzyPolicies, we again (pseudo) randomly
+  // generate input for the parser, but this time also include a valid directive
+  // followed by the random input.
 
 #if RUN_OFFLINE_TESTS
 
-TEST(CSPParser, FuzzyPoliciesIncDir)
-{
+TEST(CSPParser, FuzzyPoliciesIncDir) {
   // init srand with 0 so we get same results
   srand(0);
 
@@ -1098,34 +1076,34 @@ TEST(CSPParser, FuzzyPoliciesIncDir)
     // randomly select the length of the next policy
     uint32_t polLength = rand() % (kMaxPolicyLength - defaultSrcLen);
     // reset memory of the policy string, but leave default-src.
-    memset((&(testPol[0].policy) + (defaultSrcLen * sizeof(char))),
-           '\0', (kMaxPolicyLength - defaultSrcLen) * sizeof(char));
+    memset((&(testPol[0].policy) + (defaultSrcLen * sizeof(char))), '\0',
+           (kMaxPolicyLength - defaultSrcLen) * sizeof(char));
 
     // do not start at index 0 so we do not overwrite 'default-src'
     for (uint32_t i = defaultSrcLen; i < polLength; i++) {
       // fill the policy array with random ASCII chars
       testPol[0].policy[i] = static_cast<char>(rand() % 128);
     }
-    ASSERT_TRUE(NS_SUCCEEDED(runTestSuite(testPol, 1,
-                                          kFuzzyExpectedPolicyCount)));
+    ASSERT_TRUE(
+        NS_SUCCEEDED(runTestSuite(testPol, 1, kFuzzyExpectedPolicyCount)));
   }
 }
 
 #endif
 
-// ====================== TestFuzzyPoliciesIncDirLimASCII ============
+  // ====================== TestFuzzyPoliciesIncDirLimASCII ============
 
-// Same as TestFuzzyPoliciesIncDir() but using limited ASCII,
-// which represents more likely input.
+  // Same as TestFuzzyPoliciesIncDir() but using limited ASCII,
+  // which represents more likely input.
 
 #if RUN_OFFLINE_TESTS
 
-TEST(CSPParser, FuzzyPoliciesIncDirLimASCII)
-{
-  char input[] = "1234567890" \
-                 "abcdefghijklmnopqrstuvwxyz" \
-                 "ABCDEFGHIJKLMNOPQRSTUVWZYZ" \
-                 "!@#^&*()-+_=";
+TEST(CSPParser, FuzzyPoliciesIncDirLimASCII) {
+  char input[] =
+      "1234567890"
+      "abcdefghijklmnopqrstuvwxyz"
+      "ABCDEFGHIJKLMNOPQRSTUVWZYZ"
+      "!@#^&*()-+_=";
 
   // init srand with 0 so we get same results
   srand(0);
@@ -1142,8 +1120,8 @@ TEST(CSPParser, FuzzyPoliciesIncDirLimASCII)
     // randomly select the length of the next policy
     uint32_t polLength = rand() % (kMaxPolicyLength - defaultSrcLen);
     // reset memory of the policy string, but leave default-src.
-    memset((&(testPol[0].policy) + (defaultSrcLen * sizeof(char))),
-           '\0', (kMaxPolicyLength - defaultSrcLen) * sizeof(char));
+    memset((&(testPol[0].policy) + (defaultSrcLen * sizeof(char))), '\0',
+           (kMaxPolicyLength - defaultSrcLen) * sizeof(char));
 
     // do not start at index 0 so we do not overwrite 'default-src'
     for (uint32_t i = defaultSrcLen; i < polLength; i++) {
@@ -1151,8 +1129,8 @@ TEST(CSPParser, FuzzyPoliciesIncDirLimASCII)
       uint32_t inputIndex = rand() % sizeof(input);
       testPol[0].policy[i] = input[inputIndex];
     }
-    ASSERT_TRUE(NS_SUCCEEDED(runTestSuite(testPol, 1,
-                                          kFuzzyExpectedPolicyCount)));
+    ASSERT_TRUE(
+        NS_SUCCEEDED(runTestSuite(testPol, 1, kFuzzyExpectedPolicyCount)));
   }
 }
 #endif

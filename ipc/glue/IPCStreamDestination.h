@@ -17,7 +17,7 @@ namespace mozilla {
 
 namespace wr {
 struct ByteBuffer;
-} // wr namespace
+}  // namespace wr
 
 namespace ipc {
 
@@ -27,28 +27,21 @@ class PParentToChildStreamChild;
 // On the destination side, you must simply call TakeReader() upon receiving a
 // reference to the IPCStream{Child,Parent} actor.  You do not need to maintain
 // a reference to the actor itself.
-class IPCStreamDestination
-{
-public:
-  static IPCStreamDestination*
-  Cast(PChildToParentStreamParent* aActor);
+class IPCStreamDestination {
+ public:
+  static IPCStreamDestination* Cast(PChildToParentStreamParent* aActor);
 
-  static IPCStreamDestination*
-  Cast(PParentToChildStreamChild* aActor);
+  static IPCStreamDestination* Cast(PParentToChildStreamChild* aActor);
 
-  void
-  SetDelayedStart(bool aDelayedStart);
+  void SetDelayedStart(bool aDelayedStart);
 
-  already_AddRefed<nsIInputStream>
-  TakeReader();
+  already_AddRefed<nsIInputStream> TakeReader();
 
-  bool
-  IsOnOwningThread() const;
+  bool IsOnOwningThread() const;
 
-  void
-  DispatchRunnable(already_AddRefed<nsIRunnable>&& aRunnable);
+  void DispatchRunnable(already_AddRefed<nsIRunnable>&& aRunnable);
 
-protected:
+ protected:
   IPCStreamDestination();
   virtual ~IPCStreamDestination();
 
@@ -56,35 +49,25 @@ protected:
 
   // The implementation of the actor should call these methods.
 
-  void
-  ActorDestroyed();
+  void ActorDestroyed();
 
-  void
-  BufferReceived(const wr::ByteBuffer& aBuffer);
+  void BufferReceived(const wr::ByteBuffer& aBuffer);
 
-  void
-  CloseReceived(nsresult aRv);
+  void CloseReceived(nsresult aRv);
 
 #ifdef DEBUG
-  bool
-  HasDelayedStart() const
-  {
-    return mDelayedStart;
-  }
+  bool HasDelayedStart() const { return mDelayedStart; }
 #endif
 
   // These methods will be implemented by the actor.
 
-  virtual void
-  StartReading() = 0;
+  virtual void StartReading() = 0;
 
-  virtual void
-  RequestClose(nsresult aRv) = 0;
+  virtual void RequestClose(nsresult aRv) = 0;
 
-  virtual void
-  TerminateDestination() = 0;
+  virtual void TerminateDestination() = 0;
 
-private:
+ private:
   nsCOMPtr<nsIAsyncInputStream> mReader;
   nsCOMPtr<nsIAsyncOutputStream> mWriter;
 
@@ -98,7 +81,7 @@ private:
   bool mDelayedStart;
 };
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla
 
-#endif // mozilla_ipc_IPCStreamDestination_h
+#endif  // mozilla_ipc_IPCStreamDestination_h

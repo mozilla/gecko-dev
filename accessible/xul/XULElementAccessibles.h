@@ -17,9 +17,8 @@ class XULLabelTextLeafAccessible;
 /**
  * Used for XUL description and label elements.
  */
-class XULLabelAccessible : public HyperTextAccessibleWrap
-{
-public:
+class XULLabelAccessible : public HyperTextAccessibleWrap {
+ public:
   XULLabelAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -30,47 +29,41 @@ public:
 
   void UpdateLabelValue(const nsString& aValue);
 
-protected:
+ protected:
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 
-private:
+ private:
   RefPtr<XULLabelTextLeafAccessible> mValueTextLeaf;
 };
 
-inline XULLabelAccessible*
-Accessible::AsXULLabel()
-{
+inline XULLabelAccessible* Accessible::AsXULLabel() {
   return IsXULLabel() ? static_cast<XULLabelAccessible*>(this) : nullptr;
 }
-
 
 /**
  * Used to implement text interface on XUL label accessible in case when text
  * is provided by @value attribute (no underlying text frame).
  */
-class XULLabelTextLeafAccessible final : public TextLeafAccessibleWrap
-{
-public:
-  XULLabelTextLeafAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    TextLeafAccessibleWrap(aContent, aDoc)
-  { mStateFlags |= eSharedNode; }
+class XULLabelTextLeafAccessible final : public TextLeafAccessibleWrap {
+ public:
+  XULLabelTextLeafAccessible(nsIContent* aContent, DocAccessible* aDoc)
+      : TextLeafAccessibleWrap(aContent, aDoc) {
+    mStateFlags |= eSharedNode;
+  }
 
-  virtual ~XULLabelTextLeafAccessible() { }
+  virtual ~XULLabelTextLeafAccessible() {}
 
   // Accessible
   virtual a11y::role NativeRole() override;
   virtual uint64_t NativeState() override;
 };
 
-
 /**
  * Used for XUL tooltip element.
  */
-class XULTooltipAccessible : public LeafAccessible
-{
-
-public:
+class XULTooltipAccessible : public LeafAccessible {
+ public:
   XULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -78,10 +71,8 @@ public:
   virtual uint64_t NativeState() override;
 };
 
-class XULLinkAccessible : public XULLabelAccessible
-{
-
-public:
+class XULLinkAccessible : public XULLabelAccessible {
+ public:
   XULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -100,17 +91,16 @@ public:
   virtual uint32_t EndOffset() override;
   virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) override;
 
-protected:
+ protected:
   virtual ~XULLinkAccessible();
 
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 
   enum { eAction_Jump = 0 };
-
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

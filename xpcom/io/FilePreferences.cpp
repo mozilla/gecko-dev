@@ -1,8 +1,8 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FilePreferences.h"
 
@@ -21,8 +21,7 @@ namespace FilePreferences {
 static bool sBlockUNCPaths = false;
 typedef nsTArray<nsString> WinPaths;
 
-static WinPaths& PathWhitelist()
-{
+static WinPaths& PathWhitelist() {
   static WinPaths sPaths;
   return sPaths;
 }
@@ -36,8 +35,7 @@ typedef char char_path_t;
 typedef nsTArray<nsTString<char_path_t>> Paths;
 static StaticAutoPtr<Paths> sBlacklist;
 
-static Paths& PathBlacklist()
-{
+static Paths& PathBlacklist() {
   if (!sBlacklist) {
     sBlacklist = new nsTArray<nsTString<char_path_t>>();
     ClearOnShutdown(&sBlacklist);
@@ -45,8 +43,7 @@ static Paths& PathBlacklist()
   return *sBlacklist;
 }
 
-static void AllowUNCDirectory(char const* directory)
-{
+static void AllowUNCDirectory(char const* directory) {
   nsCOMPtr<nsIFile> file;
   NS_GetSpecialDirectory(directory, getter_AddRefs(file));
   if (!file) {
@@ -70,9 +67,9 @@ static void AllowUNCDirectory(char const* directory)
   }
 }
 
-void InitPrefs()
-{
-  sBlockUNCPaths = Preferences::GetBool("network.file.disable_unc_paths", false);
+void InitPrefs() {
+  sBlockUNCPaths =
+      Preferences::GetBool("network.file.disable_unc_paths", false);
 
   PathBlacklist().Clear();
   nsAutoCString blacklist;
@@ -94,8 +91,7 @@ void InitPrefs()
   }
 }
 
-void InitDirectoriesWhitelist()
-{
+void InitDirectoriesWhitelist() {
   // NS_GRE_DIR is the installation path where the binary resides.
   AllowUNCDirectory(NS_GRE_DIR);
   // NS_APP_USER_PROFILE_50_DIR and NS_APP_USER_PROFILE_LOCAL_50_DIR are the two
@@ -104,21 +100,17 @@ void InitDirectoriesWhitelist()
   AllowUNCDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR);
 }
 
-namespace { // anon
+namespace {  // anon
 
 template <typename TChar>
-class TNormalizer
-{
-public:
+class TNormalizer {
+ public:
   TNormalizer(const nsTSubstring<TChar>& aFilePath, const TChar aSeparator)
-    : mFilePathCursor(aFilePath.BeginReading())
-    , mFilePathEnd(aFilePath.EndReading())
-    , mSeparator(aSeparator)
-  {
-  }
+      : mFilePathCursor(aFilePath.BeginReading()),
+        mFilePathEnd(aFilePath.EndReading()),
+        mSeparator(aSeparator) {}
 
-  bool Get(nsTSubstring<TChar>& aNormalizedFilePath)
-  {
+  bool Get(nsTSubstring<TChar>& aNormalizedFilePath) {
     aNormalizedFilePath.Truncate();
 
     // Windows UNC paths begin with double separator (\\)
@@ -154,9 +146,8 @@ public:
     return true;
   }
 
-private:
-  bool ConsumeItem()
-  {
+ private:
+  bool ConsumeItem() {
     if (IsEOF()) {
       return false;
     }
@@ -164,7 +155,7 @@ private:
     typename nsTString<TChar>::const_char_iterator nameBegin = mFilePathCursor;
     while (mFilePathCursor != mFilePathEnd) {
       if (*mFilePathCursor == mSeparator) {
-        break; // don't include the separator
+        break;  // don't include the separator
       }
       ++mFilePathCursor;
     }
@@ -173,8 +164,7 @@ private:
     return true;
   }
 
-  bool ConsumeSeparator()
-  {
+  bool ConsumeSeparator() {
     if (IsEOF()) {
       return false;
     }
@@ -189,8 +179,7 @@ private:
 
   bool IsEOF() { return mFilePathCursor == mFilePathEnd; }
 
-  bool ConsumeName()
-  {
+  bool ConsumeName() {
     if (!ConsumeItem()) {
       return true;
     }
@@ -222,8 +211,7 @@ private:
     return true;
   }
 
-  bool CheckParentDir()
-  {
+  bool CheckParentDir() {
     if (mItem.EqualsLiteral("..")) {
       ConsumeSeparator();
       // EOF is acceptable
@@ -233,8 +221,7 @@ private:
     return false;
   }
 
-  bool CheckCurrentDir()
-  {
+  bool CheckCurrentDir() {
     if (mItem.EqualsLiteral(".")) {
       ConsumeSeparator();
       // EOF is acceptable
@@ -252,10 +239,9 @@ private:
   nsTArray<nsTDependentSubstring<TChar>> mStack;
 };
 
-} // anon
+}  // namespace
 
-bool IsBlockedUNCPath(const nsAString& aFilePath)
-{
+bool IsBlockedUNCPath(const nsAString& aFilePath) {
   typedef TNormalizer<char16_t> Normalizer;
 
   if (!sBlockUNCPaths) {
@@ -298,8 +284,7 @@ const char16_t kPathSeparator = L'\\';
 const char kPathSeparator = '/';
 #endif
 
-bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath)
-{
+bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath) {
   typedef TNormalizer<char_path_t> Normalizer;
   // If sBlacklist has been cleared at shutdown, we must avoid calling
   // PathBlacklist() again, as that will recreate the array and we will leak.
@@ -330,22 +315,17 @@ bool IsAllowedPath(const nsTSubstring<char_path_t>& aFilePath)
   return true;
 }
 
-void testing::SetBlockUNCPaths(bool aBlock)
-{
-  sBlockUNCPaths = aBlock;
-}
+void testing::SetBlockUNCPaths(bool aBlock) { sBlockUNCPaths = aBlock; }
 
-void testing::AddDirectoryToWhitelist(nsAString const & aPath)
-{
+void testing::AddDirectoryToWhitelist(nsAString const& aPath) {
   PathWhitelist().AppendElement(aPath);
 }
 
-bool testing::NormalizePath(nsAString const & aPath, nsAString & aNormalized)
-{
+bool testing::NormalizePath(nsAString const& aPath, nsAString& aNormalized) {
   typedef TNormalizer<char16_t> Normalizer;
   Normalizer normalizer(aPath, L'\\');
   return normalizer.Get(aNormalized);
 }
 
-} // ::FilePreferences
-} // ::mozilla
+}  // namespace FilePreferences
+}  // namespace mozilla

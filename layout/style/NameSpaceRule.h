@@ -16,23 +16,27 @@
 class nsAtom;
 
 // IID for the NameSpaceRule class {f0b0dbe1-5031-4a21-b06a-dc141ef2af98}
-#define NS_CSS_NAMESPACE_RULE_IMPL_CID     \
-{0xf0b0dbe1, 0x5031, 0x4a21, {0xb0, 0x6a, 0xdc, 0x14, 0x1e, 0xf2, 0xaf, 0x98}}
-
+#define NS_CSS_NAMESPACE_RULE_IMPL_CID               \
+  {                                                  \
+    0xf0b0dbe1, 0x5031, 0x4a21, {                    \
+      0xb0, 0x6a, 0xdc, 0x14, 0x1e, 0xf2, 0xaf, 0x98 \
+    }                                                \
+  }
 
 namespace mozilla {
 namespace css {
 
-class NameSpaceRule final : public dom::CSSNamespaceRule
-{
-public:
-  NameSpaceRule(nsAtom* aPrefix, const nsString& aURLSpec,
-                uint32_t aLineNumber, uint32_t aColumnNumber);
-private:
+class NameSpaceRule final : public dom::CSSNamespaceRule {
+ public:
+  NameSpaceRule(nsAtom* aPrefix, const nsString& aURLSpec, uint32_t aLineNumber,
+                uint32_t aColumnNumber);
+
+ private:
   // for |Clone|
   NameSpaceRule(const NameSpaceRule& aCopy);
   ~NameSpaceRule();
-public:
+
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CSS_NAMESPACE_RULE_IMPL_CID)
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -50,14 +54,14 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const final;
 
-private:
+ private:
   RefPtr<nsAtom> mPrefix;
-  nsString          mURLSpec;
+  nsString mURLSpec;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(NameSpaceRule, NS_CSS_NAMESPACE_RULE_IMPL_CID)
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 #endif /* mozilla_css_NameSpaceRule_h__ */

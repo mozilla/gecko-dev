@@ -17,22 +17,17 @@ namespace mozilla {
 namespace css {
 
 StreamLoader::StreamLoader(mozilla::css::SheetLoadData* aSheetLoadData)
-  : mSheetLoadData(aSheetLoadData)
-  , mStatus(NS_OK)
-{
+    : mSheetLoadData(aSheetLoadData), mStatus(NS_OK) {
   MOZ_ASSERT(!aSheetLoadData->mSheet->IsGecko());
 }
 
-StreamLoader::~StreamLoader()
-{
-}
+StreamLoader::~StreamLoader() {}
 
 NS_IMPL_ISUPPORTS(StreamLoader, nsIStreamListener)
 
 /* nsIRequestObserver implementation */
 NS_IMETHODIMP
-StreamLoader::OnStartRequest(nsIRequest* aRequest, nsISupports*)
-{
+StreamLoader::OnStartRequest(nsIRequest* aRequest, nsISupports*) {
   // It's kinda bad to let Web content send a number that results
   // in a potentially large allocation directly, but efficiency of
   // compression bombs is so great that it doesn't make much sense
@@ -54,10 +49,8 @@ StreamLoader::OnStartRequest(nsIRequest* aRequest, nsISupports*)
 }
 
 NS_IMETHODIMP
-StreamLoader::OnStopRequest(nsIRequest* aRequest,
-                            nsISupports* aContext,
-                            nsresult aStatus)
-{
+StreamLoader::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
+                            nsresult aStatus) {
   // Decoded data
   nsCString utf8String;
   // How many bytes of decoded data to skip (3 when skipping UTF-8 BOM needed,
@@ -82,7 +75,7 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest,
     }
 
     nsresult rv =
-      mSheetLoadData->VerifySheetReadyToParse(aStatus, bytes, channel);
+        mSheetLoadData->VerifySheetReadyToParse(aStatus, bytes, channel);
     if (rv != NS_OK_PARSE_SHEET) {
       return rv;
     }
@@ -116,7 +109,7 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest,
       // UTF-16LE or UTF-16BE
       rv = encoding->DecodeWithBOMRemoval(bytes, utf8String);
     }
-  } // run destructor for `bytes`
+  }  // run destructor for `bytes`
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -128,21 +121,15 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest,
   mSheetLoadData->mEncoding = encoding;
   bool dummy;
   return mSheetLoadData->mLoader->ParseSheet(
-    EmptyString(),
-    Span<const uint8_t>(utf8String).From(skip),
-    mSheetLoadData,
-    /* aAllowAsync = */ true,
-    dummy);
+      EmptyString(), Span<const uint8_t>(utf8String).From(skip), mSheetLoadData,
+      /* aAllowAsync = */ true, dummy);
 }
 
 /* nsIStreamListener implementation */
 NS_IMETHODIMP
-StreamLoader::OnDataAvailable(nsIRequest*,
-                              nsISupports*,
-                              nsIInputStream* aInputStream,
-                              uint64_t,
-                              uint32_t aCount)
-{
+StreamLoader::OnDataAvailable(nsIRequest*, nsISupports*,
+                              nsIInputStream* aInputStream, uint64_t,
+                              uint32_t aCount) {
   if (NS_FAILED(mStatus)) {
     return mStatus;
   }
@@ -150,14 +137,9 @@ StreamLoader::OnDataAvailable(nsIRequest*,
   return aInputStream->ReadSegments(WriteSegmentFun, this, aCount, &dummy);
 }
 
-nsresult
-StreamLoader::WriteSegmentFun(nsIInputStream*,
-                              void* aClosure,
-                              const char* aSegment,
-                              uint32_t,
-                              uint32_t aCount,
-                              uint32_t* aWriteCount)
-{
+nsresult StreamLoader::WriteSegmentFun(nsIInputStream*, void* aClosure,
+                                       const char* aSegment, uint32_t,
+                                       uint32_t aCount, uint32_t* aWriteCount) {
   StreamLoader* self = static_cast<StreamLoader*>(aClosure);
   if (NS_FAILED(self->mStatus)) {
     return self->mStatus;
@@ -170,5 +152,5 @@ StreamLoader::WriteSegmentFun(nsIInputStream*,
   return NS_OK;
 }
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla

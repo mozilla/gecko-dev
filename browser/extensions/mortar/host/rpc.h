@@ -14,7 +14,7 @@
 
 #include "json/json.h"
 
-extern void Fail(const char *reason, const char *data);
+extern void Fail(const char* reason, const char* data);
 
 #ifdef INTERPOSE
 const void* RealGetInterface(const char* interfaceName);
@@ -31,32 +31,26 @@ struct Logging_PPP_Class_Deprecated_holder {
   const void* object;
 };
 extern const PPP_Class_Deprecated _interpose_PPP_Class_Deprecated_1_0;
-#else // INTERPOSE
-void ToHost(std::stringstream &s, bool abortIfNonMainThread);
-std::string ToHostWithResult(std::stringstream &s, bool abortIfNonMainThread);
+#else   // INTERPOSE
+void ToHost(std::stringstream& s, bool abortIfNonMainThread);
+std::string ToHostWithResult(std::stringstream& s, bool abortIfNonMainThread);
 
-enum RPCType {
-  WithResult,
-  NoResult
-};
-enum RPCThread {
-  MainThreadOnly,
-  MaybeNonMainThread
-};
-template<RPCThread rpcThread>
-void RPC(std::stringstream &s) {
+enum RPCType { WithResult, NoResult };
+enum RPCThread { MainThreadOnly, MaybeNonMainThread };
+template <RPCThread rpcThread>
+void RPC(std::stringstream& s) {
   return ToHost(s, rpcThread == MainThreadOnly);
 }
-template<RPCThread rpcThread>
-std::string RPCWithResult(std::stringstream &s) {
+template <RPCThread rpcThread>
+std::string RPCWithResult(std::stringstream& s) {
   return ToHostWithResult(s, rpcThread == MainThreadOnly);
 }
-#endif // INTERPOSE
+#endif  // INTERPOSE
 
 typedef float float_t;
 typedef double double_t;
 typedef const void* mem_t;
-typedef void* const * mem_ptr_t;
+typedef void* const* mem_ptr_t;
 typedef const char* str_t;
 typedef const char* cstr_t;
 typedef int GLint;
@@ -69,16 +63,16 @@ typedef float GLfloat;
 typedef long int GLintptr;
 typedef int GLsizei;
 typedef long int GLsizeiptr;
-typedef const GLint * GLint_ptr_t;
-typedef const GLuint * GLuint_ptr_t;
-typedef const GLenum * GLenum_ptr_t;
-typedef const GLboolean * GLboolean_ptr_t;
-typedef const GLfloat * GLfloat_ptr_t;
-typedef const GLsizei * GLsizei_ptr_t;
-typedef const GLubyte * GLubyte_ptr_t;
+typedef const GLint* GLint_ptr_t;
+typedef const GLuint* GLuint_ptr_t;
+typedef const GLenum* GLenum_ptr_t;
+typedef const GLboolean* GLboolean_ptr_t;
+typedef const GLfloat* GLfloat_ptr_t;
+typedef const GLsizei* GLsizei_ptr_t;
+typedef const GLubyte* GLubyte_ptr_t;
 
 #ifdef _WIN32
-#include<windows.h>
+#include <windows.h>
 typedef HANDLE PP_FileHandle;
 #else
 typedef int PP_FileHandle;
@@ -86,39 +80,30 @@ typedef int PP_FileHandle;
 
 struct PPP_MessageHandler_0_2;
 
-static void BeginProps(std::stringstream &s) {
-  s << '{';
-}
+static void BeginProps(std::stringstream& s) { s << '{'; }
 
-static void EndProps(std::stringstream &s) {
-  s << '}';
-}
+static void EndProps(std::stringstream& s) { s << '}'; }
 
-static void BeginProp(std::stringstream &s, const std::string &key) {
-  if (s.str().back() != '{')
-    s << ',';
+static void BeginProp(std::stringstream& s, const std::string& key) {
+  if (s.str().back() != '{') s << ',';
   s << '"' << key << "\":";
 }
 
-static void AddProp(std::stringstream &s, const std::string &key, const std::string &value) {
+static void AddProp(std::stringstream& s, const std::string& key,
+                    const std::string& value) {
   BeginProp(s, key);
   s << value;
 }
 
-static void BeginElements(std::stringstream &s) {
-  s << '[';
+static void BeginElements(std::stringstream& s) { s << '['; }
+
+static void EndElements(std::stringstream& s) { s << ']'; }
+
+static void BeginElement(std::stringstream& s) {
+  if (s.str().back() != '[') s << ',';
 }
 
-static void EndElements(std::stringstream &s) {
-  s << ']';
-}
-
-static void BeginElement(std::stringstream &s) {
-  if (s.str().back() != '[')
-    s << ',';
-}
-
-static void AddElement(std::stringstream &s, const std::string &value) {
+static void AddElement(std::stringstream& s, const std::string& value) {
   BeginElement(s);
   s << value;
 }
@@ -126,14 +111,13 @@ static void AddElement(std::stringstream &s, const std::string &value) {
 // Define how to send certain primitive types to the browser.
 
 template <typename T>
-static const std::string ToString(const T *value) {
+static const std::string ToString(const T* value) {
   std::stringstream x;
   x << *value;
   return x.str();
 }
 
-static void WriteEscapedChar(std::stringstream& x, const char value)
-{
+static void WriteEscapedChar(std::stringstream& x, const char value) {
   switch (value) {
     case '\\':
       x << "\\\\";
@@ -151,7 +135,7 @@ static void WriteEscapedChar(std::stringstream& x, const char value)
 }
 
 template <typename T>
-static void WriteString(std::stringstream& x, const T *value, size_t length) {
+static void WriteString(std::stringstream& x, const T* value, size_t length) {
   const char* start = *value;
   const char* end = start + length;
   size_t pos = 0;
@@ -161,7 +145,7 @@ static void WriteString(std::stringstream& x, const T *value, size_t length) {
 }
 
 template <typename T>
-static const std::string StringToQuotedString(const T *value, size_t length) {
+static const std::string StringToQuotedString(const T* value, size_t length) {
   std::stringstream x;
   x << '"';
   WriteString(x, value, length);
@@ -170,16 +154,16 @@ static const std::string StringToQuotedString(const T *value, size_t length) {
 }
 
 template <typename T>
-static const std::string StringToQuotedString(const T *value) {
+static const std::string StringToQuotedString(const T* value) {
   return StringToQuotedString(value, strlen(*value));
 }
 
-static const std::string StringToQuotedString(const char *value) {
+static const std::string StringToQuotedString(const char* value) {
   return StringToQuotedString(&value, 1);
 }
 
 template <typename T>
-static const std::string PointerToString(T *value) {
+static const std::string PointerToString(T* value) {
   std::stringstream x;
   if (!value) {
     x << "null";
@@ -189,49 +173,49 @@ static const std::string PointerToString(T *value) {
   return x.str();
 }
 
-#define DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T) \
-  static const std::string ToString_##T(const T &value) { \
-    return ToString_##T(&value); \
+#define DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)         \
+  static const std::string ToString_##T(const T& value) { \
+    return ToString_##T(&value);                          \
   }
-#define DEFINE_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    return ToString(value); \
-  } \
+#define DEFINE_TOSTRING(T)                                \
+  static const std::string ToString_##T(const T* value) { \
+    return ToString(value);                               \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
-#define DEFINE_INT_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    std::stringstream x; \
-    x << std::dec << (int)*value; \
-    return x.str(); \
-  } \
+#define DEFINE_INT_TOSTRING(T)                            \
+  static const std::string ToString_##T(const T* value) { \
+    std::stringstream x;                                  \
+    x << std::dec << (int)*value;                         \
+    return x.str();                                       \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
-#define DEFINE_UNSIGNED_INT_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    std::stringstream x; \
-    x << std::dec << (unsigned int)*value; \
-    return x.str(); \
-  } \
+#define DEFINE_UNSIGNED_INT_TOSTRING(T)                   \
+  static const std::string ToString_##T(const T* value) { \
+    std::stringstream x;                                  \
+    x << std::dec << (unsigned int)*value;                \
+    return x.str();                                       \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
-#define DEFINE_FLOAT_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    switch (std::fpclassify(*value)) { \
-      case FP_INFINITE: \
-      case FP_NAN: \
-        return "null"; \
-      default: \
-        return ToString(value); \
-    } \
-  } \
+#define DEFINE_FLOAT_TOSTRING(T)                          \
+  static const std::string ToString_##T(const T* value) { \
+    switch (std::fpclassify(*value)) {                    \
+      case FP_INFINITE:                                   \
+      case FP_NAN:                                        \
+        return "null";                                    \
+      default:                                            \
+        return ToString(value);                           \
+    }                                                     \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
-#define DEFINE_POINTER_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    return PointerToString(*value); \
-  } \
+#define DEFINE_POINTER_TOSTRING(T)                        \
+  static const std::string ToString_##T(const T* value) { \
+    return PointerToString(*value);                       \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
-#define DEFINE_STRING_TOSTRING(T) \
-  static const std::string ToString_##T(const T *value) { \
-    return StringToQuotedString(value); \
-  } \
+#define DEFINE_STRING_TOSTRING(T)                         \
+  static const std::string ToString_##T(const T* value) { \
+    return StringToQuotedString(value);                   \
+  }                                                       \
   DEFINE_TOSTRING_FORWARD_REF_TO_POINTER(T)
 
 DEFINE_STRING_TOSTRING(char)
@@ -247,10 +231,10 @@ DEFINE_FLOAT_TOSTRING(double_t)
 DEFINE_POINTER_TOSTRING(mem_t)
 DEFINE_TOSTRING(mem_ptr_t)
 DEFINE_STRING_TOSTRING(str_t)
-static const std::string ToString_str_t(const str_t *value, size_t length) {
+static const std::string ToString_str_t(const str_t* value, size_t length) {
   return StringToQuotedString(value, length);
 }
-static const std::string ToString_str_t(const str_t &value, size_t length) {
+static const std::string ToString_str_t(const str_t& value, size_t length) {
   return StringToQuotedString(&value, length);
 }
 DEFINE_STRING_TOSTRING(cstr_t)
@@ -258,7 +242,7 @@ DEFINE_TOSTRING(GLint)
 DEFINE_TOSTRING(GLuint)
 DEFINE_TOSTRING(GLenum)
 DEFINE_TOSTRING(GLbitfield)
-static const std::string ToString_GLboolean(const GLboolean *value) {
+static const std::string ToString_GLboolean(const GLboolean* value) {
   std::stringstream x;
   x << (*value ? "true" : "false");
   return x.str();
@@ -278,7 +262,7 @@ DEFINE_TOSTRING(GLsizei_ptr_t)
 DEFINE_TOSTRING(PP_FileHandle)
 
 #ifdef INTERPOSE
-static const std::string ToString_GLubyte_ptr_t(const GLubyte *value) {
+static const std::string ToString_GLubyte_ptr_t(const GLubyte* value) {
   std::stringstream x;
   x << (const char*)value;
   return x.str();
@@ -286,8 +270,10 @@ static const std::string ToString_GLubyte_ptr_t(const GLubyte *value) {
 static const std::string ToString_uint16_ptr_t(const uint16_ptr_t value) {
   return "";
 }
-extern const std::string ToString_PP_DirContents_Dev(const PP_DirContents_Dev *v);
-static const std::string ToString_PP_DirContents_Dev(PP_DirContents_Dev **value) {
+extern const std::string ToString_PP_DirContents_Dev(
+    const PP_DirContents_Dev* v);
+static const std::string ToString_PP_DirContents_Dev(
+    PP_DirContents_Dev** value) {
   if (!value && !*value) {
     return "{}";
   }
@@ -295,28 +281,28 @@ static const std::string ToString_PP_DirContents_Dev(PP_DirContents_Dev **value)
 }
 #endif
 
-// Define how to emit client objects that the client sends to the host. We just want
-// to send a pointer value here, not actually unpack the struct.
+// Define how to emit client objects that the client sends to the host. We just
+// want to send a pointer value here, not actually unpack the struct.
 
-static const std::string ToString_PPP_MessageHandler(const PPP_MessageHandler_0_2 *value) {
+static const std::string ToString_PPP_MessageHandler(
+    const PPP_MessageHandler_0_2* value) {
   std::stringstream x;
   x << value;
   return x.str();
 }
 
-static const std::string ToString_PPP_Class_Deprecated(const PPP_Class_Deprecated *value) {
+static const std::string ToString_PPP_Class_Deprecated(
+    const PPP_Class_Deprecated* value) {
   return PointerToString(value);
 }
-
 
 class JSONIterator {
   JSON::Parser parser;
   JSON::Parser::iterator iterator;
   JSON::Parser::iterator end;
 
-public:
-  JSONIterator(const std::string& json)
-  {
+ public:
+  JSONIterator(const std::string& json) {
     if (parser.parse(json) <= 0) {
       Fail("Fatal: failed to parse '%s'\n", json.c_str());
     }
@@ -324,32 +310,24 @@ public:
     end = parser.end();
   }
 
-  bool isValid() const {
-    return iterator != end;
-  }
-  operator const JSON::Token&() const {
-    return *iterator;
-  }
+  bool isValid() const { return iterator != end; }
+  operator const JSON::Token&() const { return *iterator; }
 
-  void skip() {
-    ++iterator;
-  }
+  void skip() { ++iterator; }
   const JSON::Token& getCurrentAndGotoNext() {
     const JSON::Token& token = *iterator;
     ++iterator;
     return token;
   }
 
-  const JSON::Token& getCurrentPrimitiveAndGotoNext()
-  {
+  const JSON::Token& getCurrentPrimitiveAndGotoNext() {
     const JSON::Token& token = getCurrentAndGotoNext();
     if (!token.isPrimitive()) {
       Fail("Expected primitive", "");
     };
     return token;
   }
-  const JSON::Token& getCurrentStringAndGotoNext()
-  {
+  const JSON::Token& getCurrentStringAndGotoNext() {
     const JSON::Token& token = getCurrentAndGotoNext();
     if (!token.isString()) {
       Fail("Expected string", "");
@@ -357,8 +335,7 @@ public:
     return token;
   }
 
-  const void expectObjectAndGotoFirstProperty()
-  {
+  const void expectObjectAndGotoFirstProperty() {
     if (!getCurrentAndGotoNext().isObject()) {
       Fail("Expected object", "");
     }
@@ -366,8 +343,7 @@ public:
       Fail("Expected string", "");
     }
   }
-  const size_t expectArrayAndGotoFirstItem()
-  {
+  const size_t expectArrayAndGotoFirstItem() {
     const JSON::Token& token = getCurrentAndGotoNext();
     if (!token.isArray()) {
       Fail("Expected array", "");
@@ -377,21 +353,24 @@ public:
 };
 
 template <typename T>
-struct OutParam
-{
-  typedef typename std::conditional<std::is_pointer<T>::value, typename std::remove_pointer<T>::type, T>::type nopointer;
+struct OutParam {
+  typedef
+      typename std::conditional<std::is_pointer<T>::value,
+                                typename std::remove_pointer<T>::type, T>::type
+          nopointer;
   typedef typename std::remove_const<nopointer>::type noconst;
-  typedef typename std::conditional<std::is_pointer<T>::value, typename std::add_pointer<noconst>::type, noconst>::type type;
+  typedef typename std::conditional<std::is_pointer<T>::value,
+                                    typename std::add_pointer<noconst>::type,
+                                    noconst>::type type;
 };
 
-static void FromJSON_int(JSONIterator& iterator, long int& value)
-{
+static void FromJSON_int(JSONIterator& iterator, long int& value) {
   value = atol(iterator.getCurrentPrimitiveAndGotoNext().value().c_str());
 }
 
-static void FromJSON_uintptr(JSONIterator& iterator, std::uintptr_t& value)
-{
-  long long pointer = std::atoll(iterator.getCurrentPrimitiveAndGotoNext().value().c_str());
+static void FromJSON_uintptr(JSONIterator& iterator, std::uintptr_t& value) {
+  long long pointer =
+      std::atoll(iterator.getCurrentPrimitiveAndGotoNext().value().c_str());
   value = static_cast<std::uintptr_t>(pointer);
 }
 
@@ -402,24 +381,23 @@ static void PointerValueFromJSON(JSONIterator& iterator, T*& value) {
   value = (T*)pointer;
 }
 
-static void FromJSON_charArray(JSONIterator& iterator, char* value, size_t count)
-{
+static void FromJSON_charArray(JSONIterator& iterator, char* value,
+                               size_t count) {
   const JSON::Token& token = iterator.getCurrentStringAndGotoNext();
   std::strncpy(value, token.value().c_str(), count);
 }
 
 // FIXME Check range?
-#define DEFINE_FROMJSON_INT(T) \
+#define DEFINE_FROMJSON_INT(T)                                                 \
   static void FromJSON_##T(JSONIterator& iterator, OutParam<T>::type& value) { \
-    long int v; \
-    FromJSON_int(iterator, v); \
-    value = v; \
+    long int v;                                                                \
+    FromJSON_int(iterator, v);                                                 \
+    value = v;                                                                 \
   }
 
-#define DEFINE_FROMJSON_FLOAT(T) \
-static void FromJSON_##T(JSONIterator& iterator, OutParam<T>::type& value) \
-  { \
-    value = atof(iterator.getCurrentPrimitiveAndGotoNext().value().c_str()); \
+#define DEFINE_FROMJSON_FLOAT(T)                                               \
+  static void FromJSON_##T(JSONIterator& iterator, OutParam<T>::type& value) { \
+    value = atof(iterator.getCurrentPrimitiveAndGotoNext().value().c_str());   \
   }
 
 DEFINE_FROMJSON_INT(int8_t)
@@ -431,22 +409,23 @@ DEFINE_FROMJSON_INT(uint32_t)
 DEFINE_FROMJSON_INT(uint64_t)
 DEFINE_FROMJSON_FLOAT(float_t)
 DEFINE_FROMJSON_FLOAT(double_t)
-static void FromJSON_mem_t(JSONIterator& iterator, OutParam<mem_t>::type& value)
-{
+static void FromJSON_mem_t(JSONIterator& iterator,
+                           OutParam<mem_t>::type& value) {
   PointerValueFromJSON(iterator, value);
 }
-static void FromJSON_mem_ptr_t(JSONIterator& iterator, OutParam<mem_ptr_t>::type& value)
-{
+static void FromJSON_mem_ptr_t(JSONIterator& iterator,
+                               OutParam<mem_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_mem_ptr_t");
 }
-static void FromJSON_str_t(JSONIterator& iterator, OutParam<str_t>::type& value)
-{
+static void FromJSON_str_t(JSONIterator& iterator,
+                           OutParam<str_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   if (token.isString()) {
     size_t length = 0;
     std::string tokenValue = token.value();
-    for (std::string::iterator it = tokenValue.begin(); it != tokenValue.cend(); ++it) {
+    for (std::string::iterator it = tokenValue.begin(); it != tokenValue.cend();
+         ++it) {
       ++length;
       if (*it == '\\' && it + 1 != tokenValue.cend()) {
         std::string::iterator next = it + 1;
@@ -473,15 +452,14 @@ static void FromJSON_str_t(JSONIterator& iterator, OutParam<str_t>::type& value)
             break;
           case 'u':
             if (tokenValue.cend() - next >= 5) {
-              if (*(next + 1) == '0' &&
-                  *(next + 2) == '0') {
+              if (*(next + 1) == '0' && *(next + 2) == '0') {
                 unsigned int v;
                 std::stringstream x;
                 x << *(next + 3) << *(next + 4);
                 x >> std::hex >> v;
                 // Handle Control characters code units
                 // from U+0000 to U+001F.
-                if ( v < 0x0020) {
+                if (v < 0x0020) {
                   tokenValue.replace(it, next + 5, 1, v);
                   break;
                 }
@@ -492,7 +470,7 @@ static void FromJSON_str_t(JSONIterator& iterator, OutParam<str_t>::type& value)
         }
       }
     }
-    value = (char*) malloc(length + 1);
+    value = (char*)malloc(length + 1);
     std::memcpy(value, tokenValue.c_str(), length + 1);
     return;
   }
@@ -509,104 +487,102 @@ static void FromJSON_str_t(JSONIterator& iterator, OutParam<str_t>::type& value)
   }
   value = buff;
 }
-static void FromJSON_str_t(JSONIterator& iterator, str_t& value)
-{
+static void FromJSON_str_t(JSONIterator& iterator, str_t& value) {
   return FromJSON_str_t(iterator, const_cast<OutParam<str_t>::type&>(value));
 }
-static void FromJSON_cstr_t(JSONIterator& iterator, cstr_t& value)
-{
+static void FromJSON_cstr_t(JSONIterator& iterator, cstr_t& value) {
   value = strdup(iterator.getCurrentStringAndGotoNext().value().c_str());
 }
 DEFINE_FROMJSON_INT(GLint)
 DEFINE_FROMJSON_INT(GLuint)
-static void FromJSON_GLenum(JSONIterator& iterator, OutParam<GLenum>::type& value)
-{
+static void FromJSON_GLenum(JSONIterator& iterator,
+                            OutParam<GLenum>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLenum");
 }
-static void FromJSON_GLbitfield(JSONIterator& iterator, OutParam<GLbitfield>::type& value)
-{
+static void FromJSON_GLbitfield(JSONIterator& iterator,
+                                OutParam<GLbitfield>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLbitfield");
 }
 DEFINE_FROMJSON_INT(GLboolean)
-static void FromJSON_GLfloat(JSONIterator& iterator, OutParam<GLfloat>::type& value)
-{
+static void FromJSON_GLfloat(JSONIterator& iterator,
+                             OutParam<GLfloat>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLfloat");
 }
-static void FromJSON_GLclampf(JSONIterator& iterator, OutParam<GLclampf>::type& value)
-{
+static void FromJSON_GLclampf(JSONIterator& iterator,
+                              OutParam<GLclampf>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLclampf");
 }
-static void FromJSON_GLintptr(JSONIterator& iterator, OutParam<GLintptr>::type& value)
-{
+static void FromJSON_GLintptr(JSONIterator& iterator,
+                              OutParam<GLintptr>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLintptr");
 }
 DEFINE_FROMJSON_INT(GLsizei)
-static void FromJSON_GLboolean_ptr_t(JSONIterator& iterator, OutParam<GLboolean_ptr_t>::type& value)
-{
+static void FromJSON_GLboolean_ptr_t(JSONIterator& iterator,
+                                     OutParam<GLboolean_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLboolean_ptr_t");
 }
-static void FromJSON_GLenum_ptr_t(JSONIterator& iterator, OutParam<GLenum_ptr_t>::type& value)
-{
+static void FromJSON_GLenum_ptr_t(JSONIterator& iterator,
+                                  OutParam<GLenum_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLenum_ptr_t");
 }
-static void FromJSON_GLfloat_ptr_t(JSONIterator& iterator,OutParam<GLfloat_ptr_t>::type& value)
-{
+static void FromJSON_GLfloat_ptr_t(JSONIterator& iterator,
+                                   OutParam<GLfloat_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLfloat_ptr_t");
 }
-static void FromJSON_GLint_ptr_t(JSONIterator& iterator, OutParam<GLint_ptr_t>::type& value)
-{
+static void FromJSON_GLint_ptr_t(JSONIterator& iterator,
+                                 OutParam<GLint_ptr_t>::type& value) {
   return FromJSON_GLint(iterator, *value);
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLint_ptr_t");
 }
-static void FromJSON_GLsizei_ptr_t(JSONIterator& iterator, OutParam<GLsizei_ptr_t>::type& value)
-{
+static void FromJSON_GLsizei_ptr_t(JSONIterator& iterator,
+                                   OutParam<GLsizei_ptr_t>::type& value) {
   if (!value) {
     iterator.skip();
   } else {
     FromJSON_GLsizei(iterator, *value);
   }
 }
-static void FromJSON_GLubyte_ptr_t(JSONIterator& iterator, OutParam<GLubyte_ptr_t>::type& value)
-{
+static void FromJSON_GLubyte_ptr_t(JSONIterator& iterator,
+                                   OutParam<GLubyte_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentStringAndGotoNext();
   std::string tokenValue = token.value();
   size_t size = tokenValue.size();
   value = new GLubyte[size];
   std::memcpy(value, tokenValue.data(), size);
 }
-static void FromJSON_GLuint_ptr_t(JSONIterator& iterator, OutParam<GLuint_ptr_t>::type& value)
-{
+static void FromJSON_GLuint_ptr_t(JSONIterator& iterator,
+                                  OutParam<GLuint_ptr_t>::type& value) {
   const JSON::Token& token = iterator.getCurrentAndGotoNext();
   Fail("UNIMPLEMENTED: %s\n", "FromJSON_GLuint_ptr_t");
 }
 #ifdef _WIN32
-static void FromJSON_PP_FileHandle(JSONIterator& iterator, PP_FileHandle& value)
-{
+static void FromJSON_PP_FileHandle(JSONIterator& iterator,
+                                   PP_FileHandle& value) {
   PointerValueFromJSON(iterator, value);
 }
 #else
 DEFINE_FROMJSON_INT(PP_FileHandle)
 #endif
-static void FromJSON_uint16_ptr_t(JSONIterator& iterator, uint16_ptr_t& value)
-{
+static void FromJSON_uint16_ptr_t(JSONIterator& iterator, uint16_ptr_t& value) {
   PointerValueFromJSON(iterator, value);
 }
 
 struct PP_Flash_Menu;
-void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu &value);
-void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu *&value);
+void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu& value);
+void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu*& value);
 
 struct PP_DirEntry_Dev;
 struct PP_DirContents_Dev;
-void FromJSON_PP_DirEntry_Dev(JSONIterator& iterator, PP_DirEntry_Dev &value);
-void FromJSON_PP_DirContents_Dev(JSONIterator& iterator, PP_DirContents_Dev *&value);
+void FromJSON_PP_DirEntry_Dev(JSONIterator& iterator, PP_DirEntry_Dev& value);
+void FromJSON_PP_DirContents_Dev(JSONIterator& iterator,
+                                 PP_DirContents_Dev*& value);
 
 #endif

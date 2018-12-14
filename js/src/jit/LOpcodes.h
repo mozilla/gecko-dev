@@ -8,25 +8,25 @@
 #define jit_LOpcodes_h
 
 #if defined(JS_CODEGEN_X86)
-# include "jit/x86/LOpcodes-x86.h"
+#include "jit/x86/LOpcodes-x86.h"
 #elif defined(JS_CODEGEN_X64)
-# include "jit/x64/LOpcodes-x64.h"
+#include "jit/x64/LOpcodes-x64.h"
 #elif defined(JS_CODEGEN_ARM)
-# include "jit/arm/LOpcodes-arm.h"
+#include "jit/arm/LOpcodes-arm.h"
 #elif defined(JS_CODEGEN_ARM64)
-# include "jit/arm64/LOpcodes-arm64.h"
+#include "jit/arm64/LOpcodes-arm64.h"
 #elif defined(JS_CODEGEN_MIPS32)
-# include "jit/mips32/LOpcodes-mips32.h"
+#include "jit/mips32/LOpcodes-mips32.h"
 #elif defined(JS_CODEGEN_MIPS64)
-# include "jit/mips64/LOpcodes-mips64.h"
+#include "jit/mips64/LOpcodes-mips64.h"
 #elif defined(JS_CODEGEN_NONE)
-# include "jit/none/LOpcodes-none.h"
+#include "jit/none/LOpcodes-none.h"
 #else
-# error "Unknown architecture!"
+#error "Unknown architecture!"
 #endif
 
-#define LIR_OPCODE_LIST(_)          \
-    LIR_COMMON_OPCODE_LIST(_)       \
-    LIR_CPU_OPCODE_LIST(_)
+#define LIR_OPCODE_LIST(_)  \
+  LIR_COMMON_OPCODE_LIST(_) \
+  LIR_CPU_OPCODE_LIST(_)
 
 #endif /* jit_LOpcodes_h */

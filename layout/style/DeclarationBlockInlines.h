@@ -14,23 +14,16 @@
 
 namespace mozilla {
 
-MOZ_DEFINE_STYLO_METHODS(DeclarationBlock, css::Declaration, ServoDeclarationBlock)
+MOZ_DEFINE_STYLO_METHODS(DeclarationBlock, css::Declaration,
+                         ServoDeclarationBlock)
 
-MozExternalRefCountType
-DeclarationBlock::AddRef()
-{
-  MOZ_STYLO_FORWARD(AddRef, ())
-}
+MozExternalRefCountType DeclarationBlock::AddRef(){
+    MOZ_STYLO_FORWARD(AddRef, ())}
 
-MozExternalRefCountType
-DeclarationBlock::Release()
-{
-  MOZ_STYLO_FORWARD(Release, ())
-}
+MozExternalRefCountType DeclarationBlock::Release(){
+    MOZ_STYLO_FORWARD(Release, ())}
 
-already_AddRefed<DeclarationBlock>
-DeclarationBlock::Clone() const
-{
+already_AddRefed<DeclarationBlock> DeclarationBlock::Clone() const {
   RefPtr<DeclarationBlock> result;
   if (IsGecko()) {
 #ifdef MOZ_OLD_STYLE
@@ -44,9 +37,7 @@ DeclarationBlock::Clone() const
   return result.forget();
 }
 
-already_AddRefed<DeclarationBlock>
-DeclarationBlock::EnsureMutable()
-{
+already_AddRefed<DeclarationBlock> DeclarationBlock::EnsureMutable() {
 #ifdef DEBUG
 #ifdef MOZ_OLD_STYLE
   if (IsGecko()) {
@@ -69,56 +60,41 @@ DeclarationBlock::EnsureMutable()
   return do_AddRef(this);
 }
 
-void
-DeclarationBlock::ToString(nsAString& aString) const
-{
-  MOZ_STYLO_FORWARD(ToString, (aString))
-}
+void DeclarationBlock::ToString(nsAString& aString) const {
+    MOZ_STYLO_FORWARD(ToString, (aString))}
 
-uint32_t
-DeclarationBlock::Count() const
-{
+uint32_t DeclarationBlock::Count() const {
   MOZ_STYLO_FORWARD(Count, ())
 }
 
-bool
-DeclarationBlock::GetNthProperty(uint32_t aIndex, nsAString& aReturn) const
-{
+bool DeclarationBlock::GetNthProperty(uint32_t aIndex,
+                                      nsAString& aReturn) const {
   MOZ_STYLO_FORWARD(GetNthProperty, (aIndex, aReturn))
 }
 
-void
-DeclarationBlock::GetPropertyValue(const nsAString& aProperty,
-                                   nsAString& aValue) const
-{
+void DeclarationBlock::GetPropertyValue(const nsAString& aProperty,
+                                        nsAString& aValue) const {
   MOZ_STYLO_FORWARD(GetPropertyValue, (aProperty, aValue))
 }
 
-void
-DeclarationBlock::GetPropertyValueByID(nsCSSPropertyID aPropID,
-                                       nsAString& aValue) const
-{
+void DeclarationBlock::GetPropertyValueByID(nsCSSPropertyID aPropID,
+                                            nsAString& aValue) const {
   MOZ_STYLO_FORWARD(GetPropertyValueByID, (aPropID, aValue))
 }
 
-bool
-DeclarationBlock::GetPropertyIsImportant(const nsAString& aProperty) const
-{
+bool DeclarationBlock::GetPropertyIsImportant(
+    const nsAString& aProperty) const {
   MOZ_STYLO_FORWARD(GetPropertyIsImportant, (aProperty))
 }
 
-bool
-DeclarationBlock::RemoveProperty(const nsAString& aProperty)
-{
+bool DeclarationBlock::RemoveProperty(const nsAString& aProperty) {
   MOZ_STYLO_FORWARD(RemoveProperty, (aProperty))
 }
 
-bool
-DeclarationBlock::RemovePropertyByID(nsCSSPropertyID aProperty)
-{
+bool DeclarationBlock::RemovePropertyByID(nsCSSPropertyID aProperty) {
   MOZ_STYLO_FORWARD(RemovePropertyByID, (aProperty))
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_DeclarationBlockInlines_h
+#endif  // mozilla_DeclarationBlockInlines_h

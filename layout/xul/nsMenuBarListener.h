@@ -22,15 +22,14 @@ namespace mozilla {
 namespace dom {
 class EventTarget;
 class KeyboardEvent;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 /**
  * EventListener implementation for menubar.
  */
-class nsMenuBarListener final : public nsIDOMEventListener
-{
-public:
+class nsMenuBarListener final : public nsIDOMEventListener {
+ public:
   explicit nsMenuBarListener(nsMenuBarFrame* aMenuBarFrame,
                              nsIContent* aMenuBarContent);
 
@@ -60,7 +59,7 @@ public:
    */
   static bool IsAccessKeyPressed(mozilla::dom::KeyboardEvent* aEvent);
 
-protected:
+ protected:
   virtual ~nsMenuBarListener();
 
   nsresult KeyUp(nsIDOMEvent* aMouseEvent);
@@ -73,15 +72,16 @@ protected:
 
   static void InitAccessKey();
 
-  static mozilla::Modifiers
-    GetModifiersForAccessKey(mozilla::dom::KeyboardEvent* event);
+  static mozilla::Modifiers GetModifiersForAccessKey(
+      mozilla::dom::KeyboardEvent* event);
 
   /**
    * Given a key event for an Alt+shortcut combination,
    * return the menu, if any, that would be opened. If aPeek
    * is false, then play a beep and deactivate the menubar on Windows.
    */
-  nsMenuFrame* GetMenuForKeyEvent(mozilla::dom::KeyboardEvent* aKeyEvent, bool aPeek);
+  nsMenuFrame* GetMenuForKeyEvent(mozilla::dom::KeyboardEvent* aKeyEvent,
+                                  bool aPeek);
 
   /**
    * Call MarkAsReservedByChrome if the user's preferences indicate that
@@ -116,4 +116,4 @@ protected:
   static mozilla::Modifiers mAccessKeyMask;
 };
 
-#endif // #ifndef nsMenuBarListener_h
+#endif  // #ifndef nsMenuBarListener_h

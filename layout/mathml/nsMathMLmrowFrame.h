@@ -17,15 +17,14 @@
 //
 
 class nsMathMLmrowFrame : public nsMathMLContainerFrame {
-public:
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmrowFrame)
 
-  friend nsIFrame* NS_NewMathMLmrowFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsIFrame* NS_NewMathMLmrowFrame(nsIPresShell* aPresShell,
+                                         nsStyleContext* aContext);
 
-  virtual nsresult
-  AttributeChanged(int32_t  aNameSpaceID,
-                   nsAtom* aAttribute,
-                   int32_t  aModType) override;
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                                    int32_t aModType) override;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
@@ -35,21 +34,18 @@ public:
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
-  virtual eMathMLFrameType
-  GetMathMLFrameType() override;
+  virtual eMathMLFrameType GetMathMLFrameType() override;
 
-  bool
-  IsMrowLike() override {
+  bool IsMrowLike() override {
     // <mrow> elements with a single child are treated identically to the case
     // where the child wasn't within an mrow, so we pretend the mrow isn't an
     // mrow in that situation.
-    return mFrames.FirstChild() != mFrames.LastChild() ||
-           !mFrames.FirstChild();
+    return mFrames.FirstChild() != mFrames.LastChild() || !mFrames.FirstChild();
   }
 
-protected:
+ protected:
   explicit nsMathMLmrowFrame(nsStyleContext* aContext)
-    : nsMathMLContainerFrame(aContext, kClassID) {}
+      : nsMathMLContainerFrame(aContext, kClassID) {}
   virtual ~nsMathMLmrowFrame();
 };
 

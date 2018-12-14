@@ -17,15 +17,14 @@ namespace network {
 
 class ConnectionProxy;
 
-class ConnectionWorker final : public Connection
-{
+class ConnectionWorker final : public Connection {
   friend class ConnectionProxy;
 
-public:
-  static already_AddRefed<ConnectionWorker>
-  Create(WorkerPrivate* aWorkerPrivate, ErrorResult& aRv);
+ public:
+  static already_AddRefed<ConnectionWorker> Create(
+      WorkerPrivate* aWorkerPrivate, ErrorResult& aRv);
 
-private:
+ private:
   explicit ConnectionWorker(WorkerPrivate* aWorkerPrivate);
   ~ConnectionWorker();
 
@@ -35,8 +34,8 @@ private:
   RefPtr<ConnectionProxy> mProxy;
 };
 
-} // namespace network
-} // namespace dom
-} // namespace mozilla
+}  // namespace network
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_network_ConnectionWorker_h
+#endif  // mozilla_dom_network_ConnectionWorker_h

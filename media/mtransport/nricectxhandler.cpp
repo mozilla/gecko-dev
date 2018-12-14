@@ -19,26 +19,21 @@ MOZ_MTLOG_MODULE("mtransport")
 
 NrIceCtxHandler::NrIceCtxHandler(const std::string& name,
                                  NrIceCtx::Policy policy)
-  : current_ctx(new NrIceCtx(name, policy)),
-    old_ctx(nullptr),
-    restart_count(0)
-{
-}
+    : current_ctx(new NrIceCtx(name, policy)),
+      old_ctx(nullptr),
+      restart_count(0) {}
 
-RefPtr<NrIceCtxHandler>
-NrIceCtxHandler::Create(const std::string& name,
-                        bool allow_loopback,
-                        bool tcp_enabled,
-                        bool allow_link_local,
-                        NrIceCtx::Policy policy)
-{
+RefPtr<NrIceCtxHandler> NrIceCtxHandler::Create(const std::string& name,
+                                                bool allow_loopback,
+                                                bool tcp_enabled,
+                                                bool allow_link_local,
+                                                NrIceCtx::Policy policy) {
   // InitializeGlobals only executes once
   NrIceCtx::InitializeGlobals(allow_loopback, tcp_enabled, allow_link_local);
 
   RefPtr<NrIceCtxHandler> ctx = new NrIceCtxHandler(name, policy);
 
-  if (ctx == nullptr ||
-      ctx->current_ctx == nullptr ||
+  if (ctx == nullptr || ctx->current_ctx == nullptr ||
       !ctx->current_ctx->Initialize()) {
     return nullptr;
   }
@@ -46,10 +41,8 @@ NrIceCtxHandler::Create(const std::string& name,
   return ctx;
 }
 
-
-RefPtr<NrIceMediaStream>
-NrIceCtxHandler::CreateStream(const std::string& name, int components)
-{
+RefPtr<NrIceMediaStream> NrIceCtxHandler::CreateStream(const std::string& name,
+                                                       int components) {
   // To make tracking NrIceMediaStreams easier during ICE restart
   // prepend an int to the name that increments with each ICE restart
   std::ostringstream os;
@@ -57,20 +50,14 @@ NrIceCtxHandler::CreateStream(const std::string& name, int components)
   return NrIceMediaStream::Create(this->current_ctx, os.str(), components);
 }
 
-
-RefPtr<NrIceCtx>
-NrIceCtxHandler::CreateCtx() const
-{
+RefPtr<NrIceCtx> NrIceCtxHandler::CreateCtx() const {
   return CreateCtx(NrIceCtx::GetNewUfrag(), NrIceCtx::GetNewPwd());
 }
 
-
-RefPtr<NrIceCtx>
-NrIceCtxHandler::CreateCtx(const std::string& ufrag,
-                           const std::string& pwd) const
-{
-  RefPtr<NrIceCtx> new_ctx = new NrIceCtx(this->current_ctx->name(),
-                                          this->current_ctx->policy());
+RefPtr<NrIceCtx> NrIceCtxHandler::CreateCtx(const std::string& ufrag,
+                                            const std::string& pwd) const {
+  RefPtr<NrIceCtx> new_ctx =
+      new NrIceCtx(this->current_ctx->name(), this->current_ctx->policy());
   if (new_ctx == nullptr) {
     return nullptr;
   }
@@ -85,7 +72,7 @@ NrIceCtxHandler::CreateCtx(const std::string& ufrag,
                                       this->current_ctx->ctx_->stun_server_ct);
   if (r) {
     MOZ_MTLOG(ML_ERROR, "Error while setting STUN servers in CreateCtx"
-                        << " (likely ice restart related)");
+                            << " (likely ice restart related)");
     return nullptr;
   }
 
@@ -94,7 +81,7 @@ NrIceCtxHandler::CreateCtx(const std::string& ufrag,
                                    this->current_ctx->ctx_->turn_server_ct);
   if (r) {
     MOZ_MTLOG(ML_ERROR, "Error while copying TURN servers in CreateCtx"
-                        << " (likely ice restart related)");
+                            << " (likely ice restart related)");
     return nullptr;
   }
 
@@ -102,11 +89,11 @@ NrIceCtxHandler::CreateCtx(const std::string& ufrag,
   // for the new ctx.  Note: there may not be an nr_resolver.
   if (this->current_ctx->ctx_->resolver) {
     NrIceResolver* resolver =
-      static_cast<NrIceResolver*>(this->current_ctx->ctx_->resolver->obj);
+        static_cast<NrIceResolver*>(this->current_ctx->ctx_->resolver->obj);
     if (!resolver ||
         NS_FAILED(new_ctx->SetResolver(resolver->AllocateResolver()))) {
       MOZ_MTLOG(ML_ERROR, "Error while setting dns resolver in CreateCtx"
-                          << " (likely ice restart related)");
+                              << " (likely ice restart related)");
       return nullptr;
     }
   }
@@ -114,14 +101,11 @@ NrIceCtxHandler::CreateCtx(const std::string& ufrag,
   return new_ctx;
 }
 
-
-bool
-NrIceCtxHandler::BeginIceRestart(RefPtr<NrIceCtx> new_ctx)
-{
+bool NrIceCtxHandler::BeginIceRestart(RefPtr<NrIceCtx> new_ctx) {
   MOZ_ASSERT(!old_ctx, "existing ice restart in progress");
   if (old_ctx) {
     MOZ_MTLOG(ML_ERROR, "Existing ice restart in progress");
-    return false; // ice restart already in progress
+    return false;  // ice restart already in progress
   }
 
   if (new_ctx == nullptr) {
@@ -134,10 +118,7 @@ NrIceCtxHandler::BeginIceRestart(RefPtr<NrIceCtx> new_ctx)
   return true;
 }
 
-
-void
-NrIceCtxHandler::FinalizeIceRestart()
-{
+void NrIceCtxHandler::FinalizeIceRestart() {
   if (old_ctx) {
     // Fixup the telemetry by transferring old stats to current ctx.
     NrIceStats stats = old_ctx->Destroy();
@@ -148,10 +129,7 @@ NrIceCtxHandler::FinalizeIceRestart()
   old_ctx = nullptr;
 }
 
-
-void
-NrIceCtxHandler::RollbackIceRestart()
-{
+void NrIceCtxHandler::RollbackIceRestart() {
   if (old_ctx == nullptr) {
     return;
   }
@@ -159,8 +137,7 @@ NrIceCtxHandler::RollbackIceRestart()
   old_ctx = nullptr;
 }
 
-NrIceStats NrIceCtxHandler::Destroy()
-{
+NrIceStats NrIceCtxHandler::Destroy() {
   NrIceStats stats;
 
   // designed to be called more than once so if stats are desired, this can be
@@ -180,9 +157,6 @@ NrIceStats NrIceCtxHandler::Destroy()
   return stats;
 }
 
-NrIceCtxHandler::~NrIceCtxHandler()
-{
-  Destroy();
-}
+NrIceCtxHandler::~NrIceCtxHandler() { Destroy(); }
 
-} // close namespace
+}  // namespace mozilla

@@ -13,13 +13,9 @@ namespace gfx {
 
 using namespace std;
 
-DrawEventRecorderPrivate::DrawEventRecorderPrivate() : mExternalFonts(false)
-{
-}
+DrawEventRecorderPrivate::DrawEventRecorderPrivate() : mExternalFonts(false) {}
 
-void
-DrawEventRecorderFile::RecordEvent(const RecordedEvent &aEvent)
-{
+void DrawEventRecorderFile::RecordEvent(const RecordedEvent &aEvent) {
   WriteElement(mOutputStream, aEvent.mType);
 
   aEvent.RecordToStream(mOutputStream);
@@ -27,75 +23,50 @@ DrawEventRecorderFile::RecordEvent(const RecordedEvent &aEvent)
   Flush();
 }
 
-void
-DrawEventRecorderMemory::RecordEvent(const RecordedEvent &aEvent)
-{
+void DrawEventRecorderMemory::RecordEvent(const RecordedEvent &aEvent) {
   WriteElement(mOutputStream, aEvent.mType);
 
   aEvent.RecordToStream(mOutputStream);
 }
 
-DrawEventRecorderFile::DrawEventRecorderFile(const char_type* aFilename)
-  : mOutputStream(aFilename, ofstream::binary)
-{
+DrawEventRecorderFile::DrawEventRecorderFile(const char_type *aFilename)
+    : mOutputStream(aFilename, ofstream::binary) {
   WriteHeader(mOutputStream);
 }
 
-DrawEventRecorderFile::~DrawEventRecorderFile()
-{
-  mOutputStream.close();
-}
+DrawEventRecorderFile::~DrawEventRecorderFile() { mOutputStream.close(); }
 
-void
-DrawEventRecorderFile::Flush()
-{
-  mOutputStream.flush();
-}
+void DrawEventRecorderFile::Flush() { mOutputStream.flush(); }
 
-bool
-DrawEventRecorderFile::IsOpen()
-{
-  return mOutputStream.is_open();
-}
+bool DrawEventRecorderFile::IsOpen() { return mOutputStream.is_open(); }
 
-void
-DrawEventRecorderFile::OpenNew(const char_type* aFilename)
-{
+void DrawEventRecorderFile::OpenNew(const char_type *aFilename) {
   MOZ_ASSERT(!mOutputStream.is_open());
 
   mOutputStream.open(aFilename, ofstream::binary);
   WriteHeader(mOutputStream);
 }
 
-void
-DrawEventRecorderFile::Close()
-{
+void DrawEventRecorderFile::Close() {
   MOZ_ASSERT(mOutputStream.is_open());
 
   mOutputStream.close();
 }
 
-DrawEventRecorderMemory::DrawEventRecorderMemory()
-{
+DrawEventRecorderMemory::DrawEventRecorderMemory() {
   WriteHeader(mOutputStream);
 }
 
-DrawEventRecorderMemory::DrawEventRecorderMemory(const SerializeResourcesFn &aFn) :
-  mSerializeCallback(aFn)
-{
+DrawEventRecorderMemory::DrawEventRecorderMemory(
+    const SerializeResourcesFn &aFn)
+    : mSerializeCallback(aFn) {
   mExternalFonts = true;
   WriteHeader(mOutputStream);
 }
 
+void DrawEventRecorderMemory::Flush() {}
 
-void
-DrawEventRecorderMemory::Flush()
-{
-}
-
-void
-DrawEventRecorderMemory::FlushItem(IntRect aRect)
-{
+void DrawEventRecorderMemory::FlushItem(IntRect aRect) {
   DetatchResources();
   WriteElement(mIndex, mOutputStream.mLength);
   mSerializeCallback(mOutputStream, mUnscaledFonts);
@@ -103,9 +74,7 @@ DrawEventRecorderMemory::FlushItem(IntRect aRect)
   ClearResources();
 }
 
-void
-DrawEventRecorderMemory::Finish()
-{
+void DrawEventRecorderMemory::Finish() {
   size_t indexOffset = mOutputStream.mLength;
   // write out the index
   mOutputStream.write(mIndex.mData, mIndex.mLength);
@@ -115,21 +84,16 @@ DrawEventRecorderMemory::Finish()
   ClearResources();
 }
 
-
-size_t
-DrawEventRecorderMemory::RecordingSize()
-{
+size_t DrawEventRecorderMemory::RecordingSize() {
   return mOutputStream.mLength;
 }
 
-void
-DrawEventRecorderMemory::WipeRecording()
-{
+void DrawEventRecorderMemory::WipeRecording() {
   mOutputStream = MemStream();
   mIndex = MemStream();
 
   WriteHeader(mOutputStream);
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

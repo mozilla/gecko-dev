@@ -20,9 +20,7 @@
 using namespace mozilla::a11y;
 
 extern "C" {
-static gint
-GetColumnSpanCB(AtkTableCell* aCell)
-{
+static gint GetColumnSpanCB(AtkTableCell* aCell) {
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell));
   if (accWrap) {
     return accWrap->AsTableCell()->ColExtent();
@@ -35,9 +33,7 @@ GetColumnSpanCB(AtkTableCell* aCell)
   return 0;
 }
 
-static gboolean
-GetRowSpanCB(AtkTableCell* aCell)
-{
+static gboolean GetRowSpanCB(AtkTableCell* aCell) {
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell));
   if (accWrap) {
     return accWrap->AsTableCell()->RowExtent();
@@ -50,9 +46,7 @@ GetRowSpanCB(AtkTableCell* aCell)
   return 0;
 }
 
-static gboolean
-GetPositionCB(AtkTableCell* aCell, gint* aRow, gint* aCol)
-{
+static gboolean GetPositionCB(AtkTableCell* aCell, gint* aRow, gint* aCol) {
   if (AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell))) {
     TableCellAccessible* cell = accWrap->AsTableCell();
     *aRow = cell->RowIdx();
@@ -71,9 +65,8 @@ GetPositionCB(AtkTableCell* aCell, gint* aRow, gint* aCol)
   return false;
 }
 
-static gboolean
-GetColumnRowSpanCB(AtkTableCell* aCell, gint* aCol, gint* aRow,
-                   gint* aColExtent, gint* aRowExtent) {
+static gboolean GetColumnRowSpanCB(AtkTableCell* aCell, gint* aCol, gint* aRow,
+                                   gint* aColExtent, gint* aRowExtent) {
   if (AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell))) {
     TableCellAccessible* cellAcc = accWrap->AsTableCell();
     *aCol = cellAcc->ColIdx();
@@ -90,15 +83,13 @@ GetColumnRowSpanCB(AtkTableCell* aCell, gint* aCol, gint* aRow,
     *aRow = rowIdx;
     *aColExtent = colExtent;
     *aRowExtent = rowExtent;
-  return true;
+    return true;
   }
 
   return false;
 }
 
-static AtkObject*
-GetTableCB(AtkTableCell* aTableCell)
-{
+static AtkObject* GetTableCB(AtkTableCell* aTableCell) {
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aTableCell));
   if (accWrap) {
     TableAccessible* table = accWrap->AsTableCell()->Table();
@@ -118,9 +109,7 @@ GetTableCB(AtkTableCell* aTableCell)
   return nullptr;
 }
 
-static GPtrArray*
-GetColumnHeaderCellsCB(AtkTableCell* aCell)
-{
+static GPtrArray* GetColumnHeaderCellsCB(AtkTableCell* aCell) {
   if (AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell))) {
     AutoTArray<Accessible*, 10> headers;
     accWrap->AsTableCell()->ColHeaderCells(&headers);
@@ -129,7 +118,7 @@ GetColumnHeaderCellsCB(AtkTableCell* aCell)
     }
 
     GPtrArray* atkHeaders = g_ptr_array_sized_new(headers.Length());
-    for (Accessible* header: headers) {
+    for (Accessible* header : headers) {
       AtkObject* atkHeader = AccessibleWrap::GetAtkObject(header);
       g_object_ref(atkHeader);
       g_ptr_array_add(atkHeaders, atkHeader);
@@ -146,7 +135,7 @@ GetColumnHeaderCellsCB(AtkTableCell* aCell)
     }
 
     GPtrArray* atkHeaders = g_ptr_array_sized_new(headers.Length());
-    for (ProxyAccessible* header: headers) {
+    for (ProxyAccessible* header : headers) {
       AtkObject* atkHeader = GetWrapperFor(header);
       g_object_ref(atkHeader);
       g_ptr_array_add(atkHeaders, atkHeader);
@@ -158,9 +147,7 @@ GetColumnHeaderCellsCB(AtkTableCell* aCell)
   return nullptr;
 }
 
-static GPtrArray*
-GetRowHeaderCellsCB(AtkTableCell* aCell)
-{
+static GPtrArray* GetRowHeaderCellsCB(AtkTableCell* aCell) {
   if (AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aCell))) {
     AutoTArray<Accessible*, 10> headers;
     accWrap->AsTableCell()->RowHeaderCells(&headers);
@@ -169,7 +156,7 @@ GetRowHeaderCellsCB(AtkTableCell* aCell)
     }
 
     GPtrArray* atkHeaders = g_ptr_array_sized_new(headers.Length());
-    for (Accessible* header: headers) {
+    for (Accessible* header : headers) {
       AtkObject* atkHeader = AccessibleWrap::GetAtkObject(header);
       g_object_ref(atkHeader);
       g_ptr_array_add(atkHeaders, atkHeader);
@@ -186,7 +173,7 @@ GetRowHeaderCellsCB(AtkTableCell* aCell)
     }
 
     GPtrArray* atkHeaders = g_ptr_array_sized_new(headers.Length());
-    for (ProxyAccessible* header: headers) {
+    for (ProxyAccessible* header : headers) {
       AtkObject* atkHeader = GetWrapperFor(header);
       g_object_ref(atkHeader);
       g_ptr_array_add(atkHeaders, atkHeader);
@@ -199,12 +186,9 @@ GetRowHeaderCellsCB(AtkTableCell* aCell)
 }
 }
 
-void
-tableCellInterfaceInitCB(AtkTableCellIface* aIface)
-{
+void tableCellInterfaceInitCB(AtkTableCellIface* aIface) {
   NS_ASSERTION(aIface, "no interface!");
-  if (MOZ_UNLIKELY(!aIface))
-    return;
+  if (MOZ_UNLIKELY(!aIface)) return;
 
   aIface->get_column_span = GetColumnSpanCB;
   aIface->get_column_header_cells = GetColumnHeaderCellsCB;

@@ -8,7 +8,7 @@
 #define mozilla_dom_AnimationEffectTiming_h
 
 #include "mozilla/dom/AnimationEffectTimingReadOnly.h"
-#include "mozilla/Attributes.h" // For MOZ_NON_OWNING_REF
+#include "mozilla/Attributes.h"  // For MOZ_NON_OWNING_REF
 #include "nsStringFwd.h"
 
 namespace mozilla {
@@ -16,16 +16,14 @@ namespace dom {
 
 class KeyframeEffect;
 
-class AnimationEffectTiming : public AnimationEffectTimingReadOnly
-{
-public:
-  AnimationEffectTiming(nsIDocument* aDocument,
-                        const TimingParams& aTiming,
+class AnimationEffectTiming : public AnimationEffectTimingReadOnly {
+ public:
+  AnimationEffectTiming(nsIDocument* aDocument, const TimingParams& aTiming,
                         KeyframeEffect* aEffect)
-    : AnimationEffectTimingReadOnly(aDocument, aTiming)
-    , mEffect(aEffect) { }
+      : AnimationEffectTimingReadOnly(aDocument, aTiming), mEffect(aEffect) {}
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   void Unlink() override { mEffect = nullptr; }
 
@@ -39,11 +37,11 @@ public:
   void SetDirection(const PlaybackDirection& aDirection);
   void SetEasing(const nsAString& aEasing, ErrorResult& aRv);
 
-private:
+ private:
   KeyframeEffect* MOZ_NON_OWNING_REF mEffect;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_AnimationEffectTiming_h
+#endif  // mozilla_dom_AnimationEffectTiming_h

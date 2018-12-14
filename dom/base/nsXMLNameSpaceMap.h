@@ -12,10 +12,8 @@
 #include "nsCOMPtr.h"
 #include "nsAtom.h"
 
-struct nsNameSpaceEntry
-{
-  explicit nsNameSpaceEntry(nsAtom* aPrefix)
-    : prefix(aPrefix) {}
+struct nsNameSpaceEntry {
+  explicit nsNameSpaceEntry(nsAtom *aPrefix) : prefix(aPrefix) {}
 
   RefPtr<nsAtom> prefix;
   MOZ_INIT_OUTSIDE_CTOR int32_t nameSpaceID;
@@ -25,14 +23,13 @@ struct nsNameSpaceEntry
  * nsXMLNameSpaceMap contains a set of prefixes which are mapped onto
  * namespaces.  It allows the set to be searched by prefix or by namespace ID.
  */
-class nsXMLNameSpaceMap
-{
-public:
+class nsXMLNameSpaceMap {
+ public:
   /**
    * Allocates a new nsXMLNameSpaceMap (with new()) and if aForXML is
    * true initializes it with the xmlns and xml namespaces.
    */
-  static nsXMLNameSpaceMap* Create(bool aForXML);
+  static nsXMLNameSpaceMap *Create(bool aForXML);
 
   /**
    * Add a prefix and its corresponding namespace ID to the map.
@@ -59,14 +56,14 @@ public:
    * If the given namespace ID is in the map, then the first prefix which
    * maps to that namespace is returned.  Otherwise, null is returned.
    */
-  nsAtom* FindPrefix(int32_t aNameSpaceID) const;
+  nsAtom *FindPrefix(int32_t aNameSpaceID) const;
 
   /* Removes all prefix mappings. */
   void Clear();
 
   ~nsXMLNameSpaceMap() { Clear(); }
 
-private:
+ private:
   nsXMLNameSpaceMap();  // use Create() to create new instances
 
   nsTArray<nsNameSpaceEntry> mNameSpaces;

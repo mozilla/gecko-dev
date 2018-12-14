@@ -31,9 +31,9 @@ namespace mozilla {
 namespace dom {
 class DocGroup;
 class Element;
-} // namespace dom
+}  // namespace dom
 struct ComputedGridTrackInfo;
-} // namespace mozilla
+}  // namespace mozilla
 
 struct nsComputedStyleMap;
 class nsIFrame;
@@ -49,19 +49,18 @@ struct nsStyleImage;
 class nsStyleSides;
 struct nsTimingFunction;
 
-class nsComputedDOMStyle final : public nsDOMCSSDeclaration
-                               , public nsStubMutationObserver
-{
-private:
+class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
+                                 public nsStubMutationObserver {
+ private:
   // Convenience typedefs:
   typedef nsCSSProps::KTableEntry KTableEntry;
   typedef mozilla::dom::CSSValue CSSValue;
   typedef mozilla::StyleGeometryBox StyleGeometryBox;
 
-public:
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsComputedDOMStyle,
-                                                                   nsICSSDeclaration)
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(
+      nsComputedDOMStyle, nsICSSDeclaration)
 
   NS_DECL_NSIDOMCSSSTYLEDECLARATION_HELPER
   nsresult GetPropertyValue(const nsCSSPropertyID aPropID,
@@ -69,15 +68,15 @@ public:
   nsresult SetPropertyValue(const nsCSSPropertyID aPropID,
                             const nsAString& aValue,
                             nsIPrincipal* aSubjectPrincipal) override;
-  virtual already_AddRefed<CSSValue>
-  GetPropertyCSSValue(const nsAString& aProp, mozilla::ErrorResult& aRv)
-    override;
+  virtual already_AddRefed<CSSValue> GetPropertyCSSValue(
+      const nsAString& aProp, mozilla::ErrorResult& aRv) override;
   using nsICSSDeclaration::GetPropertyCSSValue;
-  virtual void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName) override;
+  virtual void IndexedGetter(uint32_t aIndex, bool& aFound,
+                             nsAString& aPropName) override;
 
   enum StyleType {
-    eDefaultOnly, // Only includes UA and user sheets
-    eAll // Includes all stylesheets
+    eDefaultOnly,  // Only includes UA and user sheets
+    eAll           // Includes all stylesheets
   };
 
   enum AnimationFlag {
@@ -86,42 +85,30 @@ public:
   };
 
   nsComputedDOMStyle(mozilla::dom::Element* aElement,
-                     const nsAString& aPseudoElt,
-                     nsIPresShell* aPresShell,
+                     const nsAString& aPseudoElt, nsIPresShell* aPresShell,
                      StyleType aStyleType,
                      AnimationFlag aFlag = eWithAnimation);
 
-  virtual nsINode *GetParentObject() override
-  {
-    return mContent;
+  virtual nsINode* GetParentObject() override { return mContent; }
+
+  static already_AddRefed<nsStyleContext> GetStyleContext(
+      mozilla::dom::Element* aElement, nsAtom* aPseudo,
+      StyleType aStyleType = eAll);
+
+  static already_AddRefed<nsStyleContext> GetStyleContextNoFlush(
+      mozilla::dom::Element* aElement, nsAtom* aPseudo,
+      StyleType aStyleType = eAll) {
+    return DoGetStyleContextNoFlush(aElement, aPseudo,
+                                    aElement->OwnerDoc()->GetShell(),
+                                    aStyleType, eWithAnimation);
   }
 
-  static already_AddRefed<nsStyleContext>
-  GetStyleContext(mozilla::dom::Element* aElement, nsAtom* aPseudo,
-                  StyleType aStyleType = eAll);
-
-  static already_AddRefed<nsStyleContext>
-  GetStyleContextNoFlush(mozilla::dom::Element* aElement,
-                         nsAtom* aPseudo,
-                         StyleType aStyleType = eAll)
-  {
-    return DoGetStyleContextNoFlush(aElement,
-                                    aPseudo,
+  static already_AddRefed<nsStyleContext> GetUnanimatedStyleContextNoFlush(
+      mozilla::dom::Element* aElement, nsAtom* aPseudo,
+      StyleType aStyleType = eAll) {
+    return DoGetStyleContextNoFlush(aElement, aPseudo,
                                     aElement->OwnerDoc()->GetShell(),
-                                    aStyleType,
-                                    eWithAnimation);
-  }
-
-  static already_AddRefed<nsStyleContext>
-  GetUnanimatedStyleContextNoFlush(mozilla::dom::Element* aElement,
-                                   nsAtom* aPseudo,
-                                   StyleType aStyleType = eAll)
-  {
-    return DoGetStyleContextNoFlush(aElement,
-                                    aPseudo,
-                                    aElement->OwnerDoc()->GetShell(),
-                                    aStyleType,
-                                    eWithoutAnimation);
+                                    aStyleType, eWithoutAnimation);
   }
 
   // Helper for nsDOMWindowUtils::GetVisitedDependentComputedStyle
@@ -136,13 +123,14 @@ public:
   virtual mozilla::DeclarationBlock* GetCSSDeclaration(Operation) override;
   virtual nsresult SetCSSDeclaration(mozilla::DeclarationBlock*) override;
   virtual nsIDocument* DocToUpdate() override;
-  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv,
-                                        nsIPrincipal* aSubjectPrincipal) override;
-  nsDOMCSSDeclaration::ServoCSSParsingEnvironment
-  GetServoCSSParsingEnvironment(nsIPrincipal* aSubjectPrincipal) const final;
+  virtual void GetCSSParsingEnvironment(
+      CSSParsingEnvironment& aCSSParseEnv,
+      nsIPrincipal* aSubjectPrincipal) override;
+  nsDOMCSSDeclaration::ServoCSSParsingEnvironment GetServoCSSParsingEnvironment(
+      nsIPrincipal* aSubjectPrincipal) const final;
 
-  static already_AddRefed<nsROCSSPrimitiveValue>
-    MatrixToCSSValue(const mozilla::gfx::Matrix4x4& aMatrix);
+  static already_AddRefed<nsROCSSPrimitiveValue> MatrixToCSSValue(
+      const mozilla::gfx::Matrix4x4& aMatrix);
 
   static void RegisterPrefChangeCallbacks();
   static void UnregisterPrefChangeCallbacks();
@@ -150,7 +138,7 @@ public:
   // nsIMutationObserver
   NS_DECL_NSIMUTATIONOBSERVER_PARENTCHAINCHANGED
 
-private:
+ private:
   virtual ~nsComputedDOMStyle();
 
   void AssertFlushedPendingReflows() {
@@ -174,17 +162,13 @@ private:
                                uint64_t aGeneration);
   void SetFrameStyleContext(nsStyleContext* aContext, uint64_t aGeneration);
 
-  static already_AddRefed<nsStyleContext>
-  DoGetStyleContextNoFlush(mozilla::dom::Element* aElement,
-                           nsAtom* aPseudo,
-                           nsIPresShell* aPresShell,
-                           StyleType aStyleType,
-                           AnimationFlag aAnimationFlag);
+  static already_AddRefed<nsStyleContext> DoGetStyleContextNoFlush(
+      mozilla::dom::Element* aElement, nsAtom* aPseudo,
+      nsIPresShell* aPresShell, StyleType aStyleType,
+      AnimationFlag aAnimationFlag);
 
-#define STYLE_STRUCT(name_, checkdata_cb_)                              \
-  const nsStyle##name_ * Style##name_() {                               \
-    return mStyleContext->Style##name_();                               \
-  }
+#define STYLE_STRUCT(name_, checkdata_cb_) \
+  const nsStyle##name_* Style##name_() { return mStyleContext->Style##name_(); }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 
@@ -215,7 +199,8 @@ private:
 
   already_AddRefed<CSSValue> GetSVGPaintFor(bool aFill);
 
-  already_AddRefed<CSSValue> GetTransformValue(nsCSSValueSharedList* aSpecifiedTransform);
+  already_AddRefed<CSSValue> GetTransformValue(
+      nsCSSValueSharedList* aSpecifiedTransform);
 
   // Appends all aLineNames (may be empty) space-separated to aResult.
   void AppendGridLineNames(nsString& aResult,
@@ -232,8 +217,8 @@ private:
   already_AddRefed<CSSValue> GetGridTrackSize(const nsStyleCoord& aMinSize,
                                               const nsStyleCoord& aMaxSize);
   already_AddRefed<CSSValue> GetGridTemplateColumnsRows(
-    const nsStyleGridTemplate& aTrackList,
-    const mozilla::ComputedGridTrackInfo* aTrackInfo);
+      const nsStyleGridTemplate& aTrackList,
+      const mozilla::ComputedGridTrackInfo* aTrackInfo);
   already_AddRefed<CSSValue> GetGridLine(const nsStyleGridLine& aGridLine);
 
   bool GetLineHeightCoord(nscoord& aCoord);
@@ -244,11 +229,10 @@ private:
 
   void GetCSSGradientString(const nsStyleGradient* aGradient,
                             nsAString& aString);
-  void GetImageRectString(nsIURI* aURI,
-                          const nsStyleSides& aCropRect,
+  void GetImageRectString(nsIURI* aURI, const nsStyleSides& aCropRect,
                           nsString& aString);
   already_AddRefed<CSSValue> GetScrollSnapPoints(const nsStyleCoord& aCoord);
-  void AppendTimingFunction(nsDOMCSSValueList *aValueList,
+  void AppendTimingFunction(nsDOMCSSValueList* aValueList,
                             const nsTimingFunction& aTimingFunction);
 
   bool ShouldHonorMinSizeAutoInAxis(mozilla::PhysicalAxis aAxis);
@@ -325,12 +309,18 @@ private:
   already_AddRefed<CSSValue> DoGetGridRowGap();
 
   /* StyleImageLayer properties */
-  already_AddRefed<CSSValue> DoGetImageLayerImage(const nsStyleImageLayers& aLayers);
-  already_AddRefed<CSSValue> DoGetImageLayerPosition(const nsStyleImageLayers& aLayers);
-  already_AddRefed<CSSValue> DoGetImageLayerPositionX(const nsStyleImageLayers& aLayers);
-  already_AddRefed<CSSValue> DoGetImageLayerPositionY(const nsStyleImageLayers& aLayers);
-  already_AddRefed<CSSValue> DoGetImageLayerRepeat(const nsStyleImageLayers& aLayers);
-  already_AddRefed<CSSValue> DoGetImageLayerSize(const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerImage(
+      const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerPosition(
+      const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerPositionX(
+      const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerPositionY(
+      const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerRepeat(
+      const nsStyleImageLayers& aLayers);
+  already_AddRefed<CSSValue> DoGetImageLayerSize(
+      const nsStyleImageLayers& aLayers);
 
   /* Background properties */
   already_AddRefed<CSSValue> DoGetBackgroundAttachment();
@@ -626,7 +616,8 @@ private:
   already_AddRefed<CSSValue> DoGetContextProperties();
 
   /* Custom properties */
-  already_AddRefed<CSSValue> DoGetCustomProperty(const nsAString& aPropertyName);
+  already_AddRefed<CSSValue> DoGetCustomProperty(
+      const nsAString& aPropertyName);
 
   /* Helper functions */
   void SetToRGBAColor(nsROCSSPrimitiveValue* aValue, nscolor aColor);
@@ -662,8 +653,7 @@ private:
    * can be expected or something?
    */
   void SetValueToCoord(nsROCSSPrimitiveValue* aValue,
-                       const nsStyleCoord& aCoord,
-                       bool aClampNegativeCalc,
+                       const nsStyleCoord& aCoord, bool aClampNegativeCalc,
                        PercentageBaseGetter aPercentageBaseGetter = nullptr,
                        const KTableEntry aTable[] = nullptr,
                        nscoord aMinAppUnits = nscoord_MIN,
@@ -677,8 +667,7 @@ private:
    */
   nscoord StyleCoordToNSCoord(const nsStyleCoord& aCoord,
                               PercentageBaseGetter aPercentageBaseGetter,
-                              nscoord aDefaultValue,
-                              bool aClampNegativeCalc);
+                              nscoord aDefaultValue, bool aClampNegativeCalc);
 
   /**
    * Append coord values from four sides. It omits values when possible.
@@ -690,8 +679,8 @@ private:
   bool GetCBContentHeight(nscoord& aWidth);
   bool GetScrollFrameContentWidth(nscoord& aWidth);
   bool GetScrollFrameContentHeight(nscoord& aHeight);
-  bool GetFrameBoundsWidthForTransform(nscoord &aWidth);
-  bool GetFrameBoundsHeightForTransform(nscoord &aHeight);
+  bool GetFrameBoundsWidthForTransform(nscoord& aWidth);
+  bool GetFrameBoundsHeightForTransform(nscoord& aHeight);
   bool GetFrameBorderRectWidth(nscoord& aWidth);
   bool GetFrameBorderRectHeight(nscoord& aHeight);
 
@@ -699,22 +688,20 @@ private:
   void SetCssTextToCoord(nsAString& aCssText, const nsStyleCoord& aCoord,
                          bool aClampNegativeCalc);
   already_AddRefed<CSSValue> CreatePrimitiveValueForStyleFilter(
-    const nsStyleFilter& aStyleFilter);
+      const nsStyleFilter& aStyleFilter);
 
-  already_AddRefed<CSSValue>
-  GetShapeSource(const mozilla::StyleShapeSource& aShapeSource,
-                 const KTableEntry aBoxKeywordTable[]);
+  already_AddRefed<CSSValue> GetShapeSource(
+      const mozilla::StyleShapeSource& aShapeSource,
+      const KTableEntry aBoxKeywordTable[]);
 
-  template<typename ReferenceBox>
-  already_AddRefed<CSSValue>
-  CreatePrimitiveValueForShapeSource(
-    const mozilla::UniquePtr<mozilla::StyleBasicShape>& aStyleBasicShape,
-    ReferenceBox aReferenceBox,
-    const KTableEntry aBoxKeywordTable[]);
+  template <typename ReferenceBox>
+  already_AddRefed<CSSValue> CreatePrimitiveValueForShapeSource(
+      const mozilla::UniquePtr<mozilla::StyleBasicShape>& aStyleBasicShape,
+      ReferenceBox aReferenceBox, const KTableEntry aBoxKeywordTable[]);
 
   // Helper function for computing basic shape styles.
   already_AddRefed<CSSValue> CreatePrimitiveValueForBasicShape(
-    const mozilla::UniquePtr<mozilla::StyleBasicShape>& aStyleBasicShape);
+      const mozilla::UniquePtr<mozilla::StyleBasicShape>& aStyleBasicShape);
   void BoxValuesToString(nsAString& aString,
                          const nsTArray<nsStyleCoord>& aBoxValues,
                          bool aClampNegativeCalc);
@@ -724,7 +711,6 @@ private:
   // Find out if we can safely skip flushing for aDocument (i.e. pending
   // restyles does not affect mContent).
   bool NeedsToFlush(nsIDocument* aDocument) const;
-
 
   static nsComputedStyleMap* GetComputedStyleMap();
 
@@ -754,15 +740,15 @@ private:
   RefPtr<nsAtom> mPseudo;
 
   /*
-   * While computing style data, the primary frame for mContent --- named "outer"
-   * because we should use it to compute positioning data.  Null
+   * While computing style data, the primary frame for mContent --- named
+   * "outer" because we should use it to compute positioning data.  Null
    * otherwise.
    */
   nsIFrame* mOuterFrame;
   /*
    * While computing style data, the "inner frame" for mContent --- the frame
-   * which we should use to compute margin, border, padding and content data.  Null
-   * otherwise.
+   * which we should use to compute margin, border, padding and content data.
+   * Null otherwise.
    */
   nsIFrame* mInnerFrame;
   /*
@@ -800,13 +786,11 @@ private:
 #endif
 };
 
-already_AddRefed<nsComputedDOMStyle>
-NS_NewComputedDOMStyle(mozilla::dom::Element* aElement,
-                       const nsAString& aPseudoElt,
-                       nsIPresShell* aPresShell,
-                       nsComputedDOMStyle::StyleType aStyleType =
-                         nsComputedDOMStyle::eAll,
-                       nsComputedDOMStyle::AnimationFlag aFlag =
-                         nsComputedDOMStyle::eWithAnimation);
+already_AddRefed<nsComputedDOMStyle> NS_NewComputedDOMStyle(
+    mozilla::dom::Element* aElement, const nsAString& aPseudoElt,
+    nsIPresShell* aPresShell,
+    nsComputedDOMStyle::StyleType aStyleType = nsComputedDOMStyle::eAll,
+    nsComputedDOMStyle::AnimationFlag aFlag =
+        nsComputedDOMStyle::eWithAnimation);
 
 #endif /* nsComputedDOMStyle_h__ */

@@ -22,31 +22,21 @@ namespace dom {
  * Information on font face usage by a given DOM Range, as returned by
  * InspectorUtils.getUsedFontFaces.
  */
-class InspectorFontFace final : public NonRefcountedDOMObject
-{
-public:
-  InspectorFontFace(gfxFontEntry* aFontEntry,
-                    gfxFontGroup* aFontGroup,
+class InspectorFontFace final : public NonRefcountedDOMObject {
+ public:
+  InspectorFontFace(gfxFontEntry* aFontEntry, gfxFontGroup* aFontGroup,
                     uint8_t aMatchType)
-    : mFontEntry(aFontEntry)
-    , mFontGroup(aFontGroup)
-    , mMatchType(aMatchType)
-  {
+      : mFontEntry(aFontEntry), mFontGroup(aFontGroup), mMatchType(aMatchType) {
     MOZ_COUNT_CTOR(InspectorFontFace);
   }
 
-  ~InspectorFontFace()
-  {
-    MOZ_COUNT_DTOR(InspectorFontFace);
-  }
+  ~InspectorFontFace() { MOZ_COUNT_DTOR(InspectorFontFace); }
 
   gfxFontEntry* GetFontEntry() const { return mFontEntry; }
   void AddMatchType(uint8_t aMatchType) { mMatchType |= aMatchType; }
 
   void AddRange(nsRange* aRange);
-  size_t RangeCount() const {
-    return mRanges.Length();
-  }
+  size_t RangeCount() const { return mRanges.Length(); }
 
   // Web IDL
   bool FromFontGroup();
@@ -65,19 +55,16 @@ public:
                         ErrorResult& aRV);
   void GetVariationInstances(nsTArray<InspectorVariationInstance>& aResult,
                              ErrorResult& aRV);
-  void GetFeatures(nsTArray<InspectorFontFeature>& aResult,
-                   ErrorResult& aRV);
+  void GetFeatures(nsTArray<InspectorFontFeature>& aResult, ErrorResult& aRV);
 
   void GetRanges(nsTArray<RefPtr<nsRange>>& aResult);
 
-  bool WrapObject(JSContext* aCx,
-                  JS::Handle<JSObject*> aGivenProto,
-                  JS::MutableHandle<JSObject*> aReflector)
-  {
+  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+                  JS::MutableHandle<JSObject*> aReflector) {
     return InspectorFontFaceBinding::Wrap(aCx, this, aGivenProto, aReflector);
   }
 
-protected:
+ protected:
   RefPtr<gfxFontEntry> mFontEntry;
   RefPtr<gfxFontGroup> mFontGroup;
   uint8_t mMatchType;
@@ -85,7 +72,7 @@ protected:
   nsTArray<RefPtr<nsRange>> mRanges;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_InspectorFontFace_h
+#endif  // mozilla_InspectorFontFace_h

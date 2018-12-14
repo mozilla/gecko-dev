@@ -25,7 +25,7 @@ struct CompareCacheHashEntry {
   enum { max_criterions = 3 };
   CompareCacheHashEntry();
 
-  void *key; // no ownership
+  void *key;  // no ownership
   bool mCritInit[max_criterions];
   nsString mCrit[max_criterions];
 };
@@ -36,12 +36,11 @@ struct CompareCacheHashEntryPtr : PLDHashEntryHdr {
   CompareCacheHashEntry *entry;
 };
 
-class nsCertAddonInfo final : public nsISupports
-{
-private:
+class nsCertAddonInfo final : public nsISupports {
+ private:
   ~nsCertAddonInfo() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
 
   nsCertAddonInfo() : mUsageCount(0) {}
@@ -52,12 +51,11 @@ public:
   int32_t mUsageCount;
 };
 
-class nsCertTreeDispInfo : public nsICertTreeItem
-{
-protected:
+class nsCertTreeDispInfo : public nsICertTreeItem {
+ protected:
   virtual ~nsCertTreeDispInfo();
 
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSICERTTREEITEM
 
@@ -65,9 +63,7 @@ public:
   nsCertTreeDispInfo(nsCertTreeDispInfo &other);
 
   RefPtr<nsCertAddonInfo> mAddonInfo;
-  enum {
-    direct_db, host_port_override
-  } mTypeOfEntry;
+  enum { direct_db, host_port_override } mTypeOfEntry;
   nsCString mAsciiHost;
   int32_t mPort;
   nsCertOverride::OverrideBits mOverrideBits;
@@ -75,19 +71,25 @@ public:
   nsCOMPtr<nsIX509Cert> mCert;
 };
 
-class nsCertTree : public nsICertTree
-{
-public:
+class nsCertTree : public nsICertTree {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSICERTTREE
   NS_DECL_NSITREEVIEW
 
   nsCertTree();
 
-  enum sortCriterion { sort_IssuerOrg, sort_Org, sort_Token,
-    sort_CommonName, sort_IssuedDateDescending, sort_Email, sort_None };
+  enum sortCriterion {
+    sort_IssuerOrg,
+    sort_Org,
+    sort_Token,
+    sort_CommonName,
+    sort_IssuedDateDescending,
+    sort_Email,
+    sort_None
+  };
 
-protected:
+ protected:
   virtual ~nsCertTree();
 
   void ClearCompareHash();
@@ -114,33 +116,34 @@ protected:
                           void *aCertCmpFnArg);
 
   nsresult GetCertsByTypeFromCache(nsIX509CertList *aCache, uint32_t aType,
-                                   nsCertCompareFunc aCertCmpFn, void *aCertCmpFnArg);
-private:
+                                   nsCertCompareFunc aCertCmpFn,
+                                   void *aCertCmpFnArg);
+
+ private:
   static const uint32_t kInitialCacheLength = 64;
 
-  nsTArray< RefPtr<nsCertTreeDispInfo> > mDispInfo;
-  nsCOMPtr<nsITreeBoxObject>  mTree;
-  nsCOMPtr<nsITreeSelection>  mSelection;
-  treeArrayEl                *mTreeArray;
-  int32_t                         mNumOrgs;
-  int32_t                         mNumRows;
+  nsTArray<RefPtr<nsCertTreeDispInfo> > mDispInfo;
+  nsCOMPtr<nsITreeBoxObject> mTree;
+  nsCOMPtr<nsITreeSelection> mSelection;
+  treeArrayEl *mTreeArray;
+  int32_t mNumOrgs;
+  int32_t mNumRows;
   PLDHashTable mCompareCache;
   nsCOMPtr<nsINSSComponent> mNSSComponent;
   nsCOMPtr<nsICertOverrideService> mOverrideService;
   RefPtr<nsCertOverrideService> mOriginalOverrideService;
 
   treeArrayEl *GetThreadDescAtIndex(int32_t _index);
-  already_AddRefed<nsIX509Cert>
-    GetCertAtIndex(int32_t _index, int32_t *outAbsoluteCertOffset = nullptr);
-  already_AddRefed<nsCertTreeDispInfo>
-    GetDispInfoAtIndex(int32_t index, int32_t *outAbsoluteCertOffset = nullptr);
+  already_AddRefed<nsIX509Cert> GetCertAtIndex(
+      int32_t _index, int32_t *outAbsoluteCertOffset = nullptr);
+  already_AddRefed<nsCertTreeDispInfo> GetDispInfoAtIndex(
+      int32_t index, int32_t *outAbsoluteCertOffset = nullptr);
   void FreeCertArray();
   nsresult UpdateUIContents();
 
-  nsresult GetCertsByTypeFromCertList(CERTCertList *aCertList,
-                                      uint32_t aType,
-                                      nsCertCompareFunc  aCertCmpFn,
-                                      void              *aCertCmpFnArg);
+  nsresult GetCertsByTypeFromCertList(CERTCertList *aCertList, uint32_t aType,
+                                      nsCertCompareFunc aCertCmpFn,
+                                      void *aCertCmpFnArg);
 
   nsCOMPtr<nsIMutableArray> mCellText;
 
@@ -151,4 +154,3 @@ private:
 };
 
 #endif /* _NS_CERTTREE_H_ */
-

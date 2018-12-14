@@ -10,55 +10,44 @@
 
 namespace mozilla {
 
-class RemoteTrackSource : public dom::MediaStreamTrackSource
-{
-public:
+class RemoteTrackSource : public dom::MediaStreamTrackSource {
+ public:
   explicit RemoteTrackSource(nsIPrincipal* aPrincipal, const nsString& aLabel)
-    : dom::MediaStreamTrackSource(aPrincipal, aLabel) {}
+      : dom::MediaStreamTrackSource(aPrincipal, aLabel) {}
 
-  dom::MediaSourceEnum GetMediaSource() const override
-  {
+  dom::MediaSourceEnum GetMediaSource() const override {
     return dom::MediaSourceEnum::Other;
   }
 
-  already_AddRefed<PledgeVoid>
-  ApplyConstraints(nsPIDOMWindowInner* aWindow,
-                   const dom::MediaTrackConstraints& aConstraints,
-                   dom::CallerType aCallerType) override
-  {
+  already_AddRefed<PledgeVoid> ApplyConstraints(
+      nsPIDOMWindowInner* aWindow,
+      const dom::MediaTrackConstraints& aConstraints,
+      dom::CallerType aCallerType) override {
     RefPtr<PledgeVoid> p = new PledgeVoid();
-    p->Reject(
-        new dom::MediaStreamError(aWindow,
-                                  NS_LITERAL_STRING("OverconstrainedError"),
-                                  NS_LITERAL_STRING("")));
+    p->Reject(new dom::MediaStreamError(
+        aWindow, NS_LITERAL_STRING("OverconstrainedError"),
+        NS_LITERAL_STRING("")));
     return p.forget();
   }
 
-  void Stop() override
-  {
+  void Stop() override {
     // XXX (Bug 1314270): Implement rejection logic if necessary when we have
     //                    clarity in the spec.
   }
 
-  void Disable() override
-  {
-  }
+  void Disable() override {}
 
-  void Enable() override
-  {
-  }
+  void Enable() override {}
 
-  void SetPrincipal(nsIPrincipal* aPrincipal)
-  {
+  void SetPrincipal(nsIPrincipal* aPrincipal) {
     mPrincipal = aPrincipal;
     PrincipalChanged();
   }
 
-protected:
+ protected:
   virtual ~RemoteTrackSource() {}
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // _REMOTE_TRACK_SOURCE_H_
-
+#endif  // _REMOTE_TRACK_SOURCE_H_

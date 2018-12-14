@@ -19,48 +19,30 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ModuleLoadRequest)
 NS_INTERFACE_MAP_END_INHERITING(ScriptLoadRequest)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ModuleLoadRequest, ScriptLoadRequest,
-                                   mBaseURL,
-                                   mLoader,
-                                   mModuleScript,
-                                   mImports)
+                                   mBaseURL, mLoader, mModuleScript, mImports)
 
 NS_IMPL_ADDREF_INHERITED(ModuleLoadRequest, ScriptLoadRequest)
 NS_IMPL_RELEASE_INHERITED(ModuleLoadRequest, ScriptLoadRequest)
 
-ModuleLoadRequest::ModuleLoadRequest(nsIURI* aURI,
-                                     nsIScriptElement* aElement,
-                                     CORSMode aCORSMode,
-                                     const SRIMetadata& aIntegrity,
-                                     nsIURI* aReferrer,
-                                     mozilla::net::ReferrerPolicy aReferrerPolicy,
-                                     ScriptLoader* aLoader)
-  : ScriptLoadRequest(ScriptKind::eModule,
-                      aURI,
-                      aElement,
-                      aCORSMode,
-                      aIntegrity,
-                      aReferrer,
-                      aReferrerPolicy),
-    mIsTopLevel(true),
-    mLoader(aLoader),
-    mVisitedSet(new VisitedURLSet())
-{
+ModuleLoadRequest::ModuleLoadRequest(
+    nsIURI* aURI, nsIScriptElement* aElement, CORSMode aCORSMode,
+    const SRIMetadata& aIntegrity, nsIURI* aReferrer,
+    mozilla::net::ReferrerPolicy aReferrerPolicy, ScriptLoader* aLoader)
+    : ScriptLoadRequest(ScriptKind::eModule, aURI, aElement, aCORSMode,
+                        aIntegrity, aReferrer, aReferrerPolicy),
+      mIsTopLevel(true),
+      mLoader(aLoader),
+      mVisitedSet(new VisitedURLSet()) {
   mVisitedSet->PutEntry(aURI);
 }
 
-ModuleLoadRequest::ModuleLoadRequest(nsIURI* aURI,
-                                     ModuleLoadRequest* aParent)
-  : ScriptLoadRequest(ScriptKind::eModule,
-                      aURI,
-                      aParent->mElement,
-                      aParent->mCORSMode,
-                      SRIMetadata(),
-                      aParent->mURI,
-                      aParent->mReferrerPolicy),
-    mIsTopLevel(false),
-    mLoader(aParent->mLoader),
-    mVisitedSet(aParent->mVisitedSet)
-{
+ModuleLoadRequest::ModuleLoadRequest(nsIURI* aURI, ModuleLoadRequest* aParent)
+    : ScriptLoadRequest(ScriptKind::eModule, aURI, aParent->mElement,
+                        aParent->mCORSMode, SRIMetadata(), aParent->mURI,
+                        aParent->mReferrerPolicy),
+      mIsTopLevel(false),
+      mLoader(aParent->mLoader),
+      mVisitedSet(aParent->mVisitedSet) {
   MOZ_ASSERT(mVisitedSet->Contains(aURI));
 
   mTriggeringPrincipal = aParent->mTriggeringPrincipal;
@@ -68,9 +50,7 @@ ModuleLoadRequest::ModuleLoadRequest(nsIURI* aURI,
   mScriptMode = aParent->mScriptMode;
 }
 
-void
-ModuleLoadRequest::Cancel()
-{
+void ModuleLoadRequest::Cancel() {
   ScriptLoadRequest::Cancel();
   mModuleScript = nullptr;
   mProgress = ScriptLoadRequest::Progress::eReady;
@@ -78,24 +58,20 @@ ModuleLoadRequest::Cancel()
   mReady.RejectIfExists(NS_ERROR_DOM_ABORT_ERR, __func__);
 }
 
-void
-ModuleLoadRequest::CancelImports()
-{
+void ModuleLoadRequest::CancelImports() {
   for (size_t i = 0; i < mImports.Length(); i++) {
     mImports[i]->Cancel();
   }
 }
 
-void
-ModuleLoadRequest::SetReady()
-{
-  // Mark a module as ready to execute. This means that this module and all it
-  // dependencies have had their source loaded, parsed as a module and the
-  // modules instantiated.
-  //
-  // The mReady promise is used to ensure that when all dependencies of a module
-  // have become ready, DependenciesLoaded is called on that module
-  // request. This is set up in StartFetchingModuleDependencies.
+void ModuleLoadRequest::SetReady() {
+// Mark a module as ready to execute. This means that this module and all it
+// dependencies have had their source loaded, parsed as a module and the
+// modules instantiated.
+//
+// The mReady promise is used to ensure that when all dependencies of a module
+// have become ready, DependenciesLoaded is called on that module
+// request. This is set up in StartFetchingModuleDependencies.
 
 #ifdef DEBUG
   for (size_t i = 0; i < mImports.Length(); i++) {
@@ -107,9 +83,7 @@ ModuleLoadRequest::SetReady()
   mReady.ResolveIfExists(true, __func__);
 }
 
-void
-ModuleLoadRequest::ModuleLoaded()
-{
+void ModuleLoadRequest::ModuleLoaded() {
   // A module that was found to be marked as fetching in the module map has now
   // been loaded.
 
@@ -124,9 +98,7 @@ ModuleLoadRequest::ModuleLoaded()
   mLoader->StartFetchingModuleDependencies(this);
 }
 
-void
-ModuleLoadRequest::ModuleErrored()
-{
+void ModuleLoadRequest::ModuleErrored() {
   LOG(("ScriptLoadRequest (%p): Module errored", this));
 
   mLoader->CheckModuleDependenciesLoaded(this);
@@ -137,9 +109,7 @@ ModuleLoadRequest::ModuleErrored()
   LoadFinished();
 }
 
-void
-ModuleLoadRequest::DependenciesLoaded()
-{
+void ModuleLoadRequest::DependenciesLoaded() {
   // The module and all of its dependencies have been successfully fetched and
   // compiled.
 
@@ -152,9 +122,7 @@ ModuleLoadRequest::DependenciesLoaded()
   LoadFinished();
 }
 
-void
-ModuleLoadRequest::LoadFailed()
-{
+void ModuleLoadRequest::LoadFailed() {
   // We failed to load the source text or an error occurred unrelated to the
   // content of the module (e.g. OOM).
 
@@ -166,13 +134,11 @@ ModuleLoadRequest::LoadFailed()
   LoadFinished();
 }
 
-void
-ModuleLoadRequest::LoadFinished()
-{
+void ModuleLoadRequest::LoadFinished() {
   mLoader->ProcessLoadedModuleTree(this);
 
   mLoader = nullptr;
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // dom namespace
+}  // namespace mozilla

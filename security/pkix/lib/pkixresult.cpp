@@ -25,15 +25,14 @@
 #include "pkix/Result.h"
 #include "pkixutil.h"
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
-const char*
-MapResultToName(Result result)
-{
-  switch (result)
-  {
+const char* MapResultToName(Result result) {
+  switch (result) {
 #define MOZILLA_PKIX_MAP(mozilla_pkix_result, value, nss_result) \
-    case Result::mozilla_pkix_result: return "Result::" #mozilla_pkix_result;
+  case Result::mozilla_pkix_result:                              \
+    return "Result::" #mozilla_pkix_result;
 
     MOZILLA_PKIX_MAP_LIST
 
@@ -43,4 +42,5 @@ MapResultToName(Result result)
   }
 }
 
-} } // namespace mozilla::pkix
+}  // namespace pkix
+}  // namespace mozilla

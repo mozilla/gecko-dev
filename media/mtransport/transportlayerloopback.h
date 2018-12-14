@@ -16,12 +16,10 @@
 #include <memory>
 #include <queue>
 
-
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsINamed.h"
 #include "nsITimer.h"
-
 
 #include "m_cpp_utils.h"
 #include "transportflow.h"
@@ -32,13 +30,13 @@ namespace mozilla {
 
 class TransportLayerLoopback : public TransportLayer {
  public:
-  TransportLayerLoopback() :
-      peer_(nullptr),
-      timer_(nullptr),
-      packets_(),
-      packets_lock_(nullptr),
-      deliverer_(nullptr),
-      combinePackets_(false) {}
+  TransportLayerLoopback()
+      : peer_(nullptr),
+        timer_(nullptr),
+        packets_(),
+        packets_lock_(nullptr),
+        deliverer_(nullptr),
+        combinePackets_(false) {}
 
   ~TransportLayerLoopback() {
     while (!packets_.empty()) {
@@ -57,7 +55,7 @@ class TransportLayerLoopback : public TransportLayer {
   nsresult Init();
 
   // Connect to the other side
-  void Connect(TransportLayerLoopback* peer);
+  void Connect(TransportLayerLoopback *peer);
 
   // Disconnect
   void Disconnect() {
@@ -86,22 +84,19 @@ class TransportLayerLoopback : public TransportLayer {
   class QueuedPacket {
    public:
     QueuedPacket() : data_(nullptr), len_(0) {}
-    ~QueuedPacket() {
-      delete [] data_;
-    }
+    ~QueuedPacket() { delete[] data_; }
 
     void Assign(const unsigned char *data, size_t len) {
       data_ = new unsigned char[len];
-      memcpy(static_cast<void *>(data_),
-             static_cast<const void *>(data), len);
+      memcpy(static_cast<void *>(data_), static_cast<const void *>(data), len);
       len_ = len;
     }
 
     void Assign(const unsigned char *data1, size_t len1,
                 const unsigned char *data2, size_t len2) {
       data_ = new unsigned char[len1 + len2];
-      memcpy(static_cast<void *>(data_),
-             static_cast<const void *>(data1), len1);
+      memcpy(static_cast<void *>(data_), static_cast<const void *>(data1),
+             len1);
       memcpy(static_cast<void *>(data_ + len1),
              static_cast<const void *>(data2), len2);
       len_ = len1 + len2;
@@ -119,22 +114,17 @@ class TransportLayerLoopback : public TransportLayer {
 
   // A timer to deliver packets if some are available
   // Fires every 100 ms
-  class Deliverer : public nsITimerCallback
-                  , public nsINamed {
+  class Deliverer : public nsITimerCallback, public nsINamed {
    public:
-    explicit Deliverer(TransportLayerLoopback *layer) :
-        layer_(layer) {}
-    void Detach() {
-      layer_ = nullptr;
-    }
+    explicit Deliverer(TransportLayerLoopback *layer) : layer_(layer) {}
+    void Detach() { layer_ = nullptr; }
 
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSITIMERCALLBACK
     NS_DECL_NSINAMED
 
- private:
-    virtual ~Deliverer() {
-    }
+   private:
+    virtual ~Deliverer() {}
 
     DISALLOW_COPY_ASSIGN(Deliverer);
 
@@ -144,7 +134,7 @@ class TransportLayerLoopback : public TransportLayer {
   // Queue a packet for delivery
   nsresult QueuePacket(const unsigned char *data, size_t len);
 
-  TransportLayerLoopback* peer_;
+  TransportLayerLoopback *peer_;
   nsCOMPtr<nsITimer> timer_;
   std::queue<QueuedPacket *> packets_;
   PRLock *packets_lock_;
@@ -152,5 +142,5 @@ class TransportLayerLoopback : public TransportLayer {
   bool combinePackets_;
 };
 
-}  // close namespace
+}  // namespace mozilla
 #endif

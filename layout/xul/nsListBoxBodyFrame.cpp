@@ -61,18 +61,17 @@ using namespace mozilla::dom;
 
 // how long it takes to layout a single row initial value.
 // we will time this after we scroll a few rows.
-#define TIME_PER_ROW_INITAL  50000
+#define TIME_PER_ROW_INITAL 50000
 
 // if we decide we can't layout the rows in the amount of time. How long
 // do we wait before checking again?
 #define SMOOTH_INTERVAL 100
 
-class nsListScrollSmoother final
-{
-private:
+class nsListScrollSmoother final {
+ private:
   ~nsListScrollSmoother();
 
-public:
+ public:
   NS_INLINE_DECL_REFCOUNTING(nsListScrollSmoother)
 
   explicit nsListScrollSmoother(nsListBoxBodyFrame* aOuter);
@@ -86,26 +85,16 @@ public:
   nsListBoxBodyFrame* mOuter;
 };
 
-nsListScrollSmoother::nsListScrollSmoother(nsListBoxBodyFrame* aOuter)
-{
+nsListScrollSmoother::nsListScrollSmoother(nsListBoxBodyFrame* aOuter) {
   mDelta = 0;
   mOuter = aOuter;
 }
 
-nsListScrollSmoother::~nsListScrollSmoother()
-{
-  Stop();
-}
+nsListScrollSmoother::~nsListScrollSmoother() { Stop(); }
 
-bool
-nsListScrollSmoother::IsRunning()
-{
-  return mRepeatTimer ? true : false;
-}
+bool nsListScrollSmoother::IsRunning() { return mRepeatTimer ? true : false; }
 
-void
-nsListScrollSmoother::Start()
-{
+void nsListScrollSmoother::Start() {
   nsTimerCallbackFunc scrollSmootherCallback = [](nsITimer* aTimer,
                                                   void* aClosure) {
     // The passed-in nsListScrollSmoother is always alive here. Because if
@@ -130,18 +119,13 @@ nsListScrollSmoother::Start()
     }
   }
   NS_NewTimerWithFuncCallback(getter_AddRefs(mRepeatTimer),
-                              scrollSmootherCallback,
-                              this,
-                              SMOOTH_INTERVAL,
-                              nsITimer::TYPE_ONE_SHOT,
-                              "scrollSmootherCallback",
+                              scrollSmootherCallback, this, SMOOTH_INTERVAL,
+                              nsITimer::TYPE_ONE_SHOT, "scrollSmootherCallback",
                               target);
 }
 
-void
-nsListScrollSmoother::Stop()
-{
-  if ( mRepeatTimer ) {
+void nsListScrollSmoother::Stop() {
+  if (mRepeatTimer) {
     mRepeatTimer->Cancel();
     mRepeatTimer = nullptr;
   }
@@ -151,50 +135,43 @@ nsListScrollSmoother::Stop()
 
 nsListBoxBodyFrame::nsListBoxBodyFrame(nsStyleContext* aContext,
                                        nsBoxLayout* aLayoutManager)
-  : nsBoxFrame(aContext, kClassID, false, aLayoutManager),
-    mTopFrame(nullptr),
-    mBottomFrame(nullptr),
-    mLinkupFrame(nullptr),
-    mScrollSmoother(nullptr),
-    mRowsToPrepend(0),
-    mRowCount(-1),
-    mRowHeight(0),
-    mAvailableHeight(0),
-    mStringWidth(-1),
-    mCurrentIndex(0),
-    mOldIndex(0),
-    mYPosition(0),
-    mTimePerRow(TIME_PER_ROW_INITAL),
-    mRowHeightWasSet(false),
-    mScrolling(false),
-    mAdjustScroll(false),
-    mReflowCallbackPosted(false)
-{
-}
+    : nsBoxFrame(aContext, kClassID, false, aLayoutManager),
+      mTopFrame(nullptr),
+      mBottomFrame(nullptr),
+      mLinkupFrame(nullptr),
+      mScrollSmoother(nullptr),
+      mRowsToPrepend(0),
+      mRowCount(-1),
+      mRowHeight(0),
+      mAvailableHeight(0),
+      mStringWidth(-1),
+      mCurrentIndex(0),
+      mOldIndex(0),
+      mYPosition(0),
+      mTimePerRow(TIME_PER_ROW_INITAL),
+      mRowHeightWasSet(false),
+      mScrolling(false),
+      mAdjustScroll(false),
+      mReflowCallbackPosted(false) {}
 
-nsListBoxBodyFrame::~nsListBoxBodyFrame()
-{
+nsListBoxBodyFrame::~nsListBoxBodyFrame() {
   NS_IF_RELEASE(mScrollSmoother);
 
 #if USE_TIMER_TO_DELAY_SCROLLING
   StopScrollTracking();
   mAutoScrollTimer = nullptr;
 #endif
-
 }
 
 NS_QUERYFRAME_HEAD(nsListBoxBodyFrame)
-  NS_QUERYFRAME_ENTRY(nsIScrollbarMediator)
-  NS_QUERYFRAME_ENTRY(nsListBoxBodyFrame)
+NS_QUERYFRAME_ENTRY(nsIScrollbarMediator)
+NS_QUERYFRAME_ENTRY(nsListBoxBodyFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
 ////////// nsIFrame /////////////////
 
-void
-nsListBoxBodyFrame::Init(nsIContent*       aContent,
-                         nsContainerFrame* aParent,
-                         nsIFrame*         aPrevInFlow)
-{
+void nsListBoxBodyFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
+                              nsIFrame* aPrevInFlow) {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
   // Don't call nsLayoutUtils::GetScrollableFrameFor since we are not its
   // scrollframe child yet.
@@ -206,17 +183,14 @@ nsListBoxBodyFrame::Init(nsIContent*       aContent,
       scrollbarFrame->SetScrollbarMediatorContent(GetContent());
     }
   }
-  RefPtr<nsFontMetrics> fm =
-    nsLayoutUtils::GetFontMetricsForFrame(this, 1.0f);
+  RefPtr<nsFontMetrics> fm = nsLayoutUtils::GetFontMetricsForFrame(this, 1.0f);
   mRowHeight = fm->MaxHeight();
 }
 
-void
-nsListBoxBodyFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
-{
+void nsListBoxBodyFrame::DestroyFrom(nsIFrame* aDestructRoot,
+                                     PostDestroyData& aPostDestroyData) {
   // make sure we cancel any posted callbacks.
-  if (mReflowCallbackPosted)
-     PresShell()->CancelReflowCallback(this);
+  if (mReflowCallbackPosted) PresShell()->CancelReflowCallback(this);
 
   // Revoke any pending position changed events
   for (uint32_t i = 0; i < mPendingPositionChangeEvents.Length(); ++i) {
@@ -231,27 +205,21 @@ nsListBoxBodyFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostD
   nsBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
-nsresult
-nsListBoxBodyFrame::AttributeChanged(int32_t aNameSpaceID,
-                                     nsAtom* aAttribute,
-                                     int32_t aModType)
-{
+nsresult nsListBoxBodyFrame::AttributeChanged(int32_t aNameSpaceID,
+                                              nsAtom* aAttribute,
+                                              int32_t aModType) {
   nsresult rv = NS_OK;
 
   if (aAttribute == nsGkAtoms::rows) {
-    PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-  }
-  else
+    PresShell()->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
+                                  NS_FRAME_IS_DIRTY);
+  } else
     rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 
   return rv;
-
 }
 
-/* virtual */ void
-nsListBoxBodyFrame::MarkIntrinsicISizesDirty()
-{
+/* virtual */ void nsListBoxBodyFrame::MarkIntrinsicISizesDirty() {
   mStringWidth = -1;
   nsBoxFrame::MarkIntrinsicISizesDirty();
 }
@@ -259,10 +227,8 @@ nsListBoxBodyFrame::MarkIntrinsicISizesDirty()
 /////////// nsBox ///////////////
 
 NS_IMETHODIMP
-nsListBoxBodyFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState)
-{
-  if (mScrolling)
-    aBoxLayoutState.SetPaintingDisabled(true);
+nsListBoxBodyFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
+  if (mScrolling) aBoxLayoutState.SetPaintingDisabled(true);
 
   nsresult rv = nsBoxFrame::DoXULLayout(aBoxLayoutState);
 
@@ -285,49 +251,45 @@ nsListBoxBodyFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState)
   }
   FinishAndStoreOverflow(overflow, GetSize());
 
-  if (mScrolling)
-    aBoxLayoutState.SetPaintingDisabled(false);
+  if (mScrolling) aBoxLayoutState.SetPaintingDisabled(false);
 
   // if we are scrolled and the row height changed
   // make sure we are scrolled to a correct index.
-  if (mAdjustScroll)
-     PostReflowCallback();
+  if (mAdjustScroll) PostReflowCallback();
 
   return rv;
 }
 
-nsSize
-nsListBoxBodyFrame::GetXULMinSizeForScrollArea(nsBoxLayoutState& aBoxLayoutState)
-{
+nsSize nsListBoxBodyFrame::GetXULMinSizeForScrollArea(
+    nsBoxLayoutState& aBoxLayoutState) {
   nsSize result(0, 0);
   if (nsContentUtils::HasNonEmptyAttr(GetContent(), kNameSpaceID_None,
                                       nsGkAtoms::sizemode)) {
     result = GetXULPrefSize(aBoxLayoutState);
     result.height = 0;
-    nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
+    nsIScrollableFrame* scrollFrame =
+        nsLayoutUtils::GetScrollableFrameFor(this);
     if (scrollFrame &&
         scrollFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_AUTO) {
       nsMargin scrollbars =
-        scrollFrame->GetDesiredScrollbarSizes(&aBoxLayoutState);
+          scrollFrame->GetDesiredScrollbarSizes(&aBoxLayoutState);
       result.width += scrollbars.left + scrollbars.right;
     }
   }
   return result;
 }
 
-nsSize
-nsListBoxBodyFrame::GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState)
-{
+nsSize nsListBoxBodyFrame::GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState) {
   nsSize pref = nsBoxFrame::GetXULPrefSize(aBoxLayoutState);
 
   int32_t size = GetFixedRowSize();
-  if (size > -1)
-    pref.height = size*GetRowHeightAppUnits();
+  if (size > -1) pref.height = size * GetRowHeightAppUnits();
 
   nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
   if (scrollFrame &&
       scrollFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_AUTO) {
-    nsMargin scrollbars = scrollFrame->GetDesiredScrollbarSizes(&aBoxLayoutState);
+    nsMargin scrollbars =
+        scrollFrame->GetDesiredScrollbarSizes(&aBoxLayoutState);
     pref.width += scrollbars.left + scrollbars.right;
   }
   return pref;
@@ -335,10 +297,9 @@ nsListBoxBodyFrame::GetXULPrefSize(nsBoxLayoutState& aBoxLayoutState)
 
 ///////////// nsIScrollbarMediator ///////////////
 
-void
-nsListBoxBodyFrame::ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
-                                 nsIScrollbarMediator::ScrollSnapMode aSnap)
-{
+void nsListBoxBodyFrame::ScrollByPage(
+    nsScrollbarFrame* aScrollbar, int32_t aDirection,
+    nsIScrollbarMediator::ScrollSnapMode aSnap) {
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToPage(aDirection);
@@ -350,10 +311,9 @@ nsListBoxBodyFrame::ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirectio
   UpdateIndex(newPos);
 }
 
-void
-nsListBoxBodyFrame::ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirection,
-                                  nsIScrollbarMediator::ScrollSnapMode aSnap)
-{
+void nsListBoxBodyFrame::ScrollByWhole(
+    nsScrollbarFrame* aScrollbar, int32_t aDirection,
+    nsIScrollbarMediator::ScrollSnapMode aSnap) {
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToWhole(aDirection);
@@ -365,10 +325,9 @@ nsListBoxBodyFrame::ScrollByWhole(nsScrollbarFrame* aScrollbar, int32_t aDirecti
   UpdateIndex(newPos);
 }
 
-void
-nsListBoxBodyFrame::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection,
-                                 nsIScrollbarMediator::ScrollSnapMode aSnap)
-{
+void nsListBoxBodyFrame::ScrollByLine(
+    nsScrollbarFrame* aScrollbar, int32_t aDirection,
+    nsIScrollbarMediator::ScrollSnapMode aSnap) {
   // CSS Scroll Snapping is not enabled for XUL, aSnap is ignored
   MOZ_ASSERT(aScrollbar != nullptr);
   aScrollbar->SetIncrementToLine(aDirection);
@@ -380,9 +339,7 @@ nsListBoxBodyFrame::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirectio
   UpdateIndex(newPos);
 }
 
-void
-nsListBoxBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar)
-{
+void nsListBoxBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar) {
   AutoWeakFrame weakFrame(this);
   int32_t newPos = aScrollbar->MoveToNewPosition();
   if (!weakFrame.IsAlive()) {
@@ -391,19 +348,13 @@ nsListBoxBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar)
   UpdateIndex(newPos);
 }
 
-int32_t
-nsListBoxBodyFrame::ToRowIndex(nscoord aPos) const
-{
+int32_t nsListBoxBodyFrame::ToRowIndex(nscoord aPos) const {
   return NS_roundf(float(std::max(aPos, 0)) / mRowHeight);
 }
 
-void
-nsListBoxBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
-                               nscoord aOldPos,
-                               nscoord aNewPos)
-{
-  if (mScrolling || mRowHeight == 0)
-    return;
+void nsListBoxBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
+                                    nscoord aOldPos, nscoord aNewPos) {
+  if (mScrolling || mRowHeight == 0) return;
 
   int32_t newIndex = ToRowIndex(aNewPos);
   if (newIndex == mCurrentIndex) {
@@ -415,15 +366,15 @@ nsListBoxBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
 
   // if we can't scroll the rows in time then start a timer. We will eat
   // events until the user stops moving and the timer stops.
-  if (smoother->IsRunning() || Abs(rowDelta)*mTimePerRow > USER_TIME_THRESHOLD) {
+  if (smoother->IsRunning() ||
+      Abs(rowDelta) * mTimePerRow > USER_TIME_THRESHOLD) {
+    smoother->Stop();
 
-     smoother->Stop();
+    smoother->mDelta = rowDelta;
 
-     smoother->mDelta = rowDelta;
+    smoother->Start();
 
-     smoother->Start();
-
-     return;
+    return;
   }
 
   smoother->Stop();
@@ -438,15 +389,11 @@ nsListBoxBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar,
   InternalPositionChanged(rowDelta < 0, Abs(rowDelta));
 }
 
-void
-nsListBoxBodyFrame::VisibilityChanged(bool aVisible)
-{
-  if (mRowHeight == 0)
-    return;
+void nsListBoxBodyFrame::VisibilityChanged(bool aVisible) {
+  if (mRowHeight == 0) return;
 
   int32_t lastPageTopRow = GetRowCount() - (GetAvailableHeight() / mRowHeight);
-  if (lastPageTopRow < 0)
-    lastPageTopRow = 0;
+  if (lastPageTopRow < 0) lastPageTopRow = 0;
   int32_t delta = mCurrentIndex - lastPageTopRow;
   if (delta > 0) {
     mCurrentIndex = lastPageTopRow;
@@ -454,16 +401,12 @@ nsListBoxBodyFrame::VisibilityChanged(bool aVisible)
   }
 }
 
-nsIFrame*
-nsListBoxBodyFrame::GetScrollbarBox(bool aVertical)
-{
+nsIFrame* nsListBoxBodyFrame::GetScrollbarBox(bool aVertical) {
   nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
   return scrollFrame ? scrollFrame->GetScrollbarBox(true) : nullptr;
 }
 
-void
-nsListBoxBodyFrame::UpdateIndex(int32_t aNewPos)
-{
+void nsListBoxBodyFrame::UpdateIndex(int32_t aNewPos) {
   int32_t newIndex = ToRowIndex(nsPresContext::CSSPixelsToAppUnits(aNewPos));
   if (newIndex == mCurrentIndex) {
     return;
@@ -476,27 +419,24 @@ nsListBoxBodyFrame::UpdateIndex(int32_t aNewPos)
 
 ///////////// nsIReflowCallback ///////////////
 
-bool
-nsListBoxBodyFrame::ReflowFinished()
-{
+bool nsListBoxBodyFrame::ReflowFinished() {
   nsAutoScriptBlocker scriptBlocker;
   // now create or destroy any rows as needed
   CreateRows();
 
   // keep scrollbar in sync
   if (mAdjustScroll) {
-     VerticalScroll(mYPosition);
-     mAdjustScroll = false;
+    VerticalScroll(mYPosition);
+    mAdjustScroll = false;
   }
 
   // if the row height changed then mark everything as a style change.
   // That will dirty the entire listbox
   if (mRowHeightWasSet) {
-    PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-     int32_t pos = mCurrentIndex * mRowHeight;
-     if (mYPosition != pos)
-       mAdjustScroll = true;
+    PresShell()->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
+                                  NS_FRAME_IS_DIRTY);
+    int32_t pos = mCurrentIndex * mRowHeight;
+    if (mYPosition != pos) mAdjustScroll = true;
     mRowHeightWasSet = false;
   }
 
@@ -504,42 +444,30 @@ nsListBoxBodyFrame::ReflowFinished()
   return true;
 }
 
-void
-nsListBoxBodyFrame::ReflowCallbackCanceled()
-{
+void nsListBoxBodyFrame::ReflowCallbackCanceled() {
   mReflowCallbackPosted = false;
 }
 
 ///////// ListBoxObject ///////////////
 
-int32_t
-nsListBoxBodyFrame::GetNumberOfVisibleRows()
-{
+int32_t nsListBoxBodyFrame::GetNumberOfVisibleRows() {
   return mRowHeight ? GetAvailableHeight() / mRowHeight : 0;
 }
 
-int32_t
-nsListBoxBodyFrame::GetIndexOfFirstVisibleRow()
-{
+int32_t nsListBoxBodyFrame::GetIndexOfFirstVisibleRow() {
   return mCurrentIndex;
 }
 
-nsresult
-nsListBoxBodyFrame::EnsureIndexIsVisible(int32_t aRowIndex)
-{
-  if (aRowIndex < 0)
-    return NS_ERROR_ILLEGAL_VALUE;
+nsresult nsListBoxBodyFrame::EnsureIndexIsVisible(int32_t aRowIndex) {
+  if (aRowIndex < 0) return NS_ERROR_ILLEGAL_VALUE;
 
   int32_t rows = 0;
-  if (mRowHeight)
-    rows = GetAvailableHeight()/mRowHeight;
-  if (rows <= 0)
-    rows = 1;
+  if (mRowHeight) rows = GetAvailableHeight() / mRowHeight;
+  if (rows <= 0) rows = 1;
   int32_t bottomIndex = mCurrentIndex + rows;
 
   // if row is visible, ignore
-  if (mCurrentIndex <= aRowIndex && aRowIndex < bottomIndex)
-    return NS_OK;
+  if (mCurrentIndex <= aRowIndex && aRowIndex < bottomIndex) return NS_OK;
 
   int32_t delta;
 
@@ -547,14 +475,12 @@ nsListBoxBodyFrame::EnsureIndexIsVisible(int32_t aRowIndex)
   if (up) {
     delta = mCurrentIndex - aRowIndex;
     mCurrentIndex = aRowIndex;
-  }
-  else {
+  } else {
     // Check to be sure we're not scrolling off the bottom of the tree
-    if (aRowIndex >= GetRowCount())
-      return NS_ERROR_ILLEGAL_VALUE;
+    if (aRowIndex >= GetRowCount()) return NS_ERROR_ILLEGAL_VALUE;
 
     // Bring it just into view.
-    delta = 1 + (aRowIndex-bottomIndex);
+    delta = 1 + (aRowIndex - bottomIndex);
     mCurrentIndex += delta;
   }
 
@@ -564,11 +490,9 @@ nsListBoxBodyFrame::EnsureIndexIsVisible(int32_t aRowIndex)
   return NS_OK;
 }
 
-nsresult
-nsListBoxBodyFrame::ScrollByLines(int32_t aNumLines)
-{
+nsresult nsListBoxBodyFrame::ScrollByLines(int32_t aNumLines) {
   int32_t scrollIndex = GetIndexOfFirstVisibleRow(),
-    visibleRows = GetNumberOfVisibleRows();
+          visibleRows = GetNumberOfVisibleRows();
 
   scrollIndex += aNumLines;
 
@@ -577,8 +501,7 @@ nsListBoxBodyFrame::ScrollByLines(int32_t aNumLines)
   else {
     int32_t numRows = GetRowCount();
     int32_t lastPageTopRow = numRows - visibleRows;
-    if (scrollIndex > lastPageTopRow)
-      scrollIndex = lastPageTopRow;
+    if (scrollIndex > lastPageTopRow) scrollIndex = lastPageTopRow;
   }
 
   ScrollToIndex(scrollIndex);
@@ -587,20 +510,19 @@ nsListBoxBodyFrame::ScrollByLines(int32_t aNumLines)
 }
 
 // walks the DOM to get the zero-based row index of the content
-nsresult
-nsListBoxBodyFrame::GetIndexOfItem(nsIDOMElement* aItem, int32_t* _retval)
-{
+nsresult nsListBoxBodyFrame::GetIndexOfItem(nsIDOMElement* aItem,
+                                            int32_t* _retval) {
   if (aItem) {
     *_retval = 0;
     nsCOMPtr<nsIContent> itemContent(do_QueryInterface(aItem));
 
     FlattenedChildIterator iter(mContent);
-    for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+    for (nsIContent* child = iter.GetNextChild(); child;
+         child = iter.GetNextChild()) {
       // we hit a list row, count it
       if (child->IsXULElement(nsGkAtoms::listitem)) {
         // is this it?
-        if (child == itemContent)
-          return NS_OK;
+        if (child == itemContent) return NS_OK;
 
         ++(*_retval);
       }
@@ -612,16 +534,15 @@ nsListBoxBodyFrame::GetIndexOfItem(nsIDOMElement* aItem, int32_t* _retval)
   return NS_OK;
 }
 
-nsresult
-nsListBoxBodyFrame::GetItemAtIndex(int32_t aIndex, nsIDOMElement** aItem)
-{
+nsresult nsListBoxBodyFrame::GetItemAtIndex(int32_t aIndex,
+                                            nsIDOMElement** aItem) {
   *aItem = nullptr;
-  if (aIndex < 0)
-    return NS_OK;
+  if (aIndex < 0) return NS_OK;
 
   int32_t itemCount = 0;
   FlattenedChildIterator iter(mContent);
-  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
     // we hit a list row, check if it is the one we are looking for
     if (child->IsXULElement(nsGkAtoms::listitem)) {
       // is this it?
@@ -638,40 +559,29 @@ nsListBoxBodyFrame::GetItemAtIndex(int32_t aIndex, nsIDOMElement** aItem)
 
 /////////// nsListBoxBodyFrame ///////////////
 
-int32_t
-nsListBoxBodyFrame::GetRowCount()
-{
-  if (mRowCount < 0)
-    ComputeTotalRowCount();
+int32_t nsListBoxBodyFrame::GetRowCount() {
+  if (mRowCount < 0) ComputeTotalRowCount();
   return mRowCount;
 }
 
-int32_t
-nsListBoxBodyFrame::GetRowHeightPixels() const
-{
+int32_t nsListBoxBodyFrame::GetRowHeightPixels() const {
   return nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
 }
 
-int32_t
-nsListBoxBodyFrame::GetFixedRowSize()
-{
+int32_t nsListBoxBodyFrame::GetFixedRowSize() {
   nsresult dummy;
 
   nsAutoString rows;
   mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::rows, rows);
-  if (!rows.IsEmpty())
-    return rows.ToInteger(&dummy);
+  if (!rows.IsEmpty()) return rows.ToInteger(&dummy);
 
   mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::size, rows);
-  if (!rows.IsEmpty())
-    return rows.ToInteger(&dummy);
+  if (!rows.IsEmpty()) return rows.ToInteger(&dummy);
 
   return -1;
 }
 
-void
-nsListBoxBodyFrame::SetRowHeight(nscoord aRowHeight)
-{
+void nsListBoxBodyFrame::SetRowHeight(nscoord aRowHeight) {
   if (aRowHeight > mRowHeight) {
     mRowHeight = aRowHeight;
 
@@ -683,28 +593,19 @@ nsListBoxBodyFrame::SetRowHeight(nscoord aRowHeight)
   }
 }
 
-nscoord
-nsListBoxBodyFrame::GetAvailableHeight()
-{
-  nsIScrollableFrame* scrollFrame =
-    nsLayoutUtils::GetScrollableFrameFor(this);
+nscoord nsListBoxBodyFrame::GetAvailableHeight() {
+  nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
   if (scrollFrame) {
     return scrollFrame->GetScrollPortRect().height;
   }
   return 0;
 }
 
-nscoord
-nsListBoxBodyFrame::GetYPosition()
-{
-  return mYPosition;
-}
+nscoord nsListBoxBodyFrame::GetYPosition() { return mYPosition; }
 
-nscoord
-nsListBoxBodyFrame::ComputeIntrinsicISize(nsBoxLayoutState& aBoxLayoutState)
-{
-  if (mStringWidth != -1)
-    return mStringWidth;
+nscoord nsListBoxBodyFrame::ComputeIntrinsicISize(
+    nsBoxLayoutState& aBoxLayoutState) {
+  if (mStringWidth != -1) return mStringWidth;
 
   nscoord largestWidth = 0;
 
@@ -716,11 +617,11 @@ nsListBoxBodyFrame::ComputeIntrinsicISize(nsBoxLayoutState& aBoxLayoutState)
   if (firstRowContent) {
     nsPresContext* presContext = aBoxLayoutState.PresContext();
     RefPtr<nsStyleContext> styleContext =
-      presContext->StyleSet()->ResolveStyleFor(
-          firstRowContent->AsElement(), nullptr, LazyComputeBehavior::Allow);
+        presContext->StyleSet()->ResolveStyleFor(
+            firstRowContent->AsElement(), nullptr, LazyComputeBehavior::Allow);
 
     nscoord width = 0;
-    nsMargin margin(0,0,0,0);
+    nsMargin margin(0, 0, 0, 0);
 
     if (styleContext->StylePadding()->GetPadding(margin))
       width += margin.LeftRight();
@@ -729,28 +630,27 @@ nsListBoxBodyFrame::ComputeIntrinsicISize(nsBoxLayoutState& aBoxLayoutState)
       width += margin.LeftRight();
 
     FlattenedChildIterator iter(mContent);
-    for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+    for (nsIContent* child = iter.GetNextChild(); child;
+         child = iter.GetNextChild()) {
       if (child->IsXULElement(nsGkAtoms::listitem)) {
         gfxContext* rendContext = aBoxLayoutState.GetRenderingContext();
         if (rendContext) {
           nsAutoString value;
-          for (nsIContent* text = child->GetFirstChild();
-               text; text = text->GetNextSibling()) {
+          for (nsIContent* text = child->GetFirstChild(); text;
+               text = text->GetNextSibling()) {
             if (text->IsNodeOfType(nsINode::eTEXT)) {
               text->AppendTextTo(value);
             }
           }
 
           RefPtr<nsFontMetrics> fm =
-            nsLayoutUtils::GetFontMetricsForStyleContext(styleContext);
+              nsLayoutUtils::GetFontMetricsForStyleContext(styleContext);
 
-          nscoord textWidth =
-            nsLayoutUtils::AppUnitWidthOfStringBidi(value, this, *fm,
-                                                    *rendContext);
+          nscoord textWidth = nsLayoutUtils::AppUnitWidthOfStringBidi(
+              value, this, *fm, *rendContext);
           textWidth += width;
 
-          if (textWidth > largestWidth)
-            largestWidth = textWidth;
+          if (textWidth > largestWidth) largestWidth = textWidth;
         }
       }
     }
@@ -760,21 +660,18 @@ nsListBoxBodyFrame::ComputeIntrinsicISize(nsBoxLayoutState& aBoxLayoutState)
   return mStringWidth;
 }
 
-void
-nsListBoxBodyFrame::ComputeTotalRowCount()
-{
+void nsListBoxBodyFrame::ComputeTotalRowCount() {
   mRowCount = 0;
   FlattenedChildIterator iter(mContent);
-  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
     if (child->IsXULElement(nsGkAtoms::listitem)) {
       ++mRowCount;
     }
   }
 }
 
-void
-nsListBoxBodyFrame::PostReflowCallback()
-{
+void nsListBoxBodyFrame::PostReflowCallback() {
   if (!mReflowCallbackPosted) {
     mReflowCallbackPosted = true;
     PresShell()->PostReflowCallback(this);
@@ -783,23 +680,19 @@ nsListBoxBodyFrame::PostReflowCallback()
 
 ////////// scrolling
 
-nsresult
-nsListBoxBodyFrame::ScrollToIndex(int32_t aRowIndex)
-{
-  if (( aRowIndex < 0 ) || (mRowHeight == 0))
-    return NS_OK;
+nsresult nsListBoxBodyFrame::ScrollToIndex(int32_t aRowIndex) {
+  if ((aRowIndex < 0) || (mRowHeight == 0)) return NS_OK;
 
   int32_t newIndex = aRowIndex;
-  int32_t delta = mCurrentIndex > newIndex ? mCurrentIndex - newIndex : newIndex - mCurrentIndex;
+  int32_t delta = mCurrentIndex > newIndex ? mCurrentIndex - newIndex
+                                           : newIndex - mCurrentIndex;
   bool up = newIndex < mCurrentIndex;
 
   // Check to be sure we're not scrolling off the bottom of the tree
   int32_t lastPageTopRow = GetRowCount() - (GetAvailableHeight() / mRowHeight);
-  if (lastPageTopRow < 0)
-    lastPageTopRow = 0;
+  if (lastPageTopRow < 0) lastPageTopRow = 0;
 
-  if (aRowIndex > lastPageTopRow)
-    return NS_OK;
+  if (aRowIndex > lastPageTopRow) return NS_OK;
 
   mCurrentIndex = newIndex;
 
@@ -820,31 +713,25 @@ nsListBoxBodyFrame::ScrollToIndex(int32_t aRowIndex)
   return NS_OK;
 }
 
-nsresult
-nsListBoxBodyFrame::InternalPositionChangedCallback()
-{
+nsresult nsListBoxBodyFrame::InternalPositionChangedCallback() {
   nsListScrollSmoother* smoother = GetSmoother();
 
-  if (smoother->mDelta == 0)
-    return NS_OK;
+  if (smoother->mDelta == 0) return NS_OK;
 
   mCurrentIndex += smoother->mDelta;
 
-  if (mCurrentIndex < 0)
-    mCurrentIndex = 0;
+  if (mCurrentIndex < 0) mCurrentIndex = 0;
 
-  return DoInternalPositionChangedSync(smoother->mDelta < 0,
-                                       smoother->mDelta < 0 ?
-                                         -smoother->mDelta : smoother->mDelta);
+  return DoInternalPositionChangedSync(
+      smoother->mDelta < 0,
+      smoother->mDelta < 0 ? -smoother->mDelta : smoother->mDelta);
 }
 
-nsresult
-nsListBoxBodyFrame::InternalPositionChanged(bool aUp, int32_t aDelta)
-{
+nsresult nsListBoxBodyFrame::InternalPositionChanged(bool aUp, int32_t aDelta) {
   RefPtr<nsPositionChangedEvent> event =
-    new nsPositionChangedEvent(this, aUp, aDelta);
-  nsresult rv = mContent->OwnerDoc()->Dispatch(TaskCategory::Other,
-                                               do_AddRef(event));
+      new nsPositionChangedEvent(this, aUp, aDelta);
+  nsresult rv =
+      mContent->OwnerDoc()->Dispatch(TaskCategory::Other, do_AddRef(event));
   if (NS_SUCCEEDED(rv)) {
     if (!mPendingPositionChangeEvents.AppendElement(event)) {
       rv = NS_ERROR_OUT_OF_MEMORY;
@@ -854,13 +741,12 @@ nsListBoxBodyFrame::InternalPositionChanged(bool aUp, int32_t aDelta)
   return rv;
 }
 
-nsresult
-nsListBoxBodyFrame::DoInternalPositionChangedSync(bool aUp, int32_t aDelta)
-{
+nsresult nsListBoxBodyFrame::DoInternalPositionChangedSync(bool aUp,
+                                                           int32_t aDelta) {
   AutoWeakFrame weak(this);
 
   // Process all the pending position changes first
-  nsTArray< RefPtr<nsPositionChangedEvent> > temp;
+  nsTArray<RefPtr<nsPositionChangedEvent> > temp;
   temp.SwapElements(mPendingPositionChangeEvents);
   for (uint32_t i = 0; i < temp.Length(); ++i) {
     if (weak.IsAlive()) {
@@ -876,11 +762,9 @@ nsListBoxBodyFrame::DoInternalPositionChangedSync(bool aUp, int32_t aDelta)
   return DoInternalPositionChanged(aUp, aDelta);
 }
 
-nsresult
-nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
-{
-  if (aDelta == 0)
-    return NS_OK;
+nsresult nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp,
+                                                       int32_t aDelta) {
+  if (aDelta == 0) return NS_OK;
 
   RefPtr<nsPresContext> presContext(PresContext());
   nsBoxLayoutState state(presContext);
@@ -898,8 +782,7 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
     nsAutoScriptBlocker scriptBlocker;
 
     int32_t visibleRows = 0;
-    if (mRowHeight)
-      visibleRows = GetAvailableHeight()/mRowHeight;
+    if (mRowHeight) visibleRows = GetAvailableHeight() / mRowHeight;
 
     if (aDelta < visibleRows) {
       int32_t loseRows = aDelta;
@@ -908,19 +791,17 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
         ReverseDestroyRows(loseRows);
         mRowsToPrepend += aDelta;
         mLinkupFrame = nullptr;
-      }
-      else {
+      } else {
         // scrolling down, destroy rows from the top upwards
         DestroyRows(loseRows);
         mRowsToPrepend = 0;
       }
-    }
-    else {
+    } else {
       // We have scrolled so much that all of our current frames will
       // go off screen, so blow them all away. Weeee!
-      nsIFrame *currBox = mFrames.FirstChild();
+      nsIFrame* currBox = mFrames.FirstChild();
       while (currBox) {
-        nsIFrame *nextBox = currBox->GetNextSibling();
+        nsIFrame* nextBox = currBox->GetNextSibling();
         RemoveChildFrame(state, currBox);
         currBox = nextBox;
       }
@@ -929,10 +810,10 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
     // clear frame markers so that CreateRows will re-create
     mTopFrame = mBottomFrame = nullptr;
 
-    mYPosition = mCurrentIndex*mRowHeight;
+    mYPosition = mCurrentIndex * mRowHeight;
     mScrolling = true;
-    presContext->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
+    presContext->PresShell()->FrameNeedsReflow(this, nsIPresShell::eResize,
+                                               NS_FRAME_HAS_DIRTY_CHILDREN);
   }
   if (!weakThis.IsAlive()) {
     return NS_OK;
@@ -953,14 +834,12 @@ nsListBoxBodyFrame::DoInternalPositionChanged(bool aUp, int32_t aDelta)
   int32_t newTime = int32_t(end - start) / aDelta;
 
   // average old and new
-  mTimePerRow = (newTime + mTimePerRow)/2;
+  mTimePerRow = (newTime + mTimePerRow) / 2;
 
   return NS_OK;
 }
 
-nsListScrollSmoother*
-nsListBoxBodyFrame::GetSmoother()
-{
+nsListScrollSmoother* nsListBoxBodyFrame::GetSmoother() {
   if (!mScrollSmoother) {
     mScrollSmoother = new nsListScrollSmoother(this);
     NS_ASSERTION(mScrollSmoother, "out of memory");
@@ -970,11 +849,8 @@ nsListBoxBodyFrame::GetSmoother()
   return mScrollSmoother;
 }
 
-void
-nsListBoxBodyFrame::VerticalScroll(int32_t aPosition)
-{
-  nsIScrollableFrame* scrollFrame
-    = nsLayoutUtils::GetScrollableFrameFor(this);
+void nsListBoxBodyFrame::VerticalScroll(int32_t aPosition) {
+  nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetScrollableFrameFor(this);
   if (!scrollFrame) {
     return;
   }
@@ -993,30 +869,18 @@ nsListBoxBodyFrame::VerticalScroll(int32_t aPosition)
 
 ////////// frame and box retrieval
 
-nsIFrame*
-nsListBoxBodyFrame::GetFirstFrame()
-{
+nsIFrame* nsListBoxBodyFrame::GetFirstFrame() {
   mTopFrame = mFrames.FirstChild();
   return mTopFrame;
 }
 
-nsIFrame*
-nsListBoxBodyFrame::GetLastFrame()
-{
-  return mFrames.LastChild();
-}
+nsIFrame* nsListBoxBodyFrame::GetLastFrame() { return mFrames.LastChild(); }
 
-bool
-nsListBoxBodyFrame::SupportsOrdinalsInChildren()
-{
-  return false;
-}
+bool nsListBoxBodyFrame::SupportsOrdinalsInChildren() { return false; }
 
 ////////// lazy row creation and destruction
 
-void
-nsListBoxBodyFrame::CreateRows()
-{
+void nsListBoxBodyFrame::CreateRows() {
   // Get our client rect.
   nsRect clientRect;
   GetXULClientRect(clientRect);
@@ -1038,19 +902,16 @@ nsListBoxBodyFrame::CreateRows()
   nsIFrame* box = GetFirstItemBox(0, &created);
   nscoord rowHeight = GetRowHeightAppUnits();
   while (box) {
-    if (created && mRowsToPrepend > 0)
-      --mRowsToPrepend;
+    if (created && mRowsToPrepend > 0) --mRowsToPrepend;
 
     // if the row height is 0 then fail. Wait until someone
     // laid out and sets the row height.
-    if (rowHeight == 0)
-        return;
+    if (rowHeight == 0) return;
 
     availableHeight -= rowHeight;
 
     // should we continue? Is the enought height?
-    if (!ContinueReflow(availableHeight))
-      break;
+    if (!ContinueReflow(availableHeight)) break;
 
     // get the next tree box. Create one if needed.
     box = GetNextItemBox(box, 0, &created);
@@ -1060,9 +921,7 @@ nsListBoxBodyFrame::CreateRows()
   mLinkupFrame = nullptr;
 }
 
-void
-nsListBoxBodyFrame::DestroyRows(int32_t& aRowsToLose)
-{
+void nsListBoxBodyFrame::DestroyRows(int32_t& aRowsToLose) {
   // We need to destroy frames until our row count has been properly
   // reduced.  A reflow will then pick up and create the new frames.
   nsIFrame* childFrame = GetFirstFrame();
@@ -1077,14 +936,11 @@ nsListBoxBodyFrame::DestroyRows(int32_t& aRowsToLose)
     mTopFrame = childFrame = nextFrame;
   }
 
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
-void
-nsListBoxBodyFrame::ReverseDestroyRows(int32_t& aRowsToLose)
-{
+void nsListBoxBodyFrame::ReverseDestroyRows(int32_t& aRowsToLose) {
   // We need to destroy frames until our row count has been properly
   // reduced.  A reflow will then pick up and create the new frames.
   nsIFrame* childFrame = GetLastFrame();
@@ -1100,15 +956,12 @@ nsListBoxBodyFrame::ReverseDestroyRows(int32_t& aRowsToLose)
     mBottomFrame = childFrame = prevFrame;
   }
 
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
-static bool
-IsListItemChild(nsListBoxBodyFrame* aParent, nsIContent* aChild,
-                nsIFrame** aChildFrame)
-{
+static bool IsListItemChild(nsListBoxBodyFrame* aParent, nsIContent* aChild,
+                            nsIFrame** aChildFrame) {
   *aChildFrame = nullptr;
   if (!aChild->IsXULElement(nsGkAtoms::listitem)) {
     return false;
@@ -1125,11 +978,8 @@ IsListItemChild(nsListBoxBodyFrame* aParent, nsIContent* aChild,
 // Get the nsIFrame for the first visible listitem, and if none exists,
 // create one.
 //
-nsIFrame*
-nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
-{
-  if (aCreated)
-   *aCreated = false;
+nsIFrame* nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated) {
+  if (aCreated) *aCreated = false;
 
   // Clear ourselves out.
   mBottomFrame = mTopFrame;
@@ -1158,13 +1008,13 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
     nsIContent* topParent = topContent->GetParent();
     int32_t contentIndex = topParent->ComputeIndexOf(topContent);
     contentIndex -= aOffset;
-    if (contentIndex < 0)
-      return nullptr;
-    startContent = topParent->GetChildAt_Deprecated(contentIndex - mRowsToPrepend);
+    if (contentIndex < 0) return nullptr;
+    startContent =
+        topParent->GetChildAt_Deprecated(contentIndex - mRowsToPrepend);
   } else {
     // This will be the first item frame we create.  Use the content
     // at the current index, which is the first index scrolled into view
-    GetListItemContentAt(mCurrentIndex+aOffset, getter_AddRefs(startContent));
+    GetListItemContentAt(mCurrentIndex + aOffset, getter_AddRefs(startContent));
   }
 
   if (startContent) {
@@ -1186,8 +1036,7 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
         this, nullptr, startContent, &topFrame, isAppend);
     mTopFrame = topFrame;
     if (mTopFrame) {
-      if (aCreated)
-        *aCreated = true;
+      if (aCreated) *aCreated = true;
 
       mBottomFrame = mTopFrame;
 
@@ -1203,12 +1052,9 @@ nsListBoxBodyFrame::GetFirstItemBox(int32_t aOffset, bool* aCreated)
 // Get the nsIFrame for the next visible listitem after aBox, and if none
 // exists, create one.
 //
-nsIFrame*
-nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
-                                   bool* aCreated)
-{
-  if (aCreated)
-    *aCreated = false;
+nsIFrame* nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
+                                             bool* aCreated) {
+  if (aCreated) *aCreated = false;
 
   nsIFrame* result = aBox->GetNextSibling();
 
@@ -1222,7 +1068,8 @@ nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
     uint32_t childCount = parentContent->GetChildCount();
     if (((uint32_t)i + aOffset + 1) < childCount) {
       // There is a content node that wants a frame.
-      nsIContent *nextContent = parentContent->GetChildAt_Deprecated(i + aOffset + 1);
+      nsIContent* nextContent =
+          parentContent->GetChildAt_Deprecated(i + aOffset + 1);
 
       nsIFrame* existingFrame;
       if (!IsListItemChild(this, nextContent, &existingFrame)) {
@@ -1237,8 +1084,7 @@ nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
             this, prevFrame, nextContent, &result, isAppend);
 
         if (result) {
-          if (aCreated)
-            *aCreated = true;
+          if (aCreated) *aCreated = true;
         } else
           return GetNextItemBox(aBox, ++aOffset, aCreated);
       } else {
@@ -1249,8 +1095,7 @@ nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
     }
   }
 
-  if (!result)
-    return nullptr;
+  if (!result) return nullptr;
 
   mBottomFrame = result;
 
@@ -1260,9 +1105,7 @@ nsListBoxBodyFrame::GetNextItemBox(nsIFrame* aBox, int32_t aOffset,
   return result->IsXULBoxFrame() ? result : nullptr;
 }
 
-bool
-nsListBoxBodyFrame::ContinueReflow(nscoord height)
-{
+bool nsListBoxBodyFrame::ContinueReflow(nscoord height) {
 #ifdef ACCESSIBILITY
   if (nsIPresShell::IsAccessibilityActive()) {
     // Create all the frames at once so screen readers and
@@ -1280,8 +1123,8 @@ nsListBoxBodyFrame::ContinueReflow(nscoord height)
     }
 
     if (lastChild != startingPoint) {
-      // We have some hangers on (probably caused by shrinking the size of the window).
-      // Nuke them.
+      // We have some hangers on (probably caused by shrinking the size of the
+      // window). Nuke them.
       nsIFrame* currFrame = startingPoint->GetNextSibling();
       nsBoxLayoutState state(PresContext());
 
@@ -1291,44 +1134,38 @@ nsListBoxBodyFrame::ContinueReflow(nscoord height)
         currFrame = nextFrame;
       }
 
-      PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                         NS_FRAME_HAS_DIRTY_CHILDREN);
+      PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                    NS_FRAME_HAS_DIRTY_CHILDREN);
     }
     return false;
-  }
-  else
+  } else
     return true;
 }
 
 NS_IMETHODIMP
-nsListBoxBodyFrame::ListBoxAppendFrames(nsFrameList& aFrameList)
-{
+nsListBoxBodyFrame::ListBoxAppendFrames(nsFrameList& aFrameList) {
   // append them after
   nsBoxLayoutState state(PresContext());
-  const nsFrameList::Slice& newFrames = mFrames.AppendFrames(nullptr, aFrameList);
-  if (mLayoutManager)
-    mLayoutManager->ChildrenAppended(this, state, newFrames);
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  const nsFrameList::Slice& newFrames =
+      mFrames.AppendFrames(nullptr, aFrameList);
+  if (mLayoutManager) mLayoutManager->ChildrenAppended(this, state, newFrames);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsListBoxBodyFrame::ListBoxInsertFrames(nsIFrame* aPrevFrame,
-                                        nsFrameList& aFrameList)
-{
+                                        nsFrameList& aFrameList) {
   // insert the frames to our info list
   nsBoxLayoutState state(PresContext());
   const nsFrameList::Slice& newFrames =
-    mFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);
+      mFrames.InsertFrames(nullptr, aPrevFrame, aFrameList);
   if (mLayoutManager)
     mLayoutManager->ChildrenInserted(this, state, aPrevFrame, newFrames);
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 
   return NS_OK;
 }
@@ -1336,11 +1173,8 @@ nsListBoxBodyFrame::ListBoxInsertFrames(nsIFrame* aPrevFrame,
 //
 // Called by nsCSSFrameConstructor when a new listitem content is inserted.
 //
-void
-nsListBoxBodyFrame::OnContentInserted(nsIContent* aChildContent)
-{
-  if (mRowCount >= 0)
-    ++mRowCount;
+void nsListBoxBodyFrame::OnContentInserted(nsIContent* aChildContent) {
+  if (mRowCount >= 0) ++mRowCount;
 
   // The RDF content builder will build content nodes such that they are all
   // ready when OnContentInserted is first called, meaning the first call
@@ -1348,16 +1182,16 @@ nsListBoxBodyFrame::OnContentInserted(nsIContent* aChildContent)
   // still be called again for each content node - so we need to make sure
   // that the frame for each content node hasn't already been created.
   nsIFrame* childFrame = aChildContent->GetPrimaryFrame();
-  if (childFrame)
-    return;
+  if (childFrame) return;
 
   int32_t siblingIndex;
   nsCOMPtr<nsIContent> nextSiblingContent;
-  GetListItemNextSibling(aChildContent, getter_AddRefs(nextSiblingContent), siblingIndex);
+  GetListItemNextSibling(aChildContent, getter_AddRefs(nextSiblingContent),
+                         siblingIndex);
 
   // if we're inserting our item before the first visible content,
   // then we need to shift all rows down by one
-  if (siblingIndex >= 0 &&  siblingIndex-1 <= mCurrentIndex) {
+  if (siblingIndex >= 0 && siblingIndex - 1 <= mCurrentIndex) {
     mTopFrame = nullptr;
     mRowsToPrepend = 1;
   } else if (nextSiblingContent) {
@@ -1367,25 +1201,21 @@ nsListBoxBodyFrame::OnContentInserted(nsIContent* aChildContent)
   }
 
   CreateRows();
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
 //
 // Called by nsCSSFrameConstructor when listitem content is removed.
 //
-void
-nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
-                                     nsIContent* aContainer,
-                                     nsIFrame* aChildFrame,
-                                     nsIContent* aOldNextSibling)
-{
+void nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
+                                          nsIContent* aContainer,
+                                          nsIFrame* aChildFrame,
+                                          nsIContent* aOldNextSibling) {
   NS_ASSERTION(!aChildFrame || aChildFrame->GetParent() == this,
                "Removing frame that's not our child... Not good");
 
-  if (mRowCount >= 0)
-    --mRowCount;
+  if (mRowCount >= 0) --mRowCount;
 
   if (aContainer) {
     if (!aChildFrame) {
@@ -1394,17 +1224,16 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
       int32_t siblingIndex = -1;
       if (aOldNextSibling) {
         nsCOMPtr<nsIContent> nextSiblingContent;
-        GetListItemNextSibling(aOldNextSibling,
-                               getter_AddRefs(nextSiblingContent),
-                               siblingIndex);
+        GetListItemNextSibling(
+            aOldNextSibling, getter_AddRefs(nextSiblingContent), siblingIndex);
       }
 
-      // if the row being removed is off-screen and above the top frame, we need to
-      // adjust our top index and tell the scrollbar to shift up one row.
-      if (siblingIndex >= 0 && siblingIndex-1 < mCurrentIndex) {
+      // if the row being removed is off-screen and above the top frame, we need
+      // to adjust our top index and tell the scrollbar to shift up one row.
+      if (siblingIndex >= 0 && siblingIndex - 1 < mCurrentIndex) {
         NS_PRECONDITION(mCurrentIndex > 0, "mCurrentIndex > 0");
         --mCurrentIndex;
-        mYPosition = mCurrentIndex*mRowHeight;
+        mYPosition = mCurrentIndex * mRowHeight;
         AutoWeakFrame weakChildFrame(aChildFrame);
         VerticalScroll(mYPosition);
         if (!weakChildFrame.IsAlive()) {
@@ -1421,7 +1250,8 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
       // if the last content node has a frame, we are scrolled to the bottom
       nsIContent* lastChild = nullptr;
       FlattenedChildIterator iter(mContent);
-      for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+      for (nsIContent* child = iter.GetNextChild(); child;
+           child = iter.GetNextChild()) {
         lastChild = child;
       }
 
@@ -1432,7 +1262,7 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
           mTopFrame = nullptr;
           mRowsToPrepend = 1;
           --mCurrentIndex;
-          mYPosition = mCurrentIndex*mRowHeight;
+          mYPosition = mCurrentIndex * mRowHeight;
           AutoWeakFrame weakChildFrame(aChildFrame);
           VerticalScroll(mYPosition);
           if (!weakChildFrame.IsAlive()) {
@@ -1453,22 +1283,21 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
     RemoveChildFrame(state, aChildFrame);
   }
 
-  PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange,
-                     NS_FRAME_HAS_DIRTY_CHILDREN);
+  PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+                                NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
-void
-nsListBoxBodyFrame::GetListItemContentAt(int32_t aIndex, nsIContent** aContent)
-{
+void nsListBoxBodyFrame::GetListItemContentAt(int32_t aIndex,
+                                              nsIContent** aContent) {
   *aContent = nullptr;
 
   int32_t itemsFound = 0;
   FlattenedChildIterator iter(mContent);
-  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
     if (child->IsXULElement(nsGkAtoms::listitem)) {
       ++itemsFound;
-      if (itemsFound-1 == aIndex) {
+      if (itemsFound - 1 == aIndex) {
         *aContent = child;
         NS_IF_ADDREF(*aContent);
         return;
@@ -1477,14 +1306,15 @@ nsListBoxBodyFrame::GetListItemContentAt(int32_t aIndex, nsIContent** aContent)
   }
 }
 
-void
-nsListBoxBodyFrame::GetListItemNextSibling(nsIContent* aListItem, nsIContent** aContent, int32_t& aSiblingIndex)
-{
+void nsListBoxBodyFrame::GetListItemNextSibling(nsIContent* aListItem,
+                                                nsIContent** aContent,
+                                                int32_t& aSiblingIndex) {
   *aContent = nullptr;
   aSiblingIndex = -1;
-  nsIContent *prevKid = nullptr;
+  nsIContent* prevKid = nullptr;
   FlattenedChildIterator iter(mContent);
-  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
     if (child->IsXULElement(nsGkAtoms::listitem)) {
       ++aSiblingIndex;
       if (prevKid == aListItem) {
@@ -1496,13 +1326,11 @@ nsListBoxBodyFrame::GetListItemNextSibling(nsIContent* aListItem, nsIContent** a
     prevKid = child;
   }
 
-  aSiblingIndex = -1; // no match, so there is no next sibling
+  aSiblingIndex = -1;  // no match, so there is no next sibling
 }
 
-void
-nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState &aState,
-                                     nsIFrame         *aFrame)
-{
+void nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState& aState,
+                                          nsIFrame* aFrame) {
   MOZ_ASSERT(mFrames.ContainsFrame(aFrame));
   MOZ_ASSERT(aFrame != GetContentInsertionFrame());
 
@@ -1515,18 +1343,17 @@ nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState &aState,
 #endif
 
   mFrames.RemoveFrame(aFrame);
-  if (mLayoutManager)
-    mLayoutManager->ChildrenRemoved(this, aState, aFrame);
+  if (mLayoutManager) mLayoutManager->ChildrenRemoved(this, aState, aFrame);
   aFrame->Destroy();
 }
 
-// Creation Routines ///////////////////////////////////////////////////////////////////////
+// Creation Routines
+// ///////////////////////////////////////////////////////////////////////
 
 already_AddRefed<nsBoxLayout> NS_NewListBoxLayout();
 
-nsIFrame*
-NS_NewListBoxBodyFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewListBoxBodyFrame(nsIPresShell* aPresShell,
+                                 nsStyleContext* aContext) {
   nsCOMPtr<nsBoxLayout> layout = NS_NewListBoxLayout();
   return new (aPresShell) nsListBoxBodyFrame(aContext, layout);
 }

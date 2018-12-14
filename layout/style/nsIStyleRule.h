@@ -21,9 +21,12 @@ class nsCSSValue;
 struct nsRuleData;
 
 // IID for the nsIStyleRule interface {f75f3f70-435d-43a6-a01b-65970489ca26}
-#define NS_ISTYLE_RULE_IID     \
-{ 0xf75f3f70, 0x435d, 0x43a6, \
- { 0xa0, 0x1b, 0x65, 0x97, 0x04, 0x89, 0xca, 0x26 } }
+#define NS_ISTYLE_RULE_IID                           \
+  {                                                  \
+    0xf75f3f70, 0x435d, 0x43a6, {                    \
+      0xa0, 0x1b, 0x65, 0x97, 0x04, 0x89, 0xca, 0x26 \
+    }                                                \
+  }
 
 /**
  * An object implementing |nsIStyleRule| (henceforth, a rule) represents
@@ -55,9 +58,8 @@ struct nsRuleData;
  * collected (with the garbage collection roots being style contexts).
  */
 
-
 class nsIStyleRule : public nsISupports {
-public:
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISTYLE_RULE_IID)
 
   /**
@@ -72,7 +74,7 @@ public:
    * all needed data are found.  Thus overwriting non-empty data will
    * break CSS cascading rules.
    */
-  virtual void MapRuleInfoInto(nsRuleData* aRuleData)=0;
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData) = 0;
 
   /**
    * Returns whether this style rule has any style data for inherited

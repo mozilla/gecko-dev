@@ -27,9 +27,8 @@ namespace image {
  * memory while larger animated images should only keep a certain number of
  * frames to minimize our memory footprint at the cost of CPU.
  */
-class AnimationFrameBuffer final
-{
-public:
+class AnimationFrameBuffer final {
+ public:
   AnimationFrameBuffer();
 
   /**
@@ -161,7 +160,7 @@ public:
    */
   const nsTArray<RawAccessFrameRef>& Frames() const { return mFrames; }
 
-private:
+ private:
   bool AdvanceInternal();
 
   /// The frames of this animation, in order, but may have holes if discarding.
@@ -176,7 +175,8 @@ private:
   // The number of frames to decode before we stop.
   size_t mPending;
 
-  // The number of frames we need to auto-advance to synchronize with the caller.
+  // The number of frames we need to auto-advance to synchronize with the
+  // caller.
   size_t mAdvance;
 
   // The mFrames index in which to insert the next decoded frame.
@@ -189,7 +189,7 @@ private:
   bool mSizeKnown;
 };
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla
 
-#endif // mozilla_image_AnimationFrameBuffer_h
+#endif  // mozilla_image_AnimationFrameBuffer_h

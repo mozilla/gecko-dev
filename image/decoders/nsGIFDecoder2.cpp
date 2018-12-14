@@ -80,27 +80,21 @@ static const uint8_t PACKED_FIELDS_INTERLACED_BIT = 0x40;
 static const uint8_t PACKED_FIELDS_TABLE_DEPTH_MASK = 0x07;
 
 nsGIFDecoder2::nsGIFDecoder2(RasterImage* aImage)
-  : Decoder(aImage)
-  , mLexer(Transition::To(State::GIF_HEADER, GIF_HEADER_LEN),
-           Transition::TerminateSuccess())
-  , mOldColor(0)
-  , mCurrentFrameIndex(-1)
-  , mColorTablePos(0)
-  , mGIFOpen(false)
-  , mSawTransparency(false)
-{
+    : Decoder(aImage),
+      mLexer(Transition::To(State::GIF_HEADER, GIF_HEADER_LEN),
+             Transition::TerminateSuccess()),
+      mOldColor(0),
+      mCurrentFrameIndex(-1),
+      mColorTablePos(0),
+      mGIFOpen(false),
+      mSawTransparency(false) {
   // Clear out the structure, excluding the arrays.
   memset(&mGIFStruct, 0, sizeof(mGIFStruct));
 }
 
-nsGIFDecoder2::~nsGIFDecoder2()
-{
-  free(mGIFStruct.local_colormap);
-}
+nsGIFDecoder2::~nsGIFDecoder2() { free(mGIFStruct.local_colormap); }
 
-nsresult
-nsGIFDecoder2::FinishInternal()
-{
+nsresult nsGIFDecoder2::FinishInternal() {
   MOZ_ASSERT(!HasError(), "Shouldn't call FinishInternal after error!");
 
   // If the GIF got cut off, handle it anyway
@@ -115,9 +109,7 @@ nsGIFDecoder2::FinishInternal()
   return NS_OK;
 }
 
-void
-nsGIFDecoder2::FlushImageData()
-{
+void nsGIFDecoder2::FlushImageData() {
   Maybe<SurfaceInvalidRect> invalidRect = mPipe.TakeInvalidRect();
   if (!invalidRect) {
     return;
@@ -132,9 +124,7 @@ nsGIFDecoder2::FlushImageData()
 //******************************************************************************
 
 //******************************************************************************
-void
-nsGIFDecoder2::BeginGIF()
-{
+void nsGIFDecoder2::BeginGIF() {
   if (mGIFOpen) {
     return;
   }
@@ -144,9 +134,7 @@ nsGIFDecoder2::BeginGIF()
   PostSize(mGIFStruct.screen_width, mGIFStruct.screen_height);
 }
 
-bool
-nsGIFDecoder2::CheckForTransparency(const IntRect& aFrameRect)
-{
+bool nsGIFDecoder2::CheckForTransparency(const IntRect& aFrameRect) {
   // Check if the image has a transparent color in its palette.
   if (mGIFStruct.is_transparent) {
     PostHasTransparency();
@@ -170,11 +158,8 @@ nsGIFDecoder2::CheckForTransparency(const IntRect& aFrameRect)
 }
 
 //******************************************************************************
-nsresult
-nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
-                               uint16_t aDepth,
-                               bool aIsInterlaced)
-{
+nsresult nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
+                                        uint16_t aDepth, bool aIsInterlaced) {
   MOZ_ASSERT(HasSize());
 
   bool hasTransparency = CheckForTransparency(aFrameRect);
@@ -182,23 +167,21 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
   // Make sure there's no animation if we're downscaling.
   MOZ_ASSERT_IF(Size() != OutputSize(), !GetImageMetadata().HasAnimation());
 
-  SurfacePipeFlags pipeFlags = aIsInterlaced
-                             ? SurfacePipeFlags::DEINTERLACE
-                             : SurfacePipeFlags();
+  SurfacePipeFlags pipeFlags =
+      aIsInterlaced ? SurfacePipeFlags::DEINTERLACE : SurfacePipeFlags();
 
   Maybe<SurfacePipe> pipe;
   if (mGIFStruct.images_decoded == 0) {
-    gfx::SurfaceFormat format = hasTransparency ? SurfaceFormat::B8G8R8A8
-                                                : SurfaceFormat::B8G8R8X8;
+    gfx::SurfaceFormat format =
+        hasTransparency ? SurfaceFormat::B8G8R8A8 : SurfaceFormat::B8G8R8X8;
 
     // The first frame may be displayed progressively.
     pipeFlags |= SurfacePipeFlags::PROGRESSIVE_DISPLAY;
 
     // The first frame is always decoded into an RGB surface.
-    pipe =
-      SurfacePipeFactory::CreateSurfacePipe(this, mGIFStruct.images_decoded,
-                                            Size(), OutputSize(),
-                                            aFrameRect, format, pipeFlags);
+    pipe = SurfacePipeFactory::CreateSurfacePipe(
+        this, mGIFStruct.images_decoded, Size(), OutputSize(), aFrameRect,
+        format, pipeFlags);
   } else {
     // This is an animation frame (and not the first). To minimize the memory
     // usage of animations, the image data is stored in paletted form.
@@ -209,11 +192,9 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
     // ensure it is an acceptable value for the color map as was the case
     // historically.
     MOZ_ASSERT(Size() == OutputSize());
-    pipe =
-      SurfacePipeFactory::CreatePalettedSurfacePipe(this, mGIFStruct.images_decoded,
-                                                    Size(), aFrameRect,
-                                                    SurfaceFormat::B8G8R8A8,
-                                                    aDepth, pipeFlags);
+    pipe = SurfacePipeFactory::CreatePalettedSurfacePipe(
+        this, mGIFStruct.images_decoded, Size(), aFrameRect,
+        SurfaceFormat::B8G8R8A8, aDepth, pipeFlags);
   }
 
   mCurrentFrameIndex = mGIFStruct.images_decoded;
@@ -227,11 +208,8 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
   return NS_OK;
 }
 
-
 //******************************************************************************
-void
-nsGIFDecoder2::EndImageFrame()
-{
+void nsGIFDecoder2::EndImageFrame() {
   Opacity opacity = Opacity::SOME_TRANSPARENCY;
 
   if (mGIFStruct.images_decoded == 0) {
@@ -254,8 +232,7 @@ nsGIFDecoder2::EndImageFrame()
   mGIFStruct.images_decoded++;
 
   // Tell the superclass we finished a frame
-  PostFrameStop(opacity,
-                DisposalMethod(mGIFStruct.disposal_method),
+  PostFrameStop(opacity, DisposalMethod(mGIFStruct.disposal_method),
                 FrameTimeout::FromRawMilliseconds(mGIFStruct.delay_time));
 
   // Reset the transparent pixel
@@ -268,9 +245,7 @@ nsGIFDecoder2::EndImageFrame()
 }
 
 template <typename PixelSize>
-PixelSize
-nsGIFDecoder2::ColormapIndexToPixel(uint8_t aIndex)
-{
+PixelSize nsGIFDecoder2::ColormapIndexToPixel(uint8_t aIndex) {
   MOZ_ASSERT(sizeof(PixelSize) == sizeof(uint32_t));
 
   // Retrieve the next color, clamping to the size of the colormap.
@@ -285,18 +260,14 @@ nsGIFDecoder2::ColormapIndexToPixel(uint8_t aIndex)
 }
 
 template <>
-uint8_t
-nsGIFDecoder2::ColormapIndexToPixel<uint8_t>(uint8_t aIndex)
-{
+uint8_t nsGIFDecoder2::ColormapIndexToPixel<uint8_t>(uint8_t aIndex) {
   return aIndex & mColorMask;
 }
 
 template <typename PixelSize>
-NextPixel<PixelSize>
-nsGIFDecoder2::YieldPixel(const uint8_t* aData,
-                          size_t aLength,
-                          size_t* aBytesReadOut)
-{
+NextPixel<PixelSize> nsGIFDecoder2::YieldPixel(const uint8_t* aData,
+                                               size_t aLength,
+                                               size_t* aBytesReadOut) {
   MOZ_ASSERT(aData);
   MOZ_ASSERT(aBytesReadOut);
   MOZ_ASSERT(mGIFStruct.stackp >= mGIFStruct.stack);
@@ -344,14 +315,16 @@ nsGIFDecoder2::YieldPixel(const uint8_t* aData,
 
     if (mGIFStruct.oldcode == -1) {
       if (code >= MAX_BITS) {
-        return AsVariant(WriteState::FAILURE);  // The code's too big; something's wrong.
+        return AsVariant(
+            WriteState::FAILURE);  // The code's too big; something's wrong.
       }
 
       mGIFStruct.firstchar = mGIFStruct.oldcode = code;
 
       // Yield a pixel at the appropriate index in the colormap.
       mGIFStruct.pixels_remaining--;
-      return AsVariant(ColormapIndexToPixel<PixelSize>(mGIFStruct.suffix[code]));
+      return AsVariant(
+          ColormapIndexToPixel<PixelSize>(mGIFStruct.suffix[code]));
     }
 
     int incode = code;
@@ -360,7 +333,8 @@ nsGIFDecoder2::YieldPixel(const uint8_t* aData,
       code = mGIFStruct.oldcode;
 
       if (mGIFStruct.stackp >= mGIFStruct.stack + MAX_BITS) {
-        return AsVariant(WriteState::FAILURE);  // Stack overflow; something's wrong.
+        return AsVariant(
+            WriteState::FAILURE);  // Stack overflow; something's wrong.
       }
     }
 
@@ -373,7 +347,8 @@ nsGIFDecoder2::YieldPixel(const uint8_t* aData,
       code = mGIFStruct.prefix[code];
 
       if (mGIFStruct.stackp >= mGIFStruct.stack + MAX_BITS) {
-        return AsVariant(WriteState::FAILURE);  // Stack overflow; something's wrong.
+        return AsVariant(
+            WriteState::FAILURE);  // Stack overflow; something's wrong.
       }
     }
 
@@ -410,9 +385,7 @@ nsGIFDecoder2::YieldPixel(const uint8_t* aData,
 
 /// Expand the colormap from RGB to Packed ARGB as needed by Cairo.
 /// And apply any LCMS transformation.
-static void
-ConvertColormap(uint32_t* aColormap, uint32_t aColors)
-{
+static void ConvertColormap(uint32_t* aColormap, uint32_t aColors) {
   // Apply CMS transformation if enabled and available
   if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
     qcms_transform* transform = gfxPlatform::GetCMSRGBTransform();
@@ -444,9 +417,9 @@ ConvertColormap(uint32_t* aColormap, uint32_t aColors)
   // bulk copy of pixels.
   while (c >= 4) {
     from -= 12;
-    to   -=  4;
-    c    -=  4;
-    GFX_BLOCK_RGB_TO_FRGB(from,to);
+    to -= 4;
+    c -= 4;
+    GFX_BLOCK_RGB_TO_FRGB(from, to);
   }
 
   // copy remaining pixel(s)
@@ -457,67 +430,68 @@ ConvertColormap(uint32_t* aColormap, uint32_t aColors)
   }
 }
 
-LexerResult
-nsGIFDecoder2::DoDecode(SourceBufferIterator& aIterator, IResumable* aOnResume)
-{
+LexerResult nsGIFDecoder2::DoDecode(SourceBufferIterator& aIterator,
+                                    IResumable* aOnResume) {
   MOZ_ASSERT(!HasError(), "Shouldn't call DoDecode after error!");
 
-  return mLexer.Lex(aIterator, aOnResume,
-                    [=](State aState, const char* aData, size_t aLength) {
-    switch(aState) {
-      case State::GIF_HEADER:
-        return ReadGIFHeader(aData);
-      case State::SCREEN_DESCRIPTOR:
-        return ReadScreenDescriptor(aData);
-      case State::GLOBAL_COLOR_TABLE:
-        return ReadGlobalColorTable(aData, aLength);
-      case State::FINISHED_GLOBAL_COLOR_TABLE:
-        return FinishedGlobalColorTable();
-      case State::BLOCK_HEADER:
-        return ReadBlockHeader(aData);
-      case State::EXTENSION_HEADER:
-        return ReadExtensionHeader(aData);
-      case State::GRAPHIC_CONTROL_EXTENSION:
-        return ReadGraphicControlExtension(aData);
-      case State::APPLICATION_IDENTIFIER:
-        return ReadApplicationIdentifier(aData);
-      case State::NETSCAPE_EXTENSION_SUB_BLOCK:
-        return ReadNetscapeExtensionSubBlock(aData);
-      case State::NETSCAPE_EXTENSION_DATA:
-        return ReadNetscapeExtensionData(aData);
-      case State::IMAGE_DESCRIPTOR:
-        return ReadImageDescriptor(aData);
-      case State::FINISH_IMAGE_DESCRIPTOR:
-        return FinishImageDescriptor(aData);
-      case State::LOCAL_COLOR_TABLE:
-        return ReadLocalColorTable(aData, aLength);
-      case State::FINISHED_LOCAL_COLOR_TABLE:
-        return FinishedLocalColorTable();
-      case State::IMAGE_DATA_BLOCK:
-        return ReadImageDataBlock(aData);
-      case State::IMAGE_DATA_SUB_BLOCK:
-        return ReadImageDataSubBlock(aData);
-      case State::LZW_DATA:
-        return ReadLZWData(aData, aLength);
-      case State::SKIP_LZW_DATA:
-        return Transition::ContinueUnbuffered(State::SKIP_LZW_DATA);
-      case State::FINISHED_LZW_DATA:
-        return Transition::To(State::IMAGE_DATA_SUB_BLOCK, SUB_BLOCK_HEADER_LEN);
-      case State::SKIP_SUB_BLOCKS:
-        return SkipSubBlocks(aData);
-      case State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS:
-        return Transition::ContinueUnbuffered(State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS);
-      case State::FINISHED_SKIPPING_DATA:
-        return Transition::To(State::SKIP_SUB_BLOCKS, SUB_BLOCK_HEADER_LEN);
-      default:
-        MOZ_CRASH("Unknown State");
-    }
-  });
+  return mLexer.Lex(
+      aIterator, aOnResume,
+      [=](State aState, const char* aData, size_t aLength) {
+        switch (aState) {
+          case State::GIF_HEADER:
+            return ReadGIFHeader(aData);
+          case State::SCREEN_DESCRIPTOR:
+            return ReadScreenDescriptor(aData);
+          case State::GLOBAL_COLOR_TABLE:
+            return ReadGlobalColorTable(aData, aLength);
+          case State::FINISHED_GLOBAL_COLOR_TABLE:
+            return FinishedGlobalColorTable();
+          case State::BLOCK_HEADER:
+            return ReadBlockHeader(aData);
+          case State::EXTENSION_HEADER:
+            return ReadExtensionHeader(aData);
+          case State::GRAPHIC_CONTROL_EXTENSION:
+            return ReadGraphicControlExtension(aData);
+          case State::APPLICATION_IDENTIFIER:
+            return ReadApplicationIdentifier(aData);
+          case State::NETSCAPE_EXTENSION_SUB_BLOCK:
+            return ReadNetscapeExtensionSubBlock(aData);
+          case State::NETSCAPE_EXTENSION_DATA:
+            return ReadNetscapeExtensionData(aData);
+          case State::IMAGE_DESCRIPTOR:
+            return ReadImageDescriptor(aData);
+          case State::FINISH_IMAGE_DESCRIPTOR:
+            return FinishImageDescriptor(aData);
+          case State::LOCAL_COLOR_TABLE:
+            return ReadLocalColorTable(aData, aLength);
+          case State::FINISHED_LOCAL_COLOR_TABLE:
+            return FinishedLocalColorTable();
+          case State::IMAGE_DATA_BLOCK:
+            return ReadImageDataBlock(aData);
+          case State::IMAGE_DATA_SUB_BLOCK:
+            return ReadImageDataSubBlock(aData);
+          case State::LZW_DATA:
+            return ReadLZWData(aData, aLength);
+          case State::SKIP_LZW_DATA:
+            return Transition::ContinueUnbuffered(State::SKIP_LZW_DATA);
+          case State::FINISHED_LZW_DATA:
+            return Transition::To(State::IMAGE_DATA_SUB_BLOCK,
+                                  SUB_BLOCK_HEADER_LEN);
+          case State::SKIP_SUB_BLOCKS:
+            return SkipSubBlocks(aData);
+          case State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS:
+            return Transition::ContinueUnbuffered(
+                State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS);
+          case State::FINISHED_SKIPPING_DATA:
+            return Transition::To(State::SKIP_SUB_BLOCKS, SUB_BLOCK_HEADER_LEN);
+          default:
+            MOZ_CRASH("Unknown State");
+        }
+      });
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadGIFHeader(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadGIFHeader(
+    const char* aData) {
   // We retrieve the version here but because many GIF encoders set header
   // fields incorrectly, we barely use it; features which should only appear in
   // GIF89a are always accepted.
@@ -532,10 +506,9 @@ nsGIFDecoder2::ReadGIFHeader(const char* aData)
   return Transition::To(State::SCREEN_DESCRIPTOR, GIF_SCREEN_DESCRIPTOR_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadScreenDescriptor(const char* aData)
-{
-  mGIFStruct.screen_width  = LittleEndian::readUint16(aData + 0);
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadScreenDescriptor(
+    const char* aData) {
+  mGIFStruct.screen_width = LittleEndian::readUint16(aData + 0);
   mGIFStruct.screen_height = LittleEndian::readUint16(aData + 2);
 
   const uint8_t packedFields = aData[4];
@@ -543,7 +516,7 @@ nsGIFDecoder2::ReadScreenDescriptor(const char* aData)
   // XXX: Should we be capturing these values even if there is no global color
   // table?
   mGIFStruct.global_colormap_depth =
-    (packedFields & PACKED_FIELDS_TABLE_DEPTH_MASK) + 1;
+      (packedFields & PACKED_FIELDS_TABLE_DEPTH_MASK) + 1;
   mGIFStruct.global_colormap_count = 1 << mGIFStruct.global_colormap_depth;
 
   // We ignore several fields in the header. We don't care about the 'sort
@@ -570,27 +543,24 @@ nsGIFDecoder2::ReadScreenDescriptor(const char* aData)
   return Transition::To(State::BLOCK_HEADER, BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadGlobalColorTable(const char* aData, size_t aLength)
-{
-  uint8_t* dest = reinterpret_cast<uint8_t*>(mGIFStruct.global_colormap)
-                + mColorTablePos;
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadGlobalColorTable(
+    const char* aData, size_t aLength) {
+  uint8_t* dest =
+      reinterpret_cast<uint8_t*>(mGIFStruct.global_colormap) + mColorTablePos;
   memcpy(dest, aData, aLength);
   mColorTablePos += aLength;
   return Transition::ContinueUnbuffered(State::GLOBAL_COLOR_TABLE);
 }
 
 LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::FinishedGlobalColorTable()
-{
+nsGIFDecoder2::FinishedGlobalColorTable() {
   ConvertColormap(mGIFStruct.global_colormap, mGIFStruct.global_colormap_count);
   mColorTablePos = 0;
   return Transition::To(State::BLOCK_HEADER, BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadBlockHeader(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadBlockHeader(
+    const char* aData) {
   // Determine what type of block we're dealing with.
   switch (aData[0]) {
     case GIF_EXTENSION_INTRODUCER:
@@ -622,9 +592,8 @@ nsGIFDecoder2::ReadBlockHeader(const char* aData)
   }
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadExtensionHeader(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadExtensionHeader(
+    const char* aData) {
   const uint8_t label = aData[0];
   const uint8_t extensionHeaderLength = aData[1];
 
@@ -641,9 +610,9 @@ nsGIFDecoder2::ReadExtensionHeader(const char* aData)
       // enforce that the buffer contains at least this many bytes. If the GIF
       // specifies a different length, we allow that, so long as it's larger;
       // the additional data will simply be ignored.
-      return Transition::To(State::GRAPHIC_CONTROL_EXTENSION,
-                            max<uint8_t>(extensionHeaderLength,
-                                         GRAPHIC_CONTROL_EXTENSION_LEN));
+      return Transition::To(
+          State::GRAPHIC_CONTROL_EXTENSION,
+          max<uint8_t>(extensionHeaderLength, GRAPHIC_CONTROL_EXTENSION_LEN));
 
     case GIF_APPLICATION_EXTENSION_LABEL:
       // Again, the spec specifies that an application extension header is 11
@@ -654,10 +623,12 @@ nsGIFDecoder2::ReadExtensionHeader(const char* aData)
       // interpret the application extension if the length is correct;
       // otherwise, we just skip the block unconditionally.
       return extensionHeaderLength == APPLICATION_EXTENSION_LEN
-           ? Transition::To(State::APPLICATION_IDENTIFIER, extensionHeaderLength)
-           : Transition::ToUnbuffered(State::FINISHED_SKIPPING_DATA,
-                                      State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS,
-                                      extensionHeaderLength);
+                 ? Transition::To(State::APPLICATION_IDENTIFIER,
+                                  extensionHeaderLength)
+                 : Transition::ToUnbuffered(
+                       State::FINISHED_SKIPPING_DATA,
+                       State::SKIP_DATA_THEN_SKIP_SUB_BLOCKS,
+                       extensionHeaderLength);
 
     default:
       // Skip over any other type of extension block, including comment and
@@ -669,8 +640,7 @@ nsGIFDecoder2::ReadExtensionHeader(const char* aData)
 }
 
 LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadGraphicControlExtension(const char* aData)
-{
+nsGIFDecoder2::ReadGraphicControlExtension(const char* aData) {
   mGIFStruct.is_transparent = aData[0] & 0x1;
   mGIFStruct.tpixel = uint8_t(aData[3]);
   mGIFStruct.disposal_method = (aData[0] >> 2) & 0x7;
@@ -701,9 +671,8 @@ nsGIFDecoder2::ReadGraphicControlExtension(const char* aData)
   return Transition::To(State::SKIP_SUB_BLOCKS, SUB_BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadApplicationIdentifier(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadApplicationIdentifier(
+    const char* aData) {
   if ((strncmp(aData, "NETSCAPE2.0", 11) == 0) ||
       (strncmp(aData, "ANIMEXTS1.0", 11) == 0)) {
     // This is a Netscape application extension block.
@@ -716,8 +685,7 @@ nsGIFDecoder2::ReadApplicationIdentifier(const char* aData)
 }
 
 LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadNetscapeExtensionSubBlock(const char* aData)
-{
+nsGIFDecoder2::ReadNetscapeExtensionSubBlock(const char* aData) {
   const uint8_t blockLength = aData[0];
   if (blockLength == 0) {
     // We hit the block terminator.
@@ -730,9 +698,8 @@ nsGIFDecoder2::ReadNetscapeExtensionSubBlock(const char* aData)
   return Transition::To(State::NETSCAPE_EXTENSION_DATA, extensionLength);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadNetscapeExtensionData(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadNetscapeExtensionData(
+    const char* aData) {
   // Documentation for NETSCAPE2.0 / ANIMEXTS1.0 extensions can be found at:
   //   https://wiki.whatwg.org/wiki/GIF
   static const uint8_t NETSCAPE_LOOPING_EXTENSION_SUB_BLOCK_ID = 1;
@@ -761,9 +728,8 @@ nsGIFDecoder2::ReadNetscapeExtensionData(const char* aData)
   }
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadImageDescriptor(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadImageDescriptor(
+    const char* aData) {
   // On the first frame, we don't need to yield, and none of the other checks
   // below apply, so we can just jump right into FinishImageDescriptor().
   if (mGIFStruct.images_decoded == 0) {
@@ -791,16 +757,14 @@ nsGIFDecoder2::ReadImageDescriptor(const char* aData)
   return Transition::ToAfterYield(State::FINISH_IMAGE_DESCRIPTOR);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::FinishImageDescriptor(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::FinishImageDescriptor(
+    const char* aData) {
   IntRect frameRect;
 
   // Get image offsets with respect to the screen origin.
-  frameRect.SetRect(LittleEndian::readUint16(aData + 0),
-                    LittleEndian::readUint16(aData + 2),
-                    LittleEndian::readUint16(aData + 4),
-                    LittleEndian::readUint16(aData + 6));
+  frameRect.SetRect(
+      LittleEndian::readUint16(aData + 0), LittleEndian::readUint16(aData + 2),
+      LittleEndian::readUint16(aData + 4), LittleEndian::readUint16(aData + 6));
 
   if (!mGIFStruct.images_decoded) {
     // Work around GIF files where
@@ -863,8 +827,7 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
   // which is the smallest color depth that can accomodate the existing palette
   // *and* the transparent color index.
   uint16_t realDepth = depth;
-  while (mGIFStruct.tpixel >= (1 << realDepth) &&
-         realDepth < 8) {
+  while (mGIFStruct.tpixel >= (1 << realDepth) && realDepth < 8) {
     realDepth++;
   }
 
@@ -881,7 +844,7 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
 
   // Clear state from last image.
   mGIFStruct.pixels_remaining =
-    int64_t(frameRect.Width()) * int64_t(frameRect.Height());
+      int64_t(frameRect.Width()) * int64_t(frameRect.Height());
 
   if (haveLocalColorTable) {
     // We have a local color table, so prepare to read it into the palette of
@@ -895,7 +858,7 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
       mColormapSize = sizeof(uint32_t) << realDepth;
       if (!mGIFStruct.local_colormap) {
         mGIFStruct.local_colormap =
-          static_cast<uint32_t*>(moz_xmalloc(mColormapSize));
+            static_cast<uint32_t*>(moz_xmalloc(mColormapSize));
       }
       mColormap = mGIFStruct.local_colormap;
     }
@@ -903,9 +866,9 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
     const size_t size = 3 << depth;
     if (mColormapSize > size) {
       // Clear the part of the colormap which will be unused with this palette.
-      // If a GIF references an invalid palette entry, ensure the entry is opaque white.
-      // This is needed for Skia as if it isn't, RGBX surfaces will cause blending issues
-      // with Skia.
+      // If a GIF references an invalid palette entry, ensure the entry is
+      // opaque white. This is needed for Skia as if it isn't, RGBX surfaces
+      // will cause blending issues with Skia.
       memset(reinterpret_cast<uint8_t*>(mColormap) + size, 0xFF,
              mColormapSize - size);
     }
@@ -915,8 +878,7 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
     // We read the local color table in unbuffered mode since it can be quite
     // large and it'd be preferable to avoid unnecessary copies.
     return Transition::ToUnbuffered(State::FINISHED_LOCAL_COLOR_TABLE,
-                                    State::LOCAL_COLOR_TABLE,
-                                    size);
+                                    State::LOCAL_COLOR_TABLE, size);
   }
 
   // There's no local color table; copy the global color table into the palette
@@ -930,31 +892,27 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
   return Transition::To(State::IMAGE_DATA_BLOCK, BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadLocalColorTable(const char* aData, size_t aLength)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadLocalColorTable(
+    const char* aData, size_t aLength) {
   uint8_t* dest = reinterpret_cast<uint8_t*>(mColormap) + mColorTablePos;
   memcpy(dest, aData, aLength);
   mColorTablePos += aLength;
   return Transition::ContinueUnbuffered(State::LOCAL_COLOR_TABLE);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::FinishedLocalColorTable()
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::FinishedLocalColorTable() {
   ConvertColormap(mColormap, mGIFStruct.local_colormap_size);
   mColorTablePos = 0;
   return Transition::To(State::IMAGE_DATA_BLOCK, BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadImageDataBlock(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadImageDataBlock(
+    const char* aData) {
   // Make sure the transparent pixel is transparent in the colormap.
   if (mGIFStruct.is_transparent) {
     // Save the old value so we can restore it later.
     if (mColormap == mGIFStruct.global_colormap) {
-        mOldColor = mColormap[mGIFStruct.tpixel];
+      mOldColor = mColormap[mGIFStruct.tpixel];
     }
     mColormap[mGIFStruct.tpixel] = 0;
   }
@@ -986,9 +944,8 @@ nsGIFDecoder2::ReadImageDataBlock(const char* aData)
   return Transition::To(State::IMAGE_DATA_SUB_BLOCK, SUB_BLOCK_HEADER_LEN);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadImageDataSubBlock(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadImageDataSubBlock(
+    const char* aData) {
   const uint8_t subBlockLength = aData[0];
   if (subBlockLength == 0) {
     // We hit the block terminator.
@@ -1009,21 +966,18 @@ nsGIFDecoder2::ReadImageDataSubBlock(const char* aData)
 
     // We're not at the end of the image, so just skip the extra data.
     return Transition::ToUnbuffered(State::FINISHED_LZW_DATA,
-                                    State::SKIP_LZW_DATA,
-                                    subBlockLength);
+                                    State::SKIP_LZW_DATA, subBlockLength);
   }
 
   // Handle the standard case: there's data in the sub-block and pixels left to
   // fill in the image. We read the sub-block unbuffered so we can get pixels on
   // the screen as soon as possible.
-  return Transition::ToUnbuffered(State::FINISHED_LZW_DATA,
-                                  State::LZW_DATA,
+  return Transition::ToUnbuffered(State::FINISHED_LZW_DATA, State::LZW_DATA,
                                   subBlockLength);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::ReadLZWData(const char* aData, size_t aLength)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::ReadLZWData(
+    const char* aData, size_t aLength) {
   const uint8_t* data = reinterpret_cast<const uint8_t*>(aData);
   size_t length = aLength;
 
@@ -1032,8 +986,12 @@ nsGIFDecoder2::ReadLZWData(const char* aData, size_t aLength)
     size_t bytesRead = 0;
 
     auto result = mGIFStruct.images_decoded == 0
-      ? mPipe.WritePixels<uint32_t>([&]{ return YieldPixel<uint32_t>(data, length, &bytesRead); })
-      : mPipe.WritePixels<uint8_t>([&]{ return YieldPixel<uint8_t>(data, length, &bytesRead); });
+                      ? mPipe.WritePixels<uint32_t>([&] {
+                          return YieldPixel<uint32_t>(data, length, &bytesRead);
+                        })
+                      : mPipe.WritePixels<uint8_t>([&] {
+                          return YieldPixel<uint8_t>(data, length, &bytesRead);
+                        });
 
     if (MOZ_UNLIKELY(bytesRead > length)) {
       MOZ_ASSERT_UNREACHABLE("Overread?");
@@ -1063,9 +1021,8 @@ nsGIFDecoder2::ReadLZWData(const char* aData, size_t aLength)
   return Transition::ContinueUnbuffered(State::LZW_DATA);
 }
 
-LexerTransition<nsGIFDecoder2::State>
-nsGIFDecoder2::SkipSubBlocks(const char* aData)
-{
+LexerTransition<nsGIFDecoder2::State> nsGIFDecoder2::SkipSubBlocks(
+    const char* aData) {
   // In the SKIP_SUB_BLOCKS state we skip over data sub-blocks that we're not
   // interested in. Blocks consist of a block header (which can be up to 255
   // bytes in length) and a series of data sub-blocks. Each data sub-block
@@ -1089,11 +1046,9 @@ nsGIFDecoder2::SkipSubBlocks(const char* aData)
                                   nextSubBlockLength);
 }
 
-Maybe<Telemetry::HistogramID>
-nsGIFDecoder2::SpeedHistogram() const
-{
+Maybe<Telemetry::HistogramID> nsGIFDecoder2::SpeedHistogram() const {
   return Some(Telemetry::IMAGE_DECODE_SPEED_GIF);
 }
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla

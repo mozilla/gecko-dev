@@ -13,81 +13,56 @@
 namespace mozilla {
 namespace dom {
 
-class StreamBlobImpl final : public BaseBlobImpl
-                           , public nsIMemoryReporter
-{
+class StreamBlobImpl final : public BaseBlobImpl, public nsIMemoryReporter {
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMEMORYREPORTER
 
-  static already_AddRefed<StreamBlobImpl>
-  Create(nsIInputStream* aInputStream,
-         const nsAString& aContentType,
-         uint64_t aLength);
+  static already_AddRefed<StreamBlobImpl> Create(nsIInputStream* aInputStream,
+                                                 const nsAString& aContentType,
+                                                 uint64_t aLength);
 
-  static already_AddRefed<StreamBlobImpl>
-  Create(nsIInputStream* aInputStream,
-         const nsAString& aName,
-         const nsAString& aContentType,
-         int64_t aLastModifiedDate,
-         uint64_t aLength);
+  static already_AddRefed<StreamBlobImpl> Create(nsIInputStream* aInputStream,
+                                                 const nsAString& aName,
+                                                 const nsAString& aContentType,
+                                                 int64_t aLastModifiedDate,
+                                                 uint64_t aLength);
 
   virtual void CreateInputStream(nsIInputStream** aStream,
                                  ErrorResult& aRv) override;
 
-  virtual already_AddRefed<BlobImpl>
-  CreateSlice(uint64_t aStart, uint64_t aLength,
-              const nsAString& aContentType, ErrorResult& aRv) override;
+  virtual already_AddRefed<BlobImpl> CreateSlice(uint64_t aStart,
+                                                 uint64_t aLength,
+                                                 const nsAString& aContentType,
+                                                 ErrorResult& aRv) override;
 
-  virtual bool IsMemoryFile() const override
-  {
-    return true;
-  }
+  virtual bool IsMemoryFile() const override { return true; }
 
-  int64_t GetFileId() override
-  {
-    return mFileId;
-  }
+  int64_t GetFileId() override { return mFileId; }
 
-  void SetFileId(int64_t aFileId)
-  {
-    mFileId = aFileId;
-  }
+  void SetFileId(int64_t aFileId) { mFileId = aFileId; }
 
-  void SetFullPath(const nsAString& aFullPath)
-  {
-    mFullPath = aFullPath;
-  }
+  void SetFullPath(const nsAString& aFullPath) { mFullPath = aFullPath; }
 
   void GetMozFullPathInternal(nsAString& aFullPath,
-                              ErrorResult& aRv) const override
-  {
+                              ErrorResult& aRv) const override {
     aFullPath = mFullPath;
   }
 
-  void SetIsDirectory(bool aIsDirectory)
-  {
-    mIsDirectory = aIsDirectory;
-  }
+  void SetIsDirectory(bool aIsDirectory) { mIsDirectory = aIsDirectory; }
 
-  bool IsDirectory() const override
-  {
-    return mIsDirectory;
-  }
+  bool IsDirectory() const override { return mIsDirectory; }
 
   size_t GetAllocationSize() const override;
 
-private:
-  StreamBlobImpl(nsIInputStream* aInputStream,
-                 const nsAString& aContentType,
+ private:
+  StreamBlobImpl(nsIInputStream* aInputStream, const nsAString& aContentType,
                  uint64_t aLength);
 
-  StreamBlobImpl(nsIInputStream* aInputStream,
-                 const nsAString& aName,
-                 const nsAString& aContentType,
-                 int64_t aLastModifiedDate,
+  StreamBlobImpl(nsIInputStream* aInputStream, const nsAString& aName,
+                 const nsAString& aContentType, int64_t aLastModifiedDate,
                  uint64_t aLength);
 
   ~StreamBlobImpl();
@@ -101,7 +76,7 @@ private:
   int64_t mFileId;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_StreamBlobImpl_h
+#endif  // mozilla_dom_StreamBlobImpl_h

@@ -1,8 +1,8 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VREventObserver.h"
 
@@ -23,10 +23,7 @@ using namespace gfx;
  * window.onvrdisplaydisconnected, and window.onvrdisplaypresentchange.
  */
 VREventObserver::VREventObserver(nsGlobalWindowInner* aGlobalWindow)
-  : mWindow(aGlobalWindow)
-  , mIs2DView(true)
-  , mHasReset(false)
-{
+    : mWindow(aGlobalWindow), mIs2DView(true), mHasReset(false) {
   MOZ_ASSERT(aGlobalWindow);
 
   UpdateSpentTimeIn2DTelemetry(false);
@@ -36,14 +33,9 @@ VREventObserver::VREventObserver(nsGlobalWindowInner* aGlobalWindow)
   }
 }
 
-VREventObserver::~VREventObserver()
-{
-  DisconnectFromOwner();
-}
+VREventObserver::~VREventObserver() { DisconnectFromOwner(); }
 
-void
-VREventObserver::DisconnectFromOwner()
-{
+void VREventObserver::DisconnectFromOwner() {
   // In the event that nsGlobalWindow is deallocated, VREventObserver may
   // still be AddRef'ed elsewhere.  Ensure that we don't UAF by
   // dereferencing mWindow.
@@ -57,9 +49,7 @@ VREventObserver::DisconnectFromOwner()
   }
 }
 
-void
-VREventObserver::UpdateSpentTimeIn2DTelemetry(bool aUpdate)
-{
+void VREventObserver::UpdateSpentTimeIn2DTelemetry(bool aUpdate) {
   // mHasReset for avoiding setting the telemetry continuously
   // for the telemetry is already been set when it is at the background.
   // then, it would be set again when the process is exit and calling
@@ -77,18 +67,14 @@ VREventObserver::UpdateSpentTimeIn2DTelemetry(bool aUpdate)
   }
 }
 
-void
-VREventObserver::NotifyAfterLoad()
-{
+void VREventObserver::NotifyAfterLoad() {
   if (VRManagerChild::IsCreated()) {
     VRManagerChild* vmc = VRManagerChild::Get();
     vmc->FireDOMVRDisplayConnectEventsForLoad(this);
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayMounted(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayMounted(uint32_t aDisplayID) {
   if (mWindow && mWindow->AsInner()->IsCurrentInnerWindow()) {
     MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
     mWindow->DispatchVRDisplayActivate(aDisplayID,
@@ -96,9 +82,7 @@ VREventObserver::NotifyVRDisplayMounted(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayNavigation(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayNavigation(uint32_t aDisplayID) {
   if (mWindow && mWindow->AsInner()->IsCurrentInnerWindow()) {
     MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
     mWindow->DispatchVRDisplayActivate(aDisplayID,
@@ -106,9 +90,7 @@ VREventObserver::NotifyVRDisplayNavigation(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayRequested(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayRequested(uint32_t aDisplayID) {
   if (mWindow && mWindow->AsInner()->IsCurrentInnerWindow()) {
     MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
     mWindow->DispatchVRDisplayActivate(aDisplayID,
@@ -116,9 +98,7 @@ VREventObserver::NotifyVRDisplayRequested(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayUnmounted(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayUnmounted(uint32_t aDisplayID) {
   if (mWindow && mWindow->AsInner()->IsCurrentInnerWindow()) {
     MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
     mWindow->DispatchVRDisplayDeactivate(aDisplayID,
@@ -126,9 +106,7 @@ VREventObserver::NotifyVRDisplayUnmounted(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayConnect(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayConnect(uint32_t aDisplayID) {
   /**
    * We do not call nsGlobalWindow::NotifyActiveVRDisplaysChanged here, as we
    * can assume that a newly enumerated display is not presenting WebVR
@@ -140,9 +118,7 @@ VREventObserver::NotifyVRDisplayConnect(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayDisconnect(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayDisconnect(uint32_t aDisplayID) {
   if (mWindow && mWindow->AsInner()->IsCurrentInnerWindow()) {
     mWindow->NotifyActiveVRDisplaysChanged();
     MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
@@ -150,9 +126,7 @@ VREventObserver::NotifyVRDisplayDisconnect(uint32_t aDisplayID)
   }
 }
 
-void
-VREventObserver::NotifyVRDisplayPresentChange(uint32_t aDisplayID)
-{
+void VREventObserver::NotifyVRDisplayPresentChange(uint32_t aDisplayID) {
   // When switching to HMD present mode, it is no longer
   // to be a 2D view.
   mIs2DView = false;
@@ -164,5 +138,5 @@ VREventObserver::NotifyVRDisplayPresentChange(uint32_t aDisplayID)
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

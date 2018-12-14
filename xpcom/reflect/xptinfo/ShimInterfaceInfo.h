@@ -20,31 +20,29 @@
 namespace mozilla {
 namespace dom {
 struct NativePropertyHooks;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-class ShimInterfaceInfo final : public nsIInterfaceInfo
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIINTERFACEINFO
+class ShimInterfaceInfo final : public nsIInterfaceInfo {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIINTERFACEINFO
 
-    // Construct a ShimInterfaceInfo object if we have a shim available for aName.
-    // Otherwise, returns nullptr.
-    static already_AddRefed<ShimInterfaceInfo>
-    MaybeConstruct(const char* aName, JSContext* cx);
+  // Construct a ShimInterfaceInfo object if we have a shim available for aName.
+  // Otherwise, returns nullptr.
+  static already_AddRefed<ShimInterfaceInfo> MaybeConstruct(const char* aName,
+                                                            JSContext* cx);
 
-private:
-    ShimInterfaceInfo(const nsIID& aIID,
-                      const char* aName,
-                      const mozilla::dom::NativePropertyHooks* aNativePropHooks);
+ private:
+  ShimInterfaceInfo(const nsIID& aIID, const char* aName,
+                    const mozilla::dom::NativePropertyHooks* aNativePropHooks);
 
-    ~ShimInterfaceInfo() {}
+  ~ShimInterfaceInfo() {}
 
-private:
-    nsIID mIID;
-    nsAutoCString mName;
-    const mozilla::dom::NativePropertyHooks* mNativePropHooks;
+ private:
+  nsIID mIID;
+  nsAutoCString mName;
+  const mozilla::dom::NativePropertyHooks* mNativePropHooks;
 };
 
 #endif

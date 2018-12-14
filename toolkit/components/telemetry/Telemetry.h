@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,8 +31,8 @@
 
 namespace mozilla {
 namespace HangMonitor {
-  class HangAnnotations;
-} // namespace HangMonitor
+class HangAnnotations;
+}  // namespace HangMonitor
 namespace Telemetry {
 
 struct HistogramAccumulation;
@@ -75,7 +76,8 @@ void Accumulate(HistogramID id, const nsCString& key, uint32_t sample = 1);
  * @param samples - values to record.
  * @param key - the string key
  */
-void Accumulate(HistogramID id, const nsCString& key, const nsTArray<uint32_t>& samples);
+void Accumulate(HistogramID id, const nsCString& key,
+                const nsTArray<uint32_t>& samples);
 
 /**
  * Adds a sample to a histogram defined in TelemetryHistogramEnums.h.
@@ -98,7 +100,7 @@ void Accumulate(const char* name, uint32_t sample);
  * @param key - the string key
  * @param sample - sample - (optional) value to record, defaults to 1.
  */
-void Accumulate(const char *name, const nsCString& key, uint32_t sample = 1);
+void Accumulate(const char* name, const nsCString& key, uint32_t sample = 1);
 
 /**
  * Adds sample to a categorical histogram defined in TelemetryHistogramEnums.h
@@ -107,7 +109,7 @@ void Accumulate(const char *name, const nsCString& key, uint32_t sample = 1);
  *
  * @param enumValue - Label value from one of the Telemetry::LABELS_* enums.
  */
-template<class E>
+template <class E>
 void AccumulateCategorical(E enumValue) {
   static_assert(IsCategoricalLabelEnum<E>::value,
                 "Only categorical label enum types are supported.");
@@ -116,67 +118,68 @@ void AccumulateCategorical(E enumValue) {
 };
 
 /**
- * Adds an array of samples to categorical histograms defined in TelemetryHistogramEnums.h
- * This is the typesafe - and preferred - way to use the categorical histograms
- * by passing values from the corresponding Telemetry::LABELS_* enums.
+ * Adds an array of samples to categorical histograms defined in
+ * TelemetryHistogramEnums.h This is the typesafe - and preferred - way to use
+ * the categorical histograms by passing values from the corresponding
+ * Telemetry::LABELS_* enums.
  *
  * @param enumValues - Array of labels from Telemetry::LABELS_* enums.
  */
-template<class E>
-void
-AccumulateCategorical(const nsTArray<E>& enumValues)
-{
+template <class E>
+void AccumulateCategorical(const nsTArray<E>& enumValues) {
   static_assert(IsCategoricalLabelEnum<E>::value,
                 "Only categorical label enum types are supported.");
   nsTArray<uint32_t> intSamples(enumValues.Length());
 
-  for (E aValue: enumValues){
+  for (E aValue : enumValues) {
     intSamples.AppendElement(static_cast<uint32_t>(aValue));
   }
 
-  HistogramID categoricalId = static_cast<HistogramID>(CategoricalLabelId<E>::value);
+  HistogramID categoricalId =
+      static_cast<HistogramID>(CategoricalLabelId<E>::value);
 
   Accumulate(categoricalId, intSamples);
 }
 
 /**
- * Adds sample to a keyed categorical histogram defined in TelemetryHistogramEnums.h
- * This is the typesafe - and preferred - way to use the keyed categorical histograms
- * by passing values from the corresponding Telemetry::LABELS_* enum.
+ * Adds sample to a keyed categorical histogram defined in
+ * TelemetryHistogramEnums.h This is the typesafe - and preferred - way to use
+ * the keyed categorical histograms by passing values from the corresponding
+ * Telemetry::LABELS_* enum.
  *
  * @param key - the string key
  * @param enumValue - Label value from one of the Telemetry::LABELS_* enums.
  */
-template<class E>
+template <class E>
 void AccumulateCategoricalKeyed(const nsCString& key, E enumValue) {
   static_assert(IsCategoricalLabelEnum<E>::value,
                 "Only categorical label enum types are supported.");
-  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value),
-             key,
+  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value), key,
              static_cast<uint32_t>(enumValue));
 };
 
 /**
- * Adds an array of samples to a keyed categorical histogram defined in TelemetryHistogramEnums.h.
- * This is the typesafe - and preferred - way to use the keyed categorical histograms
- * by passing values from the corresponding Telemetry::LABELS_*enum.
+ * Adds an array of samples to a keyed categorical histogram defined in
+ * TelemetryHistogramEnums.h. This is the typesafe - and preferred - way to use
+ * the keyed categorical histograms by passing values from the corresponding
+ * Telemetry::LABELS_*enum.
  *
  * @param key - the string key
  * @param enumValue - Label value from one of the Telemetry::LABELS_* enums.
  */
-template<class E>
-void AccumulateCategoricalKeyed(const nsCString& key, const nsTArray<E>& enumValues) {
-    static_assert(IsCategoricalLabelEnum<E>::value,
-                  "Only categorical label enum types are supported.");
-    nsTArray<uint32_t> intSamples(enumValues.Length());
+template <class E>
+void AccumulateCategoricalKeyed(const nsCString& key,
+                                const nsTArray<E>& enumValues) {
+  static_assert(IsCategoricalLabelEnum<E>::value,
+                "Only categorical label enum types are supported.");
+  nsTArray<uint32_t> intSamples(enumValues.Length());
 
-    for (E aValue: enumValues){
-      intSamples.AppendElement(static_cast<uint32_t>(aValue));
-    }
+  for (E aValue : enumValues) {
+    intSamples.AppendElement(static_cast<uint32_t>(aValue));
+  }
 
-    Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value),
-               key,
-               intSamples);
+  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value), key,
+             intSamples);
 };
 
 /**
@@ -186,12 +189,14 @@ void AccumulateCategoricalKeyed(const nsCString& key, const nsTArray<E>& enumVal
  * be recorded.
  *
  * @param id - The histogram id.
- * @param label - A string label value that is defined in Histograms.json for this histogram.
+ * @param label - A string label value that is defined in Histograms.json for
+ * this histogram.
  */
 void AccumulateCategorical(HistogramID id, const nsCString& label);
 
 /**
- * Adds an array of samples to a categorical histogram defined in Histograms.json
+ * Adds an array of samples to a categorical histogram defined in
+ * Histograms.json
  *
  * @param id - The histogram id
  * @param labels - The array of labels to accumulate
@@ -199,13 +204,15 @@ void AccumulateCategorical(HistogramID id, const nsCString& label);
 void AccumulateCategorical(HistogramID id, const nsTArray<nsCString>& labels);
 
 /**
- * Adds time delta in milliseconds to a histogram defined in TelemetryHistogramEnums.h
+ * Adds time delta in milliseconds to a histogram defined in
+ * TelemetryHistogramEnums.h
  *
  * @param id - histogram id
  * @param start - start time
  * @param end - end time
  */
-void AccumulateTimeDelta(HistogramID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
+void AccumulateTimeDelta(HistogramID id, TimeStamp start,
+                         TimeStamp end = TimeStamp::Now());
 
 /**
  * Adds time delta in milliseconds to a keyed histogram defined in
@@ -216,11 +223,8 @@ void AccumulateTimeDelta(HistogramID id, TimeStamp start, TimeStamp end = TimeSt
  * @param start - start time
  * @param end - end time
  */
-void
-AccumulateTimeDelta(HistogramID id,
-                    const nsCString& key,
-                    TimeStamp start,
-                    TimeStamp end = TimeStamp::Now());
+void AccumulateTimeDelta(HistogramID id, const nsCString& key, TimeStamp start,
+                         TimeStamp end = TimeStamp::Now());
 
 /**
  * Enable/disable recording for this histogram in this process at runtime.
@@ -234,20 +238,18 @@ void SetHistogramRecordingEnabled(HistogramID id, bool enabled);
 
 const char* GetHistogramName(HistogramID id);
 
-template<HistogramID id>
-class MOZ_RAII AutoTimer
-{
-public:
-  explicit AutoTimer(TimeStamp aStart = TimeStamp::Now() MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-     : start(aStart)
-  {
+template <HistogramID id>
+class MOZ_RAII AutoTimer {
+ public:
+  explicit AutoTimer(TimeStamp aStart = TimeStamp::Now()
+                         MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : start(aStart) {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   }
 
-  explicit AutoTimer(const nsCString& aKey, TimeStamp aStart = TimeStamp::Now() MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : start(aStart)
-    , key(aKey)
-  {
+  explicit AutoTimer(const nsCString& aKey, TimeStamp aStart = TimeStamp::Now()
+                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : start(aStart), key(aKey) {
     MOZ_ASSERT(!aKey.IsEmpty(), "The key must not be empty.");
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   }
@@ -260,53 +262,50 @@ public:
     }
   }
 
-private:
+ private:
   const TimeStamp start;
   const nsCString key;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-template<HistogramID id>
+template <HistogramID id>
 class MOZ_RAII AutoCounter {
-public:
-  explicit AutoCounter(uint32_t counterStart = 0 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : counter(counterStart)
-  {
+ public:
+  explicit AutoCounter(
+      uint32_t counterStart = 0 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : counter(counterStart) {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
   }
 
-  ~AutoCounter() {
-    Accumulate(id, counter);
-  }
+  ~AutoCounter() { Accumulate(id, counter); }
 
   // Prefix increment only, to encourage good habits.
-  void operator++() {
-    ++counter;
-  }
+  void operator++() { ++counter; }
 
   // Chaining doesn't make any sense, don't return anything.
-  void operator+=(int increment) {
-    counter += increment;
-  }
+  void operator+=(int increment) { counter += increment; }
 
-private:
+ private:
   uint32_t counter;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 /**
- * Indicates whether Telemetry base data recording is turned on. Added for future uses.
+ * Indicates whether Telemetry base data recording is turned on. Added for
+ * future uses.
  */
 bool CanRecordBase();
 
 /**
- * Indicates whether Telemetry extended data recording is turned on.  This is intended
- * to guard calls to Accumulate when the statistic being recorded is expensive to compute.
+ * Indicates whether Telemetry extended data recording is turned on.  This is
+ * intended to guard calls to Accumulate when the statistic being recorded is
+ * expensive to compute.
  */
 bool CanRecordExtended();
 
 /**
- * Indicates whether Telemetry release data recording is turned on. Usually true.
+ * Indicates whether Telemetry release data recording is turned on. Usually
+ * true.
  *
  * @see nsITelemetry.canRecordReleaseData
  */
@@ -327,9 +326,8 @@ bool CanRecordPrereleaseData();
  * @param dbName - DB filename
  * @param delay - execution time in milliseconds
  */
-void RecordSlowSQLStatement(const nsACString &statement,
-                            const nsACString &dbName,
-                            uint32_t delay);
+void RecordSlowSQLStatement(const nsACString& statement,
+                            const nsACString& dbName, uint32_t delay);
 
 /**
  * Record Webrtc ICE candidate type combinations in a 17bit bitmask
@@ -338,9 +336,8 @@ void RecordSlowSQLStatement(const nsACString &statement,
  *                              candidate types present for the connection
  * @param success - did the peer connection connected
  */
-void
-RecordWebrtcIceCandidates(const uint32_t iceCandidateBitmask,
-                          const bool success);
+void RecordWebrtcIceCandidates(const uint32_t iceCandidateBitmask,
+                               const bool success);
 /**
  * Initialize I/O Reporting
  * Initially this only records I/O for files in the binary directory.
@@ -384,10 +381,8 @@ class ProcessedStack;
  * @param aAnnotations - Any annotations to be added to the report
  */
 #if defined(MOZ_GECKO_PROFILER)
-void RecordChromeHang(uint32_t aDuration,
-                      ProcessedStack &aStack,
-                      int32_t aSystemUptime,
-                      int32_t aFirefoxUptime,
+void RecordChromeHang(uint32_t aDuration, ProcessedStack& aStack,
+                      int32_t aSystemUptime, int32_t aFirefoxUptime,
                       mozilla::HangMonitor::HangAnnotations&& aAnnotations);
 
 /**
@@ -458,7 +453,8 @@ void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
  * @param aKey The scalar key.
  * @param aValue The value to add to the scalar.
  */
-void ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aValue);
+void ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               uint32_t aValue);
 
 /**
  * Sets the scalar to the given value.
@@ -467,7 +463,8 @@ void ScalarAdd(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t
  * @param aKey The scalar key.
  * @param aValue The value to set the scalar to.
  */
-void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aValue);
+void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               uint32_t aValue);
 
 /**
  * Sets the scalar to the given value.
@@ -476,7 +473,8 @@ void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t
  * @param aKey The scalar key.
  * @param aValue The value to set the scalar to.
  */
-void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aValue);
+void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+               bool aValue);
 
 /**
  * Sets the scalar to the maximum of the current and the passed value.
@@ -486,9 +484,10 @@ void ScalarSet(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, bool aVa
  * @param aValue The value the scalar is set to if its greater
  *        than the current value.
  */
-void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey, uint32_t aValue);
+void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
+                      uint32_t aValue);
 
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Telemetry
+}  // namespace mozilla
 
-#endif // Telemetry_h__
+#endif  // Telemetry_h__

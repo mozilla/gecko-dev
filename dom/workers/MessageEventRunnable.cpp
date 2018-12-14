@@ -19,19 +19,16 @@ namespace dom {
 
 MessageEventRunnable::MessageEventRunnable(WorkerPrivate* aWorkerPrivate,
                                            TargetAndBusyBehavior aBehavior)
-  : WorkerRunnable(aWorkerPrivate, aBehavior)
-  , StructuredCloneHolder(CloningSupported, TransferringSupported,
-                          StructuredCloneScope::SameProcessDifferentThread)
-{
-}
+    : WorkerRunnable(aWorkerPrivate, aBehavior),
+      StructuredCloneHolder(CloningSupported, TransferringSupported,
+                            StructuredCloneScope::SameProcessDifferentThread) {}
 
-bool
-MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
-                                       WorkerPrivate* aWorkerPrivate,
-                                       DOMEventTargetHelper* aTarget,
-                                       bool aIsMainThread)
-{
-  nsCOMPtr<nsIGlobalObject> parent = do_QueryInterface(aTarget->GetParentObject());
+bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
+                                            WorkerPrivate* aWorkerPrivate,
+                                            DOMEventTargetHelper* aTarget,
+                                            bool aIsMainThread) {
+  nsCOMPtr<nsIGlobalObject> parent =
+      do_QueryInterface(aTarget->GetParentObject());
 
   // For some workers without window, parent is null and we try to find it
   // from the JS Context.
@@ -58,19 +55,21 @@ MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
   bool isTimelineRecording = timelines && !timelines->IsEmpty();
 
   if (isTimelineRecording) {
-    start = MakeUnique<WorkerTimelineMarker>(aIsMainThread
-      ? ProfileTimelineWorkerOperationType::DeserializeDataOnMainThread
-      : ProfileTimelineWorkerOperationType::DeserializeDataOffMainThread,
-      MarkerTracingType::START);
+    start = MakeUnique<WorkerTimelineMarker>(
+        aIsMainThread
+            ? ProfileTimelineWorkerOperationType::DeserializeDataOnMainThread
+            : ProfileTimelineWorkerOperationType::DeserializeDataOffMainThread,
+        MarkerTracingType::START);
   }
 
   Read(parent, aCx, &messageData, rv);
 
   if (isTimelineRecording) {
-    end = MakeUnique<WorkerTimelineMarker>(aIsMainThread
-      ? ProfileTimelineWorkerOperationType::DeserializeDataOnMainThread
-      : ProfileTimelineWorkerOperationType::DeserializeDataOffMainThread,
-      MarkerTracingType::END);
+    end = MakeUnique<WorkerTimelineMarker>(
+        aIsMainThread
+            ? ProfileTimelineWorkerOperationType::DeserializeDataOnMainThread
+            : ProfileTimelineWorkerOperationType::DeserializeDataOffMainThread,
+        MarkerTracingType::END);
     timelines->AddMarkerForAllObservedDocShells(start);
     timelines->AddMarkerForAllObservedDocShells(end);
   }
@@ -88,14 +87,9 @@ MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
 
   nsCOMPtr<nsIDOMEvent> domEvent;
   RefPtr<MessageEvent> event = new MessageEvent(aTarget, nullptr, nullptr);
-  event->InitMessageEvent(nullptr,
-                          NS_LITERAL_STRING("message"),
-                          false /* non-bubbling */,
-                          false /* cancelable */,
-                          messageData,
-                          EmptyString(),
-                          EmptyString(),
-                          nullptr,
+  event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"),
+                          false /* non-bubbling */, false /* cancelable */,
+                          messageData, EmptyString(), EmptyString(), nullptr,
                           ports);
   domEvent = do_QueryObject(event);
 
@@ -107,9 +101,8 @@ MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
   return true;
 }
 
-bool
-MessageEventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
-{
+bool MessageEventRunnable::WorkerRun(JSContext* aCx,
+                                     WorkerPrivate* aWorkerPrivate) {
   if (mBehavior == ParentThreadUnchangedBusyCount) {
     // Don't fire this event if the JS object has been disconnected from the
     // private object.
@@ -117,8 +110,7 @@ MessageEventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
       return true;
     }
 
-    if (aWorkerPrivate->IsFrozen() ||
-        aWorkerPrivate->IsParentWindowPaused()) {
+    if (aWorkerPrivate->IsFrozen() || aWorkerPrivate->IsParentWindowPaused()) {
       MOZ_ASSERT(!IsDebuggerRunnable());
       aWorkerPrivate->QueueRunnable(this);
       return true;
@@ -137,21 +129,19 @@ MessageEventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
                           false);
 }
 
-void
-MessageEventRunnable::DispatchError(JSContext* aCx,
-                                    DOMEventTargetHelper* aTarget)
-{
+void MessageEventRunnable::DispatchError(JSContext* aCx,
+                                         DOMEventTargetHelper* aTarget) {
   RootedDictionary<MessageEventInit> init(aCx);
   init.mBubbles = false;
   init.mCancelable = false;
 
-  RefPtr<Event> event =
-    MessageEvent::Constructor(aTarget, NS_LITERAL_STRING("messageerror"), init);
+  RefPtr<Event> event = MessageEvent::Constructor(
+      aTarget, NS_LITERAL_STRING("messageerror"), init);
   event->SetTrusted(true);
 
   bool dummy;
   aTarget->DispatchEvent(event, &dummy);
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

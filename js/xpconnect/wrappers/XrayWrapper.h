@@ -35,508 +35,518 @@ namespace xpc {
 
 namespace XrayUtils {
 
-bool
-IsXPCWNHolderClass(const JSClass* clasp);
+bool IsXPCWNHolderClass(const JSClass* clasp);
 
-bool
-IsTransparent(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id);
+bool IsTransparent(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id);
 
-JSObject*
-GetNativePropertiesObject(JSContext* cx, JSObject* wrapper);
+JSObject* GetNativePropertiesObject(JSContext* cx, JSObject* wrapper);
 
-bool
-HasNativeProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                  bool* hasProp);
-} // namespace XrayUtils
+bool HasNativeProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                       bool* hasProp);
+}  // namespace XrayUtils
 
 enum XrayType {
-    XrayForDOMObject,
-    XrayForWrappedNative,
-    XrayForJSObject,
-    XrayForOpaqueObject,
-    NotXray
+  XrayForDOMObject,
+  XrayForWrappedNative,
+  XrayForJSObject,
+  XrayForOpaqueObject,
+  NotXray
 };
 
-class XrayTraits
-{
-public:
-    constexpr XrayTraits() {}
+class XrayTraits {
+ public:
+  constexpr XrayTraits() {}
 
-    static JSObject* getTargetObject(JSObject* wrapper) {
-        JSObject* target = js::UncheckedUnwrap(wrapper, /* stopAtWindowProxy = */ false);
-        if (target)
-            JS::ExposeObjectToActiveJS(target);
-        return target;
-    }
+  static JSObject* getTargetObject(JSObject* wrapper) {
+    JSObject* target =
+        js::UncheckedUnwrap(wrapper, /* stopAtWindowProxy = */ false);
+    if (target) JS::ExposeObjectToActiveJS(target);
+    return target;
+  }
 
-    virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
-                                       JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) = 0;
-    // NB: resolveOwnProperty may decide whether or not to cache what it finds
-    // on the holder. If the result is not cached, the lookup will happen afresh
-    // for each access, which is the right thing for things like dynamic NodeList
-    // properties.
-    virtual bool resolveOwnProperty(JSContext* cx, JS::HandleObject wrapper,
-                                    JS::HandleObject target, JS::HandleObject holder,
-                                    JS::HandleId id, JS::MutableHandle<JS::PropertyDescriptor> desc);
+  virtual bool resolveNativeProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject holder,
+      JS::HandleId id, JS::MutableHandle<JS::PropertyDescriptor> desc) = 0;
+  // NB: resolveOwnProperty may decide whether or not to cache what it finds
+  // on the holder. If the result is not cached, the lookup will happen afresh
+  // for each access, which is the right thing for things like dynamic NodeList
+  // properties.
+  virtual bool resolveOwnProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::HandleObject holder, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc);
 
-    bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                 JS::ObjectOpResult& result) {
-        return result.succeed();
-    }
+  bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+               JS::ObjectOpResult& result) {
+    return result.succeed();
+  }
 
-    static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper, const js::Wrapper& baseInstance,
-                                js::ESClass* cls) {
-        return baseInstance.getBuiltinClass(cx, wrapper, cls);
-    }
+  static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper,
+                              const js::Wrapper& baseInstance,
+                              js::ESClass* cls) {
+    return baseInstance.getBuiltinClass(cx, wrapper, cls);
+  }
 
-    static const char* className(JSContext* cx, JS::HandleObject wrapper, const js::Wrapper& baseInstance) {
-        return baseInstance.className(cx, wrapper);
-    }
+  static const char* className(JSContext* cx, JS::HandleObject wrapper,
+                               const js::Wrapper& baseInstance) {
+    return baseInstance.className(cx, wrapper);
+  }
 
-    virtual void preserveWrapper(JSObject* target) = 0;
+  virtual void preserveWrapper(JSObject* target) = 0;
 
-    bool getExpandoObject(JSContext* cx, JS::HandleObject target,
-                          JS::HandleObject consumer, JS::MutableHandleObject expandObject);
-    JSObject* ensureExpandoObject(JSContext* cx, JS::HandleObject wrapper,
-                                  JS::HandleObject target);
+  bool getExpandoObject(JSContext* cx, JS::HandleObject target,
+                        JS::HandleObject consumer,
+                        JS::MutableHandleObject expandObject);
+  JSObject* ensureExpandoObject(JSContext* cx, JS::HandleObject wrapper,
+                                JS::HandleObject target);
 
-    // Slots for holder objects.
-    enum {
-        HOLDER_SLOT_CACHED_PROTO = 0,
-        HOLDER_SLOT_EXPANDO = 1,
-        HOLDER_SHARED_SLOT_COUNT
-    };
+  // Slots for holder objects.
+  enum {
+    HOLDER_SLOT_CACHED_PROTO = 0,
+    HOLDER_SLOT_EXPANDO = 1,
+    HOLDER_SHARED_SLOT_COUNT
+  };
 
-    static JSObject* getHolder(JSObject* wrapper);
-    JSObject* ensureHolder(JSContext* cx, JS::HandleObject wrapper);
-    virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) = 0;
+  static JSObject* getHolder(JSObject* wrapper);
+  JSObject* ensureHolder(JSContext* cx, JS::HandleObject wrapper);
+  virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) = 0;
 
-    JSObject* getExpandoChain(JS::HandleObject obj);
-    JSObject* detachExpandoChain(JS::HandleObject obj);
-    bool setExpandoChain(JSContext* cx, JS::HandleObject obj, JS::HandleObject chain);
-    bool cloneExpandoChain(JSContext* cx, JS::HandleObject dst, JS::HandleObject srcChain);
+  JSObject* getExpandoChain(JS::HandleObject obj);
+  JSObject* detachExpandoChain(JS::HandleObject obj);
+  bool setExpandoChain(JSContext* cx, JS::HandleObject obj,
+                       JS::HandleObject chain);
+  bool cloneExpandoChain(JSContext* cx, JS::HandleObject dst,
+                         JS::HandleObject srcChain);
 
-protected:
-    static const JSClass HolderClass;
+ protected:
+  static const JSClass HolderClass;
 
-    // Get the JSClass we should use for our expando object.
-    virtual const JSClass* getExpandoClass(JSContext* cx,
-                                           JS::HandleObject target) const;
+  // Get the JSClass we should use for our expando object.
+  virtual const JSClass* getExpandoClass(JSContext* cx,
+                                         JS::HandleObject target) const;
 
-private:
-    bool expandoObjectMatchesConsumer(JSContext* cx, JS::HandleObject expandoObject,
-                                      nsIPrincipal* consumerOrigin);
+ private:
+  bool expandoObjectMatchesConsumer(JSContext* cx,
+                                    JS::HandleObject expandoObject,
+                                    nsIPrincipal* consumerOrigin);
 
-    // |expandoChain| is the expando chain in the wrapped object's compartment.
-    // |exclusiveWrapper| is any xray that has exclusive use of the expando.
-    // |cx| may be in any compartment.
-    bool getExpandoObjectInternal(JSContext* cx, JSObject* expandoChain,
-                                  JS::HandleObject exclusiveWrapper,
-                                  nsIPrincipal* origin,
-                                  JS::MutableHandleObject expandoObject);
+  // |expandoChain| is the expando chain in the wrapped object's compartment.
+  // |exclusiveWrapper| is any xray that has exclusive use of the expando.
+  // |cx| may be in any compartment.
+  bool getExpandoObjectInternal(JSContext* cx, JSObject* expandoChain,
+                                JS::HandleObject exclusiveWrapper,
+                                nsIPrincipal* origin,
+                                JS::MutableHandleObject expandoObject);
 
-    // |cx| is in the target's compartment, and |exclusiveWrapper| is any xray
-    // that has exclusive use of the expando.
-    JSObject* attachExpandoObject(JSContext* cx, JS::HandleObject target,
-                                  JS::HandleObject exclusiveWrapper,
-                                  nsIPrincipal* origin);
+  // |cx| is in the target's compartment, and |exclusiveWrapper| is any xray
+  // that has exclusive use of the expando.
+  JSObject* attachExpandoObject(JSContext* cx, JS::HandleObject target,
+                                JS::HandleObject exclusiveWrapper,
+                                nsIPrincipal* origin);
 
-    XrayTraits(XrayTraits&) = delete;
-    const XrayTraits& operator=(XrayTraits&) = delete;
+  XrayTraits(XrayTraits&) = delete;
+  const XrayTraits& operator=(XrayTraits&) = delete;
 };
 
-class XPCWrappedNativeXrayTraits : public XrayTraits
-{
-public:
-    enum {
-        HasPrototype = 0
-    };
+class XPCWrappedNativeXrayTraits : public XrayTraits {
+ public:
+  enum { HasPrototype = 0 };
 
-    static const XrayType Type = XrayForWrappedNative;
+  static const XrayType Type = XrayForWrappedNative;
 
-    virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
-                                       JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) override;
-    virtual bool resolveOwnProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
-                                    JS::HandleObject holder, JS::HandleId id,
-                                    JS::MutableHandle<JS::PropertyDescriptor> desc) override;
-    bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                        JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::Handle<JS::PropertyDescriptor> existingDesc,
-                        JS::ObjectOpResult& result, bool* defined)
-    {
-        *defined = false;
+  virtual bool resolveNativeProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject holder,
+      JS::HandleId id, JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+  virtual bool resolveOwnProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::HandleObject holder, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+  bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                      JS::Handle<JS::PropertyDescriptor> desc,
+                      JS::Handle<JS::PropertyDescriptor> existingDesc,
+                      JS::ObjectOpResult& result, bool* defined) {
+    *defined = false;
+    return true;
+  }
+  virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
+                              unsigned flags, JS::AutoIdVector& props);
+  static bool call(JSContext* cx, JS::HandleObject wrapper,
+                   const JS::CallArgs& args, const js::Wrapper& baseInstance);
+  static bool construct(JSContext* cx, JS::HandleObject wrapper,
+                        const JS::CallArgs& args,
+                        const js::Wrapper& baseInstance);
+
+  static XPCWrappedNative* getWN(JSObject* wrapper);
+
+  virtual void preserveWrapper(JSObject* target) override;
+
+  virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
+
+  static const JSClass HolderClass;
+  static XPCWrappedNativeXrayTraits singleton;
+};
+
+class DOMXrayTraits : public XrayTraits {
+ public:
+  constexpr DOMXrayTraits() = default;
+
+  enum { HasPrototype = 1 };
+
+  static const XrayType Type = XrayForDOMObject;
+
+  virtual bool resolveNativeProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject holder,
+      JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override {
+    // Xrays for DOM binding objects have a prototype chain that consists of
+    // Xrays for the prototypes of the DOM binding object (ignoring changes
+    // in the prototype chain made by script, plugins or XBL). All properties
+    // for these Xrays are really own properties, either of the instance object
+    // or of the prototypes.
+    // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1072482
+    //       This should really be:
+    // MOZ_CRASH("resolveNativeProperty hook should never be called with
+    // HasPrototype = 1");
+    //       but we can't do that yet because XrayUtils::HasNativeProperty calls
+    //       this.
+    return true;
+  }
+  virtual bool resolveOwnProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::HandleObject holder, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+
+  bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+               JS::ObjectOpResult& result);
+
+  bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                      JS::Handle<JS::PropertyDescriptor> desc,
+                      JS::Handle<JS::PropertyDescriptor> existingDesc,
+                      JS::ObjectOpResult& result, bool* defined);
+  virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
+                              unsigned flags, JS::AutoIdVector& props);
+  static bool call(JSContext* cx, JS::HandleObject wrapper,
+                   const JS::CallArgs& args, const js::Wrapper& baseInstance);
+  static bool construct(JSContext* cx, JS::HandleObject wrapper,
+                        const JS::CallArgs& args,
+                        const js::Wrapper& baseInstance);
+
+  static bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
+                           JS::HandleObject target,
+                           JS::MutableHandleObject protop);
+
+  virtual void preserveWrapper(JSObject* target) override;
+
+  virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
+
+  static DOMXrayTraits singleton;
+
+ protected:
+  virtual const JSClass* getExpandoClass(
+      JSContext* cx, JS::HandleObject target) const override;
+};
+
+class JSXrayTraits : public XrayTraits {
+ public:
+  enum { HasPrototype = 1 };
+  static const XrayType Type = XrayForJSObject;
+
+  virtual bool resolveNativeProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject holder,
+      JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override {
+    MOZ_CRASH(
+        "resolveNativeProperty hook should never be called with HasPrototype = "
+        "1");
+  }
+
+  virtual bool resolveOwnProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::HandleObject holder, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+
+  bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+               JS::ObjectOpResult& result);
+
+  bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                      JS::Handle<JS::PropertyDescriptor> desc,
+                      JS::Handle<JS::PropertyDescriptor> existingDesc,
+                      JS::ObjectOpResult& result, bool* defined);
+
+  virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
+                              unsigned flags, JS::AutoIdVector& props);
+
+  static bool call(JSContext* cx, JS::HandleObject wrapper,
+                   const JS::CallArgs& args, const js::Wrapper& baseInstance) {
+    JSXrayTraits& self = JSXrayTraits::singleton;
+    JS::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
+    if (self.getProtoKey(holder) == JSProto_Function)
+      return baseInstance.call(cx, wrapper, args);
+
+    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    js::ReportIsNotFunction(cx, v);
+    return false;
+  }
+
+  static bool construct(JSContext* cx, JS::HandleObject wrapper,
+                        const JS::CallArgs& args,
+                        const js::Wrapper& baseInstance);
+
+  bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
+                    JS::HandleObject target, JS::MutableHandleObject protop) {
+    JS::RootedObject holder(cx, ensureHolder(cx, wrapper));
+    JSProtoKey key = getProtoKey(holder);
+    if (isPrototype(holder)) {
+      JSProtoKey protoKey = js::InheritanceProtoKeyForStandardClass(key);
+      if (protoKey == JSProto_Null) {
+        protop.set(nullptr);
         return true;
+      }
+      key = protoKey;
     }
-    virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper, unsigned flags,
-                                JS::AutoIdVector& props);
-    static bool call(JSContext* cx, JS::HandleObject wrapper,
-                     const JS::CallArgs& args, const js::Wrapper& baseInstance);
-    static bool construct(JSContext* cx, JS::HandleObject wrapper,
-                          const JS::CallArgs& args, const js::Wrapper& baseInstance);
 
-    static XPCWrappedNative* getWN(JSObject* wrapper);
-
-    virtual void preserveWrapper(JSObject* target) override;
-
-    virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
-
-    static const JSClass HolderClass;
-    static XPCWrappedNativeXrayTraits singleton;
-};
-
-class DOMXrayTraits : public XrayTraits
-{
-public:
-    constexpr DOMXrayTraits() = default;
-
-    enum {
-        HasPrototype = 1
-    };
-
-    static const XrayType Type = XrayForDOMObject;
-
-    virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
-                                       JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) override
     {
-        // Xrays for DOM binding objects have a prototype chain that consists of
-        // Xrays for the prototypes of the DOM binding object (ignoring changes
-        // in the prototype chain made by script, plugins or XBL). All properties for
-        // these Xrays are really own properties, either of the instance object or
-        // of the prototypes.
-        // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1072482
-        //       This should really be:
-        // MOZ_CRASH("resolveNativeProperty hook should never be called with HasPrototype = 1");
-        //       but we can't do that yet because XrayUtils::HasNativeProperty calls this.
-        return true;
+      JSAutoCompartment ac(cx, target);
+      if (!JS_GetClassPrototype(cx, key, protop)) return false;
     }
-    virtual bool resolveOwnProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
-                                    JS::HandleObject holder, JS::HandleId id,
-                                    JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+    return JS_WrapObject(cx, protop);
+  }
 
-    bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id, JS::ObjectOpResult& result);
+  virtual void preserveWrapper(JSObject* target) override {
+    // In the case of pure JS objects, there is no underlying object, and
+    // the target is the canonical representation of state. If it gets
+    // collected, then expandos and such should be collected too. So there's
+    // nothing to do here.
+  }
 
-    bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                        JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::Handle<JS::PropertyDescriptor> existingDesc,
-                        JS::ObjectOpResult& result, bool* defined);
-    virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper, unsigned flags,
-                                JS::AutoIdVector& props);
-    static bool call(JSContext* cx, JS::HandleObject wrapper,
-                     const JS::CallArgs& args, const js::Wrapper& baseInstance);
-    static bool construct(JSContext* cx, JS::HandleObject wrapper,
-                          const JS::CallArgs& args, const js::Wrapper& baseInstance);
+  enum {
+    SLOT_PROTOKEY = HOLDER_SHARED_SLOT_COUNT,
+    SLOT_ISPROTOTYPE,
+    SLOT_CONSTRUCTOR_FOR,
+    SLOT_COUNT
+  };
+  virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
 
-    static bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
-                             JS::HandleObject target,
-                             JS::MutableHandleObject protop);
+  static JSProtoKey getProtoKey(JSObject* holder) {
+    int32_t key = js::GetReservedSlot(holder, SLOT_PROTOKEY).toInt32();
+    return static_cast<JSProtoKey>(key);
+  }
 
-    virtual void preserveWrapper(JSObject* target) override;
+  static bool isPrototype(JSObject* holder) {
+    return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
+  }
 
-    virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
+  static JSProtoKey constructorFor(JSObject* holder) {
+    int32_t key = js::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
+    return static_cast<JSProtoKey>(key);
+  }
 
-    static DOMXrayTraits singleton;
+  // Operates in the wrapper compartment.
+  static bool getOwnPropertyFromWrapperIfSafe(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc);
 
-protected:
-    virtual const JSClass* getExpandoClass(JSContext* cx,
-                                           JS::HandleObject target) const override;
-};
+  // Like the above, but operates in the target compartment.
+  static bool getOwnPropertyFromTargetIfSafe(
+      JSContext* cx, JS::HandleObject target, JS::HandleObject wrapper,
+      JS::HandleId id, JS::MutableHandle<JS::PropertyDescriptor> desc);
 
-class JSXrayTraits : public XrayTraits
-{
-public:
-    enum {
-        HasPrototype = 1
-    };
-    static const XrayType Type = XrayForJSObject;
-
-    virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
-                                       JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) override
-    {
-        MOZ_CRASH("resolveNativeProperty hook should never be called with HasPrototype = 1");
-    }
-
-    virtual bool resolveOwnProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
-                                    JS::HandleObject holder, JS::HandleId id,
-                                    JS::MutableHandle<JS::PropertyDescriptor> desc) override;
-
-    bool delete_(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id, JS::ObjectOpResult& result);
-
-    bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                        JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::Handle<JS::PropertyDescriptor> existingDesc,
-                        JS::ObjectOpResult& result, bool* defined);
-
-    virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper, unsigned flags,
-                                JS::AutoIdVector& props);
-
-    static bool call(JSContext* cx, JS::HandleObject wrapper,
-                     const JS::CallArgs& args, const js::Wrapper& baseInstance)
-    {
-        JSXrayTraits& self = JSXrayTraits::singleton;
-        JS::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
-        if (self.getProtoKey(holder) == JSProto_Function)
-            return baseInstance.call(cx, wrapper, args);
-
-        JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
-        js::ReportIsNotFunction(cx, v);
-        return false;
-    }
-
-    static bool construct(JSContext* cx, JS::HandleObject wrapper,
-                          const JS::CallArgs& args, const js::Wrapper& baseInstance);
-
-    bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
-                      JS::HandleObject target,
-                      JS::MutableHandleObject protop)
-    {
-        JS::RootedObject holder(cx, ensureHolder(cx, wrapper));
-        JSProtoKey key = getProtoKey(holder);
-        if (isPrototype(holder)) {
-            JSProtoKey protoKey = js::InheritanceProtoKeyForStandardClass(key);
-            if (protoKey == JSProto_Null) {
-                protop.set(nullptr);
-                return true;
-            }
-            key = protoKey;
-        }
-
-        {
-            JSAutoCompartment ac(cx, target);
-            if (!JS_GetClassPrototype(cx, key, protop))
-                return false;
-        }
-        return JS_WrapObject(cx, protop);
-    }
-
-    virtual void preserveWrapper(JSObject* target) override {
-        // In the case of pure JS objects, there is no underlying object, and
-        // the target is the canonical representation of state. If it gets
-        // collected, then expandos and such should be collected too. So there's
-        // nothing to do here.
-    }
-
-    enum {
-        SLOT_PROTOKEY = HOLDER_SHARED_SLOT_COUNT,
-        SLOT_ISPROTOTYPE,
-        SLOT_CONSTRUCTOR_FOR,
-        SLOT_COUNT
-    };
-    virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override;
-
-    static JSProtoKey getProtoKey(JSObject* holder) {
-        int32_t key = js::GetReservedSlot(holder, SLOT_PROTOKEY).toInt32();
-        return static_cast<JSProtoKey>(key);
-    }
-
-    static bool isPrototype(JSObject* holder) {
-        return js::GetReservedSlot(holder, SLOT_ISPROTOTYPE).toBoolean();
-    }
-
-    static JSProtoKey constructorFor(JSObject* holder) {
-        int32_t key = js::GetReservedSlot(holder, SLOT_CONSTRUCTOR_FOR).toInt32();
-        return static_cast<JSProtoKey>(key);
-    }
-
-    // Operates in the wrapper compartment.
-    static bool getOwnPropertyFromWrapperIfSafe(JSContext* cx,
-                                                JS::HandleObject wrapper,
-                                                JS::HandleId id,
-                                                JS::MutableHandle<JS::PropertyDescriptor> desc);
-
-    // Like the above, but operates in the target compartment.
-    static bool getOwnPropertyFromTargetIfSafe(JSContext* cx,
-                                               JS::HandleObject target,
-                                               JS::HandleObject wrapper,
-                                               JS::HandleId id,
-                                               JS::MutableHandle<JS::PropertyDescriptor> desc);
-
-    static const JSClass HolderClass;
-    static JSXrayTraits singleton;
+  static const JSClass HolderClass;
+  static JSXrayTraits singleton;
 };
 
 // These traits are used when the target is not Xrayable and we therefore want
 // to make it opaque modulo the usual Xray machinery (like expandos and
 // .wrappedJSObject).
-class OpaqueXrayTraits : public XrayTraits
-{
-public:
-    enum {
-        HasPrototype = 1
-    };
-    static const XrayType Type = XrayForOpaqueObject;
+class OpaqueXrayTraits : public XrayTraits {
+ public:
+  enum { HasPrototype = 1 };
+  static const XrayType Type = XrayForOpaqueObject;
 
-    virtual bool resolveNativeProperty(JSContext* cx, JS::HandleObject wrapper,
-                                       JS::HandleObject holder, JS::HandleId id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) override
+  virtual bool resolveNativeProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject holder,
+      JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override {
+    MOZ_CRASH(
+        "resolveNativeProperty hook should never be called with HasPrototype = "
+        "1");
+  }
+
+  virtual bool resolveOwnProperty(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::HandleObject holder, JS::HandleId id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+
+  bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+                      JS::Handle<JS::PropertyDescriptor> desc,
+                      JS::Handle<JS::PropertyDescriptor> existingDesc,
+                      JS::ObjectOpResult& result, bool* defined) {
+    *defined = false;
+    return true;
+  }
+
+  virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
+                              unsigned flags, JS::AutoIdVector& props) {
+    return true;
+  }
+
+  static bool call(JSContext* cx, JS::HandleObject wrapper,
+                   const JS::CallArgs& args, const js::Wrapper& baseInstance) {
+    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    js::ReportIsNotFunction(cx, v);
+    return false;
+  }
+
+  static bool construct(JSContext* cx, JS::HandleObject wrapper,
+                        const JS::CallArgs& args,
+                        const js::Wrapper& baseInstance) {
+    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    js::ReportIsNotFunction(cx, v);
+    return false;
+  }
+
+  bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
+                    JS::HandleObject target, JS::MutableHandleObject protop) {
+    // Opaque wrappers just get targetGlobal.Object.prototype as their
+    // prototype. This is preferable to using a null prototype because it
+    // lets things like |toString| and |__proto__| work.
     {
-        MOZ_CRASH("resolveNativeProperty hook should never be called with HasPrototype = 1");
+      JSAutoCompartment ac(cx, target);
+      if (!JS_GetClassPrototype(cx, JSProto_Object, protop)) return false;
     }
+    return JS_WrapObject(cx, protop);
+  }
 
-    virtual bool resolveOwnProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
-                                    JS::HandleObject holder, JS::HandleId id,
-                                    JS::MutableHandle<JS::PropertyDescriptor> desc) override;
+  static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper,
+                              const js::Wrapper& baseInstance,
+                              js::ESClass* cls) {
+    *cls = js::ESClass::Other;
+    return true;
+  }
 
-    bool defineProperty(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                        JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::Handle<JS::PropertyDescriptor> existingDesc,
-                        JS::ObjectOpResult& result, bool* defined)
-    {
-        *defined = false;
-        return true;
-    }
+  static const char* className(JSContext* cx, JS::HandleObject wrapper,
+                               const js::Wrapper& baseInstance) {
+    return "Opaque";
+  }
 
-    virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper, unsigned flags,
-                                JS::AutoIdVector& props)
-    {
-        return true;
-    }
+  virtual void preserveWrapper(JSObject* target) override {}
 
-    static bool call(JSContext* cx, JS::HandleObject wrapper,
-                     const JS::CallArgs& args, const js::Wrapper& baseInstance)
-    {
-        JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
-        js::ReportIsNotFunction(cx, v);
-        return false;
-    }
+  virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override {
+    return JS_NewObjectWithGivenProto(cx, &HolderClass, nullptr);
+  }
 
-    static bool construct(JSContext* cx, JS::HandleObject wrapper,
-                          const JS::CallArgs& args, const js::Wrapper& baseInstance)
-    {
-        JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
-        js::ReportIsNotFunction(cx, v);
-        return false;
-    }
-
-    bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
-                      JS::HandleObject target,
-                      JS::MutableHandleObject protop)
-    {
-        // Opaque wrappers just get targetGlobal.Object.prototype as their
-        // prototype. This is preferable to using a null prototype because it
-        // lets things like |toString| and |__proto__| work.
-        {
-            JSAutoCompartment ac(cx, target);
-            if (!JS_GetClassPrototype(cx, JSProto_Object, protop))
-                return false;
-        }
-        return JS_WrapObject(cx, protop);
-    }
-
-    static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper, const js::Wrapper& baseInstance,
-                                js::ESClass* cls) {
-        *cls = js::ESClass::Other;
-        return true;
-    }
-
-    static const char* className(JSContext* cx, JS::HandleObject wrapper, const js::Wrapper& baseInstance) {
-        return "Opaque";
-    }
-
-    virtual void preserveWrapper(JSObject* target) override { }
-
-    virtual JSObject* createHolder(JSContext* cx, JSObject* wrapper) override
-    {
-        return JS_NewObjectWithGivenProto(cx, &HolderClass, nullptr);
-    }
-
-    static OpaqueXrayTraits singleton;
+  static OpaqueXrayTraits singleton;
 };
 
 XrayType GetXrayType(JSObject* obj);
 XrayTraits* GetXrayTraits(JSObject* obj);
 
 // NB: Base *must* derive from JSProxyHandler
-template <typename Base, typename Traits = XPCWrappedNativeXrayTraits >
+template <typename Base, typename Traits = XPCWrappedNativeXrayTraits>
 class XrayWrapper : public Base {
-  public:
-    constexpr explicit XrayWrapper(unsigned flags)
-      : Base(flags | WrapperFactory::IS_XRAY_WRAPPER_FLAG, Traits::HasPrototype)
-    { };
+ public:
+  constexpr explicit XrayWrapper(unsigned flags)
+      : Base(flags | WrapperFactory::IS_XRAY_WRAPPER_FLAG,
+             Traits::HasPrototype){};
 
-    /* Standard internal methods. */
-    virtual bool getOwnPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                                          JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
-    virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                                JS::Handle<JS::PropertyDescriptor> desc,
-                                JS::ObjectOpResult& result) const override;
-    virtual bool ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                                 JS::AutoIdVector& props) const override;
-    virtual bool delete_(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                         JS::Handle<jsid> id, JS::ObjectOpResult& result) const override;
-    virtual JSObject* enumerate(JSContext* cx, JS::Handle<JSObject*> wrapper) const override;
-    virtual bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
-                              JS::MutableHandleObject protop) const override;
-    virtual bool setPrototype(JSContext* cx, JS::HandleObject wrapper,
-                              JS::HandleObject proto, JS::ObjectOpResult& result) const override;
-    virtual bool getPrototypeIfOrdinary(JSContext* cx, JS::HandleObject wrapper, bool* isOrdinary,
-                                        JS::MutableHandleObject protop) const override;
-    virtual bool setImmutablePrototype(JSContext* cx, JS::HandleObject wrapper,
-                                       bool* succeeded) const override;
-    virtual bool preventExtensions(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                                   JS::ObjectOpResult& result) const override;
-    virtual bool isExtensible(JSContext* cx, JS::Handle<JSObject*> wrapper, bool* extensible) const override;
-    virtual bool has(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                     bool* bp) const override;
-    virtual bool get(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::HandleValue receiver,
-                     JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp) const override;
-    virtual bool set(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                     JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-                     JS::ObjectOpResult& result) const override;
-    virtual bool call(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                      const JS::CallArgs& args) const override;
-    virtual bool construct(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                           const JS::CallArgs& args) const override;
+  /* Standard internal methods. */
+  virtual bool getOwnPropertyDescriptor(
+      JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
+  virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                              JS::Handle<jsid> id,
+                              JS::Handle<JS::PropertyDescriptor> desc,
+                              JS::ObjectOpResult& result) const override;
+  virtual bool ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                               JS::AutoIdVector& props) const override;
+  virtual bool delete_(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                       JS::Handle<jsid> id,
+                       JS::ObjectOpResult& result) const override;
+  virtual JSObject* enumerate(JSContext* cx,
+                              JS::Handle<JSObject*> wrapper) const override;
+  virtual bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
+                            JS::MutableHandleObject protop) const override;
+  virtual bool setPrototype(JSContext* cx, JS::HandleObject wrapper,
+                            JS::HandleObject proto,
+                            JS::ObjectOpResult& result) const override;
+  virtual bool getPrototypeIfOrdinary(
+      JSContext* cx, JS::HandleObject wrapper, bool* isOrdinary,
+      JS::MutableHandleObject protop) const override;
+  virtual bool setImmutablePrototype(JSContext* cx, JS::HandleObject wrapper,
+                                     bool* succeeded) const override;
+  virtual bool preventExtensions(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                                 JS::ObjectOpResult& result) const override;
+  virtual bool isExtensible(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                            bool* extensible) const override;
+  virtual bool has(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                   JS::Handle<jsid> id, bool* bp) const override;
+  virtual bool get(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                   JS::HandleValue receiver, JS::Handle<jsid> id,
+                   JS::MutableHandle<JS::Value> vp) const override;
+  virtual bool set(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                   JS::Handle<jsid> id, JS::Handle<JS::Value> v,
+                   JS::Handle<JS::Value> receiver,
+                   JS::ObjectOpResult& result) const override;
+  virtual bool call(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                    const JS::CallArgs& args) const override;
+  virtual bool construct(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                         const JS::CallArgs& args) const override;
 
-    /* SpiderMonkey extensions. */
-    virtual bool getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
-    virtual bool hasOwn(JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
-                        bool* bp) const override;
-    virtual bool getOwnEnumerablePropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
-                                              JS::AutoIdVector& props) const override;
+  /* SpiderMonkey extensions. */
+  virtual bool getPropertyDescriptor(
+      JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
+  virtual bool hasOwn(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                      JS::Handle<jsid> id, bool* bp) const override;
+  virtual bool getOwnEnumerablePropertyKeys(
+      JSContext* cx, JS::Handle<JSObject*> wrapper,
+      JS::AutoIdVector& props) const override;
 
-    virtual bool getBuiltinClass(JSContext* cx, JS::HandleObject wapper, js::ESClass* cls) const override;
-    virtual const char* className(JSContext* cx, JS::HandleObject proxy) const override;
+  virtual bool getBuiltinClass(JSContext* cx, JS::HandleObject wapper,
+                               js::ESClass* cls) const override;
+  virtual const char* className(JSContext* cx,
+                                JS::HandleObject proxy) const override;
 
-    static const XrayWrapper singleton;
+  static const XrayWrapper singleton;
 
-  private:
-    template <bool HasPrototype>
-    typename mozilla::EnableIf<HasPrototype, bool>::Type
-        getPrototypeHelper(JSContext* cx, JS::HandleObject wrapper,
-                           JS::HandleObject target, JS::MutableHandleObject protop) const
-    {
-        return Traits::singleton.getPrototype(cx, wrapper, target, protop);
-    }
-    template <bool HasPrototype>
-    typename mozilla::EnableIf<!HasPrototype, bool>::Type
-        getPrototypeHelper(JSContext* cx, JS::HandleObject wrapper,
-                           JS::HandleObject target, JS::MutableHandleObject protop) const
-    {
-        return Base::getPrototype(cx, wrapper, protop);
-    }
-    bool getPrototypeHelper(JSContext* cx, JS::HandleObject wrapper,
-                            JS::HandleObject target, JS::MutableHandleObject protop) const
-    {
-        return getPrototypeHelper<Traits::HasPrototype>(cx, wrapper, target,
-                                                        protop);
-    }
+ private:
+  template <bool HasPrototype>
+  typename mozilla::EnableIf<HasPrototype, bool>::Type getPrototypeHelper(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::MutableHandleObject protop) const {
+    return Traits::singleton.getPrototype(cx, wrapper, target, protop);
+  }
+  template <bool HasPrototype>
+  typename mozilla::EnableIf<!HasPrototype, bool>::Type getPrototypeHelper(
+      JSContext* cx, JS::HandleObject wrapper, JS::HandleObject target,
+      JS::MutableHandleObject protop) const {
+    return Base::getPrototype(cx, wrapper, protop);
+  }
+  bool getPrototypeHelper(JSContext* cx, JS::HandleObject wrapper,
+                          JS::HandleObject target,
+                          JS::MutableHandleObject protop) const {
+    return getPrototypeHelper<Traits::HasPrototype>(cx, wrapper, target,
+                                                    protop);
+  }
 
-  protected:
-    bool getPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper, unsigned flags,
-                         JS::AutoIdVector& props) const;
+ protected:
+  bool getPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+                       unsigned flags, JS::AutoIdVector& props) const;
 };
 
-#define PermissiveXrayXPCWN xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::XPCWrappedNativeXrayTraits>
-#define SecurityXrayXPCWN xpc::XrayWrapper<js::CrossCompartmentSecurityWrapper, xpc::XPCWrappedNativeXrayTraits>
-#define PermissiveXrayDOM xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::DOMXrayTraits>
-#define SecurityXrayDOM xpc::XrayWrapper<js::CrossCompartmentSecurityWrapper, xpc::DOMXrayTraits>
-#define PermissiveXrayJS xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::JSXrayTraits>
-#define PermissiveXrayOpaque xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::OpaqueXrayTraits>
+#define PermissiveXrayXPCWN \
+  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::XPCWrappedNativeXrayTraits>
+#define SecurityXrayXPCWN                               \
+  xpc::XrayWrapper<js::CrossCompartmentSecurityWrapper, \
+                   xpc::XPCWrappedNativeXrayTraits>
+#define PermissiveXrayDOM \
+  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::DOMXrayTraits>
+#define SecurityXrayDOM \
+  xpc::XrayWrapper<js::CrossCompartmentSecurityWrapper, xpc::DOMXrayTraits>
+#define PermissiveXrayJS \
+  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::JSXrayTraits>
+#define PermissiveXrayOpaque \
+  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::OpaqueXrayTraits>
 
 extern template class PermissiveXrayXPCWN;
 extern template class SecurityXrayXPCWN;
@@ -547,33 +557,35 @@ extern template class PermissiveXrayOpaque;
 extern template class PermissiveXrayXPCWN;
 
 class SandboxProxyHandler : public js::Wrapper {
-public:
-    constexpr SandboxProxyHandler() : js::Wrapper(0)
-    {
-    }
+ public:
+  constexpr SandboxProxyHandler() : js::Wrapper(0) {}
 
-    virtual bool getOwnPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy,
-                                          JS::Handle<jsid> id,
-                                          JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
+  virtual bool getOwnPropertyDescriptor(
+      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
 
-    // We just forward the high-level methods to the BaseProxyHandler versions
-    // which implement them in terms of lower-level methods.
-    virtual bool has(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-                     bool* bp) const override;
-    virtual bool get(JSContext* cx, JS::Handle<JSObject*> proxy, JS::HandleValue receiver,
-                     JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp) const override;
-    virtual bool set(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-                     JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-                     JS::ObjectOpResult& result) const override;
+  // We just forward the high-level methods to the BaseProxyHandler versions
+  // which implement them in terms of lower-level methods.
+  virtual bool has(JSContext* cx, JS::Handle<JSObject*> proxy,
+                   JS::Handle<jsid> id, bool* bp) const override;
+  virtual bool get(JSContext* cx, JS::Handle<JSObject*> proxy,
+                   JS::HandleValue receiver, JS::Handle<jsid> id,
+                   JS::MutableHandle<JS::Value> vp) const override;
+  virtual bool set(JSContext* cx, JS::Handle<JSObject*> proxy,
+                   JS::Handle<jsid> id, JS::Handle<JS::Value> v,
+                   JS::Handle<JS::Value> receiver,
+                   JS::ObjectOpResult& result) const override;
 
-    virtual bool getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy,
-                                       JS::Handle<jsid> id,
-                                       JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
-    virtual bool hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-                        bool* bp) const override;
-    virtual bool getOwnEnumerablePropertyKeys(JSContext* cx, JS::Handle<JSObject*> proxy,
-                                              JS::AutoIdVector& props) const override;
-    virtual JSObject* enumerate(JSContext* cx, JS::Handle<JSObject*> proxy) const override;
+  virtual bool getPropertyDescriptor(
+      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      JS::MutableHandle<JS::PropertyDescriptor> desc) const override;
+  virtual bool hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
+                      JS::Handle<jsid> id, bool* bp) const override;
+  virtual bool getOwnEnumerablePropertyKeys(
+      JSContext* cx, JS::Handle<JSObject*> proxy,
+      JS::AutoIdVector& props) const override;
+  virtual JSObject* enumerate(JSContext* cx,
+                              JS::Handle<JSObject*> proxy) const override;
 };
 
 extern const SandboxProxyHandler sandboxProxyHandler;
@@ -582,20 +594,17 @@ extern const SandboxProxyHandler sandboxProxyHandler;
 // the correct this object, while forwarding all other operations down
 // to them directly.
 class SandboxCallableProxyHandler : public js::Wrapper {
-public:
-    constexpr SandboxCallableProxyHandler() : js::Wrapper(0)
-    {
-    }
+ public:
+  constexpr SandboxCallableProxyHandler() : js::Wrapper(0) {}
 
-    virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
-                      const JS::CallArgs& args) const override;
+  virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
+                    const JS::CallArgs& args) const override;
 
-    static const size_t SandboxProxySlot = 0;
+  static const size_t SandboxProxySlot = 0;
 
-    static inline JSObject* getSandboxProxy(JS::Handle<JSObject*> proxy)
-    {
-        return &js::GetProxyReservedSlot(proxy, SandboxProxySlot).toObject();
-    }
+  static inline JSObject* getSandboxProxy(JS::Handle<JSObject*> proxy) {
+    return &js::GetProxyReservedSlot(proxy, SandboxProxySlot).toObject();
+  }
 };
 
 extern const SandboxCallableProxyHandler sandboxCallableProxyHandler;
@@ -607,11 +616,11 @@ class AutoSetWrapperNotShadowing;
  * of how these get used; we mostly want the value of JSSLOT_EXPANDO_COUNT here.
  */
 enum ExpandoSlots {
-    JSSLOT_EXPANDO_NEXT = 0,
-    JSSLOT_EXPANDO_ORIGIN,
-    JSSLOT_EXPANDO_EXCLUSIVE_WRAPPER_HOLDER,
-    JSSLOT_EXPANDO_PROTOTYPE,
-    JSSLOT_EXPANDO_COUNT
+  JSSLOT_EXPANDO_NEXT = 0,
+  JSSLOT_EXPANDO_ORIGIN,
+  JSSLOT_EXPANDO_EXCLUSIVE_WRAPPER_HOLDER,
+  JSSLOT_EXPANDO_PROTOTYPE,
+  JSSLOT_EXPANDO_COUNT
 };
 
 extern const JSClassOps XrayExpandoObjectClassOps;
@@ -621,20 +630,18 @@ extern const JSClassOps XrayExpandoObjectClassOps;
  *
  * No-op when called on non-main threads (where Xrays don't exist).
  */
-void
-ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
+void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
 
 /*
  * Ensure the given wrapper has an expando object and return it.  This can
  * return null on failure.  Will only be called when "wrapper" is an Xray for a
  * DOM object.
  */
-JSObject*
-EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper);
+JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper);
 
 // Information about xrays for use by the JITs.
 extern js::XrayJitInfo gXrayJitInfo;
 
-} // namespace xpc
+}  // namespace xpc
 
 #endif

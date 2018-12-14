@@ -10,22 +10,20 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-class nsTextToSubURI: public nsITextToSubURI
-{
+class nsTextToSubURI : public nsITextToSubURI {
   NS_DECL_ISUPPORTS
   NS_DECL_NSITEXTTOSUBURI
 
-private:
+ private:
   virtual ~nsTextToSubURI();
 
   // We assume that the URI is encoded as UTF-8.
-  nsresult convertURItoUnicode(const nsCString& aCharset,
-                               const nsCString& aURI,
-                               nsAString &_retval);
+  nsresult convertURItoUnicode(const nsCString& aCharset, const nsCString& aURI,
+                               nsAString& _retval);
 
   // Characters from the pref "network.IDN.blacklist_chars", or a built-in
   // fallback if reading the pref fails.
   nsTArray<char16_t> mUnsafeChars;
 };
 
-#endif // nsTextToSubURI_h__
+#endif  // nsTextToSubURI_h__

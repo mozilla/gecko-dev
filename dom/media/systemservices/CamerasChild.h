@@ -26,14 +26,14 @@ namespace mozilla {
 namespace ipc {
 class BackgroundChildImpl;
 class PrincipalInfo;
-}
+}  // namespace ipc
 
 namespace camera {
 
 class FrameRelay {
-public:
-  virtual int DeliverFrame(uint8_t* buffer,
-    const mozilla::camera::VideoFrameProperties& props) = 0;
+ public:
+  virtual int DeliverFrame(
+      uint8_t* buffer, const mozilla::camera::VideoFrameProperties& props) = 0;
 };
 
 struct CapturerElement {
@@ -45,7 +45,8 @@ struct CapturerElement {
 // Forward declaration so we can work with pointers to it.
 class CamerasChild;
 // Helper class in impl that we friend.
-template <class T> class LockAndDispatch;
+template <class T>
+class LockAndDispatch;
 
 // We emulate the sync webrtc.org API with the help of singleton
 // CamerasSingleton, which manages a pointer to an IPC object, a thread
@@ -69,13 +70,11 @@ template <class T> class LockAndDispatch;
 // something like device enumeration to complete.
 
 class CamerasSingleton {
-public:
+ public:
   CamerasSingleton();
   ~CamerasSingleton();
 
-  static OffTheBooksMutex& Mutex() {
-    return gTheInstance.get()->mCamerasMutex;
-  }
+  static OffTheBooksMutex& Mutex() { return gTheInstance.get()->mCamerasMutex; }
 
   static CamerasChild*& Child() {
     Mutex().AssertCurrentThreadOwns();
@@ -92,15 +91,11 @@ public:
     return gTheInstance.get()->mFakeDeviceChangeEventThread;
   }
 
-  static bool InShutdown() {
-    return gTheInstance.get()->mInShutdown;
-  }
+  static bool InShutdown() { return gTheInstance.get()->mInShutdown; }
 
-  static void StartShutdown() {
-    gTheInstance.get()->mInShutdown = true;
-  }
+  static void StartShutdown() { gTheInstance.get()->mInShutdown = true; }
 
-private:
+ private:
   static Singleton<CamerasSingleton> gTheInstance;
 
   // Reinitializing CamerasChild will change the pointers below.
@@ -137,8 +132,7 @@ void Shutdown(void);
 // Obtain the CamerasChild object (if possible, i.e. not shutting down),
 // and maintain a grip on the object for the duration of the call.
 template <class MEM_FUN, class... ARGS>
-int GetChildAndCall(MEM_FUN&& f, ARGS&&... args)
-{
+int GetChildAndCall(MEM_FUN&& f, ARGS&&... args) {
   OffTheBooksMutexAutoLock lock(CamerasSingleton::Mutex());
   CamerasChild* child = GetCamerasChild();
   if (child) {
@@ -148,22 +142,21 @@ int GetChildAndCall(MEM_FUN&& f, ARGS&&... args)
   }
 }
 
-class CamerasChild final : public PCamerasChild
-                          ,public DeviceChangeCallback
-{
+class CamerasChild final : public PCamerasChild, public DeviceChangeCallback {
   friend class mozilla::ipc::BackgroundChildImpl;
-  template <class T> friend class mozilla::camera::LockAndDispatch;
+  template <class T>
+  friend class mozilla::camera::LockAndDispatch;
 
-public:
+ public:
   // We are owned by the PBackground thread only. CamerasSingleton
   // takes a non-owning reference.
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CamerasChild)
 
   // IPC messages recevied, received on the PBackground thread
   // these are the actual callbacks with data
-  mozilla::ipc::IPCResult RecvDeliverFrame(const CaptureEngine&, const int&,
-                                           mozilla::ipc::Shmem&&,
-                                           const VideoFrameProperties & prop) override;
+  mozilla::ipc::IPCResult RecvDeliverFrame(
+      const CaptureEngine&, const int&, mozilla::ipc::Shmem&&,
+      const VideoFrameProperties& prop) override;
 
   mozilla::ipc::IPCResult RecvDeviceChange() override;
   int AddDeviceChangeCallback(DeviceChangeCallback* aCallback) override;
@@ -173,10 +166,11 @@ public:
   mozilla::ipc::IPCResult RecvReplyNumberOfCaptureDevices(const int&) override;
   mozilla::ipc::IPCResult RecvReplyNumberOfCapabilities(const int&) override;
   mozilla::ipc::IPCResult RecvReplyAllocateCaptureDevice(const int&) override;
-  mozilla::ipc::IPCResult RecvReplyGetCaptureCapability(const VideoCaptureCapability& capability) override;
-  mozilla::ipc::IPCResult RecvReplyGetCaptureDevice(const nsCString& device_name,
-                                                            const nsCString& device_id,
-                                                            const bool& scary) override;
+  mozilla::ipc::IPCResult RecvReplyGetCaptureCapability(
+      const VideoCaptureCapability& capability) override;
+  mozilla::ipc::IPCResult RecvReplyGetCaptureDevice(
+      const nsCString& device_name, const nsCString& device_id,
+      const bool& scary) override;
   mozilla::ipc::IPCResult RecvReplyFailure(void) override;
   mozilla::ipc::IPCResult RecvReplySuccess(void) override;
   void ActorDestroy(ActorDestroyReason aWhy) override;
@@ -187,23 +181,20 @@ public:
   int NumberOfCaptureDevices(CaptureEngine aCapEngine);
   int NumberOfCapabilities(CaptureEngine aCapEngine,
                            const char* deviceUniqueIdUTF8);
-  int ReleaseCaptureDevice(CaptureEngine aCapEngine,
-                           const int capture_id);
-  int StartCapture(CaptureEngine aCapEngine,
-                   const int capture_id, webrtc::VideoCaptureCapability& capability,
+  int ReleaseCaptureDevice(CaptureEngine aCapEngine, const int capture_id);
+  int StartCapture(CaptureEngine aCapEngine, const int capture_id,
+                   webrtc::VideoCaptureCapability& capability,
                    FrameRelay* func);
   int StopCapture(CaptureEngine aCapEngine, const int capture_id);
-  int AllocateCaptureDevice(CaptureEngine aCapEngine,
-                            const char* unique_idUTF8,
+  int AllocateCaptureDevice(CaptureEngine aCapEngine, const char* unique_idUTF8,
                             const unsigned int unique_idUTF8Length,
                             int& capture_id,
                             const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
-  int GetCaptureCapability(CaptureEngine aCapEngine,
-                           const char* unique_idUTF8,
+  int GetCaptureCapability(CaptureEngine aCapEngine, const char* unique_idUTF8,
                            const unsigned int capability_number,
                            webrtc::VideoCaptureCapability& capability);
-  int GetCaptureDevice(CaptureEngine aCapEngine,
-                       unsigned int list_number, char* device_nameUTF8,
+  int GetCaptureDevice(CaptureEngine aCapEngine, unsigned int list_number,
+                       char* device_nameUTF8,
                        const unsigned int device_nameUTF8Length,
                        char* unique_idUTF8,
                        const unsigned int unique_idUTF8Length,
@@ -213,13 +204,12 @@ public:
 
   FrameRelay* Callback(CaptureEngine aCapEngine, int capture_id);
 
-private:
+ private:
   CamerasChild();
   ~CamerasChild();
   // Dispatch a Runnable to the PCamerasParent, by executing it on the
   // decidecated Cameras IPC/PBackground thread.
-  bool DispatchToParent(nsIRunnable* aRunnable,
-                        MonitorAutoLock& aMonitor);
+  bool DispatchToParent(nsIRunnable* aRunnable, MonitorAutoLock& aMonitor);
   void AddCallback(const CaptureEngine aCapEngine, const int capture_id,
                    FrameRelay* render);
   void RemoveCallback(const CaptureEngine aCapEngine, const int capture_id);
@@ -255,7 +245,7 @@ private:
   bool mReplyScary;
 };
 
-} // namespace camera
-} // namespace mozilla
+}  // namespace camera
+}  // namespace mozilla
 
 #endif  // mozilla_CamerasChild_h

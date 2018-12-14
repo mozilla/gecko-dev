@@ -5,25 +5,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ClientPaintedLayer.h"
-#include "ClientTiledPaintedLayer.h"     // for ClientTiledPaintedLayer
+#include "ClientTiledPaintedLayer.h"    // for ClientTiledPaintedLayer
 #include <stdint.h>                     // for uint32_t
 #include "GeckoProfiler.h"              // for AUTO_PROFILER_LABEL
 #include "client/ClientLayerManager.h"  // for ClientLayerManager, etc
 #include "gfxContext.h"                 // for gfxContext
 #include "gfx2DGlue.h"
-#include "gfxRect.h"                    // for gfxRect
-#include "gfxPrefs.h"                   // for gfxPrefs
-#include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/gfx/2D.h"             // for DrawTarget
+#include "gfxRect.h"             // for gfxRect
+#include "gfxPrefs.h"            // for gfxPrefs
+#include "mozilla/Assertions.h"  // for MOZ_ASSERT, etc
+#include "mozilla/gfx/2D.h"      // for DrawTarget
 #include "mozilla/gfx/DrawEventRecorder.h"
-#include "mozilla/gfx/Matrix.h"         // for Matrix
-#include "mozilla/gfx/Rect.h"           // for Rect, IntRect
-#include "mozilla/gfx/Types.h"          // for Float, etc
+#include "mozilla/gfx/Matrix.h"  // for Matrix
+#include "mozilla/gfx/Rect.h"    // for Rect, IntRect
+#include "mozilla/gfx/Types.h"   // for Float, etc
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/Preferences.h"
-#include "nsCOMPtr.h"                   // for already_AddRefed
-#include "nsISupportsImpl.h"            // for Layer::AddRef, etc
-#include "nsRect.h"                     // for mozilla::gfx::IntRect
+#include "nsCOMPtr.h"         // for already_AddRefed
+#include "nsISupportsImpl.h"  // for Layer::AddRef, etc
+#include "nsRect.h"           // for mozilla::gfx::IntRect
 #include "PaintThread.h"
 #include "ReadbackProcessor.h"
 #include "RotatedBuffer.h"
@@ -33,12 +33,10 @@ namespace layers {
 
 using namespace mozilla::gfx;
 
-bool
-ClientPaintedLayer::EnsureContentClient()
-{
+bool ClientPaintedLayer::EnsureContentClient() {
   if (!mContentClient) {
     mContentClient = ContentClient::CreateContentClient(
-      ClientManager()->AsShadowForwarder());
+        ClientManager()->AsShadowForwarder());
 
     if (!mContentClient) {
       return false;
@@ -52,9 +50,7 @@ ClientPaintedLayer::EnsureContentClient()
   return true;
 }
 
-bool
-ClientPaintedLayer::CanRecordLayer(ReadbackProcessor* aReadback)
-{
+bool ClientPaintedLayer::CanRecordLayer(ReadbackProcessor* aReadback) {
   // If we don't have a paint thread, this is either not the content
   // process or the pref is disabled.
   if (!PaintThread::Get()) {
@@ -69,15 +65,13 @@ ClientPaintedLayer::CanRecordLayer(ReadbackProcessor* aReadback)
   return true;
 }
 
-void
-ClientPaintedLayer::UpdateContentClient(PaintState& aState)
-{
+void ClientPaintedLayer::UpdateContentClient(PaintState& aState) {
   Mutated();
 
   AddToValidRegion(aState.mRegionToDraw);
 
-  ContentClientRemoteBuffer *contentClientRemote =
-      static_cast<ContentClientRemoteBuffer *>(mContentClient.get());
+  ContentClientRemoteBuffer* contentClientRemote =
+      static_cast<ContentClientRemoteBuffer*>(mContentClient.get());
   MOZ_ASSERT(contentClientRemote->GetIPCHandle());
 
   // Hold(this) ensures this layer is kept alive through the current transaction
@@ -88,50 +82,45 @@ ClientPaintedLayer::UpdateContentClient(PaintState& aState)
                                mVisibleRegion.ToUnknownRegion());
 }
 
-bool
-ClientPaintedLayer::UpdatePaintRegion(PaintState& aState)
-{
+bool ClientPaintedLayer::UpdatePaintRegion(PaintState& aState) {
   SubtractFromValidRegion(aState.mRegionToInvalidate);
 
-  if (!aState.mRegionToDraw.IsEmpty() && !ClientManager()->GetPaintedLayerCallback()) {
+  if (!aState.mRegionToDraw.IsEmpty() &&
+      !ClientManager()->GetPaintedLayerCallback()) {
     ClientManager()->SetTransactionIncomplete();
     mContentClient->EndPaint(nullptr);
     return false;
-   }
+  }
 
-   // The area that became invalid and is visible needs to be repainted
-   // (this could be the whole visible area if our buffer switched
-   // from RGB to RGBA, because we might need to repaint with
-   // subpixel AA)
+  // The area that became invalid and is visible needs to be repainted
+  // (this could be the whole visible area if our buffer switched
+  // from RGB to RGBA, because we might need to repaint with
+  // subpixel AA)
   aState.mRegionToInvalidate.And(aState.mRegionToInvalidate,
                                  GetLocalVisibleRegion().ToUnknownRegion());
   return true;
 }
 
-uint32_t
-ClientPaintedLayer::GetPaintFlags()
-{
+uint32_t ClientPaintedLayer::GetPaintFlags() {
   uint32_t flags = ContentClient::PAINT_CAN_DRAW_ROTATED;
-  #ifndef MOZ_IGNORE_PAINT_WILL_RESAMPLE
-   if (ClientManager()->CompositorMightResample()) {
-     flags |= ContentClient::PAINT_WILL_RESAMPLE;
-   }
-   if (!(flags & ContentClient::PAINT_WILL_RESAMPLE)) {
-     if (MayResample()) {
-       flags |= ContentClient::PAINT_WILL_RESAMPLE;
-     }
-   }
-  #endif
+#ifndef MOZ_IGNORE_PAINT_WILL_RESAMPLE
+  if (ClientManager()->CompositorMightResample()) {
+    flags |= ContentClient::PAINT_WILL_RESAMPLE;
+  }
+  if (!(flags & ContentClient::PAINT_WILL_RESAMPLE)) {
+    if (MayResample()) {
+      flags |= ContentClient::PAINT_WILL_RESAMPLE;
+    }
+  }
+#endif
   return flags;
 }
 
-void
-ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUpdates)
-{
+void ClientPaintedLayer::PaintThebes(
+    nsTArray<ReadbackProcessor::Update>* aReadbackUpdates) {
   AUTO_PROFILER_LABEL("ClientPaintedLayer::PaintThebes", GRAPHICS);
 
-  NS_ASSERTION(ClientManager()->InDrawing(),
-               "Can only draw in drawing phase");
+  NS_ASSERTION(ClientManager()->InDrawing(), "Can only draw in drawing phase");
 
   uint32_t flags = GetPaintFlags();
 
@@ -142,7 +131,8 @@ ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUp
 
   bool didUpdate = false;
   RotatedBuffer::DrawIterator iter;
-  while (DrawTarget* target = mContentClient->BorrowDrawTargetForPainting(state, &iter)) {
+  while (DrawTarget* target =
+             mContentClient->BorrowDrawTargetForPainting(state, &iter)) {
     if (!target || !target->IsValid()) {
       if (target) {
         mContentClient->ReturnDrawTarget(target);
@@ -152,16 +142,14 @@ ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUp
 
     SetAntialiasingFlags(this, target);
 
-    RefPtr<gfxContext> ctx = gfxContext::CreatePreservingTransformOrNull(target);
-    MOZ_ASSERT(ctx); // already checked the target above
+    RefPtr<gfxContext> ctx =
+        gfxContext::CreatePreservingTransformOrNull(target);
+    MOZ_ASSERT(ctx);  // already checked the target above
 
-    ClientManager()->GetPaintedLayerCallback()(this,
-                                              ctx,
-                                              iter.mDrawRegion,
-                                              iter.mDrawRegion,
-                                              state.mClip,
-                                              state.mRegionToInvalidate,
-                                              ClientManager()->GetPaintedLayerCallbackData());
+    ClientManager()->GetPaintedLayerCallback()(
+        this, ctx, iter.mDrawRegion, iter.mDrawRegion, state.mClip,
+        state.mRegionToInvalidate,
+        ClientManager()->GetPaintedLayerCallbackData());
 
     ctx = nullptr;
     mContentClient->ReturnDrawTarget(target);
@@ -175,33 +163,30 @@ ClientPaintedLayer::PaintThebes(nsTArray<ReadbackProcessor::Update>* aReadbackUp
   }
 }
 
-class MOZ_RAII AutoQueuedAsyncPaint
-{
-public:
+class MOZ_RAII AutoQueuedAsyncPaint {
+ public:
   explicit AutoQueuedAsyncPaint(ClientLayerManager* aLayerManager)
-    : mLayerManager(aLayerManager)
-    , mQueuedAsyncPaints(false)
-  { }
+      : mLayerManager(aLayerManager), mQueuedAsyncPaints(false) {}
 
   void Queue() { mQueuedAsyncPaints = true; }
 
-  ~AutoQueuedAsyncPaint()
-  {
+  ~AutoQueuedAsyncPaint() {
     if (mQueuedAsyncPaints) {
       mLayerManager->SetQueuedAsyncPaints();
     }
   }
 
-private:
+ private:
   ClientLayerManager* mLayerManager;
   bool mQueuedAsyncPaints;
 };
 
 /***
- * If we can, let's paint this ClientPaintedLayer's contents off the main thread.
- * The essential idea is that we ask the ContentClient for a DrawTarget and record
- * the moz2d commands. On the Paint Thread, we replay those commands to the
- * destination draw target. There are a couple of lifetime issues here though:
+ * If we can, let's paint this ClientPaintedLayer's contents off the main
+ * thread. The essential idea is that we ask the ContentClient for a DrawTarget
+ * and record the moz2d commands. On the Paint Thread, we replay those commands
+ * to the destination draw target. There are a couple of lifetime issues here
+ * though:
  *
  * 1) TextureClient owns the underlying buffer and DrawTarget. Because of this
  *    we have to keep the TextureClient and DrawTarget alive but trick the
@@ -216,17 +201,17 @@ private:
  *    if we have another transaction. Thus we have a gap between when the main
  *    thread records, the paint thread paints, and we block the main thread
  *    from trying to paint again. The underlying API however is NOT thread safe.
- *  4) We have both "sync" and "async" OMTP. Sync OMTP means we paint on the main thread
- *     but block the main thread while the paint thread paints. Async OMTP doesn't block
- *     the main thread. Sync OMTP is only meant to be used as a debugging tool.
+ *  4) We have both "sync" and "async" OMTP. Sync OMTP means we paint on the
+ * main thread but block the main thread while the paint thread paints. Async
+ * OMTP doesn't block the main thread. Sync OMTP is only meant to be used as
+ * a debugging tool.
  */
-void
-ClientPaintedLayer::PaintOffMainThread()
-{
+void ClientPaintedLayer::PaintOffMainThread() {
   AutoQueuedAsyncPaint asyncPaints(ClientManager());
 
   uint32_t flags = GetPaintFlags();
-  PaintState state = mContentClient->BeginPaint(this, flags | ContentClient::PAINT_ASYNC);
+  PaintState state =
+      mContentClient->BeginPaint(this, flags | ContentClient::PAINT_ASYNC);
 
   if (state.mBufferState && state.mBufferState->HasOperations()) {
     PaintThread::Get()->PrepareBuffer(state.mBufferState);
@@ -242,8 +227,7 @@ ClientPaintedLayer::PaintOffMainThread()
 
   // Debug Protip: Change to BorrowDrawTargetForPainting if using sync OMTP.
   while (RefPtr<CapturedPaintState> captureState =
-          mContentClient->BorrowDrawTargetForRecording(state, &iter))
-  {
+             mContentClient->BorrowDrawTargetForRecording(state, &iter)) {
     DrawTarget* target = captureState->mTargetDual;
     if (!target || !target->IsValid()) {
       if (target) {
@@ -252,30 +236,26 @@ ClientPaintedLayer::PaintOffMainThread()
       continue;
     }
 
-    RefPtr<DrawTargetCapture> captureDT =
-      Factory::CreateCaptureDrawTarget(target->GetBackendType(),
-                                       target->GetSize(),
-                                       target->GetFormat());
+    RefPtr<DrawTargetCapture> captureDT = Factory::CreateCaptureDrawTarget(
+        target->GetBackendType(), target->GetSize(), target->GetFormat());
 
     captureDT->SetTransform(captureState->mTargetTransform);
     SetAntialiasingFlags(this, captureDT);
 
-    RefPtr<gfxContext> ctx = gfxContext::CreatePreservingTransformOrNull(captureDT);
-    MOZ_ASSERT(ctx); // already checked the target above
+    RefPtr<gfxContext> ctx =
+        gfxContext::CreatePreservingTransformOrNull(captureDT);
+    MOZ_ASSERT(ctx);  // already checked the target above
 
-    ClientManager()->GetPaintedLayerCallback()(this,
-                                              ctx,
-                                              iter.mDrawRegion,
-                                              iter.mDrawRegion,
-                                              state.mClip,
-                                              state.mRegionToInvalidate,
-                                              ClientManager()->GetPaintedLayerCallbackData());
+    ClientManager()->GetPaintedLayerCallback()(
+        this, ctx, iter.mDrawRegion, iter.mDrawRegion, state.mClip,
+        state.mRegionToInvalidate,
+        ClientManager()->GetPaintedLayerCallbackData());
 
     ctx = nullptr;
 
     captureState->mCapture = captureDT.forget();
-    PaintThread::Get()->PaintContents(captureState,
-                                      ContentClient::PrepareDrawTargetForPainting);
+    PaintThread::Get()->PaintContents(
+        captureState, ContentClient::PrepareDrawTargetForPainting);
 
     mContentClient->ReturnDrawTarget(target);
 
@@ -291,9 +271,7 @@ ClientPaintedLayer::PaintOffMainThread()
   }
 }
 
-void
-ClientPaintedLayer::RenderLayerWithReadback(ReadbackProcessor *aReadback)
-{
+void ClientPaintedLayer::RenderLayerWithReadback(ReadbackProcessor* aReadback) {
   RenderMaskLayers(this);
 
   if (!EnsureContentClient()) {
@@ -314,18 +292,16 @@ ClientPaintedLayer::RenderLayerWithReadback(ReadbackProcessor *aReadback)
   PaintThebes(&readbackUpdates);
 }
 
-already_AddRefed<PaintedLayer>
-ClientLayerManager::CreatePaintedLayer()
-{
+already_AddRefed<PaintedLayer> ClientLayerManager::CreatePaintedLayer() {
   return CreatePaintedLayerWithHint(NONE);
 }
 
-already_AddRefed<PaintedLayer>
-ClientLayerManager::CreatePaintedLayerWithHint(PaintedLayerCreationHint aHint)
-{
+already_AddRefed<PaintedLayer> ClientLayerManager::CreatePaintedLayerWithHint(
+    PaintedLayerCreationHint aHint) {
   NS_ASSERTION(InConstruction(), "Only allowed in construction phase");
   if (gfxPlatform::GetPlatform()->UsesTiling()) {
-    RefPtr<ClientTiledPaintedLayer> layer = new ClientTiledPaintedLayer(this, aHint);
+    RefPtr<ClientTiledPaintedLayer> layer =
+        new ClientTiledPaintedLayer(this, aHint);
     CREATE_SHADOW(Painted);
     return layer.forget();
   } else {
@@ -335,9 +311,8 @@ ClientLayerManager::CreatePaintedLayerWithHint(PaintedLayerCreationHint aHint)
   }
 }
 
-void
-ClientPaintedLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
-{
+void ClientPaintedLayer::PrintInfo(std::stringstream& aStream,
+                                   const char* aPrefix) {
   PaintedLayer::PrintInfo(aStream, aPrefix);
   if (mContentClient) {
     aStream << "\n";
@@ -347,5 +322,5 @@ ClientPaintedLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

@@ -10,7 +10,6 @@
 
 using namespace mozilla::intl;
 
-
 TEST(Intl_Locale_LocaleService, GetAppLocalesAsLangTags) {
   nsTArray<nsCString> appLocales;
   LocaleService::GetInstance()->GetAppLocalesAsLangTags(appLocales);
@@ -38,7 +37,6 @@ TEST(Intl_Locale_LocaleService, GetAppLocaleAsLangTag) {
 
   ASSERT_TRUE(appLocales[0] == locale);
 }
-
 
 TEST(Intl_Locale_LocaleService, GetRegionalPrefsLocales) {
   nsTArray<nsCString> rpLocales;

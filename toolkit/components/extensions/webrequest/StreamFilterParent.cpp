@@ -36,102 +36,87 @@ namespace {
 // EventTarget and delegate their Run methods to a wrapped Runnable or lambda
 // function.
 
-class ChannelEventWrapper : public ChannelEvent
-{
-public:
-  ChannelEventWrapper(nsIEventTarget* aTarget)
-    : mTarget(aTarget)
-  {}
+class ChannelEventWrapper : public ChannelEvent {
+ public:
+  ChannelEventWrapper(nsIEventTarget* aTarget) : mTarget(aTarget) {}
 
-  already_AddRefed<nsIEventTarget> GetEventTarget() override
-  {
+  already_AddRefed<nsIEventTarget> GetEventTarget() override {
     return do_AddRef(mTarget);
   }
 
-protected:
+ protected:
   ~ChannelEventWrapper() override = default;
 
-private:
+ private:
   nsCOMPtr<nsIEventTarget> mTarget;
 };
 
-class ChannelEventFunction final : public ChannelEventWrapper
-{
-public:
+class ChannelEventFunction final : public ChannelEventWrapper {
+ public:
   ChannelEventFunction(nsIEventTarget* aTarget, std::function<void()>&& aFunc)
-    : ChannelEventWrapper(aTarget)
-    , mFunc(Move(aFunc))
-  {}
+      : ChannelEventWrapper(aTarget), mFunc(Move(aFunc)) {}
 
-  void Run() override
-  {
-    mFunc();
-  }
+  void Run() override { mFunc(); }
 
-protected:
+ protected:
   ~ChannelEventFunction() override = default;
 
-private:
+ private:
   std::function<void()> mFunc;
 };
 
-class ChannelEventRunnable final : public ChannelEventWrapper
-{
-public:
-  ChannelEventRunnable(nsIEventTarget* aTarget, already_AddRefed<Runnable> aRunnable)
-    : ChannelEventWrapper(aTarget)
-    , mRunnable(aRunnable)
-  {}
+class ChannelEventRunnable final : public ChannelEventWrapper {
+ public:
+  ChannelEventRunnable(nsIEventTarget* aTarget,
+                       already_AddRefed<Runnable> aRunnable)
+      : ChannelEventWrapper(aTarget), mRunnable(aRunnable) {}
 
-  void Run() override
-  {
+  void Run() override {
     nsresult rv = mRunnable->Run();
     Unused << NS_WARN_IF(NS_FAILED(rv));
   }
 
-protected:
+ protected:
   ~ChannelEventRunnable() override = default;
 
-private:
+ private:
   RefPtr<Runnable> mRunnable;
 };
 
-} // anonymous namespace
+}  // anonymous namespace
 
 /*****************************************************************************
  * Initialization
  *****************************************************************************/
 
 StreamFilterParent::StreamFilterParent()
-  : mMainThread(GetCurrentThreadEventTarget())
-  , mIOThread(mMainThread)
-  , mQueue(new ChannelEventQueue(static_cast<nsIStreamListener*>(this)))
-  , mBufferMutex("StreamFilter buffer mutex")
-  , mReceivedStop(false)
-  , mSentStop(false)
-  , mContext(nullptr)
-  , mOffset(0)
-  , mState(State::Uninitialized)
-{}
+    : mMainThread(GetCurrentThreadEventTarget()),
+      mIOThread(mMainThread),
+      mQueue(new ChannelEventQueue(static_cast<nsIStreamListener*>(this))),
+      mBufferMutex("StreamFilter buffer mutex"),
+      mReceivedStop(false),
+      mSentStop(false),
+      mContext(nullptr),
+      mOffset(0),
+      mState(State::Uninitialized) {}
 
-StreamFilterParent::~StreamFilterParent()
-{
+StreamFilterParent::~StreamFilterParent() {
   NS_ReleaseOnMainThreadSystemGroup("StreamFilterParent::mOrigListener",
                                     mOrigListener.forget());
   NS_ReleaseOnMainThreadSystemGroup("StreamFilterParent::mContext",
                                     mContext.forget());
 }
 
-bool
-StreamFilterParent::Create(dom::ContentParent* aContentParent, uint64_t aChannelId, const nsAString& aAddonId,
-                           Endpoint<PStreamFilterChild>* aEndpoint)
-{
+bool StreamFilterParent::Create(dom::ContentParent* aContentParent,
+                                uint64_t aChannelId, const nsAString& aAddonId,
+                                Endpoint<PStreamFilterChild>* aEndpoint) {
   AssertIsMainThread();
 
   auto& webreq = WebRequestService::GetSingleton();
 
   RefPtr<nsAtom> addonId = NS_Atomize(aAddonId);
-  nsCOMPtr<nsITraceableChannel> channel = webreq.GetTraceableChannel(aChannelId, addonId, aContentParent);
+  nsCOMPtr<nsITraceableChannel> channel =
+      webreq.GetTraceableChannel(aChannelId, addonId, aContentParent);
 
   RefPtr<nsHttpChannel> chan = do_QueryObject(channel);
   NS_ENSURE_TRUE(chan, false);
@@ -141,10 +126,10 @@ StreamFilterParent::Create(dom::ContentParent* aContentParent, uint64_t aChannel
 
   Endpoint<PStreamFilterParent> parent;
   Endpoint<PStreamFilterChild> child;
-  nsresult rv = PStreamFilter::CreateEndpoints(channelPid,
-                                               aContentParent ? aContentParent->OtherPid()
-                                                              : base::GetCurrentProcId(),
-                                               &parent, &child);
+  nsresult rv = PStreamFilter::CreateEndpoints(
+      channelPid,
+      aContentParent ? aContentParent->OtherPid() : base::GetCurrentProcId(),
+      &parent, &child);
   NS_ENSURE_SUCCESS(rv, false);
 
   if (!chan->AttachStreamFilter(Move(parent))) {
@@ -155,17 +140,14 @@ StreamFilterParent::Create(dom::ContentParent* aContentParent, uint64_t aChannel
   return true;
 }
 
-/* static */ void
-StreamFilterParent::Attach(nsIChannel* aChannel, ParentEndpoint&& aEndpoint)
-{
+/* static */ void StreamFilterParent::Attach(nsIChannel* aChannel,
+                                             ParentEndpoint&& aEndpoint) {
   auto self = MakeRefPtr<StreamFilterParent>();
 
-  self->ActorThread()->Dispatch(
-    NewRunnableMethod<ParentEndpoint&&>("StreamFilterParent::Bind",
-                                        self,
-                                        &StreamFilterParent::Bind,
-                                        Move(aEndpoint)),
-    NS_DISPATCH_NORMAL);
+  self->ActorThread()->Dispatch(NewRunnableMethod<ParentEndpoint&&>(
+                                    "StreamFilterParent::Bind", self,
+                                    &StreamFilterParent::Bind, Move(aEndpoint)),
+                                NS_DISPATCH_NORMAL);
 
   self->Init(aChannel);
 
@@ -173,15 +155,11 @@ StreamFilterParent::Attach(nsIChannel* aChannel, ParentEndpoint&& aEndpoint)
   Unused << self.forget();
 }
 
-void
-StreamFilterParent::Bind(ParentEndpoint&& aEndpoint)
-{
+void StreamFilterParent::Bind(ParentEndpoint&& aEndpoint) {
   aEndpoint.Bind(this);
 }
 
-void
-StreamFilterParent::Init(nsIChannel* aChannel)
-{
+void StreamFilterParent::Init(nsIChannel* aChannel) {
   mChannel = aChannel;
 
   nsCOMPtr<nsITraceableChannel> traceable = do_QueryInterface(aChannel);
@@ -196,12 +174,11 @@ StreamFilterParent::Init(nsIChannel* aChannel)
  *****************************************************************************/
 
 NS_IMETHODIMP
-StreamFilterParent::CheckListenerChain()
-{
+StreamFilterParent::CheckListenerChain() {
   AssertIsMainThread();
 
   nsCOMPtr<nsIThreadRetargetableStreamListener> trsl =
-    do_QueryInterface(mOrigListener);
+      do_QueryInterface(mOrigListener);
   if (trsl) {
     return trsl->CheckListenerChain();
   }
@@ -212,9 +189,7 @@ StreamFilterParent::CheckListenerChain()
  * Error handling
  *****************************************************************************/
 
-void
-StreamFilterParent::Broken()
-{
+void StreamFilterParent::Broken() {
   AssertIsActorThread();
 
   mState = State::Disconnecting;
@@ -236,9 +211,7 @@ StreamFilterParent::Broken()
  * State change requests
  *****************************************************************************/
 
-IPCResult
-StreamFilterParent::RecvClose()
-{
+IPCResult StreamFilterParent::RecvClose() {
   AssertIsActorThread();
 
   mState = State::Closed;
@@ -256,30 +229,21 @@ StreamFilterParent::RecvClose()
   return IPC_OK();
 }
 
-void
-StreamFilterParent::Destroy()
-{
+void StreamFilterParent::Destroy() {
   // Close the channel asynchronously so the actor is never destroyed before
   // this message is fully processed.
-  ActorThread()->Dispatch(
-    NewRunnableMethod("StreamFilterParent::Close",
-                      this,
-                      &StreamFilterParent::Close),
-    NS_DISPATCH_NORMAL);
+  ActorThread()->Dispatch(NewRunnableMethod("StreamFilterParent::Close", this,
+                                            &StreamFilterParent::Close),
+                          NS_DISPATCH_NORMAL);
 }
 
-IPCResult
-StreamFilterParent::RecvDestroy()
-{
+IPCResult StreamFilterParent::RecvDestroy() {
   AssertIsActorThread();
   Destroy();
   return IPC_OK();
 }
 
-
-IPCResult
-StreamFilterParent::RecvSuspend()
-{
+IPCResult StreamFilterParent::RecvSuspend() {
   AssertIsActorThread();
 
   if (mState == State::TransferringData) {
@@ -298,9 +262,7 @@ StreamFilterParent::RecvSuspend()
   return IPC_OK();
 }
 
-IPCResult
-StreamFilterParent::RecvResume()
-{
+IPCResult StreamFilterParent::RecvResume() {
   AssertIsActorThread();
 
   if (mState == State::Suspended) {
@@ -321,16 +283,12 @@ StreamFilterParent::RecvResume()
   }
   return IPC_OK();
 }
-IPCResult
-StreamFilterParent::RecvDisconnect()
-{
+IPCResult StreamFilterParent::RecvDisconnect() {
   AssertIsActorThread();
 
   if (mState == State::Suspended) {
     RefPtr<StreamFilterParent> self(this);
-    RunOnMainThread(FUNC, [=] {
-      self->mChannel->Resume();
-    });
+    RunOnMainThread(FUNC, [=] { self->mChannel->Resume(); });
   } else if (mState != State::TransferringData) {
     return IPC_OK();
   }
@@ -340,9 +298,7 @@ StreamFilterParent::RecvDisconnect()
   return IPC_OK();
 }
 
-IPCResult
-StreamFilterParent::RecvFlushedData()
-{
+IPCResult StreamFilterParent::RecvFlushedData() {
   AssertIsActorThread();
 
   MOZ_ASSERT(mState == State::Disconnecting);
@@ -365,30 +321,21 @@ StreamFilterParent::RecvFlushedData()
  * Data output
  *****************************************************************************/
 
-IPCResult
-StreamFilterParent::RecvWrite(Data&& aData)
-{
+IPCResult StreamFilterParent::RecvWrite(Data&& aData) {
   AssertIsActorThread();
 
-
-  RunOnIOThread(
-    NewRunnableMethod<Data&&>("StreamFilterParent::WriteMove",
-                              this,
-                              &StreamFilterParent::WriteMove,
-                              Move(aData)));
+  RunOnIOThread(NewRunnableMethod<Data&&>("StreamFilterParent::WriteMove", this,
+                                          &StreamFilterParent::WriteMove,
+                                          Move(aData)));
   return IPC_OK();
 }
 
-void
-StreamFilterParent::WriteMove(Data&& aData)
-{
+void StreamFilterParent::WriteMove(Data&& aData) {
   nsresult rv = Write(aData);
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 
-nsresult
-StreamFilterParent::Write(Data& aData)
-{
+nsresult StreamFilterParent::Write(Data& aData) {
   AssertIsIOThread();
 
   nsCOMPtr<nsIInputStream> stream;
@@ -397,8 +344,8 @@ StreamFilterParent::Write(Data& aData)
                                       aData.Length());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mOrigListener->OnDataAvailable(mChannel, mContext, stream,
-                                      mOffset, aData.Length());
+  rv = mOrigListener->OnDataAvailable(mChannel, mContext, stream, mOffset,
+                                      aData.Length());
   NS_ENSURE_SUCCESS(rv, rv);
 
   mOffset += aData.Length();
@@ -410,8 +357,8 @@ StreamFilterParent::Write(Data& aData)
  *****************************************************************************/
 
 NS_IMETHODIMP
-StreamFilterParent::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
-{
+StreamFilterParent::OnStartRequest(nsIRequest* aRequest,
+                                   nsISupports* aContext) {
   AssertIsMainThread();
 
   mContext = aContext;
@@ -442,7 +389,8 @@ StreamFilterParent::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 
   // Important: Do this only *after* running the next listener in the chain, so
   // that we get the final delivery target after any retargeting that it may do.
-  if (nsCOMPtr<nsIThreadRetargetableRequest> req = do_QueryInterface(aRequest)) {
+  if (nsCOMPtr<nsIThreadRetargetableRequest> req =
+          do_QueryInterface(aRequest)) {
     nsCOMPtr<nsIEventTarget> thread;
     Unused << req->GetDeliveryTarget(getter_AddRefs(thread));
     if (thread) {
@@ -454,10 +402,8 @@ StreamFilterParent::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 }
 
 NS_IMETHODIMP
-StreamFilterParent::OnStopRequest(nsIRequest* aRequest,
-                                  nsISupports* aContext,
-                                  nsresult aStatusCode)
-{
+StreamFilterParent::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
+                                  nsresult aStatusCode) {
   AssertIsMainThread();
 
   mReceivedStop = true;
@@ -474,9 +420,7 @@ StreamFilterParent::OnStopRequest(nsIRequest* aRequest,
   return NS_OK;
 }
 
-nsresult
-StreamFilterParent::EmitStopRequest(nsresult aStatusCode)
-{
+nsresult StreamFilterParent::EmitStopRequest(nsresult aStatusCode) {
   AssertIsMainThread();
   MOZ_ASSERT(!mSentStop);
 
@@ -488,9 +432,7 @@ StreamFilterParent::EmitStopRequest(nsresult aStatusCode)
  * Incoming data handling
  *****************************************************************************/
 
-void
-StreamFilterParent::DoSendData(Data&& aData)
-{
+void StreamFilterParent::DoSendData(Data&& aData) {
   AssertIsActorThread();
 
   if (mState == State::TransferringData) {
@@ -499,12 +441,9 @@ StreamFilterParent::DoSendData(Data&& aData)
 }
 
 NS_IMETHODIMP
-StreamFilterParent::OnDataAvailable(nsIRequest* aRequest,
-                                    nsISupports* aContext,
+StreamFilterParent::OnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
                                     nsIInputStream* aInputStream,
-                                    uint64_t aOffset,
-                                    uint32_t aCount)
-{
+                                    uint64_t aOffset, uint32_t aCount) {
   AssertIsIOThread();
 
   if (mDisconnected) {
@@ -540,18 +479,14 @@ StreamFilterParent::OnDataAvailable(nsIRequest* aRequest,
     return NS_ERROR_FAILURE;
   } else {
     ActorThread()->Dispatch(
-      NewRunnableMethod<Data&&>("StreamFilterParent::DoSendData",
-                                this,
-                                &StreamFilterParent::DoSendData,
-                                Move(data)),
-      NS_DISPATCH_NORMAL);
+        NewRunnableMethod<Data&&>("StreamFilterParent::DoSendData", this,
+                                  &StreamFilterParent::DoSendData, Move(data)),
+        NS_DISPATCH_NORMAL);
   }
   return NS_OK;
 }
 
-nsresult
-StreamFilterParent::FlushBufferedData()
-{
+nsresult StreamFilterParent::FlushBufferedData() {
   AssertIsIOThread();
 
   // When offloading data to a thread pool, OnDataAvailable isn't guaranteed
@@ -583,72 +518,42 @@ StreamFilterParent::FlushBufferedData()
  * Thread helpers
  *****************************************************************************/
 
-nsIEventTarget*
-StreamFilterParent::ActorThread()
-{
+nsIEventTarget* StreamFilterParent::ActorThread() {
   return gSocketTransportService;
 }
 
-bool
-StreamFilterParent::IsActorThread()
-{
+bool StreamFilterParent::IsActorThread() {
   return ActorThread()->IsOnCurrentThread();
 }
 
-void
-StreamFilterParent::AssertIsActorThread()
-{
-  MOZ_ASSERT(IsActorThread());
-}
+void StreamFilterParent::AssertIsActorThread() { MOZ_ASSERT(IsActorThread()); }
 
-nsIEventTarget*
-StreamFilterParent::IOThread()
-{
-  return mIOThread;
-}
+nsIEventTarget* StreamFilterParent::IOThread() { return mIOThread; }
 
-bool
-StreamFilterParent::IsIOThread()
-{
-  return mIOThread->IsOnCurrentThread();
-}
+bool StreamFilterParent::IsIOThread() { return mIOThread->IsOnCurrentThread(); }
 
-void
-StreamFilterParent::AssertIsIOThread()
-{
-  MOZ_ASSERT(IsIOThread());
-}
+void StreamFilterParent::AssertIsIOThread() { MOZ_ASSERT(IsIOThread()); }
 
-template<typename Function>
-void
-StreamFilterParent::RunOnMainThread(const char* aName, Function&& aFunc)
-{
+template <typename Function>
+void StreamFilterParent::RunOnMainThread(const char* aName, Function&& aFunc) {
   mQueue->RunOrEnqueue(new ChannelEventFunction(mMainThread, Move(aFunc)));
 }
 
-void
-StreamFilterParent::RunOnMainThread(already_AddRefed<Runnable> aRunnable)
-{
+void StreamFilterParent::RunOnMainThread(already_AddRefed<Runnable> aRunnable) {
   mQueue->RunOrEnqueue(new ChannelEventRunnable(mMainThread, Move(aRunnable)));
 }
 
-template<typename Function>
-void
-StreamFilterParent::RunOnIOThread(const char* aName, Function&& aFunc)
-{
+template <typename Function>
+void StreamFilterParent::RunOnIOThread(const char* aName, Function&& aFunc) {
   mQueue->RunOrEnqueue(new ChannelEventFunction(mIOThread, Move(aFunc)));
 }
 
-void
-StreamFilterParent::RunOnIOThread(already_AddRefed<Runnable> aRunnable)
-{
+void StreamFilterParent::RunOnIOThread(already_AddRefed<Runnable> aRunnable) {
   mQueue->RunOrEnqueue(new ChannelEventRunnable(mIOThread, Move(aRunnable)));
 }
 
-template<typename Function>
-void
-StreamFilterParent::RunOnActorThread(const char* aName, Function&& aFunc)
-{
+template <typename Function>
+void StreamFilterParent::RunOnActorThread(const char* aName, Function&& aFunc) {
   // We don't use mQueue for dispatch to the actor thread.
   //
   // The main thread and IO thread are used for dispatching events to the
@@ -667,9 +572,8 @@ StreamFilterParent::RunOnActorThread(const char* aName, Function&& aFunc)
   if (IsActorThread()) {
     aFunc();
   } else {
-    ActorThread()->Dispatch(
-      Move(NS_NewRunnableFunction(aName, aFunc)),
-      NS_DISPATCH_NORMAL);
+    ActorThread()->Dispatch(Move(NS_NewRunnableFunction(aName, aFunc)),
+                            NS_DISPATCH_NORMAL);
   }
 }
 
@@ -677,9 +581,7 @@ StreamFilterParent::RunOnActorThread(const char* aName, Function&& aFunc)
  * Glue
  *****************************************************************************/
 
-void
-StreamFilterParent::ActorDestroy(ActorDestroyReason aWhy)
-{
+void StreamFilterParent::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsActorThread();
 
   if (mState != State::Disconnected && mState != State::Closed) {
@@ -687,14 +589,12 @@ StreamFilterParent::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-void
-StreamFilterParent::DeallocPStreamFilterParent()
-{
+void StreamFilterParent::DeallocPStreamFilterParent() {
   RefPtr<StreamFilterParent> self = dont_AddRef(this);
 }
 
-NS_IMPL_ISUPPORTS(StreamFilterParent, nsIStreamListener, nsIRequestObserver, nsIThreadRetargetableStreamListener)
+NS_IMPL_ISUPPORTS(StreamFilterParent, nsIStreamListener, nsIRequestObserver,
+                  nsIThreadRetargetableStreamListener)
 
-} // namespace extensions
-} // namespace mozilla
-
+}  // namespace extensions
+}  // namespace mozilla

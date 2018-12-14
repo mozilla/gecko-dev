@@ -15,54 +15,41 @@
 
 #include "js/RootingAPI.h"
 
-
 class SandboxPrivate : public nsIGlobalObject,
                        public nsIScriptObjectPrincipal,
                        public nsSupportsWeakReference,
-                       public nsWrapperCache
-{
-public:
-    SandboxPrivate(nsIPrincipal* principal, JSObject* global)
-        : mPrincipal(principal)
-    {
-        SetIsNotDOMBinding();
-        SetWrapper(global);
-    }
+                       public nsWrapperCache {
+ public:
+  SandboxPrivate(nsIPrincipal* principal, JSObject* global)
+      : mPrincipal(principal) {
+    SetIsNotDOMBinding();
+    SetWrapper(global);
+  }
 
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(SandboxPrivate,
-                                                           nsIGlobalObject)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(SandboxPrivate,
+                                                         nsIGlobalObject)
 
-    nsIPrincipal* GetPrincipal() override
-    {
-        return mPrincipal;
-    }
+  nsIPrincipal* GetPrincipal() override { return mPrincipal; }
 
-    JSObject* GetGlobalJSObject() override
-    {
-        return GetWrapper();
-    }
+  JSObject* GetGlobalJSObject() override { return GetWrapper(); }
 
-    void ForgetGlobalObject(JSObject* obj)
-    {
-        ClearWrapper(obj);
-    }
+  void ForgetGlobalObject(JSObject* obj) { ClearWrapper(obj); }
 
-    virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override
-    {
-        MOZ_CRASH("SandboxPrivate doesn't use DOM bindings!");
-    }
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> aGivenProto) override {
+    MOZ_CRASH("SandboxPrivate doesn't use DOM bindings!");
+  }
 
-    size_t ObjectMoved(JSObject* obj, JSObject* old)
-    {
-        UpdateWrapper(obj, old);
-        return 0;
-    }
+  size_t ObjectMoved(JSObject* obj, JSObject* old) {
+    UpdateWrapper(obj, old);
+    return 0;
+  }
 
-private:
-    virtual ~SandboxPrivate() { }
+ private:
+  virtual ~SandboxPrivate() {}
 
-    nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
-#endif // __SANDBOXPRIVATE_H__
+#endif  // __SANDBOXPRIVATE_H__

@@ -8,16 +8,13 @@
 
 #include "gfxAlphaRecovery.h"
 #include "mozilla/Likely.h"
-#include "mozilla/Types.h" // for decltype
+#include "mozilla/Types.h"  // for decltype
 
 namespace mozilla {
 namespace gfx {
 
-bool
-SourceSurfaceVolatileData::Init(const IntSize &aSize,
-                                int32_t aStride,
-                                SurfaceFormat aFormat)
-{
+bool SourceSurfaceVolatileData::Init(const IntSize& aSize, int32_t aStride,
+                                     SurfaceFormat aFormat) {
   mSize = aSize;
   mStride = aStride;
   mFormat = aFormat;
@@ -32,18 +29,13 @@ SourceSurfaceVolatileData::Init(const IntSize &aSize,
   return true;
 }
 
-void
-SourceSurfaceVolatileData::GuaranteePersistance()
-{
+void SourceSurfaceVolatileData::GuaranteePersistance() {
   MOZ_ASSERT_UNREACHABLE("Should use SourceSurfaceRawData wrapper!");
 }
 
-void
-SourceSurfaceVolatileData::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                                  size_t& aHeapSizeOut,
-                                                  size_t& aNonHeapSizeOut,
-                                                  size_t& aExtHandlesOut) const
-{
+void SourceSurfaceVolatileData::AddSizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf, size_t& aHeapSizeOut, size_t& aNonHeapSizeOut,
+    size_t& aExtHandlesOut) const {
   if (mVBuf) {
     aHeapSizeOut += mVBuf->HeapSizeOfExcludingThis(aMallocSizeOf);
     aNonHeapSizeOut += mVBuf->NonHeapSizeOfExcludingThis();
@@ -56,5 +48,5 @@ SourceSurfaceVolatileData::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
   }
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

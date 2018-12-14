@@ -34,36 +34,28 @@ but can be set explicitly only on <mstyle>. (See Section 3.3.4.)
 */
 
 class nsMathMLmsqrtFrame : public nsMathMLmencloseFrame {
-public:
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmsqrtFrame)
 
-  friend nsIFrame* NS_NewMathMLmsqrtFrame(nsIPresShell*   aPresShell,
+  friend nsIFrame* NS_NewMathMLmsqrtFrame(nsIPresShell* aPresShell,
                                           nsStyleContext* aContext);
 
-  virtual void
-  Init(nsIContent*       aContent,
-       nsContainerFrame* aParent,
-       nsIFrame*         aPrevInFlow) override;
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* aPrevInFlow) override;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
 
-  virtual nsresult
-  AttributeChanged(int32_t         aNameSpaceID,
-                   nsAtom*        aAttribute,
-                   int32_t         aModType) override;
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                                    int32_t aModType) override;
 
-  virtual bool
-  IsMrowLike() override
-  {
-    return mFrames.FirstChild() != mFrames.LastChild() ||
-           !mFrames.FirstChild();
+  virtual bool IsMrowLike() override {
+    return mFrames.FirstChild() != mFrames.LastChild() || !mFrames.FirstChild();
   }
 
-protected:
+ protected:
   explicit nsMathMLmsqrtFrame(nsStyleContext* aContext);
   virtual ~nsMathMLmsqrtFrame();
 };
 
 #endif /* nsMathMLmsqrtFrame_h___ */
-

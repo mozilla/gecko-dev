@@ -28,59 +28,43 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 
 VRDisplayClient::VRDisplayClient(const VRDisplayInfo& aDisplayInfo)
-  : mDisplayInfo(aDisplayInfo)
-  , bLastEventWasMounted(false)
-  , bLastEventWasPresenting(false)
-  , mPresentationCount(0)
-  , mLastEventFrameId(0)
-  , mLastPresentingGeneration(0)
-{
+    : mDisplayInfo(aDisplayInfo),
+      bLastEventWasMounted(false),
+      bLastEventWasPresenting(false),
+      mPresentationCount(0),
+      mLastEventFrameId(0),
+      mLastPresentingGeneration(0) {
   MOZ_COUNT_CTOR(VRDisplayClient);
 }
 
-VRDisplayClient::~VRDisplayClient() {
-  MOZ_COUNT_DTOR(VRDisplayClient);
-}
+VRDisplayClient::~VRDisplayClient() { MOZ_COUNT_DTOR(VRDisplayClient); }
 
-void
-VRDisplayClient::UpdateDisplayInfo(const VRDisplayInfo& aDisplayInfo)
-{
+void VRDisplayClient::UpdateDisplayInfo(const VRDisplayInfo& aDisplayInfo) {
   mDisplayInfo = aDisplayInfo;
   FireEvents();
 }
 
-already_AddRefed<VRDisplayPresentation>
-VRDisplayClient::BeginPresentation(const nsTArray<mozilla::dom::VRLayer>& aLayers,
-                                   uint32_t aGroup)
-{
+already_AddRefed<VRDisplayPresentation> VRDisplayClient::BeginPresentation(
+    const nsTArray<mozilla::dom::VRLayer>& aLayers, uint32_t aGroup) {
   ++mPresentationCount;
-  RefPtr<VRDisplayPresentation> presentation = new VRDisplayPresentation(this, aLayers, aGroup);
+  RefPtr<VRDisplayPresentation> presentation =
+      new VRDisplayPresentation(this, aLayers, aGroup);
   return presentation.forget();
 }
 
-void
-VRDisplayClient::PresentationDestroyed()
-{
-  --mPresentationCount;
-}
+void VRDisplayClient::PresentationDestroyed() { --mPresentationCount; }
 
-void
-VRDisplayClient::ZeroSensor()
-{
-  VRManagerChild *vm = VRManagerChild::Get();
+void VRDisplayClient::ZeroSensor() {
+  VRManagerChild* vm = VRManagerChild::Get();
   vm->SendResetSensor(mDisplayInfo.mDisplayID);
 }
 
-void
-VRDisplayClient::SetGroupMask(uint32_t aGroupMask)
-{
-  VRManagerChild *vm = VRManagerChild::Get();
+void VRDisplayClient::SetGroupMask(uint32_t aGroupMask) {
+  VRManagerChild* vm = VRManagerChild::Get();
   vm->SendSetGroupMask(mDisplayInfo.mDisplayID, aGroupMask);
 }
 
-bool
-VRDisplayClient::IsPresentationGenerationCurrent() const
-{
+bool VRDisplayClient::IsPresentationGenerationCurrent() const {
   if (mLastPresentingGeneration != mDisplayInfo.mPresentingGeneration) {
     return false;
   }
@@ -88,16 +72,12 @@ VRDisplayClient::IsPresentationGenerationCurrent() const
   return true;
 }
 
-void
-VRDisplayClient::MakePresentationGenerationCurrent()
-{
+void VRDisplayClient::MakePresentationGenerationCurrent() {
   mLastPresentingGeneration = mDisplayInfo.mPresentingGeneration;
 }
 
-void
-VRDisplayClient::FireEvents()
-{
-  VRManagerChild *vm = VRManagerChild::Get();
+void VRDisplayClient::FireEvents() {
+  VRManagerChild* vm = VRManagerChild::Get();
   // Only fire these events for non-chrome VR sessions
   bool isPresenting = (mDisplayInfo.mPresentingGroups & kVRGroupContent) != 0;
 
@@ -130,32 +110,23 @@ VRDisplayClient::FireEvents()
   }
 }
 
-VRHMDSensorState
-VRDisplayClient::GetSensorState()
-{
+VRHMDSensorState VRDisplayClient::GetSensorState() {
   return mDisplayInfo.GetSensorState();
 }
 
-bool
-VRDisplayClient::GetIsConnected() const
-{
+bool VRDisplayClient::GetIsConnected() const {
   return mDisplayInfo.GetIsConnected();
 }
 
-void
-VRDisplayClient::NotifyDisconnected()
-{
+void VRDisplayClient::NotifyDisconnected() {
   mDisplayInfo.mIsConnected = false;
 }
 
-void
-VRDisplayClient::UpdateSubmitFrameResult(const VRSubmitFrameResultInfo& aResult)
-{
+void VRDisplayClient::UpdateSubmitFrameResult(
+    const VRSubmitFrameResultInfo& aResult) {
   mSubmitFrameResult = aResult;
 }
 
-void
-VRDisplayClient::GetSubmitFrameResult(VRSubmitFrameResultInfo& aResult)
-{
+void VRDisplayClient::GetSubmitFrameResult(VRSubmitFrameResultInfo& aResult) {
   aResult = mSubmitFrameResult;
 }

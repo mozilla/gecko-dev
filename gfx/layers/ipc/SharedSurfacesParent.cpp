@@ -17,33 +17,24 @@ using namespace mozilla::gfx;
 
 StaticAutoPtr<SharedSurfacesParent> SharedSurfacesParent::sInstance;
 
-SharedSurfacesParent::SharedSurfacesParent()
-{
-}
+SharedSurfacesParent::SharedSurfacesParent() {}
 
-SharedSurfacesParent::~SharedSurfacesParent()
-{
-}
+SharedSurfacesParent::~SharedSurfacesParent() {}
 
-/* static */ void
-SharedSurfacesParent::Initialize()
-{
+/* static */ void SharedSurfacesParent::Initialize() {
   MOZ_ASSERT(NS_IsMainThread());
   if (!sInstance) {
     sInstance = new SharedSurfacesParent();
   }
 }
 
-/* static */ void
-SharedSurfacesParent::Shutdown()
-{
+/* static */ void SharedSurfacesParent::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
   sInstance = nullptr;
 }
 
-/* static */ already_AddRefed<DataSourceSurface>
-SharedSurfacesParent::Get(const wr::ExternalImageId& aId)
-{
+/* static */ already_AddRefed<DataSourceSurface> SharedSurfacesParent::Get(
+    const wr::ExternalImageId& aId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (!sInstance) {
     return nullptr;
@@ -54,9 +45,8 @@ SharedSurfacesParent::Get(const wr::ExternalImageId& aId)
   return surface.forget();
 }
 
-/* static */ already_AddRefed<DataSourceSurface>
-SharedSurfacesParent::Acquire(const wr::ExternalImageId& aId)
-{
+/* static */ already_AddRefed<DataSourceSurface> SharedSurfacesParent::Acquire(
+    const wr::ExternalImageId& aId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (!sInstance) {
     return nullptr;
@@ -72,9 +62,8 @@ SharedSurfacesParent::Acquire(const wr::ExternalImageId& aId)
   return surface.forget();
 }
 
-/* static */ bool
-SharedSurfacesParent::Release(const wr::ExternalImageId& aId)
-{
+/* static */ bool SharedSurfacesParent::Release(
+    const wr::ExternalImageId& aId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (!sInstance) {
     return false;
@@ -94,10 +83,8 @@ SharedSurfacesParent::Release(const wr::ExternalImageId& aId)
   return true;
 }
 
-/* static */ void
-SharedSurfacesParent::AddSameProcess(const wr::ExternalImageId& aId,
-                                     SourceSurfaceSharedData* aSurface)
-{
+/* static */ void SharedSurfacesParent::AddSameProcess(
+    const wr::ExternalImageId& aId, SourceSurfaceSharedData* aSurface) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -107,48 +94,42 @@ SharedSurfacesParent::AddSameProcess(const wr::ExternalImageId& aId,
   // still allow the original surface to be freed and remove the wrapper from
   // the table when it is no longer needed.
   RefPtr<SourceSurfaceSharedDataWrapper> surface =
-    new SourceSurfaceSharedDataWrapper();
+      new SourceSurfaceSharedDataWrapper();
   surface->Init(aSurface);
 
   uint64_t id = wr::AsUint64(aId);
   RefPtr<Runnable> task = NS_NewRunnableFunction(
-    "layers::SharedSurfacesParent::AddSameProcess",
-    [surface, id]() -> void {
-      if (!sInstance) {
-        return;
-      }
+      "layers::SharedSurfacesParent::AddSameProcess", [surface, id]() -> void {
+        if (!sInstance) {
+          return;
+        }
 
-      MOZ_ASSERT(!sInstance->mSurfaces.Contains(id));
+        MOZ_ASSERT(!sInstance->mSurfaces.Contains(id));
 
-      RefPtr<wr::RenderSharedSurfaceTextureHost> texture =
-        new wr::RenderSharedSurfaceTextureHost(surface);
-      wr::RenderThread::Get()->RegisterExternalImage(id, texture.forget());
+        RefPtr<wr::RenderSharedSurfaceTextureHost> texture =
+            new wr::RenderSharedSurfaceTextureHost(surface);
+        wr::RenderThread::Get()->RegisterExternalImage(id, texture.forget());
 
-      sInstance->mSurfaces.Put(id, surface);
-    });
+        sInstance->mSurfaces.Put(id, surface);
+      });
 
   CompositorThreadHolder::Loop()->PostTask(task.forget());
 }
 
-/* static */ void
-SharedSurfacesParent::RemoveSameProcess(const wr::ExternalImageId& aId)
-{
+/* static */ void SharedSurfacesParent::RemoveSameProcess(
+    const wr::ExternalImageId& aId) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
   const wr::ExternalImageId id(aId);
-  RefPtr<Runnable> task = NS_NewRunnableFunction(
-    "layers::SharedSurfacesParent::RemoveSameProcess",
-    [id]() -> void {
-      Remove(id);
-    });
+  RefPtr<Runnable> task =
+      NS_NewRunnableFunction("layers::SharedSurfacesParent::RemoveSameProcess",
+                             [id]() -> void { Remove(id); });
 
   CompositorThreadHolder::Loop()->PostTask(task.forget());
 }
 
-/* static */ void
-SharedSurfacesParent::DestroyProcess(base::ProcessId aPid)
-{
+/* static */ void SharedSurfacesParent::DestroyProcess(base::ProcessId aPid) {
   if (!sInstance) {
     return;
   }
@@ -163,11 +144,9 @@ SharedSurfacesParent::DestroyProcess(base::ProcessId aPid)
   }
 }
 
-/* static */ void
-SharedSurfacesParent::Add(const wr::ExternalImageId& aId,
-                          const SurfaceDescriptorShared& aDesc,
-                          base::ProcessId aPid)
-{
+/* static */ void SharedSurfacesParent::Add(
+    const wr::ExternalImageId& aId, const SurfaceDescriptorShared& aDesc,
+    base::ProcessId aPid) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   MOZ_ASSERT(aPid != base::GetCurrentProcId());
   if (!sInstance) {
@@ -176,10 +155,9 @@ SharedSurfacesParent::Add(const wr::ExternalImageId& aId,
 
   // Note that the surface wrapper maps in the given handle as read only.
   RefPtr<SourceSurfaceSharedDataWrapper> surface =
-    new SourceSurfaceSharedDataWrapper();
-  if (NS_WARN_IF(!surface->Init(aDesc.size(), aDesc.stride(),
-                                aDesc.format(), aDesc.handle(),
-                                aPid))) {
+      new SourceSurfaceSharedDataWrapper();
+  if (NS_WARN_IF(!surface->Init(aDesc.size(), aDesc.stride(), aDesc.format(),
+                                aDesc.handle(), aPid))) {
     return;
   }
 
@@ -187,19 +165,17 @@ SharedSurfacesParent::Add(const wr::ExternalImageId& aId,
   MOZ_ASSERT(!sInstance->mSurfaces.Contains(id));
 
   RefPtr<wr::RenderSharedSurfaceTextureHost> texture =
-    new wr::RenderSharedSurfaceTextureHost(surface);
+      new wr::RenderSharedSurfaceTextureHost(surface);
   wr::RenderThread::Get()->RegisterExternalImage(id, texture.forget());
 
   sInstance->mSurfaces.Put(id, surface.forget());
 }
 
-/* static */ void
-SharedSurfacesParent::Remove(const wr::ExternalImageId& aId)
-{
+/* static */ void SharedSurfacesParent::Remove(const wr::ExternalImageId& aId) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   DebugOnly<bool> rv = Release(aId);
   MOZ_ASSERT(rv);
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

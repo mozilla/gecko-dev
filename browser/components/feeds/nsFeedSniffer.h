@@ -3,35 +3,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 #include "nsIContentSniffer.h"
 #include "nsIStreamListener.h"
 #include "nsString.h"
 #include "mozilla/Attributes.h"
 
-class nsFeedSniffer final : public nsIContentSniffer,
-                                   nsIStreamListener
-{
-public:
+class nsFeedSniffer final : public nsIContentSniffer, nsIStreamListener {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSICONTENTSNIFFER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
 
   static nsresult AppendSegmentToString(nsIInputStream* inputStream,
-                                        void* closure,
-                                        const char* rawSegment,
-                                        uint32_t toOffset,
-                                        uint32_t count,
+                                        void* closure, const char* rawSegment,
+                                        uint32_t toOffset, uint32_t count,
                                         uint32_t* writeCount);
 
-protected:
+ protected:
   ~nsFeedSniffer() {}
 
   nsresult ConvertEncodedData(nsIRequest* request, const uint8_t* data,
                               uint32_t length);
 
-private:
+ private:
   nsCString mDecodedData;
 };
-

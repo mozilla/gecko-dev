@@ -18,30 +18,28 @@ namespace jit {
 
 // ICCompare_Int32
 
-bool
-ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm)
-{
-    // Guard that R0 is an integer and R1 is an integer.
-    Label failure;
-    Label conditionTrue;
-    masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
-    masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
+bool ICCompare_Int32::Compiler::generateStubCode(MacroAssembler& masm) {
+  // Guard that R0 is an integer and R1 is an integer.
+  Label failure;
+  Label conditionTrue;
+  masm.branchTestInt32(Assembler::NotEqual, R0, &failure);
+  masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
 
-    // Compare payload regs of R0 and R1.
-    masm.unboxInt32(R0, ExtractTemp0);
-    masm.unboxInt32(R1, ExtractTemp1);
-    Assembler::Condition cond = JSOpToCondition(op, /* signed = */true);
-    masm.ma_cmp_set(R0.valueReg(), ExtractTemp0, ExtractTemp1, cond);
+  // Compare payload regs of R0 and R1.
+  masm.unboxInt32(R0, ExtractTemp0);
+  masm.unboxInt32(R1, ExtractTemp1);
+  Assembler::Condition cond = JSOpToCondition(op, /* signed = */ true);
+  masm.ma_cmp_set(R0.valueReg(), ExtractTemp0, ExtractTemp1, cond);
 
-    masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.valueReg(), R0);
-    EmitReturnFromIC(masm);
+  masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.valueReg(), R0);
+  EmitReturnFromIC(masm);
 
-    // Failure case - jump to next stub
-    masm.bind(&failure);
-    EmitStubGuardFailure(masm);
+  // Failure case - jump to next stub
+  masm.bind(&failure);
+  EmitStubGuardFailure(masm);
 
-    return true;
+  return true;
 }
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js

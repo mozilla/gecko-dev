@@ -17,25 +17,23 @@ namespace net {
 
 class CacheIndexIterator;
 
-struct CacheFileContextEvictorEntry
-{
+struct CacheFileContextEvictorEntry {
   nsCOMPtr<nsILoadContextInfo> mInfo;
-  bool                         mPinned;
-  PRTime                       mTimeStamp; // in milliseconds
+  bool mPinned;
+  PRTime mTimeStamp;  // in milliseconds
   RefPtr<CacheIndexIterator> mIterator;
 };
 
-class CacheFileContextEvictor
-{
-public:
+class CacheFileContextEvictor {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CacheFileContextEvictor)
 
   CacheFileContextEvictor();
 
-private:
+ private:
   virtual ~CacheFileContextEvictor();
 
-public:
+ public:
   nsresult Init(nsIFile *aCacheDirectory);
   void Shutdown();
 
@@ -55,24 +53,26 @@ public:
   nsresult WasEvicted(const nsACString &aKey, nsIFile *aFile,
                       bool *aEvictedAsPinned, bool *aEvictedAsNonPinned);
 
-private:
+ private:
   // Writes information about eviction of the given context to the disk. This is
   // done for every context added to the evictor to be able to recover eviction
   // after a shutdown or crash. When the context file is found after startup, we
   // restore mTimeStamp from the last modified time of the file.
-  nsresult PersistEvictionInfoToDisk(nsILoadContextInfo *aLoadContextInfo, bool aPinned);
+  nsresult PersistEvictionInfoToDisk(nsILoadContextInfo *aLoadContextInfo,
+                                     bool aPinned);
   // Once we are done with eviction for the given context, the eviction info is
   // removed from the disk.
-  nsresult RemoveEvictInfoFromDisk(nsILoadContextInfo *aLoadContextInfo, bool aPinned);
+  nsresult RemoveEvictInfoFromDisk(nsILoadContextInfo *aLoadContextInfo,
+                                   bool aPinned);
   // Tries to load all contexts from the disk. This method is called just once
   // after startup.
   nsresult LoadEvictInfoFromDisk();
   nsresult GetContextFile(nsILoadContextInfo *aLoadContextInfo, bool aPinned,
                           nsIFile **_retval);
 
-  void     CreateIterators();
-  void     CloseIterators();
-  void     StartEvicting();
+  void CreateIterators();
+  void CloseIterators();
+  void StartEvicting();
   nsresult EvictEntries();
 
   // Whether eviction is in progress
@@ -91,7 +91,7 @@ private:
   nsCOMPtr<nsIFile> mEntriesDir;
 };
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 #endif

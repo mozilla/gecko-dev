@@ -11,9 +11,8 @@
 namespace mozilla {
 namespace a11y {
 
-class HTMLLinkAccessible : public HyperTextAccessibleWrap
-{
-public:
+class HTMLLinkAccessible : public HyperTextAccessibleWrap {
+ public:
   HTMLLinkAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLLinkAccessible,
@@ -35,7 +34,7 @@ public:
   virtual bool IsLink() override;
   virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex) override;
 
-protected:
+ protected:
   virtual ~HTMLLinkAccessible() {}
 
   enum { eAction_Jump = 0 };
@@ -46,7 +45,7 @@ protected:
   bool IsLinked() const;
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

@@ -12,15 +12,14 @@
 namespace js {
 namespace jit {
 
-class BaselineCompilerX86 : public BaselineCompilerX86Shared
-{
-  protected:
-    BaselineCompilerX86(JSContext* cx, TempAllocator& alloc, JSScript* script);
+class BaselineCompilerX86 : public BaselineCompilerX86Shared {
+ protected:
+  BaselineCompilerX86(JSContext* cx, TempAllocator& alloc, JSScript* script);
 };
 
 typedef BaselineCompilerX86 BaselineCompilerSpecific;
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_x86_BaselineCompiler_x86_h */

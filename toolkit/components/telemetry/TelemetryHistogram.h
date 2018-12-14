@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -31,52 +32,56 @@ bool CanRecordExtended();
 void SetCanRecordExtended(bool b);
 
 void InitHistogramRecordingEnabled();
-void SetHistogramRecordingEnabled(mozilla::Telemetry::HistogramID aID, bool aEnabled);
+void SetHistogramRecordingEnabled(mozilla::Telemetry::HistogramID aID,
+                                  bool aEnabled);
 
-nsresult SetHistogramRecordingEnabled(const nsACString &id, bool aEnabled);
+nsresult SetHistogramRecordingEnabled(const nsACString& id, bool aEnabled);
 
 void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
-void Accumulate(mozilla::Telemetry::HistogramID aHistogram, const nsTArray<uint32_t>& aSamples);
+void Accumulate(mozilla::Telemetry::HistogramID aHistogram,
+                const nsTArray<uint32_t>& aSamples);
 void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
-                                            uint32_t aSample);
+                uint32_t aSample);
 void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
-                                          const nsTArray<uint32_t>& aSamples);
+                const nsTArray<uint32_t>& aSamples);
 void Accumulate(const char* name, uint32_t sample);
 void Accumulate(const char* name, const nsCString& key, uint32_t sample);
 
-void AccumulateCategorical(mozilla::Telemetry::HistogramID aId, const nsCString& aLabel);
-void AccumulateCategorical(mozilla::Telemetry::HistogramID aId, const nsTArray<nsCString>& aLabels);
+void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
+                           const nsCString& aLabel);
+void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
+                           const nsTArray<nsCString>& aLabels);
 
-void AccumulateChild(mozilla::Telemetry::ProcessID aProcessType,
-                     const nsTArray<mozilla::Telemetry::HistogramAccumulation>& aAccumulations);
-void AccumulateChildKeyed(mozilla::Telemetry::ProcessID aProcessType,
-                          const nsTArray<mozilla::Telemetry::KeyedHistogramAccumulation>& aAccumulations);
+void AccumulateChild(
+    mozilla::Telemetry::ProcessID aProcessType,
+    const nsTArray<mozilla::Telemetry::HistogramAccumulation>& aAccumulations);
+void AccumulateChildKeyed(
+    mozilla::Telemetry::ProcessID aProcessType,
+    const nsTArray<mozilla::Telemetry::KeyedHistogramAccumulation>&
+        aAccumulations);
 
-nsresult
-GetHistogramById(const nsACString &name, JSContext *cx,
-                 JS::MutableHandle<JS::Value> ret);
+nsresult GetHistogramById(const nsACString& name, JSContext* cx,
+                          JS::MutableHandle<JS::Value> ret);
 
-nsresult
-GetKeyedHistogramById(const nsACString &name, JSContext *cx,
-                      JS::MutableHandle<JS::Value> ret);
+nsresult GetKeyedHistogramById(const nsACString& name, JSContext* cx,
+                               JS::MutableHandle<JS::Value> ret);
 
-const char*
-GetHistogramName(mozilla::Telemetry::HistogramID id);
+const char* GetHistogramName(mozilla::Telemetry::HistogramID id);
 
-nsresult
-CreateHistogramSnapshots(JSContext* aCx, JS::MutableHandleValue aResult, unsigned int aDataset,
-                         bool aSubsession, bool aClearSubsession);
+nsresult CreateHistogramSnapshots(JSContext* aCx,
+                                  JS::MutableHandleValue aResult,
+                                  unsigned int aDataset, bool aSubsession,
+                                  bool aClearSubsession);
 
-nsresult
-GetKeyedHistogramSnapshots(JSContext *aCx, JS::MutableHandleValue aResult, unsigned int aDataset,
-                           bool aSubsession, bool aClearSubsession);
+nsresult GetKeyedHistogramSnapshots(JSContext* aCx,
+                                    JS::MutableHandleValue aResult,
+                                    unsigned int aDataset, bool aSubsession,
+                                    bool aClearSubsession);
 
-size_t
-GetMapShallowSizesOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+size_t GetMapShallowSizesOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-size_t
-GetHistogramSizesofIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+size_t GetHistogramSizesofIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-} // namespace TelemetryHistogram
+}  // namespace TelemetryHistogram
 
-#endif // TelemetryHistogram_h__
+#endif  // TelemetryHistogram_h__

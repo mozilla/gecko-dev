@@ -25,9 +25,7 @@
 namespace mozilla {
 
 #ifdef RESTYLE_LOGGING
-static nsCString
-GetDocumentURI(nsIDocument* aDocument)
-{
+static nsCString GetDocumentURI(nsIDocument* aDocument) {
   nsCString result;
   nsAutoString url;
   nsresult rv = aDocument->GetDocumentURI(url);
@@ -38,9 +36,7 @@ GetDocumentURI(nsIDocument* aDocument)
   return result;
 }
 
-static nsCString
-FrameTagToString(dom::Element* aElement)
-{
+static nsCString FrameTagToString(dom::Element* aElement) {
   nsCString result;
   nsIFrame* frame = aElement->GetPrimaryFrame();
   if (frame) {
@@ -54,8 +50,7 @@ FrameTagToString(dom::Element* aElement)
 }
 #endif
 
-inline nsIDocument*
-RestyleTracker::Document() const {
+inline nsIDocument* RestyleTracker::Document() const {
   return mRestyleManager->PresContext()->Document();
 }
 
@@ -68,12 +63,9 @@ struct RestyleEnumerateData : RestyleTracker::Hints {
 #endif
 };
 
-inline void
-RestyleTracker::ProcessOneRestyle(Element* aElement,
-                                  nsRestyleHint aRestyleHint,
-                                  nsChangeHint aChangeHint,
-                                  const RestyleHintData& aRestyleHintData)
-{
+inline void RestyleTracker::ProcessOneRestyle(
+    Element* aElement, nsRestyleHint aRestyleHint, nsChangeHint aChangeHint,
+    const RestyleHintData& aRestyleHintData) {
   NS_PRECONDITION((aRestyleHint & eRestyle_LaterSiblings) == 0,
                   "Someone should have handled this before calling us");
   NS_PRECONDITION(Document(), "Must have a document");
@@ -96,11 +88,10 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
           LoggingDepth(), GeckoRestyleManager::StructsToLog());
     }
 #endif
-    mRestyleManager->RestyleElement(aElement, primaryFrame, aChangeHint,
-                                    *this, aRestyleHint, aRestyleHintData);
+    mRestyleManager->RestyleElement(aElement, primaryFrame, aChangeHint, *this,
+                                    aRestyleHint, aRestyleHintData);
   } else if (aChangeHint &&
-             (primaryFrame ||
-              (aChangeHint & nsChangeHint_ReconstructFrame))) {
+             (primaryFrame || (aChangeHint & nsChangeHint_ReconstructFrame))) {
     // Don't need to recompute style; just apply the hint
     nsStyleChangeList changeList(StyleBackendType::Gecko);
     changeList.AppendChange(primaryFrame, aElement, aChangeHint);
@@ -108,26 +99,24 @@ RestyleTracker::ProcessOneRestyle(Element* aElement,
   }
 }
 
-void
-RestyleTracker::DoProcessRestyles()
-{
+void RestyleTracker::DoProcessRestyles() {
 #ifdef MOZ_GECKO_PROFILER
   nsAutoCString docURL("N/A");
   if (profiler_is_active()) {
-    nsIURI *uri = Document()->GetDocumentURI();
+    nsIURI* uri = Document()->GetDocumentURI();
     if (uri) {
       docURL = uri->GetSpecOrDefault();
     }
   }
-  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
-    "RestyleTracker::DoProcessRestyles", CSS, docURL);
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("RestyleTracker::DoProcessRestyles",
+                                        CSS, docURL);
 #endif
 
   // Create a AnimationsWithDestroyedFrame during restyling process to
   // stop animations and transitions on elements that have no frame at the end
   // of the restyling process.
-  RestyleManager::AnimationsWithDestroyedFrame
-    animationsWithDestroyedFrame(mRestyleManager);
+  RestyleManager::AnimationsWithDestroyedFrame animationsWithDestroyedFrame(
+      mRestyleManager);
 
   // Create a ReframingStyleContexts struct on the stack and put it in our
   // mReframingStyleContexts for almost all of the remaining scope of
@@ -148,16 +137,18 @@ RestyleTracker::DoProcessRestyles()
   // EndReconstruct so those style contexts go away before
   // EndReconstruct.
   {
-    GeckoRestyleManager::ReframingStyleContexts
-      reframingStyleContexts(mRestyleManager);
+    GeckoRestyleManager::ReframingStyleContexts reframingStyleContexts(
+        mRestyleManager);
 
     mRestyleManager->BeginProcessingRestyles(*this);
 
     LOG_RESTYLE("Processing %d pending %srestyles with %d restyle roots for %s",
                 mPendingRestyles.Count(),
-                mRestyleManager->PresContext()->TransitionManager()->
-                  InAnimationOnlyStyleUpdate()
-                  ? (const char*) "animation " : (const char*) "",
+                mRestyleManager->PresContext()
+                        ->TransitionManager()
+                        ->InAnimationOnlyStyleUpdate()
+                    ? (const char*)"animation "
+                    : (const char*)"",
                 static_cast<int>(mRestyleRoots.Length()),
                 GetDocumentURI(Document()).get());
     LOG_RESTYLE_INDENT();
@@ -184,18 +175,18 @@ RestyleTracker::DoProcessRestyles()
         for (uint32_t i = 0; i < laterSiblingArr.Length(); ++i) {
           Element* element = laterSiblingArr[i];
           MOZ_ASSERT(!element->IsStyledByServo());
-          for (nsIContent* sibling = element->GetNextSibling();
-               sibling;
+          for (nsIContent* sibling = element->GetNextSibling(); sibling;
                sibling = sibling->GetNextSibling()) {
             if (sibling->IsElement()) {
-              LOG_RESTYLE("adding pending restyle for %s due to "
-                          "eRestyle_LaterSiblings hint on %s",
-                          FrameTagToString(sibling->AsElement()).get(),
-                          FrameTagToString(element->AsElement()).get());
+              LOG_RESTYLE(
+                  "adding pending restyle for %s due to "
+                  "eRestyle_LaterSiblings hint on %s",
+                  FrameTagToString(sibling->AsElement()).get(),
+                  FrameTagToString(element->AsElement()).get());
               if (AddPendingRestyle(sibling->AsElement(), eRestyle_Subtree,
                                     nsChangeHint(0))) {
-                  // Nothing else to do here; we'll handle the following
-                  // siblings when we get to |sibling| in laterSiblingArr.
+                // Nothing else to do here; we'll handle the following
+                // siblings when we get to |sibling| in laterSiblingArr.
                 break;
               }
             }
@@ -210,18 +201,20 @@ RestyleTracker::DoProcessRestyles()
 #ifdef DEBUG
           bool found =
 #endif
-            mPendingRestyles.Get(element, &data);
+              mPendingRestyles.Get(element, &data);
           NS_ASSERTION(found, "Where did our entry go?");
           data->mRestyleHint =
-            nsRestyleHint(data->mRestyleHint & ~eRestyle_LaterSiblings);
+              nsRestyleHint(data->mRestyleHint & ~eRestyle_LaterSiblings);
 
           if (Element* parent = element->GetFlattenedTreeParentElement()) {
             parent->UnsetFlags(ELEMENT_HAS_CHILD_WITH_LATER_SIBLINGS_HINT);
           }
         }
 
-        LOG_RESTYLE("%d pending restyles after expanding out "
-                    "eRestyle_LaterSiblings", mPendingRestyles.Count());
+        LOG_RESTYLE(
+            "%d pending restyles after expanding out "
+            "eRestyle_LaterSiblings",
+            mPendingRestyles.Count());
 
         mHaveLaterSiblingRestyles = false;
       }
@@ -257,8 +250,8 @@ RestyleTracker::DoProcessRestyles()
 
         {
           AutoRestyleTimelineMarker marker(
-            mRestyleManager->PresContext()->GetDocShell(),
-            data->mRestyleHint & eRestyle_AllHintsWithAnimations);
+              mRestyleManager->PresContext()->GetDocShell(),
+              data->mRestyleHint & eRestyle_AllHintsWithAnimations);
 #ifdef MOZ_GECKO_PROFILER
           Maybe<AutoProfilerTracing> tracing;
           if (profiler_feature_active(ProfilerFeature::Restyle)) {
@@ -283,7 +276,7 @@ RestyleTracker::DoProcessRestyles()
       // fall back on heap-allocation.
       AutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
       RestyleEnumerateData* restylesToProcess =
-        restyleArr.AppendElements(mPendingRestyles.Count());
+          restyleArr.AppendElements(mPendingRestyles.Count());
       if (restylesToProcess) {
         RestyleEnumerateData* restyle = restylesToProcess;
 #ifdef RESTYLE_LOGGING
@@ -299,33 +292,37 @@ RestyleTracker::DoProcessRestyles()
           // document.
           if (element->GetComposedDoc() != Document() ||
               !element->HasFlag(RestyleBit())) {
-            LOG_RESTYLE("skipping pending restyle %s, already restyled or no "
-                        "longer in the document",
-                        FrameTagToString(element).get());
+            LOG_RESTYLE(
+                "skipping pending restyle %s, already restyled or no "
+                "longer in the document",
+                FrameTagToString(element).get());
             continue;
           }
 
           NS_ASSERTION(
-            !element->HasFlag(RootBit()) ||
-            // Maybe we're just not reachable via the frame tree?
-            (element->GetFlattenedTreeParent() &&
-             (!element->GetFlattenedTreeParent()->GetPrimaryFrame() ||
-              element->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf() ||
-              element->GetComposedDoc()->GetShell()->FrameConstructor()
-                ->GetDisplayContentsStyleFor(element))) ||
-            // Or not reachable due to an async reinsert we have
-            // pending?  If so, we'll have a reframe hint around.
-            // That incidentally makes it safe that we still have
-            // the bit, since any descendants that didn't get added
-            // to the roots list because we had the bits will be
-            // completely restyled in a moment.
-            (data->mChangeHint & nsChangeHint_ReconstructFrame),
-            "Why did this not get handled while processing mRestyleRoots?");
+              !element->HasFlag(RootBit()) ||
+                  // Maybe we're just not reachable via the frame tree?
+                  (element->GetFlattenedTreeParent() &&
+                   (!element->GetFlattenedTreeParent()->GetPrimaryFrame() ||
+                    element->GetFlattenedTreeParent()
+                        ->GetPrimaryFrame()
+                        ->IsLeaf() ||
+                    element->GetComposedDoc()
+                        ->GetShell()
+                        ->FrameConstructor()
+                        ->GetDisplayContentsStyleFor(element))) ||
+                  // Or not reachable due to an async reinsert we have
+                  // pending?  If so, we'll have a reframe hint around.
+                  // That incidentally makes it safe that we still have
+                  // the bit, since any descendants that didn't get added
+                  // to the roots list because we had the bits will be
+                  // completely restyled in a moment.
+                  (data->mChangeHint & nsChangeHint_ReconstructFrame),
+              "Why did this not get handled while processing mRestyleRoots?");
 
           // Unset the restyle bits now, so if they get readded later as we
           // process we won't clobber that adding of the bit.
-          element->UnsetFlags(RestyleBit() |
-                              RootBit() |
+          element->UnsetFlags(RestyleBit() | RootBit() |
                               ConditionalDescendantsBit());
 
           restyle->mElement = element;
@@ -355,11 +352,10 @@ RestyleTracker::DoProcessRestyles()
         uint32_t index = 0;
 #endif
         for (RestyleEnumerateData* currentRestyle = restylesToProcess;
-             currentRestyle != lastRestyle;
-             ++currentRestyle) {
+             currentRestyle != lastRestyle; ++currentRestyle) {
           LOG_RESTYLE("processing pending restyle %s at index %d/%d",
-                      FrameTagToString(currentRestyle->mElement).get(),
-                      index++, count);
+                      FrameTagToString(currentRestyle->mElement).get(), index++,
+                      count);
           LOG_RESTYLE_INDENT();
 
 #ifdef MOZ_GECKO_PROFILER
@@ -372,12 +368,11 @@ RestyleTracker::DoProcessRestyles()
 
           {
             AutoRestyleTimelineMarker marker(
-              mRestyleManager->PresContext()->GetDocShell(),
-              currentRestyle->mRestyleHint & eRestyle_AllHintsWithAnimations);
-            ProcessOneRestyle(currentRestyle->mElement,
-                              currentRestyle->mRestyleHint,
-                              currentRestyle->mChangeHint,
-                              currentRestyle->mRestyleHintData);
+                mRestyleManager->PresContext()->GetDocShell(),
+                currentRestyle->mRestyleHint & eRestyle_AllHintsWithAnimations);
+            ProcessOneRestyle(
+                currentRestyle->mElement, currentRestyle->mRestyleHint,
+                currentRestyle->mChangeHint, currentRestyle->mRestyleHintData);
           }
         }
       }
@@ -390,9 +385,8 @@ RestyleTracker::DoProcessRestyles()
   mRestyleManager->EndProcessingRestyles();
 }
 
-bool
-RestyleTracker::GetRestyleData(Element* aElement, nsAutoPtr<RestyleData>& aData)
-{
+bool RestyleTracker::GetRestyleData(Element* aElement,
+                                    nsAutoPtr<RestyleData>& aData) {
   NS_PRECONDITION(aElement->GetComposedDoc() == Document(),
                   "Unexpected document; this will lead to incorrect behavior!");
 
@@ -419,7 +413,7 @@ RestyleTracker::GetRestyleData(Element* aElement, nsAutoPtr<RestyleData>& aData)
     // we know that RebuildAllStyleData adds eRestyle_ForceDescendants
     // and we're guaranteed we'll restyle the entire tree.
     NS_ASSERTION(mRestyleManager->InRebuildAllStyleData() ||
-                 aData->mDescendants.IsEmpty(),
+                     aData->mDescendants.IsEmpty(),
                  "expected descendants to be handled by now");
 
     RestyleData* newData = new RestyleData;
@@ -428,7 +422,7 @@ RestyleTracker::GetRestyleData(Element* aElement, nsAutoPtr<RestyleData>& aData)
     mPendingRestyles.Put(aElement, newData);
     aElement->UnsetFlags(RootBit());
     aData->mRestyleHint =
-      nsRestyleHint(aData->mRestyleHint & ~eRestyle_LaterSiblings);
+        nsRestyleHint(aData->mRestyleHint & ~eRestyle_LaterSiblings);
   } else {
     aElement->UnsetFlags(mRestyleBits);
   }
@@ -436,10 +430,8 @@ RestyleTracker::GetRestyleData(Element* aElement, nsAutoPtr<RestyleData>& aData)
   return true;
 }
 
-void
-RestyleTracker::AddRestyleRootsIfAwaitingRestyle(
-                                   const nsTArray<RefPtr<Element>>& aElements)
-{
+void RestyleTracker::AddRestyleRootsIfAwaitingRestyle(
+    const nsTArray<RefPtr<Element>>& aElements) {
   // The RestyleData for a given element has stored in mDescendants
   // the list of descendants we need to end up restyling.  Since we
   // won't necessarily end up restyling them, due to the restyle
@@ -463,9 +455,7 @@ RestyleTracker::AddRestyleRootsIfAwaitingRestyle(
   }
 }
 
-void
-RestyleTracker::ClearSelectors()
-{
+void RestyleTracker::ClearSelectors() {
   if (!mHaveSelectors) {
     return;
   }
@@ -473,7 +463,7 @@ RestyleTracker::ClearSelectors()
     RestyleData* data = it.Data();
     if (data->mRestyleHint & eRestyle_SomeDescendants) {
       data->mRestyleHint =
-        (data->mRestyleHint & ~eRestyle_SomeDescendants) | eRestyle_Subtree;
+          (data->mRestyleHint & ~eRestyle_SomeDescendants) | eRestyle_Subtree;
       data->mRestyleHintData.mSelectorsForDescendants.Clear();
     } else {
       MOZ_ASSERT(data->mRestyleHintData.mSelectorsForDescendants.IsEmpty());
@@ -482,4 +472,4 @@ RestyleTracker::ClearSelectors()
   mHaveSelectors = false;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

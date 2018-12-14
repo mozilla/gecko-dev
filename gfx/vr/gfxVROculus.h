@@ -8,7 +8,7 @@
 #define GFX_VR_OCULUS_H
 
 #include "nsTArray.h"
-#include "nsISupportsImpl.h" // For NS_INLINE_DECL_REFCOUNTING
+#include "nsISupportsImpl.h"  // For NS_INLINE_DECL_REFCOUNTING
 #include "mozilla/RefPtr.h"
 
 #include "mozilla/gfx/2D.h"
@@ -25,7 +25,7 @@ namespace layers {
 class CompositingRenderTargetD3D11;
 struct VertexShaderConstants;
 struct PixelShaderConstants;
-}
+}  // namespace layers
 namespace gfx {
 class VRThread;
 
@@ -37,11 +37,11 @@ enum class OculusControllerAxisType : uint16_t {
   NumVRControllerAxisType
 };
 
-class VROculusSession
-{
+class VROculusSession {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VROculusSession);
   friend class VRDisplayOculus;
-public:
+
+ public:
   VROculusSession();
   void Refresh(bool aForceRefresh = false);
   void StartTracking();
@@ -56,7 +56,7 @@ public:
   already_AddRefed<layers::CompositingRenderTargetD3D11> GetNextRenderTarget();
   ovrTextureSwapChain GetSwapChain();
 
-private:
+ private:
   PRLibrary* mOvrLib;
   ovrSession mSession;
   ovrInitFlags mInitFlags;
@@ -90,27 +90,25 @@ private:
   void StopRendering();
 };
 
-class VRDisplayOculus : public VRDisplayHost
-{
-public:
+class VRDisplayOculus : public VRDisplayHost {
+ public:
   void ZeroSensor() override;
 
-protected:
+ protected:
   virtual VRHMDSensorState GetSensorState() override;
   virtual void StartPresentation() override;
   virtual void StopPresentation() override;
-  virtual bool SubmitFrame(ID3D11Texture2D* aSource,
-                           const IntSize& aSize,
+  virtual bool SubmitFrame(ID3D11Texture2D* aSource, const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) override;
   void UpdateStageParameters();
 
-public:
+ public:
   explicit VRDisplayOculus(VROculusSession* aSession);
   void Destroy();
   void Refresh();
 
-protected:
+ protected:
   virtual ~VRDisplayOculus();
 
   VRHMDSensorState GetSensorState(double absTime);
@@ -134,15 +132,13 @@ protected:
   bool UpdateConstantBuffers();
   void UpdateEyeParameters(gfx::Matrix4x4* aHeadToEyeTransforms = nullptr);
 
-  struct Vertex
-  {
+  struct Vertex {
     float position[2];
   };
 };
 
-class VRControllerOculus : public VRControllerHost
-{
-public:
+class VRControllerOculus : public VRControllerHost {
+ public:
   explicit VRControllerOculus(dom::GamepadHand aHand, uint32_t aDisplayID);
   float GetAxisMove(uint32_t aAxis);
   void SetAxisMove(uint32_t aAxis, float aValue);
@@ -150,75 +146,72 @@ public:
   void SetIndexTrigger(float aValue);
   float GetHandTrigger();
   void SetHandTrigger(float aValue);
-  void VibrateHaptic(ovrSession aSession,
-                     uint32_t aHapticIndex,
-                     double aIntensity,
-                     double aDuration,
+  void VibrateHaptic(ovrSession aSession, uint32_t aHapticIndex,
+                     double aIntensity, double aDuration,
                      const VRManagerPromise& aPromise);
   void StopVibrateHaptic();
   void ShutdownVibrateHapticThread();
 
-protected:
+ protected:
   virtual ~VRControllerOculus();
 
-private:
-  void UpdateVibrateHaptic(ovrSession aSession,
-                           uint32_t aHapticIndex,
-                           double aIntensity,
-                           double aDuration,
+ private:
+  void UpdateVibrateHaptic(ovrSession aSession, uint32_t aHapticIndex,
+                           double aIntensity, double aDuration,
                            uint64_t aVibrateIndex,
                            const VRManagerPromise& aPromise);
-  void VibrateHapticComplete(ovrSession aSession, const VRManagerPromise& aPromise, bool aStop);
+  void VibrateHapticComplete(ovrSession aSession,
+                             const VRManagerPromise& aPromise, bool aStop);
 
   float mAxisMove[static_cast<uint32_t>(
-                  OculusControllerAxisType::NumVRControllerAxisType)];
+      OculusControllerAxisType::NumVRControllerAxisType)];
   float mIndexTrigger;
   float mHandTrigger;
   RefPtr<VRThread> mVibrateThread;
   Atomic<bool> mIsVibrateStopped;
 };
 
-} // namespace impl
+}  // namespace impl
 
-class VRSystemManagerOculus : public VRSystemManager
-{
-public:
+class VRSystemManagerOculus : public VRSystemManager {
+ public:
   static already_AddRefed<VRSystemManagerOculus> Create();
   virtual void Destroy() override;
   virtual void Shutdown() override;
   virtual void Enumerate() override;
   virtual void NotifyVSync() override;
   virtual bool ShouldInhibitEnumeration() override;
-  virtual void GetHMDs(nsTArray<RefPtr<VRDisplayHost> >& aHMDResult) override;
+  virtual void GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult) override;
   virtual bool GetIsPresenting() override;
   virtual void HandleInput() override;
-  virtual void GetControllers(nsTArray<RefPtr<VRControllerHost>>&
-                              aControllerResult) override;
+  virtual void GetControllers(
+      nsTArray<RefPtr<VRControllerHost>>& aControllerResult) override;
   virtual void ScanForControllers() override;
   virtual void RemoveControllers() override;
   virtual void VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
-                             double aIntensity, double aDuration, const VRManagerPromise& aPromise) override;
+                             double aIntensity, double aDuration,
+                             const VRManagerPromise& aPromise) override;
   virtual void StopVibrateHaptic(uint32_t aControllerIdx) override;
 
-protected:
+ protected:
   VRSystemManagerOculus();
 
-private:
-  void HandleButtonPress(uint32_t aControllerIdx,
-                         uint32_t aButton,
-                         uint64_t aButtonMask,
-                         uint64_t aButtonPressed,
+ private:
+  void HandleButtonPress(uint32_t aControllerIdx, uint32_t aButton,
+                         uint64_t aButtonMask, uint64_t aButtonPressed,
                          uint64_t aButtonTouched);
-  void HandleAxisMove(uint32_t aControllerIdx, uint32_t aAxis,
-                      float aValue);
+  void HandleAxisMove(uint32_t aControllerIdx, uint32_t aAxis, float aValue);
   void HandlePoseTracking(uint32_t aControllerIdx,
                           const dom::GamepadPoseState& aPose,
                           VRControllerHost* aController);
-  void HandleIndexTriggerPress(uint32_t aControllerIdx, uint32_t aButton, float aValue);
-  void HandleHandTriggerPress(uint32_t aControllerIdx, uint32_t aButton, float aValue);
+  void HandleIndexTriggerPress(uint32_t aControllerIdx, uint32_t aButton,
+                               float aValue);
+  void HandleHandTriggerPress(uint32_t aControllerIdx, uint32_t aButton,
+                              float aValue);
   void HandleTouchEvent(uint32_t aControllerIdx, uint32_t aButton,
                         uint64_t aTouchMask, uint64_t aTouched);
-  void GetControllerPoseState(uint32_t aHandIdx, dom::GamepadPoseState& aPoseState,
+  void GetControllerPoseState(uint32_t aHandIdx,
+                              dom::GamepadPoseState& aPoseState,
                               bool aForceUpdate = false);
 
   RefPtr<impl::VRDisplayOculus> mDisplay;
@@ -226,7 +219,7 @@ private:
   RefPtr<impl::VROculusSession> mSession;
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* GFX_VR_OCULUS_H */

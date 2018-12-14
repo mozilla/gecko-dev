@@ -24,16 +24,14 @@
 namespace mozilla {
 namespace dom {
 
-class ProcessGlobal :
-  public nsMessageManagerScriptExecutor,
-  public nsIContentProcessMessageManager,
-  public nsIGlobalObject,
-  public nsIScriptObjectPrincipal,
-  public nsSupportsWeakReference,
-  public mozilla::dom::ipc::MessageManagerCallback,
-  public nsWrapperCache
-{
-public:
+class ProcessGlobal : public nsMessageManagerScriptExecutor,
+                      public nsIContentProcessMessageManager,
+                      public nsIGlobalObject,
+                      public nsIScriptObjectPrincipal,
+                      public nsSupportsWeakReference,
+                      public mozilla::dom::ipc::MessageManagerCallback,
+                      public nsWrapperCache {
+ public:
   explicit ProcessGlobal(nsFrameMessageManager* aMessageManager);
 
   using mozilla::dom::ipc::MessageManagerCallback::GetProcessMessageManager;
@@ -43,7 +41,8 @@ public:
   static ProcessGlobal* Get();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(ProcessGlobal, nsIContentProcessMessageManager)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(
+      ProcessGlobal, nsIContentProcessMessageManager)
 
   NS_FORWARD_SAFE_NSIMESSAGELISTENERMANAGER(mMessageManager)
   NS_FORWARD_SAFE_NSIMESSAGESENDER(mMessageManager)
@@ -53,28 +52,25 @@ public:
 
   virtual void LoadScript(const nsAString& aURL);
 
-  virtual JSObject* GetGlobalJSObject() override
-  {
-    return mGlobal;
-  }
+  virtual JSObject* GetGlobalJSObject() override { return mGlobal; }
   virtual nsIPrincipal* GetPrincipal() override { return mPrincipal; }
 
-  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override
-  {
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> aGivenProto) override {
     MOZ_CRASH("ProcessGlobal doesn't use DOM bindings!");
   }
 
   void SetInitialProcessData(JS::HandleValue aInitialData);
 
-protected:
+ protected:
   virtual ~ProcessGlobal();
 
-private:
+ private:
   bool mInitialized;
   RefPtr<nsFrameMessageManager> mMessageManager;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_ProcessGlobal_h
+#endif  // mozilla_dom_ProcessGlobal_h

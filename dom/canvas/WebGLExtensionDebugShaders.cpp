@@ -12,38 +12,31 @@
 namespace mozilla {
 
 WebGLExtensionDebugShaders::WebGLExtensionDebugShaders(WebGLContext* webgl)
-    : WebGLExtensionBase(webgl)
-{
-}
+    : WebGLExtensionBase(webgl) {}
 
-WebGLExtensionDebugShaders::~WebGLExtensionDebugShaders()
-{
-}
+WebGLExtensionDebugShaders::~WebGLExtensionDebugShaders() {}
 
 // If no source has been defined, compileShader() has not been called, or the
 // translation has failed for shader, an empty string is returned; otherwise,
 // return the translated source.
-void
-WebGLExtensionDebugShaders::GetTranslatedShaderSource(const WebGLShader& shader,
-                                                      nsAString& retval) const
-{
-    retval.SetIsVoid(true);
+void WebGLExtensionDebugShaders::GetTranslatedShaderSource(
+    const WebGLShader& shader, nsAString& retval) const {
+  retval.SetIsVoid(true);
 
-    if (mIsLost) {
-        mContext->ErrorInvalidOperation("%s: Extension is lost.",
-                                        "getTranslatedShaderSource");
-        return;
-    }
+  if (mIsLost) {
+    mContext->ErrorInvalidOperation("%s: Extension is lost.",
+                                    "getTranslatedShaderSource");
+    return;
+  }
 
-    if (mContext->IsContextLost())
-        return;
+  if (mContext->IsContextLost()) return;
 
-    if (!mContext->ValidateObject("getShaderTranslatedSource: shader", shader))
-        return;
+  if (!mContext->ValidateObject("getShaderTranslatedSource: shader", shader))
+    return;
 
-    shader.GetShaderTranslatedSource(&retval);
+  shader.GetShaderTranslatedSource(&retval);
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionDebugShaders, WEBGL_debug_shaders)
 
-} // namespace mozilla
+}  // namespace mozilla

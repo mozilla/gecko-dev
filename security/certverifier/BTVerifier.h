@@ -11,13 +11,15 @@
 #include "pkix/Input.h"
 #include "pkix/Result.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 // Decodes an Inclusion Proof (InclusionProofDataV2 as defined in RFC
 // 6962-bis). This consumes the entirety of the input.
 pkix::Result DecodeInclusionProof(pkix::Reader& input,
-  InclusionProofDataV2& output);
+                                  InclusionProofDataV2& output);
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla
 
-#endif // BTVerifier_h
+#endif  // BTVerifier_h

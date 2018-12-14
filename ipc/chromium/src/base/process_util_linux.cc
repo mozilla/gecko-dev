@@ -25,10 +25,8 @@ static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 namespace base {
 
 bool LaunchApp(const std::vector<std::string>& argv,
-               const LaunchOptions& options,
-               ProcessHandle* process_handle)
-{
-  mozilla::UniquePtr<char*[]> argv_cstr(new char*[argv.size() + 1]);
+               const LaunchOptions& options, ProcessHandle* process_handle) {
+  mozilla::UniquePtr<char* []> argv_cstr(new char*[argv.size() + 1]);
   // Illegal to allocate memory after fork and before execvp
   InjectiveMultimap fd_shuffle1, fd_shuffle2;
   fd_shuffle1.reserve(options.fds_to_remap.size());
@@ -37,8 +35,7 @@ bool LaunchApp(const std::vector<std::string>& argv,
   EnvironmentArray envp = BuildEnvironmentArray(options.env_map);
 
   pid_t pid = options.fork_delegate ? options.fork_delegate->Fork() : fork();
-  if (pid < 0)
-    return false;
+  if (pid < 0) return false;
 
   if (pid == 0) {
     // In the child:
@@ -47,8 +44,7 @@ bool LaunchApp(const std::vector<std::string>& argv,
       fd_shuffle2.push_back(InjectionArc(fd_map.first, fd_map.second, false));
     }
 
-    if (!ShuffleFileDescriptors(&fd_shuffle1))
-      _exit(127);
+    if (!ShuffleFileDescriptors(&fd_shuffle1)) _exit(127);
 
     CloseSuperfluousFds(fd_shuffle2);
 
@@ -67,17 +63,14 @@ bool LaunchApp(const std::vector<std::string>& argv,
   // In the parent:
   gProcessLog.print("==> process %d launched child process %d\n",
                     GetCurrentProcId(), pid);
-  if (options.wait)
-    HANDLE_EINTR(waitpid(pid, 0, 0));
+  if (options.wait) HANDLE_EINTR(waitpid(pid, 0, 0));
 
-  if (process_handle)
-    *process_handle = pid;
+  if (process_handle) *process_handle = pid;
 
   return true;
 }
 
-bool LaunchApp(const CommandLine& cl,
-               const LaunchOptions& options,
+bool LaunchApp(const CommandLine& cl, const LaunchOptions& options,
                ProcessHandle* process_handle) {
   return LaunchApp(cl.argv(), options, process_handle);
 }

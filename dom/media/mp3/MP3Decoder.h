@@ -10,15 +10,14 @@ namespace mozilla {
 
 class MediaContainerType;
 
-class MP3Decoder
-{
-public:
+class MP3Decoder {
+ public:
   // Returns true if the MP3 backend is preffed on, and we're running on a
   // platform that is likely to have decoders for the format.
   static bool IsEnabled();
   static bool IsSupportedType(const MediaContainerType& aContainerType);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

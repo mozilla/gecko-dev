@@ -16,15 +16,12 @@
 namespace mozilla {
 namespace dom {
 
-/* static */ bool
-AutoplayPolicy::IsDocumentAllowedToPlay(nsIDocument* aDoc)
-{
+/* static */ bool AutoplayPolicy::IsDocumentAllowedToPlay(nsIDocument* aDoc) {
   return aDoc ? aDoc->HasBeenUserActivated() : false;
 }
 
-/* static */ bool
-AutoplayPolicy::IsMediaElementAllowedToPlay(NotNull<HTMLMediaElement*> aElement)
-{
+/* static */ bool AutoplayPolicy::IsMediaElementAllowedToPlay(
+    NotNull<HTMLMediaElement*> aElement) {
   if (Preferences::GetBool("media.autoplay.enabled")) {
     return true;
   }
@@ -33,19 +30,21 @@ AutoplayPolicy::IsMediaElementAllowedToPlay(NotNull<HTMLMediaElement*> aElement)
   // microphone are assumed to be trusted, and are allowed to autoplay.
   MediaManager* manager = MediaManager::GetIfExists();
   if (manager) {
-    nsCOMPtr<nsPIDOMWindowInner> window = aElement->OwnerDoc()->GetInnerWindow();
-    if (window && manager->IsActivelyCapturingOrHasAPermission(window->WindowID())) {
+    nsCOMPtr<nsPIDOMWindowInner> window =
+        aElement->OwnerDoc()->GetInnerWindow();
+    if (window &&
+        manager->IsActivelyCapturingOrHasAPermission(window->WindowID())) {
       return true;
     }
   }
 
   // TODO : this old way would be removed when user-gestures-needed becomes
   // as a default option to block autoplay.
-  if (!Preferences::GetBool("media.autoplay.enabled.user-gestures-needed", false)) {
+  if (!Preferences::GetBool("media.autoplay.enabled.user-gestures-needed",
+                            false)) {
     // If elelement is blessed, it would always be allowed to play().
-    return aElement->IsBlessed() ||
-           EventStateManager::IsHandlingUserInput();
-   }
+    return aElement->IsBlessed() || EventStateManager::IsHandlingUserInput();
+  }
 
   // Muted content
   if (aElement->Volume() == 0.0 || aElement->Muted()) {
@@ -62,5 +61,5 @@ AutoplayPolicy::IsMediaElementAllowedToPlay(NotNull<HTMLMediaElement*> aElement)
   return AutoplayPolicy::IsDocumentAllowedToPlay(aElement->OwnerDoc());
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -15,10 +15,11 @@
 //
 
 class nsMathMLmspaceFrame : public nsMathMLContainerFrame {
-public:
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmspaceFrame)
 
-  friend nsIFrame* NS_NewMathMLmspaceFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsIFrame* NS_NewMathMLmspaceFrame(nsIPresShell* aPresShell,
+                                           nsStyleContext* aContext);
 
   NS_IMETHOD
   TransmitAutomaticData() override {
@@ -28,29 +29,28 @@ public:
     return NS_OK;
   }
 
-  virtual void
-  Reflow(nsPresContext*          aPresContext,
-         ReflowOutput&     aDesiredSize,
-         const ReflowInput& aReflowInput,
-         nsReflowStatus&          aStatus) override;
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus& aStatus) override;
 
-protected:
-  explicit nsMathMLmspaceFrame(nsStyleContext* aContext) :
-    nsMathMLContainerFrame(aContext, kClassID), mWidth(0), mHeight(0), mDepth(0) {}
+ protected:
+  explicit nsMathMLmspaceFrame(nsStyleContext* aContext)
+      : nsMathMLContainerFrame(aContext, kClassID),
+        mWidth(0),
+        mHeight(0),
+        mDepth(0) {}
   virtual ~nsMathMLmspaceFrame();
 
-  virtual nsresult
-  MeasureForWidth(DrawTarget* aDrawTarget,
-                  ReflowOutput& aDesiredSize) override;
+  virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
+                                   ReflowOutput& aDesiredSize) override;
 
-private:
+ private:
   nscoord mWidth;
   nscoord mHeight;
   nscoord mDepth;
 
   // helper method to initialize our member data
-  void
-  ProcessAttributes(nsPresContext* aPresContext);
+  void ProcessAttributes(nsPresContext* aPresContext);
 };
 
 #endif /* nsMathMLmspaceFrame_h___ */

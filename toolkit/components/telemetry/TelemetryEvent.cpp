@@ -27,25 +27,25 @@
 #include "TelemetryEventData.h"
 #include "ipc/TelemetryIPCAccumulator.h"
 
-using mozilla::StaticMutex;
-using mozilla::StaticMutexAutoLock;
 using mozilla::ArrayLength;
 using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::StaticAutoPtr;
-using mozilla::TimeStamp;
+using mozilla::StaticMutex;
+using mozilla::StaticMutexAutoLock;
+using mozilla::Telemetry::ChildEventData;
 using mozilla::Telemetry::Common::AutoHashtable;
-using mozilla::Telemetry::Common::IsExpiredVersion;
 using mozilla::Telemetry::Common::CanRecordDataset;
-using mozilla::Telemetry::Common::IsInDataset;
-using mozilla::Telemetry::Common::MsSinceProcessStart;
-using mozilla::Telemetry::Common::LogToBrowserConsole;
 using mozilla::Telemetry::Common::CanRecordInProcess;
 using mozilla::Telemetry::Common::GetNameForProcessID;
+using mozilla::Telemetry::Common::IsExpiredVersion;
+using mozilla::Telemetry::Common::IsInDataset;
 using mozilla::Telemetry::Common::IsValidIdentifierString;
+using mozilla::Telemetry::Common::LogToBrowserConsole;
+using mozilla::Telemetry::Common::MsSinceProcessStart;
 using mozilla::Telemetry::EventExtraEntry;
-using mozilla::Telemetry::ChildEventData;
 using mozilla::Telemetry::ProcessID;
+using mozilla::TimeStamp;
 
 namespace TelemetryIPCAccumulator = mozilla::TelemetryIPCAccumulator;
 
@@ -97,13 +97,14 @@ const uint32_t kExpiredEventId = std::numeric_limits<uint32_t>::max();
 static_assert(kExpiredEventId > kEventCount,
               "Built-in event count should be less than the expired event id.");
 
-// This is the hard upper limit on the number of event records we keep in storage.
-// If we cross this limit, we will drop any further event recording until elements
-// are removed from storage.
+// This is the hard upper limit on the number of event records we keep in
+// storage. If we cross this limit, we will drop any further event recording
+// until elements are removed from storage.
 const uint32_t kMaxEventRecords = 1000;
 // Maximum length of any passed value string, in UTF8 byte sequence length.
 const uint32_t kMaxValueByteLength = 80;
-// Maximum length of any string value in the extra dictionary, in UTF8 byte sequence length.
+// Maximum length of any string value in the extra dictionary, in UTF8 byte
+// sequence length.
 const uint32_t kMaxExtraValueByteLength = 80;
 // Maximum length of dynamic method names, in UTF8 byte sequence length.
 const uint32_t kMaxMethodNameByteLength = 20;
@@ -124,14 +125,13 @@ struct EventKey {
 
 struct DynamicEventInfo {
   DynamicEventInfo(const nsACString& category, const nsACString& method,
-                   const nsACString& object, const nsTArray<nsCString>& extra_keys,
-                   bool recordOnRelease)
-    : category(category)
-    , method(method)
-    , object(object)
-    , extra_keys(extra_keys)
-    , recordOnRelease(recordOnRelease)
-  {}
+                   const nsACString& object,
+                   const nsTArray<nsCString>& extra_keys, bool recordOnRelease)
+      : category(category),
+        method(method),
+        object(object),
+        extra_keys(extra_keys),
+        recordOnRelease(recordOnRelease) {}
 
   DynamicEventInfo(const DynamicEventInfo&) = default;
   DynamicEventInfo& operator=(const DynamicEventInfo&) = delete;
@@ -142,9 +142,7 @@ struct DynamicEventInfo {
   const nsTArray<nsCString> extra_keys;
   const bool recordOnRelease;
 
-  size_t
-  SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-  {
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
     size_t n = 0;
 
     n += category.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
@@ -171,14 +169,10 @@ enum class RecordEventResult {
 typedef nsTArray<EventExtraEntry> ExtraArray;
 
 class EventRecord {
-public:
-  EventRecord(double timestamp, const EventKey& key, const Maybe<nsCString>& value,
-              const ExtraArray& extra)
-    : mTimestamp(timestamp)
-    , mEventKey(key)
-    , mValue(value)
-    , mExtra(extra)
-  {}
+ public:
+  EventRecord(double timestamp, const EventKey& key,
+              const Maybe<nsCString>& value, const ExtraArray& extra)
+      : mTimestamp(timestamp), mEventKey(key), mValue(value), mExtra(extra) {}
 
   EventRecord(const EventRecord& other) = default;
 
@@ -191,7 +185,7 @@ public:
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-private:
+ private:
   const double mTimestamp;
   const EventKey mEventKey;
   const Maybe<nsCString> mValue;
@@ -199,43 +193,32 @@ private:
 };
 
 // Implements the methods for EventInfo.
-const nsCString
-EventInfo::method() const
-{
+const nsCString EventInfo::method() const {
   return nsCString(&gEventsStringTable[this->method_offset]);
 }
 
-const nsCString
-EventInfo::object() const
-{
+const nsCString EventInfo::object() const {
   return nsCString(&gEventsStringTable[this->object_offset]);
 }
 
 // Implements the methods for CommonEventInfo.
-const nsCString
-CommonEventInfo::category() const
-{
+const nsCString CommonEventInfo::category() const {
   return nsCString(&gEventsStringTable[this->category_offset]);
 }
 
-const nsCString
-CommonEventInfo::expiration_version() const
-{
+const nsCString CommonEventInfo::expiration_version() const {
   return nsCString(&gEventsStringTable[this->expiration_version_offset]);
 }
 
-const nsCString
-CommonEventInfo::extra_key(uint32_t index) const
-{
+const nsCString CommonEventInfo::extra_key(uint32_t index) const {
   MOZ_ASSERT(index < this->extra_count);
   uint32_t key_index = gExtraKeysTable[this->extra_index + index];
   return nsCString(&gEventsStringTable[key_index]);
 }
 
 // Implementation for the EventRecord class.
-size_t
-EventRecord::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t EventRecord::SizeOfExcludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = 0;
 
   if (mValue) {
@@ -251,9 +234,8 @@ EventRecord::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   return n;
 }
 
-nsCString
-UniqueEventName(const nsACString& category, const nsACString& method, const nsACString& object)
-{
+nsCString UniqueEventName(const nsACString& category, const nsACString& method,
+                          const nsACString& object) {
   nsCString name;
   name.Append(category);
   name.AppendLiteral("#");
@@ -263,31 +245,23 @@ UniqueEventName(const nsACString& category, const nsACString& method, const nsAC
   return name;
 }
 
-nsCString
-UniqueEventName(const EventInfo& info)
-{
-  return UniqueEventName(info.common_info.category(),
-                         info.method(),
+nsCString UniqueEventName(const EventInfo& info) {
+  return UniqueEventName(info.common_info.category(), info.method(),
                          info.object());
 }
 
-nsCString
-UniqueEventName(const DynamicEventInfo& info)
-{
-  return UniqueEventName(info.category,
-                         info.method,
-                         info.object);
+nsCString UniqueEventName(const DynamicEventInfo& info) {
+  return UniqueEventName(info.category, info.method, info.object);
 }
 
-void
-TruncateToByteLength(nsCString& str, uint32_t length)
-{
-  // last will be the index of the first byte of the current multi-byte sequence.
+void TruncateToByteLength(nsCString& str, uint32_t length) {
+  // last will be the index of the first byte of the current multi-byte
+  // sequence.
   uint32_t last = RewindToPriorUTF8Codepoint(str.get(), length);
   str.Truncate(last);
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -316,10 +290,11 @@ nsTHashtable<nsCStringHashKey> gEnabledCategories;
 typedef nsTArray<EventRecord> EventRecordArray;
 nsClassHashtable<nsUint32HashKey, EventRecordArray> gEventRecords;
 
-// The details on dynamic events that are recorded from addons are registered here.
+// The details on dynamic events that are recorded from addons are registered
+// here.
 StaticAutoPtr<nsTArray<DynamicEventInfo>> gDynamicEventInfo;
 
-} // namespace
+}  // namespace
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -328,9 +303,8 @@ StaticAutoPtr<nsTArray<DynamicEventInfo>> gDynamicEventInfo;
 
 namespace {
 
-unsigned int
-GetDataset(const StaticMutexAutoLock& lock, const EventKey& eventKey)
-{
+unsigned int GetDataset(const StaticMutexAutoLock& lock,
+                        const EventKey& eventKey) {
   if (!eventKey.dynamic) {
     return gEventInfo[eventKey.id].common_info.dataset;
   }
@@ -339,14 +313,13 @@ GetDataset(const StaticMutexAutoLock& lock, const EventKey& eventKey)
     return nsITelemetry::DATASET_RELEASE_CHANNEL_OPTIN;
   }
 
-  return (*gDynamicEventInfo)[eventKey.id].recordOnRelease ?
-           nsITelemetry::DATASET_RELEASE_CHANNEL_OPTOUT :
-           nsITelemetry::DATASET_RELEASE_CHANNEL_OPTIN;
+  return (*gDynamicEventInfo)[eventKey.id].recordOnRelease
+             ? nsITelemetry::DATASET_RELEASE_CHANNEL_OPTOUT
+             : nsITelemetry::DATASET_RELEASE_CHANNEL_OPTIN;
 }
 
-nsCString
-GetCategory(const StaticMutexAutoLock& lock, const EventKey& eventKey)
-{
+nsCString GetCategory(const StaticMutexAutoLock& lock,
+                      const EventKey& eventKey) {
   if (!eventKey.dynamic) {
     return gEventInfo[eventKey.id].common_info.category();
   }
@@ -358,15 +331,14 @@ GetCategory(const StaticMutexAutoLock& lock, const EventKey& eventKey)
   return (*gDynamicEventInfo)[eventKey.id].category;
 }
 
-bool
-CanRecordEvent(const StaticMutexAutoLock& lock, const EventKey& eventKey,
-               ProcessID process)
-{
+bool CanRecordEvent(const StaticMutexAutoLock& lock, const EventKey& eventKey,
+                    ProcessID process) {
   if (!gCanRecordBase) {
     return false;
   }
 
-  if (!CanRecordDataset(GetDataset(lock, eventKey), gCanRecordBase, gCanRecordExtended)) {
+  if (!CanRecordDataset(GetDataset(lock, eventKey), gCanRecordBase,
+                        gCanRecordExtended)) {
     return false;
   }
 
@@ -381,16 +353,11 @@ CanRecordEvent(const StaticMutexAutoLock& lock, const EventKey& eventKey,
   return gEnabledCategories.GetEntry(GetCategory(lock, eventKey));
 }
 
-bool
-IsExpired(const EventKey& key)
-{
-  return key.id == kExpiredEventId;
-}
+bool IsExpired(const EventKey& key) { return key.id == kExpiredEventId; }
 
-EventRecordArray*
-GetEventRecordsForProcess(const StaticMutexAutoLock& lock, ProcessID processType,
-                          const EventKey& eventKey)
-{
+EventRecordArray* GetEventRecordsForProcess(const StaticMutexAutoLock& lock,
+                                            ProcessID processType,
+                                            const EventKey& eventKey) {
   EventRecordArray* eventRecords = nullptr;
   if (!gEventRecords.Get(uint32_t(processType), &eventRecords)) {
     eventRecords = new EventRecordArray();
@@ -399,10 +366,9 @@ GetEventRecordsForProcess(const StaticMutexAutoLock& lock, ProcessID processType
   return eventRecords;
 }
 
-EventKey*
-GetEventKey(const StaticMutexAutoLock& lock, const nsACString& category,
-           const nsACString& method, const nsACString& object)
-{
+EventKey* GetEventKey(const StaticMutexAutoLock& lock,
+                      const nsACString& category, const nsACString& method,
+                      const nsACString& object) {
   EventKey* event;
   const nsCString& name = UniqueEventName(category, method, object);
   if (!gEventNameIDMap.Get(name, &event)) {
@@ -411,9 +377,8 @@ GetEventKey(const StaticMutexAutoLock& lock, const nsACString& category,
   return event;
 }
 
-static bool
-CheckExtraKeysValid(const EventKey& eventKey, const ExtraArray& extra)
-{
+static bool CheckExtraKeysValid(const EventKey& eventKey,
+                                const ExtraArray& extra) {
   nsTHashtable<nsCStringHashKey> validExtraKeys;
   if (!eventKey.dynamic) {
     const CommonEventInfo& common = gEventInfo[eventKey.id].common_info;
@@ -436,12 +401,13 @@ CheckExtraKeysValid(const EventKey& eventKey, const ExtraArray& extra)
   return true;
 }
 
-RecordEventResult
-RecordEvent(const StaticMutexAutoLock& lock, ProcessID processType,
-            double timestamp, const nsACString& category,
-            const nsACString& method, const nsACString& object,
-            const Maybe<nsCString>& value, const ExtraArray& extra)
-{
+RecordEventResult RecordEvent(const StaticMutexAutoLock& lock,
+                              ProcessID processType, double timestamp,
+                              const nsACString& category,
+                              const nsACString& method,
+                              const nsACString& object,
+                              const Maybe<nsCString>& value,
+                              const ExtraArray& extra) {
   // Look up the event id.
   EventKey* eventKey = GetEventKey(lock, category, method, object);
   if (!eventKey) {
@@ -452,17 +418,18 @@ RecordEvent(const StaticMutexAutoLock& lock, ProcessID processType,
     processType = ProcessID::Dynamic;
   }
 
-  EventRecordArray* eventRecords = GetEventRecordsForProcess(lock, processType, *eventKey);
+  EventRecordArray* eventRecords =
+      GetEventRecordsForProcess(lock, processType, *eventKey);
 
   // Apply hard limit on event count in storage.
   if (eventRecords->Length() >= kMaxEventRecords) {
     return RecordEventResult::StorageLimitReached;
   }
 
-  // If the event is expired or not enabled for this process, we silently drop this call.
-  // We don't want recording for expired probes to be an error so code doesn't
-  // have to be removed at a specific time or version.
-  // Even logging warnings would become very noisy.
+  // If the event is expired or not enabled for this process, we silently drop
+  // this call. We don't want recording for expired probes to be an error so
+  // code doesn't have to be removed at a specific time or version. Even logging
+  // warnings would become very noisy.
   if (IsExpired(*eventKey)) {
     return RecordEventResult::ExpiredEvent;
   }
@@ -482,10 +449,10 @@ RecordEvent(const StaticMutexAutoLock& lock, ProcessID processType,
   return RecordEventResult::Ok;
 }
 
-RecordEventResult
-ShouldRecordChildEvent(const StaticMutexAutoLock& lock, const nsACString& category,
-                       const nsACString& method, const nsACString& object)
-{
+RecordEventResult ShouldRecordChildEvent(const StaticMutexAutoLock& lock,
+                                         const nsACString& category,
+                                         const nsACString& method,
+                                         const nsACString& object) {
   EventKey* eventKey = GetEventKey(lock, category, method, object);
   if (!eventKey) {
     // This event is unknown in this process, but it might be a dynamic event
@@ -497,7 +464,8 @@ ShouldRecordChildEvent(const StaticMutexAutoLock& lock, const nsACString& catego
     return RecordEventResult::ExpiredEvent;
   }
 
-  const auto processes = gEventInfo[eventKey->id].common_info.record_in_processes;
+  const auto processes =
+      gEventInfo[eventKey->id].common_info.record_in_processes;
   if (!CanRecordInProcess(processes, XRE_GetProcessType())) {
     return RecordEventResult::WrongProcess;
   }
@@ -505,12 +473,11 @@ ShouldRecordChildEvent(const StaticMutexAutoLock& lock, const nsACString& catego
   return RecordEventResult::Ok;
 }
 
-void
-RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
-               const nsTArray<DynamicEventInfo>& eventInfos,
-               const nsTArray<bool>& eventExpired)
-{
-  MOZ_ASSERT(eventInfos.Length() == eventExpired.Length(), "Event data array sizes should match.");
+void RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
+                    const nsTArray<DynamicEventInfo>& eventInfos,
+                    const nsTArray<bool>& eventExpired) {
+  MOZ_ASSERT(eventInfos.Length() == eventExpired.Length(),
+             "Event data array sizes should match.");
 
   // Register the new events.
   if (!gDynamicEventInfo) {
@@ -520,8 +487,9 @@ RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
   for (uint32_t i = 0, len = eventInfos.Length(); i < len; ++i) {
     const nsCString& eventName = UniqueEventName(eventInfos[i]);
 
-    // Re-registering events can happen when add-ons update, so we don't print warnings.
-    // We don't support changing their definition, but the expiry might have changed.
+    // Re-registering events can happen when add-ons update, so we don't print
+    // warnings. We don't support changing their definition, but the expiry
+    // might have changed.
     EventKey* existing = nullptr;
     if (gEventNameIDMap.Get(eventName, &existing)) {
       if (eventExpired[i]) {
@@ -531,7 +499,8 @@ RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
     }
 
     gDynamicEventInfo->AppendElement(eventInfos[i]);
-    uint32_t eventId = eventExpired[i] ? kExpiredEventId : gDynamicEventInfo->Length() - 1;
+    uint32_t eventId =
+        eventExpired[i] ? kExpiredEventId : gDynamicEventInfo->Length() - 1;
     gEventNameIDMap.Put(eventName, new EventKey{eventId, true});
   }
 
@@ -539,7 +508,7 @@ RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
   gEnabledCategories.PutEntry(category);
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -548,12 +517,9 @@ RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
 
 namespace {
 
-nsresult
-SerializeEventsArray(const EventRecordArray& events,
-                    JSContext* cx,
-                    JS::MutableHandleObject result,
-                    unsigned int dataset)
-{
+nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
+                              JS::MutableHandleObject result,
+                              unsigned int dataset) {
   // We serialize the events to a JS array.
   JS::RootedObject eventsArray(cx, JS_NewArrayObject(cx, events.Length()));
   if (!eventsArray) {
@@ -592,18 +558,20 @@ SerializeEventsArray(const EventRecordArray& events,
 
     for (const nsCString& s : strings) {
       const NS_ConvertUTF8toUTF16 wide(s);
-      if (!items.append(JS::StringValue(JS_NewUCStringCopyN(cx, wide.Data(), wide.Length())))) {
+      if (!items.append(JS::StringValue(
+              JS_NewUCStringCopyN(cx, wide.Data(), wide.Length())))) {
         return NS_ERROR_FAILURE;
       }
     }
 
     // Add the optional string value only when needed.
-    // When the value field is empty and extra is not set, we can save a little space that way.
-    // We still need to submit a null value if extra is set, to match the form:
-    // [ts, category, method, object, null, extra]
+    // When the value field is empty and extra is not set, we can save a little
+    // space that way. We still need to submit a null value if extra is set, to
+    // match the form: [ts, category, method, object, null, extra]
     if (record.Value()) {
       const NS_ConvertUTF8toUTF16 wide(record.Value().value());
-      if (!items.append(JS::StringValue(JS_NewUCStringCopyN(cx, wide.Data(), wide.Length())))) {
+      if (!items.append(JS::StringValue(
+              JS_NewUCStringCopyN(cx, wide.Data(), wide.Length())))) {
         return NS_ERROR_FAILURE;
       }
     } else if (!record.Extra().IsEmpty()) {
@@ -627,7 +595,8 @@ SerializeEventsArray(const EventRecordArray& events,
         JS::Rooted<JS::Value> value(cx);
         value.setString(JS_NewUCStringCopyN(cx, wide.Data(), wide.Length()));
 
-        if (!JS_DefineProperty(cx, obj, extra[i].key.get(), value, JSPROP_ENUMERATE)) {
+        if (!JS_DefineProperty(cx, obj, extra[i].key.get(), value,
+                               JSPROP_ENUMERATE)) {
           return NS_ERROR_FAILURE;
         }
       }
@@ -649,7 +618,7 @@ SerializeEventsArray(const EventRecordArray& events,
   return NS_OK;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -668,19 +637,21 @@ SerializeEventsArray(const EventRecordArray& events,
 // cannot make sure that no other function is called before this point.
 static StaticMutex gTelemetryEventsMutex;
 
-void
-TelemetryEvent::InitializeGlobalState(bool aCanRecordBase, bool aCanRecordExtended)
-{
+void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
+                                           bool aCanRecordExtended) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
-  MOZ_ASSERT(!gInitDone, "TelemetryEvent::InitializeGlobalState "
+  MOZ_ASSERT(!gInitDone,
+             "TelemetryEvent::InitializeGlobalState "
              "may only be called once");
 
   gCanRecordBase = aCanRecordBase;
   gCanRecordExtended = aCanRecordExtended;
 
   // Populate the static event name->id cache. Note that the event names are
-  // statically allocated and come from the automatically generated TelemetryEventData.h.
-  const uint32_t eventCount = static_cast<uint32_t>(mozilla::Telemetry::EventID::EventCount);
+  // statically allocated and come from the automatically generated
+  // TelemetryEventData.h.
+  const uint32_t eventCount =
+      static_cast<uint32_t>(mozilla::Telemetry::EventID::EventCount);
   for (uint32_t i = 0; i < eventCount; ++i) {
     const EventInfo& info = gEventInfo[i];
     uint32_t eventId = i;
@@ -705,9 +676,7 @@ TelemetryEvent::InitializeGlobalState(bool aCanRecordBase, bool aCanRecordExtend
   gInitDone = true;
 }
 
-void
-TelemetryEvent::DeInitializeGlobalState()
-{
+void TelemetryEvent::DeInitializeGlobalState() {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
   MOZ_ASSERT(gInitDone);
 
@@ -724,23 +693,19 @@ TelemetryEvent::DeInitializeGlobalState()
   gInitDone = false;
 }
 
-void
-TelemetryEvent::SetCanRecordBase(bool b)
-{
+void TelemetryEvent::SetCanRecordBase(bool b) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
   gCanRecordBase = b;
 }
 
-void
-TelemetryEvent::SetCanRecordExtended(bool b) {
+void TelemetryEvent::SetCanRecordExtended(bool b) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
   gCanRecordExtended = b;
 }
 
-nsresult
-TelemetryEvent::RecordChildEvents(ProcessID aProcessType,
-                                  const nsTArray<mozilla::Telemetry::ChildEventData>& aEvents)
-{
+nsresult TelemetryEvent::RecordChildEvents(
+    ProcessID aProcessType,
+    const nsTArray<mozilla::Telemetry::ChildEventData>& aEvents) {
   MOZ_ASSERT(XRE_IsParentProcess());
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
   for (uint32_t i = 0; i < aEvents.Length(); ++i) {
@@ -749,19 +714,21 @@ TelemetryEvent::RecordChildEvents(ProcessID aProcessType,
     // Timestamps from child processes are absolute. We fix them up here to be
     // relative to the main process start time.
     // This allows us to put events from all processes on the same timeline.
-    double relativeTimestamp = (e.timestamp - TimeStamp::ProcessCreation()).ToMilliseconds();
+    double relativeTimestamp =
+        (e.timestamp - TimeStamp::ProcessCreation()).ToMilliseconds();
 
-    ::RecordEvent(locker, aProcessType, relativeTimestamp, e.category, e.method, e.object, e.value, e.extra);
+    ::RecordEvent(locker, aProcessType, relativeTimestamp, e.category, e.method,
+                  e.object, e.value, e.extra);
   }
   return NS_OK;
 }
 
-nsresult
-TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMethod,
-                            const nsACString& aObject, JS::HandleValue aValue,
-                            JS::HandleValue aExtra, JSContext* cx,
-                            uint8_t optional_argc)
-{
+nsresult TelemetryEvent::RecordEvent(const nsACString& aCategory,
+                                     const nsACString& aMethod,
+                                     const nsACString& aObject,
+                                     JS::HandleValue aValue,
+                                     JS::HandleValue aExtra, JSContext* cx,
+                                     uint8_t optional_argc) {
   // Check value argument.
   if ((optional_argc > 0) && !aValue.isNull() && !aValue.isString()) {
     LogToBrowserConsole(nsIScriptError::warningFlag,
@@ -774,15 +741,18 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
   if (aValue.isString()) {
     nsAutoJSString jsStr;
     if (!jsStr.init(cx, aValue)) {
-      LogToBrowserConsole(nsIScriptError::warningFlag,
-                          NS_LITERAL_STRING("Invalid string value for value parameter."));
+      LogToBrowserConsole(
+          nsIScriptError::warningFlag,
+          NS_LITERAL_STRING("Invalid string value for value parameter."));
       return NS_OK;
     }
 
     nsCString str = NS_ConvertUTF16toUTF8(jsStr);
     if (str.Length() > kMaxValueByteLength) {
-      LogToBrowserConsole(nsIScriptError::warningFlag,
-                          NS_LITERAL_STRING("Value parameter exceeds maximum string length, truncating."));
+      LogToBrowserConsole(
+          nsIScriptError::warningFlag,
+          NS_LITERAL_STRING(
+              "Value parameter exceeds maximum string length, truncating."));
       TruncateToByteLength(str, kMaxValueByteLength);
     }
     value = mozilla::Some(str);
@@ -809,8 +779,10 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
     for (size_t i = 0, n = ids.length(); i < n; i++) {
       nsAutoJSString key;
       if (!key.init(cx, ids[i])) {
-        LogToBrowserConsole(nsIScriptError::warningFlag,
-                            NS_LITERAL_STRING("Extra dictionary should only contain string keys."));
+        LogToBrowserConsole(
+            nsIScriptError::warningFlag,
+            NS_LITERAL_STRING(
+                "Extra dictionary should only contain string keys."));
         return NS_OK;
       }
 
@@ -823,15 +795,18 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
 
       nsAutoJSString jsStr;
       if (!value.isString() || !jsStr.init(cx, value)) {
-        LogToBrowserConsole(nsIScriptError::warningFlag,
-                            NS_LITERAL_STRING("Extra properties should have string values."));
+        LogToBrowserConsole(
+            nsIScriptError::warningFlag,
+            NS_LITERAL_STRING("Extra properties should have string values."));
         return NS_OK;
       }
 
       nsCString str = NS_ConvertUTF16toUTF8(jsStr);
       if (str.Length() > kMaxExtraValueByteLength) {
-        LogToBrowserConsole(nsIScriptError::warningFlag,
-                            NS_LITERAL_STRING("Extra value exceeds maximum string length, truncating."));
+        LogToBrowserConsole(
+            nsIScriptError::warningFlag,
+            NS_LITERAL_STRING(
+                "Extra value exceeds maximum string length, truncating."));
         TruncateToByteLength(str, kMaxExtraValueByteLength);
       }
 
@@ -850,8 +825,8 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
     }
 
     if (res == RecordEventResult::Ok) {
-      TelemetryIPCAccumulator::RecordChildEvent(TimeStamp::NowLoRes(), aCategory,
-                                                aMethod, aObject, value, extra);
+      TelemetryIPCAccumulator::RecordChildEvent(
+          TimeStamp::NowLoRes(), aCategory, aMethod, aObject, value, extra);
     }
   } else {
     StaticMutexAutoLock lock(gTelemetryEventsMutex);
@@ -866,7 +841,8 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
       return NS_ERROR_FAILURE;
     }
 
-    res = ::RecordEvent(lock, ProcessID::Parent, timestamp, aCategory, aMethod, aObject, value, extra);
+    res = ::RecordEvent(lock, ProcessID::Parent, timestamp, aCategory, aMethod,
+                        aObject, value, extra);
   }
 
   // Trigger warnings or errors where needed.
@@ -883,7 +859,8 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
                           PromiseFlatCString(aCategory).get(),
                           PromiseFlatCString(aMethod).get(),
                           PromiseFlatCString(aObject).get());
-      LogToBrowserConsole(nsIScriptError::warningFlag, NS_ConvertUTF8toUTF16(msg));
+      LogToBrowserConsole(nsIScriptError::warningFlag,
+                          NS_ConvertUTF8toUTF16(msg));
       return NS_OK;
     }
     case RecordEventResult::StorageLimitReached:
@@ -895,19 +872,20 @@ TelemetryEvent::RecordEvent(const nsACString& aCategory, const nsACString& aMeth
   }
 }
 
-static bool
-GetArrayPropertyValues(JSContext* cx, JS::HandleObject obj, const char* property,
-                       nsTArray<nsCString>* results)
-{
+static bool GetArrayPropertyValues(JSContext* cx, JS::HandleObject obj,
+                                   const char* property,
+                                   nsTArray<nsCString>* results) {
   JS::RootedValue value(cx);
   if (!JS_GetProperty(cx, obj, property, &value)) {
-    JS_ReportErrorASCII(cx, R"(Missing required property "%s" for event)", property);
+    JS_ReportErrorASCII(cx, R"(Missing required property "%s" for event)",
+                        property);
     return false;
   }
 
   bool isArray = false;
   if (!JS_IsArrayObject(cx, value, &isArray) || !isArray) {
-    JS_ReportErrorASCII(cx, R"(Property "%s" for event should be an array)", property);
+    JS_ReportErrorASCII(cx, R"(Property "%s" for event should be an array)",
+                        property);
     return false;
   }
 
@@ -924,7 +902,9 @@ GetArrayPropertyValues(JSContext* cx, JS::HandleObject obj, const char* property
     }
 
     if (!element.isString()) {
-      JS_ReportErrorASCII(cx, R"(Array entries for event property "%s" should be strings)", property);
+      JS_ReportErrorASCII(
+          cx, R"(Array entries for event property "%s" should be strings)",
+          property);
       return false;
     }
 
@@ -939,16 +919,15 @@ GetArrayPropertyValues(JSContext* cx, JS::HandleObject obj, const char* property
   return true;
 }
 
-nsresult
-TelemetryEvent::RegisterEvents(const nsACString& aCategory,
-                               JS::Handle<JS::Value> aEventData,
-                               JSContext* cx)
-{
+nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
+                                        JS::Handle<JS::Value> aEventData,
+                                        JSContext* cx) {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Events can only be registered in the parent process");
 
   if (!IsValidIdentifierString(aCategory, 30, true, false)) {
-    JS_ReportErrorASCII(cx, "Category parameter should match the identifier pattern.");
+    JS_ReportErrorASCII(
+        cx, "Category parameter should match the identifier pattern.");
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -964,7 +943,8 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
   }
 
   // Collect the event data into local storage first.
-  // Only after successfully validating all contained events will we register them into global storage.
+  // Only after successfully validating all contained events will we register
+  // them into global storage.
   nsTArray<DynamicEventInfo> newEventInfos;
   nsTArray<bool> newEventExpired;
 
@@ -974,13 +954,16 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
       return NS_ERROR_FAILURE;
     }
 
-    if (!IsValidIdentifierString(NS_ConvertUTF16toUTF8(eventName), kMaxMethodNameByteLength, false, true)) {
-      JS_ReportErrorASCII(cx, "Event names should match the identifier pattern.");
+    if (!IsValidIdentifierString(NS_ConvertUTF16toUTF8(eventName),
+                                 kMaxMethodNameByteLength, false, true)) {
+      JS_ReportErrorASCII(cx,
+                          "Event names should match the identifier pattern.");
       return NS_ERROR_INVALID_ARG;
     }
 
     JS::RootedValue value(cx);
-    if (!JS_GetPropertyById(cx, obj, eventPropertyIds[i], &value) || !value.isObject()) {
+    if (!JS_GetPropertyById(cx, obj, eventPropertyIds[i], &value) ||
+        !value.isObject()) {
       return NS_ERROR_FAILURE;
     }
     JS::RootedObject eventObj(cx, &value.toObject());
@@ -1003,7 +986,8 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
 
     // extra_keys is optional.
     bool hasProperty = false;
-    if (JS_HasProperty(cx, eventObj, "extra_keys", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "extra_keys", &hasProperty) &&
+        hasProperty) {
       if (!GetArrayPropertyValues(cx, eventObj, "extra_keys", &extra_keys)) {
         return NS_ERROR_FAILURE;
       }
@@ -1012,7 +996,8 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     // expired is optional.
     if (JS_HasProperty(cx, eventObj, "expired", &hasProperty) && hasProperty) {
       JS::RootedValue temp(cx);
-      if (!JS_GetProperty(cx, eventObj, "expired", &temp) || !temp.isBoolean()) {
+      if (!JS_GetProperty(cx, eventObj, "expired", &temp) ||
+          !temp.isBoolean()) {
         return NS_ERROR_FAILURE;
       }
 
@@ -1020,9 +1005,11 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // record_on_release is optional.
-    if (JS_HasProperty(cx, eventObj, "record_on_release", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "record_on_release", &hasProperty) &&
+        hasProperty) {
       JS::RootedValue temp(cx);
-      if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) || !temp.isBoolean()) {
+      if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) ||
+          !temp.isBoolean()) {
         return NS_ERROR_FAILURE;
       }
 
@@ -1031,16 +1018,20 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
 
     // Validate methods.
     for (auto& method : methods) {
-      if (!IsValidIdentifierString(method, kMaxMethodNameByteLength, false, false)) {
-        JS_ReportErrorASCII(cx, "Method names should match the identifier pattern.");
+      if (!IsValidIdentifierString(method, kMaxMethodNameByteLength, false,
+                                   false)) {
+        JS_ReportErrorASCII(
+            cx, "Method names should match the identifier pattern.");
         return NS_ERROR_INVALID_ARG;
       }
     }
 
     // Validate objects.
     for (auto& object : objects) {
-      if (!IsValidIdentifierString(object, kMaxObjectNameByteLength, false, true)) {
-        JS_ReportErrorASCII(cx, "Object names should match the identifier pattern.");
+      if (!IsValidIdentifierString(object, kMaxObjectNameByteLength, false,
+                                   true)) {
+        JS_ReportErrorASCII(
+            cx, "Object names should match the identifier pattern.");
         return NS_ERROR_INVALID_ARG;
       }
     }
@@ -1051,8 +1042,10 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
       return NS_ERROR_INVALID_ARG;
     }
     for (auto& key : extra_keys) {
-      if (!IsValidIdentifierString(key, kMaxExtraKeyNameByteLength, false, false)) {
-        JS_ReportErrorASCII(cx, "Extra key names should match the identifier pattern.");
+      if (!IsValidIdentifierString(key, kMaxExtraKeyNameByteLength, false,
+                                   false)) {
+        JS_ReportErrorASCII(
+            cx, "Extra key names should match the identifier pattern.");
         return NS_ERROR_INVALID_ARG;
       }
     }
@@ -1060,8 +1053,9 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     // Append event infos to be registered.
     for (auto& method : methods) {
       for (auto& object : objects) {
-        // We defer the actual registration here in case any other event description is invalid.
-        // In that case we don't need to roll back any partial registration.
+        // We defer the actual registration here in case any other event
+        // description is invalid. In that case we don't need to roll back any
+        // partial registration.
         DynamicEventInfo info{nsCString(aCategory), method, object,
                               nsTArray<nsCString>(extra_keys), recordOnRelease};
         newEventInfos.AppendElement(info);
@@ -1078,10 +1072,9 @@ TelemetryEvent::RegisterEvents(const nsACString& aCategory,
   return NS_OK;
 }
 
-nsresult
-TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear, JSContext* cx,
-                                uint8_t optional_argc, JS::MutableHandleValue aResult)
-{
+nsresult TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear,
+                                         JSContext* cx, uint8_t optional_argc,
+                                         JS::MutableHandleValue aResult) {
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
   }
@@ -1102,7 +1095,8 @@ TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear, JSContext* cx,
     }
 
     for (auto iter = gEventRecords.Iter(); !iter.Done(); iter.Next()) {
-      const EventRecordArray* eventStorage = static_cast<EventRecordArray*>(iter.Data());
+      const EventRecordArray* eventStorage =
+          static_cast<EventRecordArray*>(iter.Data());
       EventRecordArray events;
 
       const uint32_t len = eventStorage->Length();
@@ -1131,14 +1125,15 @@ TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear, JSContext* cx,
   }
 
   const uint32_t processLength = processEvents.Length();
-  for (uint32_t i = 0; i < processLength; ++i)
-  {
+  for (uint32_t i = 0; i < processLength; ++i) {
     JS::RootedObject eventsArray(cx);
-    if (NS_FAILED(SerializeEventsArray(processEvents[i].second(), cx, &eventsArray, aDataset))) {
+    if (NS_FAILED(SerializeEventsArray(processEvents[i].second(), cx,
+                                       &eventsArray, aDataset))) {
       return NS_ERROR_FAILURE;
     }
 
-    if (!JS_DefineProperty(cx, rootObj, processEvents[i].first(), eventsArray, JSPROP_ENUMERATE)) {
+    if (!JS_DefineProperty(cx, rootObj, processEvents[i].first(), eventsArray,
+                           JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -1150,9 +1145,7 @@ TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear, JSContext* cx,
 /**
  * Resets all the stored events. This is intended to be only used in tests.
  */
-void
-TelemetryEvent::ClearEvents()
-{
+void TelemetryEvent::ClearEvents() {
   StaticMutexAutoLock lock(gTelemetryEventsMutex);
 
   if (!gInitDone) {
@@ -1162,15 +1155,15 @@ TelemetryEvent::ClearEvents()
   gEventRecords.Clear();
 }
 
-void
-TelemetryEvent::SetEventRecordingEnabled(const nsACString& category, bool enabled)
-{
+void TelemetryEvent::SetEventRecordingEnabled(const nsACString& category,
+                                              bool enabled) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
 
   uint32_t categoryId;
   if (!gCategoryNameIDMap.Get(category, &categoryId)) {
-    LogToBrowserConsole(nsIScriptError::warningFlag,
-                        NS_LITERAL_STRING("Unkown category for SetEventRecordingEnabled."));
+    LogToBrowserConsole(
+        nsIScriptError::warningFlag,
+        NS_LITERAL_STRING("Unkown category for SetEventRecordingEnabled."));
     return;
   }
 
@@ -1181,16 +1174,15 @@ TelemetryEvent::SetEventRecordingEnabled(const nsACString& category, bool enable
   }
 }
 
-size_t
-TelemetryEvent::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-{
+size_t TelemetryEvent::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
   size_t n = 0;
 
-
   n += gEventRecords.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (auto iter = gEventRecords.Iter(); !iter.Done(); iter.Next()) {
-    EventRecordArray* eventRecords = static_cast<EventRecordArray*>(iter.Data());
+    EventRecordArray* eventRecords =
+        static_cast<EventRecordArray*>(iter.Data());
     n += eventRecords->ShallowSizeOfIncludingThis(aMallocSizeOf);
 
     const uint32_t len = eventRecords->Length();

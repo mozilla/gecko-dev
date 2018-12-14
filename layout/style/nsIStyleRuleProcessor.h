@@ -31,26 +31,29 @@ class nsPresContext;
 
 // IID for the nsIStyleRuleProcessor interface
 // {c1d6001e-4fcb-4c40-bce1-5eba80bfd8f3}
-#define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{ 0xc1d6001e, 0x4fcb, 0x4c40, \
-  {0xbc, 0xe1, 0x5e, 0xba, 0x80, 0xbf, 0xd8, 0xf3} }
-
+#define NS_ISTYLE_RULE_PROCESSOR_IID                 \
+  {                                                  \
+    0xc1d6001e, 0x4fcb, 0x4c40, {                    \
+      0xbc, 0xe1, 0x5e, 0xba, 0x80, 0xbf, 0xd8, 0xf3 \
+    }                                                \
+  }
 
 /* The style rule processor interface is a mechanism to separate the matching
  * of style rules from style sheet instances.
  * Simple style sheets can and will act as their own processor.
  * Sheets where rule ordering interlaces between multiple sheets, will need to
- * share a single rule processor between them (CSS sheets do this for cascading order)
+ * share a single rule processor between them (CSS sheets do this for cascading
+ * order)
  *
  * @see nsIStyleRule (for significantly more detailed comments)
  */
 class nsIStyleRuleProcessor : public nsISupports {
-public:
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISTYLE_RULE_PROCESSOR_IID)
 
   // Shorthand for:
   //  nsCOMArray<nsIStyleRuleProcessor>::nsCOMArrayEnumFunc
-  typedef bool (* EnumFunc)(nsIStyleRuleProcessor*, void*);
+  typedef bool (*EnumFunc)(nsIStyleRuleProcessor*, void*);
 
   /**
    * Find the |nsIStyleRule|s matching the given content node and
@@ -84,8 +87,8 @@ public:
    *
    * Document states are defined in nsIDocument.h.
    */
-  virtual bool
-    HasDocumentStateDependentStyle(StateRuleProcessorData* aData) = 0;
+  virtual bool HasDocumentStateDependentStyle(
+      StateRuleProcessorData* aData) = 0;
 
   /**
    * Return how (as described by nsRestyleHint) style can depend on a
@@ -95,10 +98,10 @@ public:
    *
    * Event states are defined in mozilla/EventStates.h.
    */
-  virtual nsRestyleHint
-    HasStateDependentStyle(StateRuleProcessorData* aData) = 0;
-  virtual nsRestyleHint
-    HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData) = 0;
+  virtual nsRestyleHint HasStateDependentStyle(
+      StateRuleProcessorData* aData) = 0;
+  virtual nsRestyleHint HasStateDependentStyle(
+      PseudoElementStateRuleProcessorData* aData) = 0;
 
   /**
    * This method will be called twice for every attribute change.
@@ -131,8 +134,10 @@ public:
    * Report the size of this style rule processor to about:memory.  A
    * processor may return 0.
    */
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const = 0;
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const = 0;
+  virtual size_t SizeOfExcludingThis(
+      mozilla::MallocSizeOf mallocSizeOf) const = 0;
+  virtual size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf mallocSizeOf) const = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleRuleProcessor,

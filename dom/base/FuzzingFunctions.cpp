@@ -15,24 +15,18 @@
 namespace mozilla {
 namespace dom {
 
-/* static */ void
-FuzzingFunctions::GarbageCollect(const GlobalObject&)
-{
+/* static */ void FuzzingFunctions::GarbageCollect(const GlobalObject&) {
   nsJSContext::GarbageCollectNow(JS::gcreason::COMPONENT_UTILS,
                                  nsJSContext::NonIncrementalGC,
                                  nsJSContext::NonShrinkingGC);
 }
 
-/* static */ void
-FuzzingFunctions::CycleCollect(const GlobalObject&)
-{
+/* static */ void FuzzingFunctions::CycleCollect(const GlobalObject&) {
   nsJSContext::CycleCollectNow();
 }
 
-/* static */ void
-FuzzingFunctions::EnableAccessibility(const GlobalObject&,
-                                      ErrorResult& aRv)
-{
+/* static */ void FuzzingFunctions::EnableAccessibility(const GlobalObject&,
+                                                        ErrorResult& aRv) {
   RefPtr<nsIAccessibilityService> a11y;
   nsresult rv;
 
@@ -42,5 +36,5 @@ FuzzingFunctions::EnableAccessibility(const GlobalObject&,
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

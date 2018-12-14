@@ -36,13 +36,9 @@ const int kMicrosecondsPerSecond = 1000000;
 
 namespace base {
 
-ProcessId GetCurrentProcId() {
-  return getpid();
-}
+ProcessId GetCurrentProcId() { return getpid(); }
 
-ProcessHandle GetCurrentProcessHandle() {
-  return GetCurrentProcId();
-}
+ProcessHandle GetCurrentProcessHandle() { return GetCurrentProcId(); }
 
 bool OpenProcessHandle(ProcessId pid, ProcessHandle* handle) {
   // On Posix platforms, process handles are the same as PIDs, so we
@@ -62,9 +58,7 @@ void CloseProcessHandle(ProcessHandle process) {
   return;
 }
 
-ProcessId GetProcId(ProcessHandle process) {
-  return process;
-}
+ProcessId GetProcId(ProcessHandle process) { return process; }
 
 // Attempts to kill the process identified by the given process
 // entry structure.  Ignores specified exit_code; posix can't force that.
@@ -99,8 +93,7 @@ bool KillProcess(ProcessHandle process_id, int exit_code, bool wait) {
     }
   }
 
-  if (!result)
-    DLOG(ERROR) << "Unable to terminate process.";
+  if (!result) DLOG(ERROR) << "Unable to terminate process.";
 
   return result;
 }
@@ -120,10 +113,9 @@ class ScopedDIRClose {
 };
 typedef mozilla::UniquePtr<DIR, ScopedDIRClose> ScopedDIR;
 
-
 void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
-  // DANGER: no calls to malloc are allowed from now on:
-  // http://crbug.com/36678
+// DANGER: no calls to malloc are allowed from now on:
+// http://crbug.com/36678
 #if defined(ANDROID)
   static const rlim_t kSystemDefaultMaxFds = 1024;
   static const char kFDDir[] = "/proc/self/fd";
@@ -151,8 +143,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
     max_fds = nofile.rlim_cur;
   }
 
-  if (max_fds > INT_MAX)
-    max_fds = INT_MAX;
+  if (max_fds > INT_MAX) max_fds = INT_MAX;
 
   DirReaderPosix fd_dir(kFDDir);
 
@@ -164,11 +155,9 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
         continue;
       InjectiveMultimap::const_iterator j;
       for (j = saved_mapping.begin(); j != saved_mapping.end(); j++) {
-        if (fd == j->dest)
-          break;
+        if (fd == j->dest) break;
       }
-      if (j != saved_mapping.end())
-        continue;
+      if (j != saved_mapping.end()) continue;
 
       // Since we're just trying to close anything we can find,
       // ignore any error return values of close().
@@ -179,27 +168,22 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
 
   const int dir_fd = fd_dir.fd();
 
-  for ( ; fd_dir.Next(); ) {
+  for (; fd_dir.Next();) {
     // Skip . and .. entries.
-    if (fd_dir.name()[0] == '.')
-      continue;
+    if (fd_dir.name()[0] == '.') continue;
 
-    char *endptr;
+    char* endptr;
     errno = 0;
     const long int fd = strtol(fd_dir.name(), &endptr, 10);
-    if (fd_dir.name()[0] == 0 || *endptr || fd < 0 || errno)
-      continue;
+    if (fd_dir.name()[0] == 0 || *endptr || fd < 0 || errno) continue;
     if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
       continue;
     InjectiveMultimap::const_iterator i;
     for (i = saved_mapping.begin(); i != saved_mapping.end(); i++) {
-      if (fd == i->dest)
-        break;
+      if (fd == i->dest) break;
     }
-    if (i != saved_mapping.end())
-      continue;
-    if (fd == dir_fd)
-      continue;
+    if (i != saved_mapping.end()) continue;
+    if (fd == dir_fd) continue;
 
     // When running under Valgrind, Valgrind opens several FDs for its
     // own use and will complain if we try to close them.  All of
@@ -225,21 +209,19 @@ void SetAllFDsToCloseOnExec() {
   const char fd_dir[] = "/dev/fd";
 #endif
   ScopedDIR dir_closer(opendir(fd_dir));
-  DIR *dir = dir_closer.get();
+  DIR* dir = dir_closer.get();
   if (NULL == dir) {
     DLOG(ERROR) << "Unable to open " << fd_dir;
     return;
   }
 
-  struct dirent *ent;
+  struct dirent* ent;
   while ((ent = readdir(dir))) {
     // Skip . and .. entries.
-    if (ent->d_name[0] == '.')
-      continue;
+    if (ent->d_name[0] == '.') continue;
     int i = atoi(ent->d_name);
     // We don't close stdin, stdout or stderr.
-    if (i <= STDERR_FILENO)
-      continue;
+    if (i <= STDERR_FILENO) continue;
 
     int flags = fcntl(i, F_GETFD);
     if ((flags == -1) || (fcntl(i, F_SETFD, flags | FD_CLOEXEC) == -1)) {
@@ -262,22 +244,20 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
     // So, lacking reliable information, we indicate that the process
     // is dead, in the hope that the caller will give up and stop
     // calling us.  See also bug 943174 and bug 933680.
-    CHROMIUM_LOG(ERROR) << "waitpid failed pid:" << handle << " errno:" << errno;
-    if (child_exited)
-      *child_exited = true;
+    CHROMIUM_LOG(ERROR) << "waitpid failed pid:" << handle
+                        << " errno:" << errno;
+    if (child_exited) *child_exited = true;
     return false;
   } else if (result == 0) {
     // the child hasn't exited yet.
-    if (child_exited)
-      *child_exited = false;
+    if (child_exited) *child_exited = false;
     return false;
   }
 
-  if (child_exited)
-    *child_exited = true;
+  if (child_exited) *child_exited = true;
 
   if (WIFSIGNALED(status)) {
-    switch(WTERMSIG(status)) {
+    switch (WTERMSIG(status)) {
       case SIGSYS:
       case SIGSEGV:
       case SIGILL:
@@ -289,26 +269,21 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle) {
     }
   }
 
-  if (WIFEXITED(status))
-    return WEXITSTATUS(status) != 0;
+  if (WIFEXITED(status)) return WEXITSTATUS(status) != 0;
 
   return false;
 }
 
-void
-FreeEnvVarsArray::operator()(char** array)
-{
+void FreeEnvVarsArray::operator()(char** array) {
   for (char** varPtr = array; *varPtr != nullptr; ++varPtr) {
     free(*varPtr);
   }
   delete[] array;
 }
 
-EnvironmentArray
-BuildEnvironmentArray(const environment_map& env_vars_to_set)
-{
+EnvironmentArray BuildEnvironmentArray(const environment_map& env_vars_to_set) {
   base::environment_map combined_env_vars = env_vars_to_set;
-  char **environ = PR_DuplicateEnvironment();
+  char** environ = PR_DuplicateEnvironment();
   for (char** varPtr = environ; *varPtr != nullptr; ++varPtr) {
     std::string varString = *varPtr;
     size_t equalPos = varString.find_first_of('=');
@@ -317,9 +292,9 @@ BuildEnvironmentArray(const environment_map& env_vars_to_set)
     if (combined_env_vars.find(varName) == combined_env_vars.end()) {
       combined_env_vars[varName] = varValue;
     }
-    PR_Free(*varPtr); // PR_DuplicateEnvironment() uses PR_Malloc().
+    PR_Free(*varPtr);  // PR_DuplicateEnvironment() uses PR_Malloc().
   }
-  PR_Free(environ); // PR_DuplicateEnvironment() uses PR_Malloc().
+  PR_Free(environ);  // PR_DuplicateEnvironment() uses PR_Malloc().
 
   EnvironmentArray array(new char*[combined_env_vars.size() + 1]);
   size_t i = 0;

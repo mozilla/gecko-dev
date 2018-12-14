@@ -21,9 +21,8 @@ namespace mozilla {
 
 namespace dom {
 
-class AudioListener final : public nsWrapperCache
-{
-public:
+class AudioListener final : public nsWrapperCache {
+ public:
   explicit AudioListener(AudioContext* aContext);
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AudioListener)
@@ -31,41 +30,32 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  AudioContext* GetParentObject() const
-  {
-    return mContext;
-  }
+  AudioContext* GetParentObject() const { return mContext; }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
-  double DopplerFactor() const
-  {
-    return mDopplerFactor;
-  }
-  void SetDopplerFactor(double aDopplerFactor)
-  {
+  double DopplerFactor() const { return mDopplerFactor; }
+  void SetDopplerFactor(double aDopplerFactor) {
     if (WebAudioUtils::FuzzyEqual(mDopplerFactor, aDopplerFactor)) {
       return;
     }
     mDopplerFactor = aDopplerFactor;
-    SendDoubleParameterToStream(PannerNode::LISTENER_DOPPLER_FACTOR, mDopplerFactor);
+    SendDoubleParameterToStream(PannerNode::LISTENER_DOPPLER_FACTOR,
+                                mDopplerFactor);
   }
 
-  double SpeedOfSound() const
-  {
-    return mSpeedOfSound;
-  }
-  void SetSpeedOfSound(double aSpeedOfSound)
-  {
+  double SpeedOfSound() const { return mSpeedOfSound; }
+  void SetSpeedOfSound(double aSpeedOfSound) {
     if (WebAudioUtils::FuzzyEqual(mSpeedOfSound, aSpeedOfSound)) {
       return;
     }
     mSpeedOfSound = aSpeedOfSound;
-    SendDoubleParameterToStream(PannerNode::LISTENER_SPEED_OF_SOUND, mSpeedOfSound);
+    SendDoubleParameterToStream(PannerNode::LISTENER_SPEED_OF_SOUND,
+                                mSpeedOfSound);
   }
 
-  void SetPosition(double aX, double aY, double aZ)
-  {
+  void SetPosition(double aX, double aY, double aZ) {
     if (WebAudioUtils::FuzzyEqual(mPosition.x, aX) &&
         WebAudioUtils::FuzzyEqual(mPosition.y, aY) &&
         WebAudioUtils::FuzzyEqual(mPosition.z, aZ)) {
@@ -77,21 +67,14 @@ public:
     SendThreeDPointParameterToStream(PannerNode::LISTENER_POSITION, mPosition);
   }
 
-  const ThreeDPoint& Position() const
-  {
-    return mPosition;
-  }
+  const ThreeDPoint& Position() const { return mPosition; }
 
-  void SetOrientation(double aX, double aY, double aZ,
-                      double aXUp, double aYUp, double aZUp);
+  void SetOrientation(double aX, double aY, double aZ, double aXUp, double aYUp,
+                      double aZUp);
 
-  const ThreeDPoint& Velocity() const
-  {
-    return mVelocity;
-  }
+  const ThreeDPoint& Velocity() const { return mVelocity; }
 
-  void SetVelocity(double aX, double aY, double aZ)
-  {
+  void SetVelocity(double aX, double aY, double aZ) {
     if (WebAudioUtils::FuzzyEqual(mVelocity.x, aX) &&
         WebAudioUtils::FuzzyEqual(mVelocity.y, aY) &&
         WebAudioUtils::FuzzyEqual(mVelocity.z, aZ)) {
@@ -107,14 +90,15 @@ public:
   void RegisterPannerNode(PannerNode* aPannerNode);
   void UnregisterPannerNode(PannerNode* aPannerNode);
 
-private:
+ private:
   ~AudioListener() {}
 
   void SendDoubleParameterToStream(uint32_t aIndex, double aValue);
-  void SendThreeDPointParameterToStream(uint32_t aIndex, const ThreeDPoint& aValue);
+  void SendThreeDPointParameterToStream(uint32_t aIndex,
+                                        const ThreeDPoint& aValue);
   void UpdatePannersVelocity();
 
-private:
+ private:
   friend class PannerNode;
   RefPtr<AudioContext> mContext;
   ThreeDPoint mPosition;
@@ -126,8 +110,7 @@ private:
   nsTArray<WeakPtr<PannerNode> > mPanners;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif
-

@@ -15,14 +15,14 @@ namespace dom {
 
 struct AssignedNodesOptions;
 
-class HTMLSlotElement final : public nsGenericHTMLElement
-{
-public:
+class HTMLSlotElement final : public nsGenericHTMLElement {
+ public:
   explicit HTMLSlotElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLSlotElement, slot)
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLSlotElement, nsGenericHTMLElement)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLSlotElement,
+                                           nsGenericHTMLElement)
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
@@ -43,15 +43,11 @@ public:
                                 bool aNotify) override;
 
   // WebIDL
-  void SetName(const nsAString& aName, ErrorResult& aRv)
-  {
+  void SetName(const nsAString& aName, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::name, aName, aRv);
   }
 
-  void GetName(nsAString& aName)
-  {
-    GetHTMLAttr(nsGkAtoms::name, aName);
-  }
+  void GetName(nsAString& aName) { GetHTMLAttr(nsGkAtoms::name, aName); }
 
   void AssignedNodes(const AssignedNodesOptions& aOptions,
                      nsTArray<RefPtr<nsINode>>& aNodes);
@@ -66,15 +62,15 @@ public:
   void EnqueueSlotChangeEvent() const;
   void FireSlotChangeEvent();
 
-protected:
+ protected:
   virtual ~HTMLSlotElement();
-  virtual JSObject*
-  WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   nsTArray<RefPtr<nsINode>> mAssignedNodes;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_HTMLSlotElement_h
+#endif  // mozilla_dom_HTMLSlotElement_h

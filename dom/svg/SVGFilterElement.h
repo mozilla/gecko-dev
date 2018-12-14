@@ -18,27 +18,29 @@ typedef nsSVGElement SVGFilterElementBase;
 class nsSVGFilterFrame;
 class nsSVGFilterInstance;
 
-nsresult NS_NewSVGFilterElement(nsIContent **aResult,
-                                already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGFilterElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 class SVGAnimatedLength;
 
-class SVGFilterElement : public SVGFilterElementBase
-{
+class SVGFilterElement : public SVGFilterElementBase {
   friend class ::nsSVGFilterFrame;
   friend class ::nsSVGFilterInstance;
 
-protected:
-  friend nsresult (::NS_NewSVGFilterElement(nsIContent **aResult,
-                                            already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  explicit SVGFilterElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+ protected:
+  friend nsresult(::NS_NewSVGFilterElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+  explicit SVGFilterElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-public:
+ public:
   // nsIContent
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
@@ -57,8 +59,7 @@ public:
   already_AddRefed<SVGAnimatedEnumeration> PrimitiveUnits();
   already_AddRefed<SVGAnimatedString> Href();
 
-protected:
-
+ protected:
   virtual LengthAttributesInfo GetLengthInfo() override;
   virtual EnumAttributesInfo GetEnumInfo() override;
   virtual StringAttributesInfo GetStringInfo() override;
@@ -76,7 +77,7 @@ protected:
   static StringInfo sStringInfo[2];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGFilterElement_h
+#endif  // mozilla_dom_SVGFilterElement_h

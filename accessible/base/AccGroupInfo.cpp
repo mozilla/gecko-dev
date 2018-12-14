@@ -10,19 +10,15 @@
 
 using namespace mozilla::a11y;
 
-AccGroupInfo::AccGroupInfo(Accessible* aItem, role aRole) :
-  mPosInSet(0), mSetSize(0), mParent(nullptr), mItem(aItem), mRole(aRole)
-{
+AccGroupInfo::AccGroupInfo(Accessible* aItem, role aRole)
+    : mPosInSet(0), mSetSize(0), mParent(nullptr), mItem(aItem), mRole(aRole) {
   MOZ_COUNT_CTOR(AccGroupInfo);
   Update();
 }
 
-void
-AccGroupInfo::Update()
-{
+void AccGroupInfo::Update() {
   Accessible* parent = mItem->Parent();
-  if (!parent)
-    return;
+  if (!parent) return;
 
   int32_t indexInParent = mItem->IndexInParent();
   uint32_t siblingCount = parent->ChildCount();
@@ -36,13 +32,12 @@ AccGroupInfo::Update()
 
   // Compute position in set.
   mPosInSet = 1;
-  for (int32_t idx = indexInParent - 1; idx >= 0 ; idx--) {
+  for (int32_t idx = indexInParent - 1; idx >= 0; idx--) {
     Accessible* sibling = parent->GetChildAt(idx);
     roles::Role siblingRole = sibling->Role();
 
     // If the sibling is separator then the group is ended.
-    if (siblingRole == roles::SEPARATOR)
-      break;
+    if (siblingRole == roles::SEPARATOR) break;
 
     // If sibling is not visible and hasn't the same base role.
     if (BaseRole(siblingRole) != mRole || sibling->State() & states::INVISIBLE)
@@ -59,8 +54,7 @@ AccGroupInfo::Update()
     }
 
     // Skip subset.
-    if (siblingLevel > level)
-      continue;
+    if (siblingLevel > level) continue;
 
     // If the previous item in the group has calculated group information then
     // build group information for this item based on found one.
@@ -83,8 +77,7 @@ AccGroupInfo::Update()
     roles::Role siblingRole = sibling->Role();
 
     // If the sibling is separator then the group is ended.
-    if (siblingRole == roles::SEPARATOR)
-      break;
+    if (siblingRole == roles::SEPARATOR) break;
 
     // If sibling is visible and has the same base role
     if (BaseRole(siblingRole) != mRole || sibling->State() & states::INVISIBLE)
@@ -92,12 +85,10 @@ AccGroupInfo::Update()
 
     // and check if it's hierarchical flatten structure.
     int32_t siblingLevel = nsAccUtils::GetARIAOrDefaultLevel(sibling);
-    if (siblingLevel < level)
-      break;
+    if (siblingLevel < level) break;
 
     // Skip subset.
-    if (siblingLevel > level)
-      continue;
+    if (siblingLevel > level) continue;
 
     // If the next item in the group has calculated group information then
     // build group information for this item based on found one.
@@ -110,16 +101,13 @@ AccGroupInfo::Update()
     mSetSize++;
   }
 
-  if (mParent)
-    return;
+  if (mParent) return;
 
   roles::Role parentRole = parent->Role();
-  if (ShouldReportRelations(mRole, parentRole))
-    mParent = parent;
+  if (ShouldReportRelations(mRole, parentRole)) mParent = parent;
 
   // ARIA tree and list can be arranged by using ARIA groups to organize levels.
-  if (parentRole != roles::GROUPING)
-    return;
+  if (parentRole != roles::GROUPING) return;
 
   // Way #1 for ARIA tree (not ARIA treegrid): previous sibling of a group is a
   // parent. In other words the parent of the tree item will be a group and
@@ -138,14 +126,11 @@ AccGroupInfo::Update()
   // a conceptual parent of the item.
   if (mRole == roles::LISTITEM || mRole == roles::OUTLINEITEM) {
     Accessible* grandParent = parent->Parent();
-    if (grandParent && grandParent->Role() == mRole)
-      mParent = grandParent;
+    if (grandParent && grandParent->Role() == mRole) mParent = grandParent;
   }
 }
 
-Accessible*
-AccGroupInfo::FirstItemOf(Accessible* aContainer)
-{
+Accessible* AccGroupInfo::FirstItemOf(Accessible* aContainer) {
   // ARIA tree can be arranged by ARIA groups case #1 (previous sibling of a
   // group is a parent) or by aria-level.
   a11y::role containerRole = aContainer->Role();
@@ -164,11 +149,11 @@ AccGroupInfo::FirstItemOf(Accessible* aContainer)
   // ARIA list and tree can be arranged by ARIA groups case #2 (group is
   // a child of an item).
   item = aContainer->LastChild();
-  if (!item)
-    return nullptr;
+  if (!item) return nullptr;
 
   if (item->Role() == roles::GROUPING &&
-      (containerRole == roles::LISTITEM || containerRole == roles::OUTLINEITEM)) {
+      (containerRole == roles::LISTITEM ||
+       containerRole == roles::OUTLINEITEM)) {
     item = item->FirstChild();
     if (item) {
       AccGroupInfo* itemGroupInfo = item->GetGroupInfo();
@@ -179,22 +164,17 @@ AccGroupInfo::FirstItemOf(Accessible* aContainer)
 
   // Otherwise, it can be a direct child if the container is a list or tree.
   item = aContainer->FirstChild();
-  if (ShouldReportRelations(item->Role(), containerRole))
-    return item;
+  if (ShouldReportRelations(item->Role(), containerRole)) return item;
 
   return nullptr;
 }
 
-Accessible*
-AccGroupInfo::NextItemTo(Accessible* aItem)
-{
+Accessible* AccGroupInfo::NextItemTo(Accessible* aItem) {
   AccGroupInfo* groupInfo = aItem->GetGroupInfo();
-  if (!groupInfo)
-    return nullptr;
+  if (!groupInfo) return nullptr;
 
   // If the item in middle of the group then search next item in siblings.
-  if (groupInfo->PosInSet() >= groupInfo->SetSize())
-    return nullptr;
+  if (groupInfo->PosInSet() >= groupInfo->SetSize()) return nullptr;
 
   Accessible* parent = aItem->Parent();
   uint32_t childCount = parent->ChildCount();
@@ -211,17 +191,12 @@ AccGroupInfo::NextItemTo(Accessible* aItem)
   return nullptr;
 }
 
-bool
-AccGroupInfo::ShouldReportRelations(role aRole, role aParentRole)
-{
+bool AccGroupInfo::ShouldReportRelations(role aRole, role aParentRole) {
   // We only want to report hierarchy-based node relations for items in tree or
   // list form.  ARIA level/owns relations are always reported.
-  if (aParentRole == roles::OUTLINE && aRole == roles::OUTLINEITEM)
-    return true;
-  if (aParentRole == roles::TREE_TABLE && aRole == roles::ROW)
-    return true;
-  if (aParentRole == roles::LIST && aRole == roles::LISTITEM)
-    return true;
+  if (aParentRole == roles::OUTLINE && aRole == roles::OUTLINEITEM) return true;
+  if (aParentRole == roles::TREE_TABLE && aRole == roles::ROW) return true;
+  if (aParentRole == roles::LIST && aRole == roles::LISTITEM) return true;
 
   return false;
 }

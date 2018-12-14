@@ -17,8 +17,8 @@ static const char kOpenCaptivePortalLoginEvent[] = "captive-portal-login";
 static const char kClearPrivateData[] = "clear-private-data";
 static const char kPurge[] = "browser:purge-session-history";
 
-#define TRR_PREF_PREFIX           "network.trr."
-#define TRR_PREF(x)               TRR_PREF_PREFIX x
+#define TRR_PREF_PREFIX "network.trr."
+#define TRR_PREF(x) TRR_PREF_PREFIX x
 
 namespace mozilla {
 namespace net {
@@ -32,26 +32,23 @@ TRRService *gTRRService = nullptr;
 NS_IMPL_ISUPPORTS(TRRService, nsIObserver, nsISupportsWeakReference)
 
 TRRService::TRRService()
-  : mInitialized(false)
-  , mMode(0)
-  , mTRRBlacklistExpireTime(72 * 3600)
-  , mTRRTimeout(3000)
-  , mLock("trrservice")
-  , mConfirmationNS(NS_LITERAL_CSTRING("example.com"))
-  , mWaitForCaptive(true)
-  , mRfc1918(false)
-  , mCaptiveIsPassed(false)
-  , mUseGET(false)
-  , mClearTRRBLStorage(false)
-  , mConfirmationState(CONFIRM_INIT)
-  , mRetryConfirmInterval(1000)
-{
+    : mInitialized(false),
+      mMode(0),
+      mTRRBlacklistExpireTime(72 * 3600),
+      mTRRTimeout(3000),
+      mLock("trrservice"),
+      mConfirmationNS(NS_LITERAL_CSTRING("example.com")),
+      mWaitForCaptive(true),
+      mRfc1918(false),
+      mCaptiveIsPassed(false),
+      mUseGET(false),
+      mClearTRRBLStorage(false),
+      mConfirmationState(CONFIRM_INIT),
+      mRetryConfirmInterval(1000) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 }
 
-nsresult
-TRRService::Init()
-{
+nsresult TRRService::Init() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   if (mInitialized) {
     return NS_OK;
@@ -59,7 +56,7 @@ TRRService::Init()
   mInitialized = true;
 
   nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
+      mozilla::services::GetObserverService();
   if (observerService) {
     observerService->AddObserver(this, NS_CAPTIVE_PORTAL_CONNECTIVITY, true);
     observerService->AddObserver(this, kOpenCaptivePortalLoginEvent, true);
@@ -80,9 +77,7 @@ TRRService::Init()
   return NS_OK;
 }
 
-bool
-TRRService::Enabled()
-{
+bool TRRService::Enabled() {
   if (mConfirmationState == CONFIRM_INIT && !mWaitForCaptive) {
     LOG(("TRRService::Enabled => CONFIRM_TRYING\n"));
     mConfirmationState = CONFIRM_TRYING;
@@ -94,23 +89,20 @@ TRRService::Enabled()
   }
 
   if (mConfirmationState != CONFIRM_OK) {
-    LOG(("TRRService::Enabled mConfirmationState=%d\n", (int)mConfirmationState));
+    LOG(("TRRService::Enabled mConfirmationState=%d\n",
+         (int)mConfirmationState));
   }
 
   return (mConfirmationState == CONFIRM_OK);
 }
 
-void
-TRRService::GetPrefBranch(nsIPrefBranch **result)
-{
+void TRRService::GetPrefBranch(nsIPrefBranch **result) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   *result = nullptr;
   CallGetService(NS_PREFSERVICE_CONTRACTID, result);
 }
 
-nsresult
-TRRService::ReadPrefs(const char *name)
-{
+nsresult TRRService::ReadPrefs(const char *name) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   if (!name || !strcmp(name, TRR_PREF("mode"))) {
     // 0 - off, 1 - parallel, 2 - TRR first, 3 - TRR only, 4 - shadow
@@ -184,7 +176,8 @@ TRRService::ReadPrefs(const char *name)
   if (!name || !strcmp(name, TRR_PREF("blacklist-duration"))) {
     // prefs is given in number of seconds
     uint32_t secs;
-    if (NS_SUCCEEDED(Preferences::GetUint(TRR_PREF("blacklist-duration"), &secs))) {
+    if (NS_SUCCEEDED(
+            Preferences::GetUint(TRR_PREF("blacklist-duration"), &secs))) {
       mTRRBlacklistExpireTime = secs;
     }
   }
@@ -205,25 +198,19 @@ TRRService::ReadPrefs(const char *name)
   return NS_OK;
 }
 
-nsresult
-TRRService::GetURI(nsCString &result)
-{
+nsresult TRRService::GetURI(nsCString &result) {
   MutexAutoLock lock(mLock);
   result = mPrivateURI;
   return NS_OK;
 }
 
-nsresult
-TRRService::GetCredentials(nsCString &result)
-{
+nsresult TRRService::GetCredentials(nsCString &result) {
   MutexAutoLock lock(mLock);
   result = mPrivateCred;
   return NS_OK;
 }
 
-nsresult
-TRRService::Start()
-{
+nsresult TRRService::Start() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   if (!mInitialized) {
     return NS_ERROR_NOT_INITIALIZED;
@@ -231,25 +218,21 @@ TRRService::Start()
   return NS_OK;
 }
 
-TRRService::~TRRService()
-{
+TRRService::~TRRService() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   LOG(("Exiting TRRService\n"));
   gTRRService = nullptr;
 }
 
 NS_IMETHODIMP
-TRRService::Observe(nsISupports *aSubject,
-                    const char * aTopic,
-                    const char16_t * aData)
-{
+TRRService::Observe(nsISupports *aSubject, const char *aTopic,
+                    const char16_t *aData) {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   LOG(("TRR::Observe() topic=%s\n", aTopic));
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     ReadPrefs(NS_ConvertUTF16toUTF8(aData).get());
 
-    if ((mConfirmationState == CONFIRM_INIT) &&
-        !mBootstrapAddr.IsEmpty() &&
+    if ((mConfirmationState == CONFIRM_INIT) && !mBootstrapAddr.IsEmpty() &&
         (mMode == MODE_TRRONLY)) {
       mConfirmationState = CONFIRM_TRYING;
       MaybeConfirm();
@@ -282,8 +265,7 @@ TRRService::Observe(nsISupports *aSubject,
     MaybeConfirm();
     mCaptiveIsPassed = true;
 
-  } else if (!strcmp(aTopic, kClearPrivateData) ||
-             !strcmp(aTopic, kPurge)) {
+  } else if (!strcmp(aTopic, kClearPrivateData) || !strcmp(aTopic, kPurge)) {
     // flush the TRR blacklist, both in-memory and on-disk
     if (mTRRBLStorage) {
       mTRRBLStorage->Clear();
@@ -292,12 +274,12 @@ TRRService::Observe(nsISupports *aSubject,
   return NS_OK;
 }
 
-void
-TRRService::MaybeConfirm()
-{
+void TRRService::MaybeConfirm() {
   if ((mMode == MODE_NATIVEONLY) || mConfirmer ||
       mConfirmationState != CONFIRM_TRYING) {
-    LOG(("TRRService:MaybeConfirm mode=%d, mConfirmer=%p mConfirmationState=%d\n",
+    LOG(
+        ("TRRService:MaybeConfirm mode=%d, mConfirmer=%p "
+         "mConfirmationState=%d\n",
          (int)mMode, (void *)mConfirmer, (int)mConfirmationState));
     return;
   }
@@ -311,27 +293,27 @@ TRRService::MaybeConfirm()
          mPrivateURI.get()));
     mConfirmationState = CONFIRM_OK;
   } else {
-    LOG(("TRRService starting confirmation test %s %s\n",
-         mPrivateURI.get(), host.get()));
+    LOG(("TRRService starting confirmation test %s %s\n", mPrivateURI.get(),
+         host.get()));
     mConfirmer = new TRR(this, host, TRRTYPE_NS, false);
     NS_DispatchToMainThread(mConfirmer);
   }
 }
 
-bool
-TRRService::MaybeBootstrap(const nsACString &aPossible, nsACString &aResult)
-{
+bool TRRService::MaybeBootstrap(const nsACString &aPossible,
+                                nsACString &aResult) {
   MutexAutoLock lock(mLock);
   if ((mMode == MODE_NATIVEONLY) || mBootstrapAddr.IsEmpty()) {
     return false;
   }
 
   nsCOMPtr<nsIURI> url;
-  nsresult rv = NS_MutateURI(NS_STANDARDURLMUTATOR_CONTRACTID)
-    .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                            nsIStandardURL::URLTYPE_STANDARD, 443,
-                            mPrivateURI, nullptr, nullptr, nullptr))
-    .Finalize(url);
+  nsresult rv =
+      NS_MutateURI(NS_STANDARDURLMUTATOR_CONTRACTID)
+          .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
+                                  nsIStandardURL::URLTYPE_STANDARD, 443,
+                                  mPrivateURI, nullptr, nullptr, nullptr))
+          .Finalize(url);
   if (NS_FAILED(rv)) {
     LOG(("TRRService::MaybeBootstrap failed to create URI!\n"));
     return false;
@@ -350,9 +332,8 @@ TRRService::MaybeBootstrap(const nsACString &aPossible, nsACString &aResult)
 
 // When running in TRR-only mode, the blacklist is not used and it will also
 // try resolving the localhost / .local names.
-bool
-TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
-                             bool aParentsToo) // false if domain
+bool TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
+                                  bool aParentsToo)  // false if domain
 {
   if (mClearTRRBLStorage) {
     if (mTRRBLStorage) {
@@ -362,7 +343,7 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
   }
 
   if (mMode == MODE_TRRONLY) {
-    return false; // might as well try
+    return false;  // might as well try
   }
 
   // hardcode these so as to not worry about expiration
@@ -383,7 +364,7 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
     // Only if a full host name. Domains can be dotless to be able to
     // blacklist entire TLDs
     return true;
-  } else if(dot != kNotFound) {
+  } else if (dot != kNotFound) {
     // there was a dot, check the parent first
     dot++;
     nsDependentCSubstring domain = Substring(aHost, dot, aHost.Length() - dot);
@@ -399,8 +380,8 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
   MutexAutoLock lock(mLock);
   // use a unified casing for the hashkey
   nsAutoCString hashkey(aHost);
-  nsCString val(mTRRBLStorage->Get(hashkey, privateBrowsing ?
-                                   DataStorage_Private : DataStorage_Persistent));
+  nsCString val(mTRRBLStorage->Get(
+      hashkey, privateBrowsing ? DataStorage_Private : DataStorage_Persistent));
 
   if (!val.IsEmpty()) {
     nsresult code;
@@ -411,58 +392,59 @@ TRRService::IsTRRBlacklisted(const nsACString &aHost, bool privateBrowsing,
       return true;
     } else {
       // the blacklisted entry has expired
-      mTRRBLStorage->Remove(hashkey, privateBrowsing ?
-                            DataStorage_Private : DataStorage_Persistent);
+      mTRRBLStorage->Remove(hashkey, privateBrowsing ? DataStorage_Private
+                                                     : DataStorage_Persistent);
     }
   }
   return false;
 }
 
-class ProxyBlacklist : public Runnable
-{
-public:
-  ProxyBlacklist(TRRService *service, const nsACString &aHost, bool pb, bool aParentsToo)
-    : mozilla::Runnable("proxyBlackList")
-    , mService(service), mHost(aHost), mPB(pb), mParentsToo(aParentsToo)
-  { }
+class ProxyBlacklist : public Runnable {
+ public:
+  ProxyBlacklist(TRRService *service, const nsACString &aHost, bool pb,
+                 bool aParentsToo)
+      : mozilla::Runnable("proxyBlackList"),
+        mService(service),
+        mHost(aHost),
+        mPB(pb),
+        mParentsToo(aParentsToo) {}
 
-  NS_IMETHOD Run() override
-  {
+  NS_IMETHOD Run() override {
     mService->TRRBlacklist(mHost, mPB, mParentsToo);
     mService = nullptr;
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<TRRService> mService;
   nsCString mHost;
-  bool      mPB;
-  bool      mParentsToo;
+  bool mPB;
+  bool mParentsToo;
 };
 
-void
-TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aParentsToo)
-{
+void TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing,
+                              bool aParentsToo) {
   if (!mTRRBLStorage) {
     return;
   }
 
   if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(new ProxyBlacklist(this, aHost,
-                                               privateBrowsing, aParentsToo));
+    NS_DispatchToMainThread(
+        new ProxyBlacklist(this, aHost, privateBrowsing, aParentsToo));
     return;
   }
 
   LOG(("TRR blacklist %s\n", nsCString(aHost).get()));
   nsAutoCString hashkey(aHost);
   nsAutoCString val;
-  val.AppendInt( NowInSeconds() ); // creation time
+  val.AppendInt(NowInSeconds());  // creation time
 
   // this overwrites any existing entry
   {
     MutexAutoLock lock(mLock);
-    mTRRBLStorage->Put(hashkey, val, privateBrowsing ?
-                       DataStorage_Private : DataStorage_Persistent);
+    mTRRBLStorage->Put(
+        hashkey, val,
+        privateBrowsing ? DataStorage_Private : DataStorage_Persistent);
   }
 
   if (aParentsToo) {
@@ -471,7 +453,8 @@ TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aPa
     if (dot != kNotFound) {
       // this has a domain to be checked
       dot++;
-      nsDependentCSubstring domain = Substring(aHost, dot, aHost.Length() - dot);
+      nsDependentCSubstring domain =
+          Substring(aHost, dot, aHost.Length() - dot);
       nsAutoCString check(domain);
       if (IsTRRBlacklisted(check, privateBrowsing, false)) {
         // the domain part is already blacklisted, no need to add this entry
@@ -488,8 +471,7 @@ TRRService::TRRBlacklist(const nsACString &aHost, bool privateBrowsing, bool aPa
 }
 
 NS_IMETHODIMP
-TRRService::Notify(nsITimer *aTimer)
-{
+TRRService::Notify(nsITimer *aTimer) {
   if (aTimer == mRetryConfirmTimer) {
     mRetryConfirmTimer = nullptr;
     if (mConfirmationState == CONFIRM_FAILED) {
@@ -504,10 +486,10 @@ TRRService::Notify(nsITimer *aTimer)
   return NS_OK;
 }
 
-
-AHostResolver::LookupStatus
-TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRSet, bool pb)
-{
+AHostResolver::LookupStatus TRRService::CompleteLookup(nsHostRecord *rec,
+                                                       nsresult status,
+                                                       AddrInfo *aNewRRSet,
+                                                       bool pb) {
   // this is an NS check for the TRR blacklist or confirmationNS check
 
   MOZ_ASSERT(NS_IsMainThread());
@@ -520,14 +502,13 @@ TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRS
   if (mConfirmationState == CONFIRM_TRYING) {
     MOZ_ASSERT(mConfirmer);
     mConfirmationState = NS_SUCCEEDED(status) ? CONFIRM_OK : CONFIRM_FAILED;
-    LOG(("TRRService finishing confirmation test %s %d %X\n",
-         mPrivateURI.get(), (int)mConfirmationState, (unsigned int)status));
+    LOG(("TRRService finishing confirmation test %s %d %X\n", mPrivateURI.get(),
+         (int)mConfirmationState, (unsigned int)status));
     mConfirmer = nullptr;
     if ((mConfirmationState == CONFIRM_FAILED) && (mMode == MODE_TRRONLY)) {
       // in TRR-only mode; retry failed confirmations
-      NS_NewTimerWithCallback(getter_AddRefs(mRetryConfirmTimer),
-                              this, mRetryConfirmInterval,
-                              nsITimer::TYPE_ONE_SHOT);
+      NS_NewTimerWithCallback(getter_AddRefs(mRetryConfirmTimer), this,
+                              mRetryConfirmInterval, nsITimer::TYPE_ONE_SHOT);
       if (mRetryConfirmInterval < 64000) {
         // double the interval up to this point
         mRetryConfirmInterval *= 2;
@@ -550,5 +531,5 @@ TRRService::CompleteLookup(nsHostRecord *rec, nsresult status, AddrInfo *aNewRRS
 
 #undef LOG
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

@@ -14,13 +14,10 @@
 
 class nsROCSSPrimitiveValue;
 
-class nsDOMCSSRGBColor : public nsWrapperCache
-{
-public:
-  nsDOMCSSRGBColor(nsROCSSPrimitiveValue* aRed,
-                   nsROCSSPrimitiveValue* aGreen,
-                   nsROCSSPrimitiveValue* aBlue,
-                   nsROCSSPrimitiveValue* aAlpha,
+class nsDOMCSSRGBColor : public nsWrapperCache {
+ public:
+  nsDOMCSSRGBColor(nsROCSSPrimitiveValue* aRed, nsROCSSPrimitiveValue* aGreen,
+                   nsROCSSPrimitiveValue* aBlue, nsROCSSPrimitiveValue* aAlpha,
                    bool aHasAlpha);
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsDOMCSSRGBColor)
@@ -30,31 +27,16 @@ public:
   bool HasAlpha() const { return mHasAlpha; }
 
   // RGBColor webidl interface
-  nsROCSSPrimitiveValue* Red() const
-  {
-    return mRed;
-  }
-  nsROCSSPrimitiveValue* Green() const
-  {
-    return mGreen;
-  }
-  nsROCSSPrimitiveValue* Blue() const
-  {
-    return mBlue;
-  }
-  nsROCSSPrimitiveValue* Alpha() const
-  {
-    return mAlpha;
-  }
+  nsROCSSPrimitiveValue* Red() const { return mRed; }
+  nsROCSSPrimitiveValue* Green() const { return mGreen; }
+  nsROCSSPrimitiveValue* Blue() const { return mBlue; }
+  nsROCSSPrimitiveValue* Alpha() const { return mAlpha; }
 
-  nsISupports* GetParentObject() const
-  {
-    return nullptr;
-  }
+  nsISupports* GetParentObject() const { return nullptr; }
 
-  JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) final;
 
-private:
+ private:
   virtual ~nsDOMCSSRGBColor(void);
 
   RefPtr<nsROCSSPrimitiveValue> mRed;
@@ -64,4 +46,4 @@ private:
   bool mHasAlpha;
 };
 
-#endif // nsDOMCSSRGBColor_h__
+#endif  // nsDOMCSSRGBColor_h__

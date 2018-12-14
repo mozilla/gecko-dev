@@ -6,42 +6,27 @@
 #include "nsThreadUtils.h"
 
 nsHtml5AtomEntry::nsHtml5AtomEntry(KeyTypePointer aStr)
-  : nsStringHashKey(aStr)
-  , mAtom(new nsAtom(nsAtom::AtomKind::HTML5Atom, *aStr, 0))
-{
-}
+    : nsStringHashKey(aStr),
+      mAtom(new nsAtom(nsAtom::AtomKind::HTML5Atom, *aStr, 0)) {}
 
 nsHtml5AtomEntry::nsHtml5AtomEntry(const nsHtml5AtomEntry& aOther)
-  : nsStringHashKey(aOther)
-  , mAtom(nullptr)
-{
+    : nsStringHashKey(aOther), mAtom(nullptr) {
   NS_NOTREACHED("nsHtml5AtomTable is broken and tried to copy an entry");
 }
 
-nsHtml5AtomEntry::~nsHtml5AtomEntry()
-{
-  delete mAtom;
-}
+nsHtml5AtomEntry::~nsHtml5AtomEntry() { delete mAtom; }
 
-nsHtml5AtomTable::nsHtml5AtomTable()
-  : mRecentlyUsedParserAtoms{}
-{
+nsHtml5AtomTable::nsHtml5AtomTable() : mRecentlyUsedParserAtoms{} {
 #ifdef DEBUG
   mPermittedLookupEventTarget = mozilla::GetCurrentThreadSerialEventTarget();
 #endif
 }
 
-nsHtml5AtomTable::~nsHtml5AtomTable()
-{
-}
+nsHtml5AtomTable::~nsHtml5AtomTable() {}
 
-nsAtom*
-nsHtml5AtomTable::GetAtom(const nsAString& aKey)
-{
+nsAtom* nsHtml5AtomTable::GetAtom(const nsAString& aKey) {
 #ifdef DEBUG
-  {
-    MOZ_ASSERT(mPermittedLookupEventTarget->IsOnCurrentThread());
-  }
+  { MOZ_ASSERT(mPermittedLookupEventTarget->IsOnCurrentThread()); }
 #endif
 
   uint32_t index = mozilla::HashString(aKey) % RECENTLY_USED_PARSER_ATOMS_SIZE;

@@ -26,10 +26,8 @@ namespace a11y {
  * the ApplicationAccessible instance.
  */
 
-class ApplicationAccessible : public AccessibleWrap
-{
-public:
-
+class ApplicationAccessible : public AccessibleWrap {
+ public:
   ApplicationAccessible();
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(ApplicationAccessible, AccessibleWrap)
@@ -58,8 +56,7 @@ public:
   // ApplicationAccessible
   void Init();
 
-  void AppName(nsAString& aName) const
-  {
+  void AppName(nsAString& aName) const {
     MOZ_ASSERT(mAppInfo, "no application info");
 
     if (mAppInfo) {
@@ -69,8 +66,7 @@ public:
     }
   }
 
-  void AppVersion(nsAString& aVersion) const
-  {
+  void AppVersion(nsAString& aVersion) const {
     MOZ_ASSERT(mAppInfo, "no application info");
 
     if (mAppInfo) {
@@ -80,13 +76,9 @@ public:
     }
   }
 
-  void PlatformName(nsAString& aName) const
-  {
-    aName.AssignLiteral("Gecko");
-  }
+  void PlatformName(nsAString& aName) const { aName.AssignLiteral("Gecko"); }
 
-  void PlatformVersion(nsAString& aVersion) const
-  {
+  void PlatformVersion(nsAString& aVersion) const {
     MOZ_ASSERT(mAppInfo, "no application info");
 
     if (mAppInfo) {
@@ -96,25 +88,22 @@ public:
     }
   }
 
-protected:
+ protected:
   virtual ~ApplicationAccessible() {}
 
   // Accessible
-  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const override;
+  virtual Accessible* GetSiblingAtOffset(
+      int32_t aOffset, nsresult* aError = nullptr) const override;
 
-private:
+ private:
   nsCOMPtr<nsIXULAppInfo> mAppInfo;
 };
 
-inline ApplicationAccessible*
-Accessible::AsApplication()
-{
+inline ApplicationAccessible* Accessible::AsApplication() {
   return IsApplication() ? static_cast<ApplicationAccessible*>(this) : nullptr;
 }
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif
-

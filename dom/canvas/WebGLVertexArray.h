@@ -22,58 +22,55 @@ namespace webgl {
 struct LinkedProgramInfo;
 }
 
-class WebGLVertexArray
-    : public nsWrapperCache
-    , public WebGLRefCountedObject<WebGLVertexArray>
-    , public LinkedListElement<WebGLVertexArray>
-    , public CacheMapInvalidator
-{
-public:
-    static WebGLVertexArray* Create(WebGLContext* webgl);
+class WebGLVertexArray : public nsWrapperCache,
+                         public WebGLRefCountedObject<WebGLVertexArray>,
+                         public LinkedListElement<WebGLVertexArray>,
+                         public CacheMapInvalidator {
+ public:
+  static WebGLVertexArray* Create(WebGLContext* webgl);
 
-    void BindVertexArray() {
-        // Bind to dummy value to signal that this vertex array has ever been
-        // bound.
-        BindVertexArrayImpl();
-    };
+  void BindVertexArray() {
+    // Bind to dummy value to signal that this vertex array has ever been
+    // bound.
+    BindVertexArrayImpl();
+  };
 
-    // Implement parent classes:
-    void Delete();
-    bool IsVertexArray() const;
+  // Implement parent classes:
+  void Delete();
+  bool IsVertexArray() const;
 
-    WebGLContext* GetParentObject() const {
-        return mContext;
-    }
+  WebGLContext* GetParentObject() const { return mContext; }
 
-    virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) override;
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> givenProto) override;
 
-    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLVertexArray)
-    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLVertexArray)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLVertexArray)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLVertexArray)
 
-    GLuint GLName() const { return mGLName; }
+  GLuint GLName() const { return mGLName; }
 
-    void AddBufferBindCounts(int8_t addVal) const;
+  void AddBufferBindCounts(int8_t addVal) const;
 
-protected:
-    explicit WebGLVertexArray(WebGLContext* webgl);
-    virtual ~WebGLVertexArray();
+ protected:
+  explicit WebGLVertexArray(WebGLContext* webgl);
+  virtual ~WebGLVertexArray();
 
-    virtual void GenVertexArray() = 0;
-    virtual void BindVertexArrayImpl() = 0;
-    virtual void DeleteImpl() = 0;
-    virtual bool IsVertexArrayImpl() const = 0;
+  virtual void GenVertexArray() = 0;
+  virtual void BindVertexArrayImpl() = 0;
+  virtual void DeleteImpl() = 0;
+  virtual bool IsVertexArrayImpl() const = 0;
 
-    GLuint mGLName;
-    nsTArray<WebGLVertexAttribData> mAttribs;
-    WebGLRefPtr<WebGLBuffer> mElementArrayBuffer;
+  GLuint mGLName;
+  nsTArray<WebGLVertexAttribData> mAttribs;
+  WebGLRefPtr<WebGLBuffer> mElementArrayBuffer;
 
-    friend class ScopedDrawHelper;
-    friend class WebGLContext;
-    friend class WebGLVertexArrayFake;
-    friend class WebGL2Context;
-    friend struct webgl::LinkedProgramInfo;
+  friend class ScopedDrawHelper;
+  friend class WebGLContext;
+  friend class WebGLVertexArrayFake;
+  friend class WebGL2Context;
+  friend struct webgl::LinkedProgramInfo;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WEBGL_VERTEX_ARRAY_H_
+#endif  // WEBGL_VERTEX_ARRAY_H_

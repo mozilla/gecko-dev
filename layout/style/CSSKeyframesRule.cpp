@@ -12,20 +12,17 @@ namespace mozilla {
 namespace dom {
 
 #ifdef MOZ_OLD_STYLE
-/* virtual */ bool
-CSSKeyframesRule::UseForPresentation(nsPresContext* aPresContext,
-                                     nsMediaQueryResultCacheKey& aKey)
-{
+/* virtual */ bool CSSKeyframesRule::UseForPresentation(
+    nsPresContext* aPresContext, nsMediaQueryResultCacheKey& aKey) {
   MOZ_ASSERT_UNREACHABLE("should not be called");
   return false;
 }
 #endif
 
-/* virtual */ JSObject*
-CSSKeyframesRule::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* CSSKeyframesRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSKeyframesRuleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

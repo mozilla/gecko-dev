@@ -19,9 +19,8 @@ class nsIX509Cert;
 //
 // Class for importing/exporting PKCS#12 blobs
 //
-class nsPKCS12Blob
-{
-public:
+class nsPKCS12Blob {
+ public:
   nsPKCS12Blob();
   virtual ~nsPKCS12Blob() {}
 
@@ -31,16 +30,15 @@ public:
   // PKCS#12 Export
   nsresult ExportToFile(nsIFile *file, nsIX509Cert **certs, int numCerts);
 
-private:
-
-  nsCOMPtr<nsIMutableArray>       mCertArray;
+ private:
+  nsCOMPtr<nsIMutableArray> mCertArray;
   nsCOMPtr<nsIInterfaceRequestor> mUIContext;
 
   // local helper functions
   nsresult getPKCS12FilePassword(SECItem *);
   nsresult newPKCS12FilePassword(SECItem *);
   nsresult inputToDecoder(SEC_PKCS12DecoderContext *, nsIFile *);
-  nsresult unicodeToItem(const nsString& uni, SECItem* item);
+  nsresult unicodeToItem(const nsString &uni, SECItem *item);
   void handleError(int myerr = 0);
 
   // RetryReason and ImportMode are used when importing a PKCS12 file.
@@ -53,18 +51,24 @@ private:
   //   null UTF16 character), but some applications use a
   //   zero length SECItem.
   //   We try both variations, zero length item and empty string,
-  //   without giving a user prompt when trying the different empty password flavors.
+  //   without giving a user prompt when trying the different empty password
+  //   flavors.
 
-  enum RetryReason { rr_do_not_retry, rr_bad_password, rr_auto_retry_empty_password_flavors };
+  enum RetryReason {
+    rr_do_not_retry,
+    rr_bad_password,
+    rr_auto_retry_empty_password_flavors
+  };
   enum ImportMode { im_standard_prompt, im_try_zero_length_secitem };
 
-  nsresult ImportFromFileHelper(nsIFile *file, ImportMode aImportMode, RetryReason &aWantRetry);
+  nsresult ImportFromFileHelper(nsIFile *file, ImportMode aImportMode,
+                                RetryReason &aWantRetry);
 
   // NSPR file I/O for export file
   PRFileDesc *mTmpFile;
 
-  static SECItem * nickname_collision(SECItem *, PRBool *, void *);
+  static SECItem *nickname_collision(SECItem *, PRBool *, void *);
   static void write_export_file(void *arg, const char *buf, unsigned long len);
 };
 
-#endif // nsPKCS12Blob_h
+#endif  // nsPKCS12Blob_h

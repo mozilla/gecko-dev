@@ -32,12 +32,9 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet()
-{
-}
+nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet() {}
 
-nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet()
-{
+nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet() {
   // We may go away before all of our cached style attributes do,
   // so clean up any that are left.
   for (auto iter = mCachedStyleAttrs.Iter(); !iter.Done(); iter.Next()) {
@@ -60,18 +57,15 @@ nsHTMLCSSStyleSheet::~nsHTMLCSSStyleSheet()
 #ifdef MOZ_OLD_STYLE
 NS_IMPL_ISUPPORTS(nsHTMLCSSStyleSheet, nsIStyleRuleProcessor)
 
-/* virtual */ void
-nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
-{
+/* virtual */ void nsHTMLCSSStyleSheet::RulesMatching(
+    ElementRuleProcessorData* aData) {
   ElementRulesMatching(aData->mPresContext, aData->mElement,
                        aData->mRuleWalker);
 }
 
-void
-nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
-                                          Element* aElement,
-                                          nsRuleWalker* aRuleWalker)
-{
+void nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
+                                               Element* aElement,
+                                               nsRuleWalker* aRuleWalker) {
   // just get the one and only style rule from the content's STYLE attribute
   DeclarationBlock* declaration = aElement->GetInlineStyleDeclaration();
   if (declaration) {
@@ -85,7 +79,7 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
                "stylo: ElementRulesMatching must not be called when we have "
                "a Servo-backed style system");
     GeckoRestyleManager* restyleManager =
-      aPresContext->RestyleManager()->AsGecko();
+        aPresContext->RestyleManager()->AsGecko();
     if (!restyleManager->SkipAnimationRules()) {
       // Animation restyle (or non-restyle traversal of rules)
       // Now we can walk SMIL overrride style, without triggering transitions.
@@ -95,14 +89,11 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
   }
 }
 
-void
-nsHTMLCSSStyleSheet::PseudoElementRulesMatching(Element* aPseudoElement,
-                                                CSSPseudoElementType
-                                                  aPseudoType,
-                                                nsRuleWalker* aRuleWalker)
-{
-  MOZ_ASSERT(nsCSSPseudoElements::
-               PseudoElementSupportsStyleAttribute(aPseudoType));
+void nsHTMLCSSStyleSheet::PseudoElementRulesMatching(
+    Element* aPseudoElement, CSSPseudoElementType aPseudoType,
+    nsRuleWalker* aRuleWalker) {
+  MOZ_ASSERT(
+      nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aPseudoType));
   MOZ_ASSERT(aPseudoElement);
 
   // just get the one and only style rule from the content's STYLE attribute
@@ -113,53 +104,44 @@ nsHTMLCSSStyleSheet::PseudoElementRulesMatching(Element* aPseudoElement,
   }
 }
 
-/* virtual */ void
-nsHTMLCSSStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
-{
-  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(aData->mPseudoType) &&
+/* virtual */ void nsHTMLCSSStyleSheet::RulesMatching(
+    PseudoElementRuleProcessorData* aData) {
+  if (nsCSSPseudoElements::PseudoElementSupportsStyleAttribute(
+          aData->mPseudoType) &&
       aData->mPseudoElement) {
     PseudoElementRulesMatching(aData->mPseudoElement, aData->mPseudoType,
                                aData->mRuleWalker);
   }
 }
 
-/* virtual */ void
-nsHTMLCSSStyleSheet::RulesMatching(AnonBoxRuleProcessorData* aData)
-{
-}
+/* virtual */ void nsHTMLCSSStyleSheet::RulesMatching(
+    AnonBoxRuleProcessorData* aData) {}
 
 #ifdef MOZ_XUL
-/* virtual */ void
-nsHTMLCSSStyleSheet::RulesMatching(XULTreeRuleProcessorData* aData)
-{
-}
+/* virtual */ void nsHTMLCSSStyleSheet::RulesMatching(
+    XULTreeRuleProcessorData* aData) {}
 #endif
 
 // Test if style is dependent on content state
-/* virtual */ nsRestyleHint
-nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
-{
+/* virtual */ nsRestyleHint nsHTMLCSSStyleSheet::HasStateDependentStyle(
+    StateRuleProcessorData* aData) {
   return nsRestyleHint(0);
 }
 
-/* virtual */ nsRestyleHint
-nsHTMLCSSStyleSheet::HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData)
-{
+/* virtual */ nsRestyleHint nsHTMLCSSStyleSheet::HasStateDependentStyle(
+    PseudoElementStateRuleProcessorData* aData) {
   return nsRestyleHint(0);
 }
 
-/* virtual */ bool
-nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
-{
+/* virtual */ bool nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(
+    StateRuleProcessorData* aData) {
   return false;
 }
 
 // Test if style is dependent on attribute
-/* virtual */ nsRestyleHint
-nsHTMLCSSStyleSheet::HasAttributeDependentStyle(
+/* virtual */ nsRestyleHint nsHTMLCSSStyleSheet::HasAttributeDependentStyle(
     AttributeRuleProcessorData* aData,
-    RestyleHintData& aRestyleHintDataResult)
-{
+    RestyleHintData& aRestyleHintDataResult) {
   // Perhaps should check that it's XUL, SVG, (or HTML) namespace, but
   // it doesn't really matter.
   if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
@@ -169,15 +151,13 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(
   return nsRestyleHint(0);
 }
 
-/* virtual */ bool
-nsHTMLCSSStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
-{
+/* virtual */ bool nsHTMLCSSStyleSheet::MediumFeaturesChanged(
+    nsPresContext* aPresContext) {
   return false;
 }
 
-/* virtual */ size_t
-nsHTMLCSSStyleSheet::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+/* virtual */ size_t nsHTMLCSSStyleSheet::SizeOfExcludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   // The size of mCachedStyleAttrs's mTable member (a PLDHashTable) is
   // significant in itself, but more significant is the size of the nsString
   // members of the nsStringHashKeys.
@@ -192,24 +172,19 @@ nsHTMLCSSStyleSheet::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) co
   return n;
 }
 
-/* virtual */ size_t
-nsHTMLCSSStyleSheet::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+/* virtual */ size_t nsHTMLCSSStyleSheet::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 #endif
 
-void
-nsHTMLCSSStyleSheet::CacheStyleAttr(const nsAString& aSerialized,
-                                    MiscContainer* aValue)
-{
+void nsHTMLCSSStyleSheet::CacheStyleAttr(const nsAString& aSerialized,
+                                         MiscContainer* aValue) {
   mCachedStyleAttrs.Put(aSerialized, aValue);
 }
 
-void
-nsHTMLCSSStyleSheet::EvictStyleAttr(const nsAString& aSerialized,
-                                    MiscContainer* aValue)
-{
+void nsHTMLCSSStyleSheet::EvictStyleAttr(const nsAString& aSerialized,
+                                         MiscContainer* aValue) {
 #ifdef DEBUG
   {
     NS_ASSERTION(aValue == mCachedStyleAttrs.Get(aSerialized),
@@ -219,8 +194,7 @@ nsHTMLCSSStyleSheet::EvictStyleAttr(const nsAString& aSerialized,
   mCachedStyleAttrs.Remove(aSerialized);
 }
 
-MiscContainer*
-nsHTMLCSSStyleSheet::LookupStyleAttr(const nsAString& aSerialized)
-{
+MiscContainer* nsHTMLCSSStyleSheet::LookupStyleAttr(
+    const nsAString& aSerialized) {
   return mCachedStyleAttrs.Get(aSerialized);
 }

@@ -13,15 +13,15 @@ namespace mozilla {
 namespace dom {
 
 class ContentPrefs {
-public:
+ public:
   static const char** GetEarlyPrefs(size_t* aCount);
   static const char* GetEarlyPref(size_t aIndex);
 
-private:
+ private:
   static const char* gEarlyPrefs[];
 };
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

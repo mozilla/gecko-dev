@@ -28,9 +28,7 @@ using namespace mozilla::dom;
 namespace mozilla {
 namespace dom {
 
-bool
-ServiceWorkerVisible(JSContext* aCx, JSObject* aObj)
-{
+bool ServiceWorkerVisible(JSContext* aCx, JSObject* aObj) {
   if (NS_IsMainThread()) {
     return DOMPrefs::ServiceWorkersEnabled();
   }
@@ -39,10 +37,8 @@ ServiceWorkerVisible(JSContext* aCx, JSObject* aObj)
 }
 
 // static
-already_AddRefed<ServiceWorker>
-ServiceWorker::Create(nsIGlobalObject* aOwner,
-                      const ServiceWorkerDescriptor& aDescriptor)
-{
+already_AddRefed<ServiceWorker> ServiceWorker::Create(
+    nsIGlobalObject* aOwner, const ServiceWorkerDescriptor& aDescriptor) {
   RefPtr<ServiceWorker> ref;
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
@@ -51,7 +47,7 @@ ServiceWorker::Create(nsIGlobalObject* aOwner,
   }
 
   RefPtr<ServiceWorkerRegistrationInfo> reg =
-    swm->GetRegistration(aDescriptor.PrincipalInfo(), aDescriptor.Scope());
+      swm->GetRegistration(aDescriptor.PrincipalInfo(), aDescriptor.Scope());
   if (!reg) {
     return ref.forget();
   }
@@ -68,10 +64,7 @@ ServiceWorker::Create(nsIGlobalObject* aOwner,
 ServiceWorker::ServiceWorker(nsIGlobalObject* aGlobal,
                              const ServiceWorkerDescriptor& aDescriptor,
                              ServiceWorker::Inner* aInner)
-  : DOMEventTargetHelper(aGlobal)
-  , mDescriptor(aDescriptor)
-  , mInner(aInner)
-{
+    : DOMEventTargetHelper(aGlobal), mDescriptor(aDescriptor), mInner(aInner) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(aGlobal);
   MOZ_DIAGNOSTIC_ASSERT(mInner);
@@ -80,8 +73,7 @@ ServiceWorker::ServiceWorker(nsIGlobalObject* aGlobal,
   mInner->AddServiceWorker(this);
 }
 
-ServiceWorker::~ServiceWorker()
-{
+ServiceWorker::~ServiceWorker() {
   MOZ_ASSERT(NS_IsMainThread());
   if (mInner) {
     mInner->RemoveServiceWorker(this);
@@ -95,41 +87,31 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServiceWorker)
   NS_INTERFACE_MAP_ENTRY(ServiceWorker)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-JSObject*
-ServiceWorker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ServiceWorker::WrapObject(JSContext* aCx,
+                                    JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
 
   return ServiceWorkerBinding::Wrap(aCx, this, aGivenProto);
 }
 
-ServiceWorkerState
-ServiceWorker::State() const
-{
-  return mDescriptor.State();
-}
+ServiceWorkerState ServiceWorker::State() const { return mDescriptor.State(); }
 
-void
-ServiceWorker::SetState(ServiceWorkerState aState)
-{
+void ServiceWorker::SetState(ServiceWorkerState aState) {
   ServiceWorkerState oldState = mDescriptor.State();
   mDescriptor.SetState(aState);
   if (oldState != aState) {
-    DOMEventTargetHelper::DispatchTrustedEvent(NS_LITERAL_STRING("statechange"));
+    DOMEventTargetHelper::DispatchTrustedEvent(
+        NS_LITERAL_STRING("statechange"));
   }
 }
 
-void
-ServiceWorker::GetScriptURL(nsString& aURL) const
-{
+void ServiceWorker::GetScriptURL(nsString& aURL) const {
   CopyUTF8toUTF16(mDescriptor.ScriptURL(), aURL);
 }
 
-void
-ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                           const Sequence<JSObject*>& aTransferable,
-                           ErrorResult& aRv)
-{
+void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+                                const Sequence<JSObject*>& aTransferable,
+                                ErrorResult& aRv) {
   if (State() == ServiceWorkerState::Redundant || !mInner) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
@@ -138,16 +120,11 @@ ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   mInner->PostMessage(GetParentObject(), aCx, aMessage, aTransferable, aRv);
 }
 
-
-const ServiceWorkerDescriptor&
-ServiceWorker::Descriptor() const
-{
+const ServiceWorkerDescriptor& ServiceWorker::Descriptor() const {
   return mDescriptor;
 }
 
-void
-ServiceWorker::DisconnectFromOwner()
-{
+void ServiceWorker::DisconnectFromOwner() {
   if (mInner) {
     mInner->RemoveServiceWorker(this);
     mInner = nullptr;
@@ -155,5 +132,5 @@ ServiceWorker::DisconnectFromOwner()
   DOMEventTargetHelper::DisconnectFromOwner();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -26,28 +26,22 @@ namespace dom {
 // Location: Script "location" object
 //*****************************************************************************
 
-class Location final : public nsISupports
-                     , public nsWrapperCache
-{
-public:
-  Location(nsPIDOMWindowInner* aWindow, nsIDocShell *aDocShell);
+class Location final : public nsISupports, public nsWrapperCache {
+ public:
+  Location(nsPIDOMWindowInner* aWindow, nsIDocShell* aDocShell);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Location)
 
   // WebIDL API:
-  void Assign(const nsAString& aUrl,
-              nsIPrincipal& aSubjectPrincipal,
+  void Assign(const nsAString& aUrl, nsIPrincipal& aSubjectPrincipal,
               ErrorResult& aError);
 
-  void Replace(const nsAString& aUrl,
-               nsIPrincipal& aSubjectPrincipal,
+  void Replace(const nsAString& aUrl, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void Reload(bool aForceget,
-              nsIPrincipal& aSubjectPrincipal,
-              ErrorResult& aError)
-  {
+  void Reload(bool aForceget, nsIPrincipal& aSubjectPrincipal,
+              ErrorResult& aError) {
     if (!CallerSubsumes(&aSubjectPrincipal)) {
       aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
       return;
@@ -56,10 +50,8 @@ public:
     aError = Reload(aForceget);
   }
 
-  void GetHref(nsAString& aHref,
-               nsIPrincipal& aSubjectPrincipal,
-               ErrorResult& aError)
-  {
+  void GetHref(nsAString& aHref, nsIPrincipal& aSubjectPrincipal,
+               ErrorResult& aError) {
     if (!CallerSubsumes(&aSubjectPrincipal)) {
       aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
       return;
@@ -68,81 +60,60 @@ public:
     aError = GetHref(aHref);
   }
 
-  void SetHref(const nsAString& aHref,
-               ErrorResult& aError);
+  void SetHref(const nsAString& aHref, ErrorResult& aError);
 
-  void GetOrigin(nsAString& aOrigin,
-                 nsIPrincipal& aSubjectPrincipal,
+  void GetOrigin(nsAString& aOrigin, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void GetProtocol(nsAString& aProtocol,
-                   nsIPrincipal& aSubjectPrincipal,
+  void GetProtocol(nsAString& aProtocol, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetProtocol(const nsAString& aProtocol,
-                   nsIPrincipal& aSubjectPrincipal,
+  void SetProtocol(const nsAString& aProtocol, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetHost(nsAString& aHost,
-               nsIPrincipal& aSubjectPrincipal,
+  void GetHost(nsAString& aHost, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetHost(const nsAString& aHost,
-               nsIPrincipal& aSubjectPrincipal,
+  void SetHost(const nsAString& aHost, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void GetHostname(nsAString& aHostname,
-                   nsIPrincipal& aSubjectPrincipal,
+  void GetHostname(nsAString& aHostname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetHostname(const nsAString& aHostname,
-                   nsIPrincipal& aSubjectPrincipal,
+  void SetHostname(const nsAString& aHostname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetPort(nsAString& aPort,
-               nsIPrincipal& aSubjectPrincipal,
+  void GetPort(nsAString& aPort, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetPort(const nsAString& aPort,
-               nsIPrincipal& aSubjectPrincipal,
+  void SetPort(const nsAString& aPort, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void GetPathname(nsAString& aPathname,
-                   nsIPrincipal& aSubjectPrincipal,
+  void GetPathname(nsAString& aPathname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void SetPathname(const nsAString& aPathname,
-                   nsIPrincipal& aSubjectPrincipal,
+  void SetPathname(const nsAString& aPathname, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aError);
 
-  void GetSearch(nsAString& aSeach,
-                 nsIPrincipal& aSubjectPrincipal,
+  void GetSearch(nsAString& aSeach, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void SetSearch(const nsAString& aSeach,
-                 nsIPrincipal& aSubjectPrincipal,
+  void SetSearch(const nsAString& aSeach, nsIPrincipal& aSubjectPrincipal,
                  ErrorResult& aError);
 
-  void GetHash(nsAString& aHash,
-               nsIPrincipal& aSubjectPrincipal,
+  void GetHash(nsAString& aHash, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void SetHash(const nsAString& aHash,
-               nsIPrincipal& aSubjectPrincipal,
+  void SetHash(const nsAString& aHash, nsIPrincipal& aSubjectPrincipal,
                ErrorResult& aError);
 
-  void Stringify(nsAString& aRetval,
-                 nsIPrincipal& aSubjectPrincipal,
-                 ErrorResult& aError)
-  {
+  void Stringify(nsAString& aRetval, nsIPrincipal& aSubjectPrincipal,
+                 ErrorResult& aError) {
     // GetHref checks CallerSubsumes.
     GetHref(aRetval, aSubjectPrincipal, aError);
   }
 
-  nsPIDOMWindowInner* GetParentObject() const
-  {
-    return mInnerWindow;
-  }
+  nsPIDOMWindowInner* GetParentObject() const { return mInnerWindow; }
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
@@ -151,14 +122,11 @@ public:
 
   nsresult GetHref(nsAString& aHref);
 
-  nsresult ToString(nsAString& aString)
-  {
-    return GetHref(aString);
-  }
+  nsresult ToString(nsAString& aString) { return GetHref(aString); }
 
   nsresult Reload(bool aForceget);
 
-protected:
+ protected:
   virtual ~Location();
 
   // In the case of jar: uris, we sometimes want the place the jar was
@@ -179,7 +147,7 @@ protected:
                               bool aReplace);
 
   nsresult GetSourceBaseURL(JSContext* cx, nsIURI** sourceURL);
-  nsresult CheckURL(nsIURI *url, nsIDocShellLoadInfo** aLoadInfo);
+  nsresult CheckURL(nsIURI* url, nsIDocShellLoadInfo** aLoadInfo);
   bool CallerSubsumes(nsIPrincipal* aSubjectPrincipal);
 
   nsString mCachedHash;
@@ -187,7 +155,7 @@ protected:
   nsWeakPtr mDocShell;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_Location_h
+#endif  // mozilla_dom_Location_h

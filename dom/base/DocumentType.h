@@ -27,21 +27,17 @@ namespace dom {
 // this restricts what should be done for character data.
 
 class DocumentTypeForward : public nsGenericDOMDataNode,
-                            public nsIDOMDocumentType
-{
-public:
-  explicit DocumentTypeForward(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsGenericDOMDataNode(aNodeInfo)
-  {
-  }
+                            public nsIDOMDocumentType {
+ public:
+  explicit DocumentTypeForward(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : nsGenericDOMDataNode(aNodeInfo) {}
 };
 
-class DocumentType final : public DocumentTypeForward
-{
-public:
+class DocumentType final : public DocumentTypeForward {
+ public:
   DocumentType(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-               const nsAString& aPublicId,
-               const nsAString& aSystemId,
+               const nsAString& aPublicId, const nsAString& aSystemId,
                const nsAString& aInternalSubset);
 
   // nsISupports
@@ -55,50 +51,43 @@ public:
 
   // nsINode
   virtual bool IsNodeOfType(uint32_t aFlags) const override;
-  virtual void GetNodeValueInternal(nsAString& aNodeValue) override
-  {
+  virtual void GetNodeValueInternal(nsAString& aNodeValue) override {
     SetDOMStringToNull(aNodeValue);
   }
   virtual void SetNodeValueInternal(const nsAString& aNodeValue,
-                                    mozilla::ErrorResult& aError) override
-  {
-  }
+                                    mozilla::ErrorResult& aError) override {}
 
   // nsIContent overrides
   virtual const nsTextFragment* GetText() override;
 
-  virtual nsGenericDOMDataNode* CloneDataNode(mozilla::dom::NodeInfo *aNodeInfo,
+  virtual nsGenericDOMDataNode* CloneDataNode(mozilla::dom::NodeInfo* aNodeInfo,
                                               bool aCloneText) const override;
 
   virtual nsIDOMNode* AsDOMNode() override { return this; }
 
-protected:
+ protected:
   virtual ~DocumentType();
 
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   nsString mPublicId;
   nsString mSystemId;
   nsString mInternalSubset;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-already_AddRefed<mozilla::dom::DocumentType>
-NS_NewDOMDocumentType(nsNodeInfoManager* aNodeInfoManager,
-                      nsAtom *aName,
-                      const nsAString& aPublicId,
-                      const nsAString& aSystemId,
-                      const nsAString& aInternalSubset,
-                      mozilla::ErrorResult& rv);
+already_AddRefed<mozilla::dom::DocumentType> NS_NewDOMDocumentType(
+    nsNodeInfoManager* aNodeInfoManager, nsAtom* aName,
+    const nsAString& aPublicId, const nsAString& aSystemId,
+    const nsAString& aInternalSubset, mozilla::ErrorResult& rv);
 
-nsresult
-NS_NewDOMDocumentType(nsIDOMDocumentType** aDocType,
-                      nsNodeInfoManager* aNodeInfoManager,
-                      nsAtom *aName,
-                      const nsAString& aPublicId,
-                      const nsAString& aSystemId,
-                      const nsAString& aInternalSubset);
+nsresult NS_NewDOMDocumentType(nsIDOMDocumentType** aDocType,
+                               nsNodeInfoManager* aNodeInfoManager,
+                               nsAtom* aName, const nsAString& aPublicId,
+                               const nsAString& aSystemId,
+                               const nsAString& aInternalSubset);
 
-#endif // DocumentType_h
+#endif  // DocumentType_h

@@ -15,16 +15,14 @@ namespace dom {
 
 class VideoTrack;
 
-class VideoTrackList : public MediaTrackList
-{
-public:
+class VideoTrackList : public MediaTrackList {
+ public:
   VideoTrackList(nsPIDOMWindowInner* aOwnerWindow,
                  HTMLMediaElement* aMediaElement)
-    : MediaTrackList(aOwnerWindow, aMediaElement)
-    , mSelectedIndex(-1)
-  {}
+      : MediaTrackList(aOwnerWindow, aMediaElement), mSelectedIndex(-1) {}
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   VideoTrack* operator[](uint32_t aIndex);
 
@@ -35,10 +33,7 @@ public:
   VideoTrack* GetSelectedTrack();
 
   // WebIDL
-  int32_t SelectedIndex() const
-  {
-    return mSelectedIndex;
-  }
+  int32_t SelectedIndex() const { return mSelectedIndex; }
 
   VideoTrack* IndexedGetter(uint32_t aIndex, bool& aFound);
 
@@ -46,14 +41,14 @@ public:
 
   friend class VideoTrack;
 
-protected:
+ protected:
   VideoTrackList* AsVideoTrackList() override { return this; }
 
-private:
+ private:
   int32_t mSelectedIndex;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_VideoTrackList_h
+#endif  // mozilla_dom_VideoTrackList_h

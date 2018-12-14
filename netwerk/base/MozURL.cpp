@@ -11,9 +11,8 @@ namespace net {
 NS_IMPL_ADDREF(MozURL)
 NS_IMPL_RELEASE(MozURL)
 
-/* static */ nsresult
-MozURL::Init(MozURL** aURL, const nsACString& aSpec, const MozURL* aBaseURL)
-{
+/* static */ nsresult MozURL::Init(MozURL** aURL, const nsACString& aSpec,
+                                   const MozURL* aBaseURL) {
   rusturl* base = aBaseURL ? aBaseURL->mURL.get() : nullptr;
   rusturl* ptr = rusturl_new(&aSpec, base);
   if (!ptr) {
@@ -24,39 +23,27 @@ MozURL::Init(MozURL** aURL, const nsACString& aSpec, const MozURL* aBaseURL)
   return NS_OK;
 }
 
-nsresult
-MozURL::GetScheme(nsACString& aScheme)
-{
+nsresult MozURL::GetScheme(nsACString& aScheme) {
   return rusturl_get_scheme(mURL.get(), &aScheme);
 }
 
-nsresult
-MozURL::GetSpec(nsACString& aSpec)
-{
+nsresult MozURL::GetSpec(nsACString& aSpec) {
   return rusturl_get_spec(mURL.get(), &aSpec);
 }
 
-nsresult
-MozURL::GetUsername(nsACString& aUser)
-{
+nsresult MozURL::GetUsername(nsACString& aUser) {
   return rusturl_get_username(mURL.get(), &aUser);
 }
 
-nsresult
-MozURL::GetPassword(nsACString& aPassword)
-{
+nsresult MozURL::GetPassword(nsACString& aPassword) {
   return rusturl_get_password(mURL.get(), &aPassword);
 }
 
-nsresult
-MozURL::GetHostname(nsACString& aHost)
-{
+nsresult MozURL::GetHostname(nsACString& aHost) {
   return rusturl_get_host(mURL.get(), &aHost);
 }
 
-nsresult
-MozURL::GetHostPort(nsACString& aHostPort)
-{
+nsresult MozURL::GetHostPort(nsACString& aHostPort) {
   nsresult rv = rusturl_get_host(mURL.get(), &aHostPort);
   if (NS_FAILED(rv)) {
     return rv;
@@ -76,60 +63,44 @@ MozURL::GetHostPort(nsACString& aHostPort)
   return NS_OK;
 }
 
-nsresult
-MozURL::GetPort(int32_t* aPort)
-{
+nsresult MozURL::GetPort(int32_t* aPort) {
   return rusturl_get_port(mURL.get(), aPort);
 }
 
-nsresult
-MozURL::GetFilePath(nsACString& aPath)
-{
+nsresult MozURL::GetFilePath(nsACString& aPath) {
   return rusturl_get_filepath(mURL.get(), &aPath);
 }
 
-nsresult
-MozURL::GetQuery(nsACString& aQuery)
-{
+nsresult MozURL::GetQuery(nsACString& aQuery) {
   return rusturl_get_query(mURL.get(), &aQuery);
 }
 
-nsresult
-MozURL::GetRef(nsACString& aRef)
-{
+nsresult MozURL::GetRef(nsACString& aRef) {
   return rusturl_get_fragment(mURL.get(), &aRef);
 }
 
-nsresult
-MozURL::GetOrigin(nsACString& aOrigin)
-{
+nsresult MozURL::GetOrigin(nsACString& aOrigin) {
   return rusturl_get_origin(mURL.get(), &aOrigin);
 }
 
 // MozURL::Mutator
 
 MozURL::Mutator::Mutator(MozURL* url)
-  : mURL(rusturl_clone(url->mURL.get()))
-  , mFinalized(false)
-  , mStatus(NS_OK)
-{
-}
+    : mURL(rusturl_clone(url->mURL.get())), mFinalized(false), mStatus(NS_OK) {}
 
 // This macro ensures that the mutator is still valid, meaning it hasn't been
 // finalized, and none of the setters have returned an error code.
-#define ENSURE_VALID()                          \
-  PR_BEGIN_MACRO                                \
-    if (mFinalized) {                           \
-      mStatus = NS_ERROR_NOT_AVAILABLE;         \
-    }                                           \
-    if (NS_FAILED(mStatus)) {                   \
-      return *this;                             \
-    }                                           \
+#define ENSURE_VALID()                \
+  PR_BEGIN_MACRO                      \
+  if (mFinalized) {                   \
+    mStatus = NS_ERROR_NOT_AVAILABLE; \
+  }                                   \
+  if (NS_FAILED(mStatus)) {           \
+    return *this;                     \
+  }                                   \
   PR_END_MACRO
 
-nsresult
-MozURL::Mutator::Finalize(MozURL** aURL)
-{
+nsresult MozURL::Mutator::Finalize(MozURL** aURL) {
   if (mFinalized) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -142,83 +113,61 @@ MozURL::Mutator::Finalize(MozURL** aURL)
   return NS_OK;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetScheme(const nsACString& aScheme)
-{
+MozURL::Mutator& MozURL::Mutator::SetScheme(const nsACString& aScheme) {
   ENSURE_VALID();
   mStatus = rusturl_set_scheme(mURL.get(), &aScheme);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetUsername(const nsACString& aUser)
-{
+MozURL::Mutator& MozURL::Mutator::SetUsername(const nsACString& aUser) {
   ENSURE_VALID();
   mStatus = rusturl_set_username(mURL.get(), &aUser);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetPassword(const nsACString& aPassword)
-{
+MozURL::Mutator& MozURL::Mutator::SetPassword(const nsACString& aPassword) {
   ENSURE_VALID();
   mStatus = rusturl_set_password(mURL.get(), &aPassword);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetHostname(const nsACString& aHost)
-{
+MozURL::Mutator& MozURL::Mutator::SetHostname(const nsACString& aHost) {
   ENSURE_VALID();
   mStatus = rusturl_set_host(mURL.get(), &aHost);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetHostPort(const nsACString& aHostPort)
-{
+MozURL::Mutator& MozURL::Mutator::SetHostPort(const nsACString& aHostPort) {
   ENSURE_VALID();
   mStatus = rusturl_set_host_port(mURL.get(), &aHostPort);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetFilePath(const nsACString& aPath)
-{
+MozURL::Mutator& MozURL::Mutator::SetFilePath(const nsACString& aPath) {
   ENSURE_VALID();
   mStatus = rusturl_set_path(mURL.get(), &aPath);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetQuery(const nsACString& aQuery)
-{
+MozURL::Mutator& MozURL::Mutator::SetQuery(const nsACString& aQuery) {
   ENSURE_VALID();
   mStatus = rusturl_set_query(mURL.get(), &aQuery);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetRef(const nsACString& aRef)
-{
+MozURL::Mutator& MozURL::Mutator::SetRef(const nsACString& aRef) {
   ENSURE_VALID();
   mStatus = rusturl_set_fragment(mURL.get(), &aRef);
   return *this;
 }
 
-MozURL::Mutator&
-MozURL::Mutator::SetPort(int32_t aPort)
-{
+MozURL::Mutator& MozURL::Mutator::SetPort(int32_t aPort) {
   ENSURE_VALID();
   mStatus = rusturl_set_port_no(mURL.get(), aPort);
   return *this;
 }
 
-void
-MozURL::FreeRustURL::operator()(rusturl* aPtr)
-{
-  rusturl_free(aPtr);
-}
+void MozURL::FreeRustURL::operator()(rusturl* aPtr) { rusturl_free(aPtr); }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

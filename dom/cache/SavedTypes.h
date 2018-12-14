@@ -20,8 +20,7 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
-struct SavedRequest
-{
+struct SavedRequest {
   SavedRequest() : mHasBodyId(false) { mValue.body() = void_t(); }
   CacheRequest mValue;
   bool mHasBodyId;
@@ -29,8 +28,7 @@ struct SavedRequest
   CacheId mCacheId;
 };
 
-struct SavedResponse
-{
+struct SavedResponse {
   SavedResponse() : mHasBodyId(false) { mValue.body() = void_t(); }
   CacheResponse mValue;
   bool mHasBodyId;
@@ -38,8 +36,8 @@ struct SavedResponse
   CacheId mCacheId;
 };
 
-} // namespace cache
-} // namespace dom
-} // namespace mozilla
+}  // namespace cache
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_cache_SavedTypes_h
+#endif  // mozilla_dom_cache_SavedTypes_h

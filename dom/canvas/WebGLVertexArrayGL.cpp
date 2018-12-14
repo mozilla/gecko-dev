@@ -11,50 +11,36 @@
 namespace mozilla {
 
 WebGLVertexArrayGL::WebGLVertexArrayGL(WebGLContext* webgl)
-    : WebGLVertexArray(webgl)
-    , mIsVAO(false)
-{ }
+    : WebGLVertexArray(webgl), mIsVAO(false) {}
 
-WebGLVertexArrayGL::~WebGLVertexArrayGL()
-{
-    DeleteOnce();
+WebGLVertexArrayGL::~WebGLVertexArrayGL() { DeleteOnce(); }
+
+void WebGLVertexArrayGL::DeleteImpl() {
+  mElementArrayBuffer = nullptr;
+
+  mContext->gl->fDeleteVertexArrays(1, &mGLName);
+
+  mIsVAO = false;
 }
 
-void
-WebGLVertexArrayGL::DeleteImpl()
-{
-    mElementArrayBuffer = nullptr;
+void WebGLVertexArrayGL::BindVertexArrayImpl() {
+  mContext->mBoundVertexArray = this;
+  mContext->gl->fBindVertexArray(mGLName);
 
-    mContext->gl->fDeleteVertexArrays(1, &mGLName);
-
-    mIsVAO = false;
+  mIsVAO = true;
 }
 
-void
-WebGLVertexArrayGL::BindVertexArrayImpl()
-{
-    mContext->mBoundVertexArray = this;
-    mContext->gl->fBindVertexArray(mGLName);
-
-    mIsVAO = true;
+void WebGLVertexArrayGL::GenVertexArray() {
+  mContext->gl->fGenVertexArrays(1, &mGLName);
 }
 
-void
-WebGLVertexArrayGL::GenVertexArray()
-{
-    mContext->gl->fGenVertexArrays(1, &mGLName);
+bool WebGLVertexArrayGL::IsVertexArrayImpl() const {
+  gl::GLContext* gl = mContext->gl;
+  if (gl->WorkAroundDriverBugs()) {
+    return mIsVAO;
+  }
+
+  return mContext->gl->fIsVertexArray(mGLName) != 0;
 }
 
-bool
-WebGLVertexArrayGL::IsVertexArrayImpl() const
-{
-    gl::GLContext* gl = mContext->gl;
-    if (gl->WorkAroundDriverBugs())
-    {
-        return mIsVAO;
-    }
-
-    return mContext->gl->fIsVertexArray(mGLName) != 0;
-}
-
-} // namespace mozilla
+}  // namespace mozilla

@@ -13,22 +13,22 @@
 namespace mozilla {
 namespace dom {
 
-class PaymentRequestParent final : public nsIPaymentActionCallback
-                                 , public PPaymentRequestParent
-{
+class PaymentRequestParent final : public nsIPaymentActionCallback,
+                                   public PPaymentRequestParent {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIPAYMENTACTIONCALLBACK
 
   explicit PaymentRequestParent(uint64_t aTabId);
 
-protected:
-  mozilla::ipc::IPCResult
-  RecvRequestPayment(const IPCPaymentActionRequest& aRequest) override;
+ protected:
+  mozilla::ipc::IPCResult RecvRequestPayment(
+      const IPCPaymentActionRequest& aRequest) override;
 
   mozilla::ipc::IPCResult Recv__delete__() override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
-private:
+
+ private:
   ~PaymentRequestParent() = default;
 
   nsresult CreateActionRequest(const nsAString& aRequestId,
@@ -39,7 +39,7 @@ private:
   uint64_t mTabId;
 };
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla
 
 #endif

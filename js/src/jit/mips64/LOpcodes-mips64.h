@@ -9,19 +9,19 @@
 
 #include "jit/shared/LOpcodes-shared.h"
 
-#define LIR_CPU_OPCODE_LIST(_)  \
-    _(ModMaskI)                 \
-    _(DivOrModI64)              \
-    _(UDivOrMod)                \
-    _(UDivOrModI64)             \
-    _(WasmUnalignedLoad)        \
-    _(WasmUnalignedStore)       \
-    _(WasmUnalignedLoadI64)     \
-    _(WasmUnalignedStoreI64)    \
-    _(WasmTruncateToInt64)      \
-    _(Int64ToFloatingPoint)     \
-    _(WasmCompareExchangeI64)   \
-    _(WasmAtomicExchangeI64)    \
-    _(WasmAtomicBinopI64)       \
+#define LIR_CPU_OPCODE_LIST(_) \
+  _(ModMaskI)                  \
+  _(DivOrModI64)               \
+  _(UDivOrMod)                 \
+  _(UDivOrModI64)              \
+  _(WasmUnalignedLoad)         \
+  _(WasmUnalignedStore)        \
+  _(WasmUnalignedLoadI64)      \
+  _(WasmUnalignedStoreI64)     \
+  _(WasmTruncateToInt64)       \
+  _(Int64ToFloatingPoint)      \
+  _(WasmCompareExchangeI64)    \
+  _(WasmAtomicExchangeI64)     \
+  _(WasmAtomicBinopI64)
 
-#endif // jit_mips64_LOpcodes_mips64_h__
+#endif  // jit_mips64_LOpcodes_mips64_h__

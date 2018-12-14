@@ -11,21 +11,21 @@
 
 namespace mozilla {
 
-class DllServices : public mozilla::glue::DllServices
-{
-public:
+class DllServices : public mozilla::glue::DllServices {
+ public:
   static DllServices* Get();
 
   static const char* kTopicDllLoadedMainThread;
   static const char* kTopicDllLoadedNonMainThread;
 
-private:
+ private:
   DllServices();
   ~DllServices() = default;
 
-  void NotifyDllLoad(const bool aIsMainThread, const nsString& aDllName) override;
+  void NotifyDllLoad(const bool aIsMainThread,
+                     const nsString& aDllName) override;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_WinDllServices_h
+#endif  // mozilla_WinDllServices_h

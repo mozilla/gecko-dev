@@ -17,26 +17,22 @@ namespace dom {
 // This class implements and iterator which iterates the normal and tracking
 // timeouts lists simultaneously in the mWhen order.
 class MOZ_STACK_CLASS OrderedTimeoutIterator final {
-public:
+ public:
   typedef TimeoutManager::Timeouts Timeouts;
-  typedef Timeouts::TimeoutList    TimeoutList;
+  typedef Timeouts::TimeoutList TimeoutList;
 
-  OrderedTimeoutIterator(Timeouts& aNormalTimeouts,
-                         Timeouts& aTrackingTimeouts)
-    : mNormalTimeouts(aNormalTimeouts.mTimeoutList),
-      mTrackingTimeouts(aTrackingTimeouts.mTimeoutList),
-      mNormalIter(mNormalTimeouts.getFirst()),
-      mTrackingIter(mTrackingTimeouts.getFirst()),
-      mKind(Kind::None),
-      mUpdateIteratorCalled(true)
-  {
-  }
+  OrderedTimeoutIterator(Timeouts& aNormalTimeouts, Timeouts& aTrackingTimeouts)
+      : mNormalTimeouts(aNormalTimeouts.mTimeoutList),
+        mTrackingTimeouts(aTrackingTimeouts.mTimeoutList),
+        mNormalIter(mNormalTimeouts.getFirst()),
+        mTrackingIter(mTrackingTimeouts.getFirst()),
+        mKind(Kind::None),
+        mUpdateIteratorCalled(true) {}
 
   // Return the current timeout and move to the next one.
   // Unless this is the first time calling Next(), you must call
   // UpdateIterator() before calling this method.
-  Timeout* Next()
-  {
+  Timeout* Next() {
     MOZ_ASSERT(mUpdateIteratorCalled);
     MOZ_ASSERT_IF(mNormalIter, mNormalIter->isInList());
     MOZ_ASSERT_IF(mTrackingIter, mTrackingIter->isInList());
@@ -101,8 +97,7 @@ public:
   // This method can be called as many times as needed.  Calling this more than
   // once is helpful in cases where we expect the timeouts list has been
   // modified before we got a chance to call Next().
-  void UpdateIterator()
-  {
+  void UpdateIterator() {
     MOZ_ASSERT(mKind != Kind::None);
     // Update the winning iterator to point to the next element.  Also check to
     // see if the other iterator is still valid, otherwise reset it to the
@@ -126,8 +121,7 @@ public:
   // This function resets the iterator to a defunct state.  It should only be
   // used when we want to forcefully sever all of the strong references this
   // class holds.
-  void Clear()
-  {
+  void Clear() {
     // Release all strong references.
     mNormalIter = nullptr;
     mTrackingIter = nullptr;
@@ -140,8 +134,7 @@ public:
   // Cannot be called before Next() has been called.  Note that the result of
   // this method is only affected by Next() and not UpdateIterator(), so calling
   // UpdateIterator() before calling this is allowed.
-  bool PickedNormalIter() const
-  {
+  bool PickedNormalIter() const {
     MOZ_ASSERT(mKind != Kind::None);
     return mKind == Kind::Normal;
   }
@@ -150,24 +143,26 @@ public:
   // Cannot be called before Next() has been called.  Note that the result of
   // this method is only affected by Next() and not UpdateIterator(), so calling
   // UpdateIterator() before calling this is allowed.
-  bool PickedTrackingIter() const
-  {
+  bool PickedTrackingIter() const {
     MOZ_ASSERT(mKind != Kind::None);
     return mKind == Kind::Tracking;
   }
 
-private:
-  TimeoutList& mNormalTimeouts;          // The list of normal timeouts.
-  TimeoutList& mTrackingTimeouts;        // The list of tracking timeouts.
-  RefPtr<Timeout> mNormalIter;           // The iterator over the normal timeout list.
-  RefPtr<Timeout> mTrackingIter;         // The iterator over the tracking timeout list.
-  RefPtr<Timeout> mCurrent;              // The current timeout that Next() just found.
+ private:
+  TimeoutList& mNormalTimeouts;    // The list of normal timeouts.
+  TimeoutList& mTrackingTimeouts;  // The list of tracking timeouts.
+  RefPtr<Timeout> mNormalIter;     // The iterator over the normal timeout list.
+  RefPtr<Timeout>
+      mTrackingIter;         // The iterator over the tracking timeout list.
+  RefPtr<Timeout> mCurrent;  // The current timeout that Next() just found.
   enum class Kind { Normal, Tracking, None };
-  Kind mKind;                            // The kind of iterator picked the last time.
-  DebugOnly<bool> mUpdateIteratorCalled; // Whether we have called UpdateIterator() before calling Next().
+  Kind mKind;  // The kind of iterator picked the last time.
+  DebugOnly<bool> mUpdateIteratorCalled;  // Whether we have called
+                                          // UpdateIterator() before calling
+                                          // Next().
 };
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

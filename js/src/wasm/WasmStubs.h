@@ -24,24 +24,26 @@
 namespace js {
 namespace wasm {
 
-extern bool
-GenerateBuiltinThunk(jit::MacroAssembler& masm, jit::ABIFunctionType abiType, ExitReason exitReason,
-                     void* funcPtr, CallableOffsets* offsets);
+extern bool GenerateBuiltinThunk(jit::MacroAssembler& masm,
+                                 jit::ABIFunctionType abiType,
+                                 ExitReason exitReason, void* funcPtr,
+                                 CallableOffsets* offsets);
 
-extern bool
-GenerateImportFunctions(const ModuleEnvironment& env, const FuncImportVector& imports,
-                        CompiledCode* code);
+extern bool GenerateImportFunctions(const ModuleEnvironment& env,
+                                    const FuncImportVector& imports,
+                                    CompiledCode* code);
 
-extern bool
-GenerateStubs(const ModuleEnvironment& env, const FuncImportVector& imports,
-              const FuncExportVector& exports, CompiledCode* code);
+extern bool GenerateStubs(const ModuleEnvironment& env,
+                          const FuncImportVector& imports,
+                          const FuncExportVector& exports, CompiledCode* code);
 
-extern bool
-GenerateEntryStubs(jit::MacroAssembler& masm, size_t funcExportIndex,
-                   const FuncExport& funcExport, const Maybe<jit::ImmPtr>& callee,
-                   bool isAsmJS, CodeRangeVector* codeRanges);
+extern bool GenerateEntryStubs(jit::MacroAssembler& masm,
+                               size_t funcExportIndex,
+                               const FuncExport& funcExport,
+                               const Maybe<jit::ImmPtr>& callee, bool isAsmJS,
+                               CodeRangeVector* codeRanges);
 
-} // namespace wasm
-} // namespace js
+}  // namespace wasm
+}  // namespace js
 
-#endif // wasm_stubs_h
+#endif  // wasm_stubs_h

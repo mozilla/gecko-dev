@@ -25,20 +25,18 @@ namespace dom {
 
 namespace {
 
-class ReportErrorRunnable final : public WorkerRunnable
-{
+class ReportErrorRunnable final : public WorkerRunnable {
   WorkerErrorReport mReport;
 
-public:
+ public:
   // aWorkerPrivate is the worker thread we're on (or the main thread, if null)
   // aTarget is the worker object that we are going to fire an error at
   // (if any).
-  static void
-  ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-              bool aFireAtScope, DOMEventTargetHelper* aTarget,
-              const WorkerErrorReport& aReport, uint64_t aInnerWindowId,
-              JS::Handle<JS::Value> aException = JS::NullHandleValue)
-  {
+  static void ReportError(
+      JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
+      DOMEventTargetHelper* aTarget, const WorkerErrorReport& aReport,
+      uint64_t aInnerWindowId,
+      JS::Handle<JS::Value> aException = JS::NullHandleValue) {
     if (aWorkerPrivate) {
       aWorkerPrivate->AssertIsOnWorkerThread();
     } else {
@@ -65,7 +63,7 @@ public:
 
       if (aTarget) {
         RefPtr<ErrorEvent> event =
-          ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+            ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
         event->SetTrusted(true);
 
         bool defaultActionEnabled;
@@ -99,15 +97,16 @@ public:
             WorkerDebuggerGlobalScope* globalScope = nullptr;
             UNWRAP_OBJECT(WorkerDebuggerGlobalScope, &global, globalScope);
 
-            MOZ_ASSERT_IF(globalScope, globalScope->GetWrapperPreserveColor() == global);
+            MOZ_ASSERT_IF(globalScope,
+                          globalScope->GetWrapperPreserveColor() == global);
             if (globalScope || IsWorkerDebuggerSandbox(global)) {
-              aWorkerPrivate->ReportErrorToDebugger(aReport.mFilename, aReport.mLineNumber,
-                                                    aReport.mMessage);
+              aWorkerPrivate->ReportErrorToDebugger(
+                  aReport.mFilename, aReport.mLineNumber, aReport.mMessage);
               return;
             }
 
             MOZ_ASSERT(SimpleGlobalObject::SimpleGlobalType(global) ==
-                         SimpleGlobalObject::GlobalType::BindingDetail);
+                       SimpleGlobalObject::GlobalType::BindingDetail);
             // XXXbz We should really log this to console, but unwinding out of
             // this stuff without ending up firing any events is ... hard.  Just
             // return for now.
@@ -117,20 +116,19 @@ public:
           }
 
           MOZ_ASSERT(globalScope->GetWrapperPreserveColor() == global);
-          nsIDOMEventTarget* target = static_cast<nsIDOMEventTarget*>(globalScope);
+          nsIDOMEventTarget* target =
+              static_cast<nsIDOMEventTarget*>(globalScope);
 
-          RefPtr<ErrorEvent> event =
-            ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+          RefPtr<ErrorEvent> event = ErrorEvent::Constructor(
+              aTarget, NS_LITERAL_STRING("error"), init);
           event->SetTrusted(true);
 
-          if (NS_FAILED(EventDispatcher::DispatchDOMEvent(target, nullptr,
-                                                          event, nullptr,
-                                                          &status))) {
+          if (NS_FAILED(EventDispatcher::DispatchDOMEvent(
+                  target, nullptr, event, nullptr, &status))) {
             NS_WARNING("Failed to dispatch worker thread error event!");
             status = nsEventStatus_eIgnore;
           }
-        }
-        else if ((sgo = nsJSUtils::GetStaticScriptGlobal(global))) {
+        } else if ((sgo = nsJSUtils::GetStaticScriptGlobal(global))) {
           MOZ_ASSERT(NS_IsMainThread());
 
           if (NS_FAILED(sgo->HandleScriptError(init, &status))) {
@@ -149,7 +147,7 @@ public:
     // Now fire a runnable to do the same on the parent's thread if we can.
     if (aWorkerPrivate) {
       RefPtr<ReportErrorRunnable> runnable =
-        new ReportErrorRunnable(aWorkerPrivate, aReport);
+          new ReportErrorRunnable(aWorkerPrivate, aReport);
       runnable->Dispatch();
       return;
     }
@@ -160,23 +158,20 @@ public:
 
   ReportErrorRunnable(WorkerPrivate* aWorkerPrivate,
                       const WorkerErrorReport& aReport)
-  : WorkerRunnable(aWorkerPrivate, ParentThreadUnchangedBusyCount),
-    mReport(aReport)
-  { }
+      : WorkerRunnable(aWorkerPrivate, ParentThreadUnchangedBusyCount),
+        mReport(aReport) {}
 
-private:
-  virtual void
-  PostDispatch(WorkerPrivate* aWorkerPrivate, bool aDispatchResult) override
-  {
+ private:
+  virtual void PostDispatch(WorkerPrivate* aWorkerPrivate,
+                            bool aDispatchResult) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
 
     // Dispatch may fail if the worker was canceled, no need to report that as
     // an error, so don't call base class PostDispatch.
   }
 
-  virtual bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
+  virtual bool WorkerRun(JSContext* aCx,
+                         WorkerPrivate* aWorkerPrivate) override {
     uint64_t innerWindowId;
     bool fireAtScope = true;
 
@@ -185,8 +180,7 @@ private:
     WorkerPrivate* parent = aWorkerPrivate->GetParent();
     if (parent) {
       innerWindowId = 0;
-    }
-    else {
+    } else {
       AssertIsOnMainThread();
 
       if (aWorkerPrivate->IsFrozen() ||
@@ -210,11 +204,10 @@ private:
         if (swm) {
           swm->HandleError(aCx, aWorkerPrivate->GetPrincipal(),
                            aWorkerPrivate->ServiceWorkerScope(),
-                           aWorkerPrivate->ScriptURL(),
-                           mReport.mMessage,
-                           mReport.mFilename, mReport.mLine, mReport.mLineNumber,
-                           mReport.mColumnNumber, mReport.mFlags,
-                           mReport.mExnType);
+                           aWorkerPrivate->ScriptURL(), mReport.mMessage,
+                           mReport.mFilename, mReport.mLine,
+                           mReport.mLineNumber, mReport.mColumnNumber,
+                           mReport.mFlags, mReport.mExnType);
         }
         return true;
       }
@@ -235,33 +228,26 @@ private:
     }
 
     ReportError(aCx, parent, fireAtScope,
-                aWorkerPrivate->ParentEventTargetRef(),
-                mReport, innerWindowId);
+                aWorkerPrivate->ParentEventTargetRef(), mReport, innerWindowId);
     return true;
   }
 };
 
-} // anonymous
+}  // namespace
 
-void
-WorkerErrorBase::AssignErrorBase(JSErrorBase* aReport)
-{
+void WorkerErrorBase::AssignErrorBase(JSErrorBase* aReport) {
   mFilename = NS_ConvertUTF8toUTF16(aReport->filename);
   mLineNumber = aReport->lineno;
   mColumnNumber = aReport->column;
   mErrorNumber = aReport->errorNumber;
 }
 
-void
-WorkerErrorNote::AssignErrorNote(JSErrorNotes::Note* aNote)
-{
+void WorkerErrorNote::AssignErrorNote(JSErrorNotes::Note* aNote) {
   WorkerErrorBase::AssignErrorBase(aNote);
   xpc::ErrorNote::ErrorNoteToMessageString(aNote, mMessage);
 }
 
-void
-WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport)
-{
+void WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport) {
   WorkerErrorBase::AssignErrorBase(aReport);
   xpc::ErrorReport::ErrorReportToMessageString(aReport, mMessage);
 
@@ -287,13 +273,10 @@ WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport)
 // aWorkerPrivate is the worker thread we're on (or the main thread, if null)
 // aTarget is the worker object that we are going to fire an error at
 // (if any).
-/* static */ void
-WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-                               bool aFireAtScope, DOMEventTargetHelper* aTarget,
-                               const WorkerErrorReport& aReport,
-                               uint64_t aInnerWindowId,
-                               JS::Handle<JS::Value> aException)
-{
+/* static */ void WorkerErrorReport::ReportError(
+    JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
+    DOMEventTargetHelper* aTarget, const WorkerErrorReport& aReport,
+    uint64_t aInnerWindowId, JS::Handle<JS::Value> aException) {
   if (aWorkerPrivate) {
     aWorkerPrivate->AssertIsOnWorkerThread();
   } else {
@@ -320,7 +303,7 @@ WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
 
     if (aTarget) {
       RefPtr<ErrorEvent> event =
-        ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+          ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
       event->SetTrusted(true);
 
       bool defaultActionEnabled;
@@ -354,15 +337,16 @@ WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
           WorkerDebuggerGlobalScope* globalScope = nullptr;
           UNWRAP_OBJECT(WorkerDebuggerGlobalScope, &global, globalScope);
 
-          MOZ_ASSERT_IF(globalScope, globalScope->GetWrapperPreserveColor() == global);
+          MOZ_ASSERT_IF(globalScope,
+                        globalScope->GetWrapperPreserveColor() == global);
           if (globalScope || IsWorkerDebuggerSandbox(global)) {
-            aWorkerPrivate->ReportErrorToDebugger(aReport.mFilename, aReport.mLineNumber,
-                                                  aReport.mMessage);
+            aWorkerPrivate->ReportErrorToDebugger(
+                aReport.mFilename, aReport.mLineNumber, aReport.mMessage);
             return;
           }
 
           MOZ_ASSERT(SimpleGlobalObject::SimpleGlobalType(global) ==
-                       SimpleGlobalObject::GlobalType::BindingDetail);
+                     SimpleGlobalObject::GlobalType::BindingDetail);
           // XXXbz We should really log this to console, but unwinding out of
           // this stuff without ending up firing any events is ... hard.  Just
           // return for now.
@@ -372,20 +356,19 @@ WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
         }
 
         MOZ_ASSERT(globalScope->GetWrapperPreserveColor() == global);
-        nsIDOMEventTarget* target = static_cast<nsIDOMEventTarget*>(globalScope);
+        nsIDOMEventTarget* target =
+            static_cast<nsIDOMEventTarget*>(globalScope);
 
         RefPtr<ErrorEvent> event =
-          ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
+            ErrorEvent::Constructor(aTarget, NS_LITERAL_STRING("error"), init);
         event->SetTrusted(true);
 
-        if (NS_FAILED(EventDispatcher::DispatchDOMEvent(target, nullptr,
-                                                        event, nullptr,
-                                                        &status))) {
+        if (NS_FAILED(EventDispatcher::DispatchDOMEvent(target, nullptr, event,
+                                                        nullptr, &status))) {
           NS_WARNING("Failed to dispatch worker thread error event!");
           status = nsEventStatus_eIgnore;
         }
-      }
-      else if ((sgo = nsJSUtils::GetStaticScriptGlobal(global))) {
+      } else if ((sgo = nsJSUtils::GetStaticScriptGlobal(global))) {
         MOZ_ASSERT(NS_IsMainThread());
 
         if (NS_FAILED(sgo->HandleScriptError(init, &status))) {
@@ -404,7 +387,7 @@ WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
   // Now fire a runnable to do the same on the parent's thread if we can.
   if (aWorkerPrivate) {
     RefPtr<ReportErrorRunnable> runnable =
-      new ReportErrorRunnable(aWorkerPrivate, aReport);
+        new ReportErrorRunnable(aWorkerPrivate, aReport);
     runnable->Dispatch();
     return;
   }
@@ -413,10 +396,8 @@ WorkerErrorReport::ReportError(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
   WorkerErrorReport::LogErrorToConsole(aReport, aInnerWindowId);
 }
 
-/* static */ void
-WorkerErrorReport::LogErrorToConsole(const WorkerErrorReport& aReport,
-                                     uint64_t aInnerWindowId)
-{
+/* static */ void WorkerErrorReport::LogErrorToConsole(
+    const WorkerErrorReport& aReport, uint64_t aInnerWindowId) {
   AssertIsOnMainThread();
 
   RefPtr<nsScriptErrorBase> scriptError = new nsScriptError();
@@ -424,14 +405,10 @@ WorkerErrorReport::LogErrorToConsole(const WorkerErrorReport& aReport,
 
   if (scriptError) {
     nsAutoCString category("Web Worker");
-    if (NS_FAILED(scriptError->InitWithWindowID(aReport.mMessage,
-                                                aReport.mFilename,
-                                                aReport.mLine,
-                                                aReport.mLineNumber,
-                                                aReport.mColumnNumber,
-                                                aReport.mFlags,
-                                                category,
-                                                aInnerWindowId))) {
+    if (NS_FAILED(scriptError->InitWithWindowID(
+            aReport.mMessage, aReport.mFilename, aReport.mLine,
+            aReport.mLineNumber, aReport.mColumnNumber, aReport.mFlags,
+            category, aInnerWindowId))) {
       NS_WARNING("Failed to init script error!");
       scriptError = nullptr;
     }
@@ -440,14 +417,14 @@ WorkerErrorReport::LogErrorToConsole(const WorkerErrorReport& aReport,
       const WorkerErrorNote& note = aReport.mNotes.ElementAt(i);
 
       nsScriptErrorNote* noteObject = new nsScriptErrorNote();
-      noteObject->Init(note.mMessage, note.mFilename,
-                       note.mLineNumber, note.mColumnNumber);
+      noteObject->Init(note.mMessage, note.mFilename, note.mLineNumber,
+                       note.mColumnNumber);
       scriptError->AddNote(noteObject);
     }
   }
 
   nsCOMPtr<nsIConsoleService> consoleService =
-    do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+      do_GetService(NS_CONSOLESERVICE_CONTRACTID);
   NS_WARNING_ASSERTION(consoleService, "Failed to get console service!");
 
   if (consoleService) {
@@ -457,7 +434,7 @@ WorkerErrorReport::LogErrorToConsole(const WorkerErrorReport& aReport,
       }
       NS_WARNING("LogMessage failed!");
     } else if (NS_SUCCEEDED(consoleService->LogStringMessage(
-                              aReport.mMessage.BeginReading()))) {
+                   aReport.mMessage.BeginReading()))) {
       return;
     }
     NS_WARNING("LogStringMessage failed!");
@@ -477,5 +454,5 @@ WorkerErrorReport::LogErrorToConsole(const WorkerErrorReport& aReport,
   fflush(stderr);
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

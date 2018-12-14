@@ -57,97 +57,83 @@
 #include "nsXULAppAPI.h"
 
 #ifdef DISABLE_ASSERTS_FOR_FUZZING
-#define ASSERT_UNLESS_FUZZING(...) do { } while (0)
+#define ASSERT_UNLESS_FUZZING(...) \
+  do {                             \
+  } while (0)
 #else
 #define ASSERT_UNLESS_FUZZING(...) MOZ_ASSERT(false)
 #endif
 
-using mozilla::ipc::AssertIsOnBackgroundThread;
+using mozilla::AssertIsOnMainThread;
+using mozilla::dom::FileSystemBase;
+using mozilla::dom::FileSystemRequestParent;
+using mozilla::dom::MIDIManagerParent;
+using mozilla::dom::MIDIPlatformService;
+using mozilla::dom::MIDIPortParent;
+using mozilla::dom::MessagePortParent;
+using mozilla::dom::PMIDIManagerParent;
+using mozilla::dom::PMIDIPortParent;
+using mozilla::dom::PMessagePortParent;
+using mozilla::dom::UDPSocketParent;
+using mozilla::dom::WebAuthnTransactionParent;
 using mozilla::dom::asmjscache::PAsmJSCacheEntryParent;
 using mozilla::dom::cache::PCacheParent;
 using mozilla::dom::cache::PCacheStorageParent;
 using mozilla::dom::cache::PCacheStreamControlParent;
-using mozilla::dom::FileSystemBase;
-using mozilla::dom::FileSystemRequestParent;
-using mozilla::dom::MessagePortParent;
-using mozilla::dom::PMessagePortParent;
-using mozilla::dom::UDPSocketParent;
-using mozilla::dom::WebAuthnTransactionParent;
-using mozilla::AssertIsOnMainThread;
-using mozilla::dom::PMIDIPortParent;
-using mozilla::dom::PMIDIManagerParent;
-using mozilla::dom::MIDIPortParent;
-using mozilla::dom::MIDIManagerParent;
-using mozilla::dom::MIDIPlatformService;
+using mozilla::ipc::AssertIsOnBackgroundThread;
 
 namespace {
 
-class TestParent final : public mozilla::ipc::PBackgroundTestParent
-{
+class TestParent final : public mozilla::ipc::PBackgroundTestParent {
   friend class mozilla::ipc::BackgroundParentImpl;
 
-  TestParent()
-  {
-    MOZ_COUNT_CTOR(TestParent);
-  }
+  TestParent() { MOZ_COUNT_CTOR(TestParent); }
 
-protected:
-  ~TestParent() override
-  {
-    MOZ_COUNT_DTOR(TestParent);
-  }
+ protected:
+  ~TestParent() override { MOZ_COUNT_DTOR(TestParent); }
 
-public:
-  void
-  ActorDestroy(ActorDestroyReason aWhy) override;
+ public:
+  void ActorDestroy(ActorDestroyReason aWhy) override;
 };
 
-} // namespace
+}  // namespace
 
 namespace mozilla {
 namespace ipc {
 
-using mozilla::dom::ContentParent;
 using mozilla::dom::BroadcastChannelParent;
+using mozilla::dom::ContentParent;
 using mozilla::dom::ServiceWorkerRegistrationData;
 
-BackgroundParentImpl::BackgroundParentImpl()
-{
+BackgroundParentImpl::BackgroundParentImpl() {
   AssertIsInMainProcess();
   AssertIsOnMainThread();
 
   MOZ_COUNT_CTOR(mozilla::ipc::BackgroundParentImpl);
 }
 
-BackgroundParentImpl::~BackgroundParentImpl()
-{
+BackgroundParentImpl::~BackgroundParentImpl() {
   AssertIsInMainProcess();
   AssertIsOnMainThread();
 
   MOZ_COUNT_DTOR(mozilla::ipc::BackgroundParentImpl);
 }
 
-void
-BackgroundParentImpl::ActorDestroy(ActorDestroyReason aWhy)
-{
+void BackgroundParentImpl::ActorDestroy(ActorDestroyReason aWhy) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 }
 
 BackgroundParentImpl::PBackgroundTestParent*
-BackgroundParentImpl::AllocPBackgroundTestParent(const nsCString& aTestArg)
-{
+BackgroundParentImpl::AllocPBackgroundTestParent(const nsCString& aTestArg) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return new TestParent();
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPBackgroundTestConstructor(
-                                                  PBackgroundTestParent* aActor,
-                                                  const nsCString& aTestArg)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPBackgroundTestConstructor(
+    PBackgroundTestParent* aActor, const nsCString& aTestArg) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -158,10 +144,8 @@ BackgroundParentImpl::RecvPBackgroundTestConstructor(
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPBackgroundTestParent(
-                                                  PBackgroundTestParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBackgroundTestParent(
+    PBackgroundTestParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -170,11 +154,8 @@ BackgroundParentImpl::DeallocPBackgroundTestParent(
   return true;
 }
 
-auto
-BackgroundParentImpl::AllocPBackgroundIDBFactoryParent(
-                                                const LoggingInfo& aLoggingInfo)
-  -> PBackgroundIDBFactoryParent*
-{
+auto BackgroundParentImpl::AllocPBackgroundIDBFactoryParent(
+    const LoggingInfo& aLoggingInfo) -> PBackgroundIDBFactoryParent* {
   using mozilla::dom::indexedDB::AllocPBackgroundIDBFactoryParent;
 
   AssertIsInMainProcess();
@@ -185,9 +166,7 @@ BackgroundParentImpl::AllocPBackgroundIDBFactoryParent(
 
 mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvPBackgroundIDBFactoryConstructor(
-                                            PBackgroundIDBFactoryParent* aActor,
-                                            const LoggingInfo& aLoggingInfo)
-{
+    PBackgroundIDBFactoryParent* aActor, const LoggingInfo& aLoggingInfo) {
   using mozilla::dom::indexedDB::RecvPBackgroundIDBFactoryConstructor;
 
   AssertIsInMainProcess();
@@ -200,10 +179,8 @@ BackgroundParentImpl::RecvPBackgroundIDBFactoryConstructor(
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPBackgroundIDBFactoryParent(
-                                            PBackgroundIDBFactoryParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBackgroundIDBFactoryParent(
+    PBackgroundIDBFactoryParent* aActor) {
   using mozilla::dom::indexedDB::DeallocPBackgroundIDBFactoryParent;
 
   AssertIsInMainProcess();
@@ -213,31 +190,25 @@ BackgroundParentImpl::DeallocPBackgroundIDBFactoryParent(
   return DeallocPBackgroundIDBFactoryParent(aActor);
 }
 
-auto
-BackgroundParentImpl::AllocPBackgroundIndexedDBUtilsParent()
-  -> PBackgroundIndexedDBUtilsParent*
-{
+auto BackgroundParentImpl::AllocPBackgroundIndexedDBUtilsParent()
+    -> PBackgroundIndexedDBUtilsParent* {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return mozilla::dom::indexedDB::AllocPBackgroundIndexedDBUtilsParent();
 }
 
-bool
-BackgroundParentImpl::DeallocPBackgroundIndexedDBUtilsParent(
-                                        PBackgroundIndexedDBUtilsParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBackgroundIndexedDBUtilsParent(
+    PBackgroundIndexedDBUtilsParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  return
-    mozilla::dom::indexedDB::DeallocPBackgroundIndexedDBUtilsParent(aActor);
+  return mozilla::dom::indexedDB::DeallocPBackgroundIndexedDBUtilsParent(
+      aActor);
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvFlushPendingFileDeletions()
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvFlushPendingFileDeletions() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -249,43 +220,30 @@ BackgroundParentImpl::RecvFlushPendingFileDeletions()
 
 BackgroundParentImpl::PBackgroundLocalStorageCacheParent*
 BackgroundParentImpl::AllocPBackgroundLocalStorageCacheParent(
-                                            const PrincipalInfo& aPrincipalInfo,
-                                            const nsCString& aOriginKey,
-                                            const uint32_t& aPrivateBrowsingId)
-{
+    const PrincipalInfo& aPrincipalInfo, const nsCString& aOriginKey,
+    const uint32_t& aPrivateBrowsingId) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  return
-    mozilla::dom::AllocPBackgroundLocalStorageCacheParent(aPrincipalInfo,
-                                                          aOriginKey,
-                                                          aPrivateBrowsingId);
+  return mozilla::dom::AllocPBackgroundLocalStorageCacheParent(
+      aPrincipalInfo, aOriginKey, aPrivateBrowsingId);
 }
 
 mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvPBackgroundLocalStorageCacheConstructor(
-                                     PBackgroundLocalStorageCacheParent* aActor,
-                                     const PrincipalInfo& aPrincipalInfo,
-                                     const nsCString& aOriginKey,
-                                     const uint32_t& aPrivateBrowsingId)
-{
+    PBackgroundLocalStorageCacheParent* aActor,
+    const PrincipalInfo& aPrincipalInfo, const nsCString& aOriginKey,
+    const uint32_t& aPrivateBrowsingId) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  return
-    mozilla::dom::RecvPBackgroundLocalStorageCacheConstructor(
-                                                            this,
-                                                            aActor,
-                                                            aPrincipalInfo,
-                                                            aOriginKey,
-                                                            aPrivateBrowsingId);
+  return mozilla::dom::RecvPBackgroundLocalStorageCacheConstructor(
+      this, aActor, aPrincipalInfo, aOriginKey, aPrivateBrowsingId);
 }
 
-bool
-BackgroundParentImpl::DeallocPBackgroundLocalStorageCacheParent(
-                                     PBackgroundLocalStorageCacheParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBackgroundLocalStorageCacheParent(
+    PBackgroundLocalStorageCacheParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -293,21 +251,16 @@ BackgroundParentImpl::DeallocPBackgroundLocalStorageCacheParent(
   return mozilla::dom::DeallocPBackgroundLocalStorageCacheParent(aActor);
 }
 
-auto
-BackgroundParentImpl::AllocPBackgroundStorageParent(const nsString& aProfilePath)
-  -> PBackgroundStorageParent*
-{
+auto BackgroundParentImpl::AllocPBackgroundStorageParent(
+    const nsString& aProfilePath) -> PBackgroundStorageParent* {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return mozilla::dom::AllocPBackgroundStorageParent(aProfilePath);
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPBackgroundStorageConstructor(
-                                               PBackgroundStorageParent* aActor,
-                                               const nsString& aProfilePath)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPBackgroundStorageConstructor(
+    PBackgroundStorageParent* aActor, const nsString& aProfilePath) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -315,10 +268,8 @@ BackgroundParentImpl::RecvPBackgroundStorageConstructor(
   return mozilla::dom::RecvPBackgroundStorageConstructor(aActor, aProfilePath);
 }
 
-bool
-BackgroundParentImpl::DeallocPBackgroundStorageParent(
-                                               PBackgroundStorageParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBackgroundStorageParent(
+    PBackgroundStorageParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -326,15 +277,13 @@ BackgroundParentImpl::DeallocPBackgroundStorageParent(
   return mozilla::dom::DeallocPBackgroundStorageParent(aActor);
 }
 
-PPendingIPCBlobParent*
-BackgroundParentImpl::AllocPPendingIPCBlobParent(const IPCBlob& aBlob)
-{
+PPendingIPCBlobParent* BackgroundParentImpl::AllocPPendingIPCBlobParent(
+    const IPCBlob& aBlob) {
   MOZ_CRASH("PPendingIPCBlobParent actors should be manually constructed!");
 }
 
-bool
-BackgroundParentImpl::DeallocPPendingIPCBlobParent(PPendingIPCBlobParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPPendingIPCBlobParent(
+    PPendingIPCBlobParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -343,31 +292,25 @@ BackgroundParentImpl::DeallocPPendingIPCBlobParent(PPendingIPCBlobParent* aActor
   return true;
 }
 
-PTemporaryIPCBlobParent*
-BackgroundParentImpl::AllocPTemporaryIPCBlobParent()
-{
+PTemporaryIPCBlobParent* BackgroundParentImpl::AllocPTemporaryIPCBlobParent() {
   return new mozilla::dom::TemporaryIPCBlobParent();
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPTemporaryIPCBlobConstructor(PTemporaryIPCBlobParent* aActor)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPTemporaryIPCBlobConstructor(
+    PTemporaryIPCBlobParent* aActor) {
   mozilla::dom::TemporaryIPCBlobParent* actor =
-    static_cast<mozilla::dom::TemporaryIPCBlobParent*>(aActor);
+      static_cast<mozilla::dom::TemporaryIPCBlobParent*>(aActor);
   return actor->CreateAndShareFile();
 }
 
-bool
-BackgroundParentImpl::DeallocPTemporaryIPCBlobParent(PTemporaryIPCBlobParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPTemporaryIPCBlobParent(
+    PTemporaryIPCBlobParent* aActor) {
   delete aActor;
   return true;
 }
 
-PIPCBlobInputStreamParent*
-BackgroundParentImpl::AllocPIPCBlobInputStreamParent(const nsID& aID,
-                                                     const uint64_t& aSize)
-{
+PIPCBlobInputStreamParent* BackgroundParentImpl::AllocPIPCBlobInputStreamParent(
+    const nsID& aID, const uint64_t& aSize) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -375,20 +318,18 @@ BackgroundParentImpl::AllocPIPCBlobInputStreamParent(const nsID& aID,
 }
 
 mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPIPCBlobInputStreamConstructor(PIPCBlobInputStreamParent* aActor,
-                                                         const nsID& aID,
-                                                         const uint64_t& aSize)
-{
-  if (!static_cast<mozilla::dom::IPCBlobInputStreamParent*>(aActor)->HasValidStream()) {
+BackgroundParentImpl::RecvPIPCBlobInputStreamConstructor(
+    PIPCBlobInputStreamParent* aActor, const nsID& aID, const uint64_t& aSize) {
+  if (!static_cast<mozilla::dom::IPCBlobInputStreamParent*>(aActor)
+           ->HasValidStream()) {
     return IPC_FAIL_NO_REASON(this);
   }
 
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPIPCBlobInputStreamParent(PIPCBlobInputStreamParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPIPCBlobInputStreamParent(
+    PIPCBlobInputStreamParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -397,20 +338,16 @@ BackgroundParentImpl::DeallocPIPCBlobInputStreamParent(PIPCBlobInputStreamParent
   return true;
 }
 
-PFileDescriptorSetParent*
-BackgroundParentImpl::AllocPFileDescriptorSetParent(
-                                          const FileDescriptor& aFileDescriptor)
-{
+PFileDescriptorSetParent* BackgroundParentImpl::AllocPFileDescriptorSetParent(
+    const FileDescriptor& aFileDescriptor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return new FileDescriptorSetParent(aFileDescriptor);
 }
 
-bool
-BackgroundParentImpl::DeallocPFileDescriptorSetParent(
-                                               PFileDescriptorSetParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPFileDescriptorSetParent(
+    PFileDescriptorSetParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -420,36 +357,29 @@ BackgroundParentImpl::DeallocPFileDescriptorSetParent(
 }
 
 PChildToParentStreamParent*
-BackgroundParentImpl::AllocPChildToParentStreamParent()
-{
+BackgroundParentImpl::AllocPChildToParentStreamParent() {
   return mozilla::ipc::AllocPChildToParentStreamParent();
 }
 
-bool
-BackgroundParentImpl::DeallocPChildToParentStreamParent(
-                                             PChildToParentStreamParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPChildToParentStreamParent(
+    PChildToParentStreamParent* aActor) {
   delete aActor;
   return true;
 }
 
 PParentToChildStreamParent*
-BackgroundParentImpl::AllocPParentToChildStreamParent()
-{
-  MOZ_CRASH("PParentToChildStreamParent actors should be manually constructed!");
+BackgroundParentImpl::AllocPParentToChildStreamParent() {
+  MOZ_CRASH(
+      "PParentToChildStreamParent actors should be manually constructed!");
 }
 
-bool
-BackgroundParentImpl::DeallocPParentToChildStreamParent(
-                                             PParentToChildStreamParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPParentToChildStreamParent(
+    PParentToChildStreamParent* aActor) {
   delete aActor;
   return true;
 }
 
-BackgroundParentImpl::PVsyncParent*
-BackgroundParentImpl::AllocPVsyncParent()
-{
+BackgroundParentImpl::PVsyncParent* BackgroundParentImpl::AllocPVsyncParent() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -460,9 +390,7 @@ BackgroundParentImpl::AllocPVsyncParent()
   return actor.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPVsyncParent(PVsyncParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPVsyncParent(PVsyncParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -473,9 +401,7 @@ BackgroundParentImpl::DeallocPVsyncParent(PVsyncParent* aActor)
   return true;
 }
 
-camera::PCamerasParent*
-BackgroundParentImpl::AllocPCamerasParent()
-{
+camera::PCamerasParent* BackgroundParentImpl::AllocPCamerasParent() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -488,9 +414,8 @@ BackgroundParentImpl::AllocPCamerasParent()
 #endif
 }
 
-bool
-BackgroundParentImpl::DeallocPCamerasParent(camera::PCamerasParent *aActor)
-{
+bool BackgroundParentImpl::DeallocPCamerasParent(
+    camera::PCamerasParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -502,27 +427,23 @@ BackgroundParentImpl::DeallocPCamerasParent(camera::PCamerasParent *aActor)
   return true;
 }
 
-auto
-BackgroundParentImpl::AllocPUDPSocketParent(const OptionalPrincipalInfo& /* unused */,
-                                            const nsCString& /* unused */)
-  -> PUDPSocketParent*
-{
+auto BackgroundParentImpl::AllocPUDPSocketParent(
+    const OptionalPrincipalInfo& /* unused */, const nsCString & /* unused */)
+    -> PUDPSocketParent* {
   RefPtr<UDPSocketParent> p = new UDPSocketParent(this);
 
   return p.forget().take();
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPUDPSocketConstructor(PUDPSocketParent* aActor,
-                                                const OptionalPrincipalInfo& aOptionalPrincipal,
-                                                const nsCString& aFilter)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPUDPSocketConstructor(
+    PUDPSocketParent* aActor, const OptionalPrincipalInfo& aOptionalPrincipal,
+    const nsCString& aFilter) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   if (aOptionalPrincipal.type() == OptionalPrincipalInfo::TPrincipalInfo) {
-    // Support for checking principals (for non-mtransport use) will be handled in
-    // bug 1167039
+    // Support for checking principals (for non-mtransport use) will be handled
+    // in bug 1167039
     return IPC_FAIL_NO_REASON(this);
   }
   // No principal - This must be from mtransport (WebRTC/ICE) - We'd want
@@ -545,9 +466,7 @@ BackgroundParentImpl::RecvPUDPSocketConstructor(PUDPSocketParent* aActor,
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPUDPSocketParent(PUDPSocketParent* actor)
-{
+bool BackgroundParentImpl::DeallocPUDPSocketParent(PUDPSocketParent* actor) {
   UDPSocketParent* p = static_cast<UDPSocketParent*>(actor);
   p->Release();
   return true;
@@ -555,10 +474,8 @@ BackgroundParentImpl::DeallocPUDPSocketParent(PUDPSocketParent* actor)
 
 mozilla::dom::PBroadcastChannelParent*
 BackgroundParentImpl::AllocPBroadcastChannelParent(
-                                            const PrincipalInfo& aPrincipalInfo,
-                                            const nsCString& aOrigin,
-                                            const nsString& aChannel)
-{
+    const PrincipalInfo& aPrincipalInfo, const nsCString& aOrigin,
+    const nsString& aChannel) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -578,39 +495,31 @@ BackgroundParentImpl::AllocPBroadcastChannelParent(
 
 namespace {
 
-struct MOZ_STACK_CLASS NullifyContentParentRAII
-{
+struct MOZ_STACK_CLASS NullifyContentParentRAII {
   explicit NullifyContentParentRAII(RefPtr<ContentParent>& aContentParent)
-    : mContentParent(aContentParent)
-  {}
+      : mContentParent(aContentParent) {}
 
-  ~NullifyContentParentRAII()
-  {
-    mContentParent = nullptr;
-  }
+  ~NullifyContentParentRAII() { mContentParent = nullptr; }
 
   RefPtr<ContentParent>& mContentParent;
 };
 
-class CheckPrincipalRunnable final : public Runnable
-{
-public:
+class CheckPrincipalRunnable final : public Runnable {
+ public:
   CheckPrincipalRunnable(already_AddRefed<ContentParent> aParent,
                          const PrincipalInfo& aPrincipalInfo,
                          const nsCString& aOrigin)
-    : Runnable("ipc::CheckPrincipalRunnable")
-    , mContentParent(aParent)
-    , mPrincipalInfo(aPrincipalInfo)
-    , mOrigin(aOrigin)
-  {
+      : Runnable("ipc::CheckPrincipalRunnable"),
+        mContentParent(aParent),
+        mPrincipalInfo(aPrincipalInfo),
+        mOrigin(aOrigin) {
     AssertIsInMainProcess();
     AssertIsOnBackgroundThread();
 
     MOZ_ASSERT(mContentParent);
   }
 
-  NS_IMETHOD Run() override
-  {
+  NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
 
     NullifyContentParentRAII raii(mContentParent);
@@ -620,33 +529,31 @@ public:
     nsAutoCString origin;
     nsresult rv = principal->GetOrigin(origin);
     if (NS_FAILED(rv)) {
-      mContentParent->KillHard("BroadcastChannel killed: principal::GetOrigin failed.");
+      mContentParent->KillHard(
+          "BroadcastChannel killed: principal::GetOrigin failed.");
       return NS_OK;
     }
 
     if (NS_WARN_IF(!mOrigin.Equals(origin))) {
-      mContentParent->KillHard("BroadcastChannel killed: origins do not match.");
+      mContentParent->KillHard(
+          "BroadcastChannel killed: origins do not match.");
       return NS_OK;
     }
 
     return NS_OK;
   }
 
-private:
+ private:
   RefPtr<ContentParent> mContentParent;
   PrincipalInfo mPrincipalInfo;
   nsCString mOrigin;
 };
 
-} // namespace
+}  // namespace
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPBroadcastChannelConstructor(
-                                            PBroadcastChannelParent* actor,
-                                            const PrincipalInfo& aPrincipalInfo,
-                                            const nsCString& aOrigin,
-                                            const nsString& aChannel)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPBroadcastChannelConstructor(
+    PBroadcastChannelParent* actor, const PrincipalInfo& aPrincipalInfo,
+    const nsCString& aOrigin, const nsString& aChannel) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -658,16 +565,14 @@ BackgroundParentImpl::RecvPBroadcastChannelConstructor(
   }
 
   RefPtr<CheckPrincipalRunnable> runnable =
-    new CheckPrincipalRunnable(parent.forget(), aPrincipalInfo, aOrigin);
+      new CheckPrincipalRunnable(parent.forget(), aPrincipalInfo, aOrigin);
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(runnable));
 
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPBroadcastChannelParent(
-                                                PBroadcastChannelParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPBroadcastChannelParent(
+    PBroadcastChannelParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -677,33 +582,29 @@ BackgroundParentImpl::DeallocPBroadcastChannelParent(
 }
 
 mozilla::dom::PServiceWorkerManagerParent*
-BackgroundParentImpl::AllocPServiceWorkerManagerParent()
-{
+BackgroundParentImpl::AllocPServiceWorkerManagerParent() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   RefPtr<dom::ServiceWorkerManagerParent> agent =
-    new dom::ServiceWorkerManagerParent();
+      new dom::ServiceWorkerManagerParent();
   return agent.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPServiceWorkerManagerParent(
-                                            PServiceWorkerManagerParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPServiceWorkerManagerParent(
+    PServiceWorkerManagerParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
   RefPtr<dom::ServiceWorkerManagerParent> parent =
-    dont_AddRef(static_cast<dom::ServiceWorkerManagerParent*>(aActor));
+      dont_AddRef(static_cast<dom::ServiceWorkerManagerParent*>(aActor));
   MOZ_ASSERT(parent);
   return true;
 }
 
 mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvShutdownServiceWorkerRegistrar()
-{
+BackgroundParentImpl::RecvShutdownServiceWorkerRegistrar() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -712,72 +613,59 @@ BackgroundParentImpl::RecvShutdownServiceWorkerRegistrar()
   }
 
   RefPtr<dom::ServiceWorkerRegistrar> service =
-    dom::ServiceWorkerRegistrar::Get();
+      dom::ServiceWorkerRegistrar::Get();
   MOZ_ASSERT(service);
 
   service->Shutdown();
   return IPC_OK();
 }
 
-PCacheStorageParent*
-BackgroundParentImpl::AllocPCacheStorageParent(const Namespace& aNamespace,
-                                               const PrincipalInfo& aPrincipalInfo)
-{
+PCacheStorageParent* BackgroundParentImpl::AllocPCacheStorageParent(
+    const Namespace& aNamespace, const PrincipalInfo& aPrincipalInfo) {
   return dom::cache::AllocPCacheStorageParent(this, aNamespace, aPrincipalInfo);
 }
 
-bool
-BackgroundParentImpl::DeallocPCacheStorageParent(PCacheStorageParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPCacheStorageParent(
+    PCacheStorageParent* aActor) {
   dom::cache::DeallocPCacheStorageParent(aActor);
   return true;
 }
 
-PCacheParent*
-BackgroundParentImpl::AllocPCacheParent()
-{
+PCacheParent* BackgroundParentImpl::AllocPCacheParent() {
   MOZ_CRASH("CacheParent actor must be provided to PBackground manager");
   return nullptr;
 }
 
-bool
-BackgroundParentImpl::DeallocPCacheParent(PCacheParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPCacheParent(PCacheParent* aActor) {
   dom::cache::DeallocPCacheParent(aActor);
   return true;
 }
 
 PCacheStreamControlParent*
-BackgroundParentImpl::AllocPCacheStreamControlParent()
-{
-  MOZ_CRASH("CacheStreamControlParent actor must be provided to PBackground manager");
+BackgroundParentImpl::AllocPCacheStreamControlParent() {
+  MOZ_CRASH(
+      "CacheStreamControlParent actor must be provided to PBackground manager");
   return nullptr;
 }
 
-bool
-BackgroundParentImpl::DeallocPCacheStreamControlParent(PCacheStreamControlParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPCacheStreamControlParent(
+    PCacheStreamControlParent* aActor) {
   dom::cache::DeallocPCacheStreamControlParent(aActor);
   return true;
 }
 
-PMessagePortParent*
-BackgroundParentImpl::AllocPMessagePortParent(const nsID& aUUID,
-                                              const nsID& aDestinationUUID,
-                                              const uint32_t& aSequenceID)
-{
+PMessagePortParent* BackgroundParentImpl::AllocPMessagePortParent(
+    const nsID& aUUID, const nsID& aDestinationUUID,
+    const uint32_t& aSequenceID) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return new MessagePortParent(aUUID);
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPMessagePortConstructor(PMessagePortParent* aActor,
-                                                  const nsID& aUUID,
-                                                  const nsID& aDestinationUUID,
-                                                  const uint32_t& aSequenceID)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPMessagePortConstructor(
+    PMessagePortParent* aActor, const nsID& aUUID, const nsID& aDestinationUUID,
+    const uint32_t& aSequenceID) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -788,9 +676,8 @@ BackgroundParentImpl::RecvPMessagePortConstructor(PMessagePortParent* aActor,
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPMessagePortParent(PMessagePortParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPMessagePortParent(
+    PMessagePortParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -799,11 +686,9 @@ BackgroundParentImpl::DeallocPMessagePortParent(PMessagePortParent* aActor)
   return true;
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvMessagePortForceClose(const nsID& aUUID,
-                                                const nsID& aDestinationUUID,
-                                                const uint32_t& aSequenceID)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvMessagePortForceClose(
+    const nsID& aUUID, const nsID& aDestinationUUID,
+    const uint32_t& aSequenceID) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -813,23 +698,19 @@ BackgroundParentImpl::RecvMessagePortForceClose(const nsID& aUUID,
   return IPC_OK();
 }
 
-PAsmJSCacheEntryParent*
-BackgroundParentImpl::AllocPAsmJSCacheEntryParent(
-                               const dom::asmjscache::OpenMode& aOpenMode,
-                               const dom::asmjscache::WriteParams& aWriteParams,
-                               const PrincipalInfo& aPrincipalInfo)
-{
+PAsmJSCacheEntryParent* BackgroundParentImpl::AllocPAsmJSCacheEntryParent(
+    const dom::asmjscache::OpenMode& aOpenMode,
+    const dom::asmjscache::WriteParams& aWriteParams,
+    const PrincipalInfo& aPrincipalInfo) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  return
-    dom::asmjscache::AllocEntryParent(aOpenMode, aWriteParams, aPrincipalInfo);
+  return dom::asmjscache::AllocEntryParent(aOpenMode, aWriteParams,
+                                           aPrincipalInfo);
 }
 
-bool
-BackgroundParentImpl::DeallocPAsmJSCacheEntryParent(
-                                                 PAsmJSCacheEntryParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPAsmJSCacheEntryParent(
+    PAsmJSCacheEntryParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -837,18 +718,14 @@ BackgroundParentImpl::DeallocPAsmJSCacheEntryParent(
   return true;
 }
 
-BackgroundParentImpl::PQuotaParent*
-BackgroundParentImpl::AllocPQuotaParent()
-{
+BackgroundParentImpl::PQuotaParent* BackgroundParentImpl::AllocPQuotaParent() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return mozilla::dom::quota::AllocPQuotaParent();
 }
 
-bool
-BackgroundParentImpl::DeallocPQuotaParent(PQuotaParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPQuotaParent(PQuotaParent* aActor) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
@@ -858,8 +735,7 @@ BackgroundParentImpl::DeallocPQuotaParent(PQuotaParent* aActor)
 
 dom::PFileSystemRequestParent*
 BackgroundParentImpl::AllocPFileSystemRequestParent(
-                                                const FileSystemParams& aParams)
-{
+    const FileSystemParams& aParams) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -872,86 +748,75 @@ BackgroundParentImpl::AllocPFileSystemRequestParent(
   return result.forget().take();
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPFileSystemRequestConstructor(
-                                               PFileSystemRequestParent* aActor,
-                                               const FileSystemParams& params)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPFileSystemRequestConstructor(
+    PFileSystemRequestParent* aActor, const FileSystemParams& params) {
   static_cast<FileSystemRequestParent*>(aActor)->Start();
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPFileSystemRequestParent(
-                                              PFileSystemRequestParent* aDoomed)
-{
+bool BackgroundParentImpl::DeallocPFileSystemRequestParent(
+    PFileSystemRequestParent* aDoomed) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   RefPtr<FileSystemRequestParent> parent =
-    dont_AddRef(static_cast<FileSystemRequestParent*>(aDoomed));
+      dont_AddRef(static_cast<FileSystemRequestParent*>(aDoomed));
   return true;
 }
 
 // Gamepad API Background IPC
 dom::PGamepadEventChannelParent*
-BackgroundParentImpl::AllocPGamepadEventChannelParent()
-{
+BackgroundParentImpl::AllocPGamepadEventChannelParent() {
   RefPtr<dom::GamepadEventChannelParent> parent =
-    new dom::GamepadEventChannelParent();
+      new dom::GamepadEventChannelParent();
 
   return parent.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPGamepadEventChannelParent(dom::PGamepadEventChannelParent *aActor)
-{
+bool BackgroundParentImpl::DeallocPGamepadEventChannelParent(
+    dom::PGamepadEventChannelParent* aActor) {
   MOZ_ASSERT(aActor);
   RefPtr<dom::GamepadEventChannelParent> parent =
-    dont_AddRef(static_cast<dom::GamepadEventChannelParent*>(aActor));
+      dont_AddRef(static_cast<dom::GamepadEventChannelParent*>(aActor));
   return true;
 }
 
 dom::PGamepadTestChannelParent*
-BackgroundParentImpl::AllocPGamepadTestChannelParent()
-{
+BackgroundParentImpl::AllocPGamepadTestChannelParent() {
   RefPtr<dom::GamepadTestChannelParent> parent =
-    new dom::GamepadTestChannelParent();
+      new dom::GamepadTestChannelParent();
 
   return parent.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPGamepadTestChannelParent(dom::PGamepadTestChannelParent *aActor)
-{
+bool BackgroundParentImpl::DeallocPGamepadTestChannelParent(
+    dom::PGamepadTestChannelParent* aActor) {
   MOZ_ASSERT(aActor);
   RefPtr<dom::GamepadTestChannelParent> parent =
-    dont_AddRef(static_cast<dom::GamepadTestChannelParent*>(aActor));
+      dont_AddRef(static_cast<dom::GamepadTestChannelParent*>(aActor));
   return true;
 }
 
 dom::PWebAuthnTransactionParent*
-BackgroundParentImpl::AllocPWebAuthnTransactionParent()
-{
+BackgroundParentImpl::AllocPWebAuthnTransactionParent() {
   return new dom::WebAuthnTransactionParent();
 }
 
-bool
-BackgroundParentImpl::DeallocPWebAuthnTransactionParent(dom::PWebAuthnTransactionParent *aActor)
-{
+bool BackgroundParentImpl::DeallocPWebAuthnTransactionParent(
+    dom::PWebAuthnTransactionParent* aActor) {
   MOZ_ASSERT(aActor);
   delete aActor;
   return true;
 }
 
 net::PHttpBackgroundChannelParent*
-BackgroundParentImpl::AllocPHttpBackgroundChannelParent(const uint64_t& aChannelId)
-{
+BackgroundParentImpl::AllocPHttpBackgroundChannelParent(
+    const uint64_t& aChannelId) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   RefPtr<net::HttpBackgroundChannelParent> actor =
-    new net::HttpBackgroundChannelParent();
+      new net::HttpBackgroundChannelParent();
 
   // hold extra refcount for IPDL
   return actor.forget().take();
@@ -959,15 +824,13 @@ BackgroundParentImpl::AllocPHttpBackgroundChannelParent(const uint64_t& aChannel
 
 mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvPHttpBackgroundChannelConstructor(
-                                      net::PHttpBackgroundChannelParent *aActor,
-                                      const uint64_t& aChannelId)
-{
+    net::PHttpBackgroundChannelParent* aActor, const uint64_t& aChannelId) {
   MOZ_ASSERT(aActor);
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   net::HttpBackgroundChannelParent* aParent =
-    static_cast<net::HttpBackgroundChannelParent*>(aActor);
+      static_cast<net::HttpBackgroundChannelParent*>(aActor);
 
   if (NS_WARN_IF(NS_FAILED(aParent->Init(aChannelId)))) {
     return IPC_FAIL_NO_REASON(this);
@@ -976,24 +839,21 @@ BackgroundParentImpl::RecvPHttpBackgroundChannelConstructor(
   return IPC_OK();
 }
 
-bool
-BackgroundParentImpl::DeallocPHttpBackgroundChannelParent(
-                                      net::PHttpBackgroundChannelParent *aActor)
-{
+bool BackgroundParentImpl::DeallocPHttpBackgroundChannelParent(
+    net::PHttpBackgroundChannelParent* aActor) {
   MOZ_ASSERT(aActor);
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   // release extra refcount hold by AllocPHttpBackgroundChannelParent
   RefPtr<net::HttpBackgroundChannelParent> actor =
-    dont_AddRef(static_cast<net::HttpBackgroundChannelParent*>(aActor));
+      dont_AddRef(static_cast<net::HttpBackgroundChannelParent*>(aActor));
 
   return true;
 }
 
-PMIDIPortParent*
-BackgroundParentImpl::AllocPMIDIPortParent(const MIDIPortInfo& aPortInfo, const bool& aSysexEnabled)
-{
+PMIDIPortParent* BackgroundParentImpl::AllocPMIDIPortParent(
+    const MIDIPortInfo& aPortInfo, const bool& aSysexEnabled) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -1001,22 +861,18 @@ BackgroundParentImpl::AllocPMIDIPortParent(const MIDIPortInfo& aPortInfo, const 
   return result.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPMIDIPortParent(PMIDIPortParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPMIDIPortParent(PMIDIPortParent* aActor) {
   MOZ_ASSERT(aActor);
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   RefPtr<MIDIPortParent> parent =
-    dont_AddRef(static_cast<MIDIPortParent*>(aActor));
+      dont_AddRef(static_cast<MIDIPortParent*>(aActor));
   parent->Teardown();
   return true;
 }
 
-PMIDIManagerParent*
-BackgroundParentImpl::AllocPMIDIManagerParent()
-{
+PMIDIManagerParent* BackgroundParentImpl::AllocPMIDIManagerParent() {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
@@ -1025,44 +881,38 @@ BackgroundParentImpl::AllocPMIDIManagerParent()
   return result.forget().take();
 }
 
-bool
-BackgroundParentImpl::DeallocPMIDIManagerParent(PMIDIManagerParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPMIDIManagerParent(
+    PMIDIManagerParent* aActor) {
   MOZ_ASSERT(aActor);
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   RefPtr<MIDIManagerParent> parent =
-    dont_AddRef(static_cast<MIDIManagerParent*>(aActor));
+      dont_AddRef(static_cast<MIDIManagerParent*>(aActor));
   parent->Teardown();
   return true;
 }
 
 mozilla::dom::PClientManagerParent*
-BackgroundParentImpl::AllocPClientManagerParent()
-{
+BackgroundParentImpl::AllocPClientManagerParent() {
   return mozilla::dom::AllocClientManagerParent();
 }
 
-bool
-BackgroundParentImpl::DeallocPClientManagerParent(mozilla::dom::PClientManagerParent* aActor)
-{
+bool BackgroundParentImpl::DeallocPClientManagerParent(
+    mozilla::dom::PClientManagerParent* aActor) {
   return mozilla::dom::DeallocClientManagerParent(aActor);
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPClientManagerConstructor(mozilla::dom::PClientManagerParent* aActor)
-{
+mozilla::ipc::IPCResult BackgroundParentImpl::RecvPClientManagerConstructor(
+    mozilla::dom::PClientManagerParent* aActor) {
   mozilla::dom::InitClientManagerParent(aActor);
   return IPC_OK();
 }
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla
 
-void
-TestParent::ActorDestroy(ActorDestroyReason aWhy)
-{
+void TestParent::ActorDestroy(ActorDestroyReason aWhy) {
   mozilla::ipc::AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 }

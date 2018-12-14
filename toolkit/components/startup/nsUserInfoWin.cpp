@@ -5,7 +5,7 @@
 
 #include "nsUserInfo.h"
 
-#include "mozilla/ArrayUtils.h" // ArrayLength
+#include "mozilla/ArrayUtils.h"  // ArrayLength
 #include "nsString.h"
 #include "windows.h"
 #include "nsCRT.h"
@@ -14,35 +14,28 @@
 #include "lm.h"
 #include "security.h"
 
-nsUserInfo::nsUserInfo()
-{
-}
+nsUserInfo::nsUserInfo() {}
 
-nsUserInfo::~nsUserInfo()
-{
-}
+nsUserInfo::~nsUserInfo() {}
 
 NS_IMPL_ISUPPORTS(nsUserInfo, nsIUserInfo)
 
 NS_IMETHODIMP
-nsUserInfo::GetUsername(char **aUsername)
-{
+nsUserInfo::GetUsername(char **aUsername) {
   NS_ENSURE_ARG_POINTER(aUsername);
   *aUsername = nullptr;
 
   // ULEN is the max username length as defined in lmcons.h
-  wchar_t username[UNLEN +1];
+  wchar_t username[UNLEN + 1];
   DWORD size = mozilla::ArrayLength(username);
-  if (!GetUserNameW(username, &size))
-    return NS_ERROR_FAILURE;
+  if (!GetUserNameW(username, &size)) return NS_ERROR_FAILURE;
 
   *aUsername = ToNewUTF8String(nsDependentString(username));
   return (*aUsername) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-nsUserInfo::GetFullname(char16_t **aFullname)
-{
+nsUserInfo::GetFullname(char16_t **aFullname) {
   NS_ENSURE_ARG_POINTER(aFullname);
   *aFullname = nullptr;
 
@@ -59,9 +52,10 @@ nsUserInfo::GetFullname(char16_t **aFullname)
     wchar_t username[UNLEN + 1];
     size = mozilla::ArrayLength(username);
     if (!GetUserNameW(username, &size)) {
-      // ERROR_NONE_MAPPED means the user info is not filled out on this computer
-      return getUsernameError == ERROR_NONE_MAPPED ?
-             NS_ERROR_NOT_AVAILABLE : NS_ERROR_FAILURE;
+      // ERROR_NONE_MAPPED means the user info is not filled out on this
+      // computer
+      return getUsernameError == ERROR_NONE_MAPPED ? NS_ERROR_NOT_AVAILABLE
+                                                   : NS_ERROR_FAILURE;
     }
 
     const DWORD level = 2;
@@ -72,12 +66,12 @@ nsUserInfo::GetFullname(char16_t **aFullname)
     if (status != NERR_Success) {
       // We have an error with NetUserGetInfo but we know the info is not
       // filled in because GetUserNameExW returned ERROR_NONE_MAPPED.
-      return getUsernameError == ERROR_NONE_MAPPED ?
-             NS_ERROR_NOT_AVAILABLE : NS_ERROR_FAILURE;
+      return getUsernameError == ERROR_NONE_MAPPED ? NS_ERROR_NOT_AVAILABLE
+                                                   : NS_ERROR_FAILURE;
     }
 
-    nsDependentString fullName =
-      nsDependentString(reinterpret_cast<USER_INFO_2 *>(info)->usri2_full_name);
+    nsDependentString fullName = nsDependentString(
+        reinterpret_cast<USER_INFO_2 *>(info)->usri2_full_name);
 
     // NetUserGetInfo returns an empty string if the full name is not filled out
     if (fullName.Length() == 0) {
@@ -93,8 +87,7 @@ nsUserInfo::GetFullname(char16_t **aFullname)
 }
 
 NS_IMETHODIMP
-nsUserInfo::GetDomain(char **aDomain)
-{
+nsUserInfo::GetDomain(char **aDomain) {
   NS_ENSURE_ARG_POINTER(aDomain);
   *aDomain = nullptr;
 
@@ -102,9 +95,8 @@ nsUserInfo::GetDomain(char **aDomain)
   LPBYTE info;
   NET_API_STATUS status = NetWkstaGetInfo(nullptr, level, &info);
   if (status == NERR_Success) {
-    *aDomain =
-      ToNewUTF8String(nsDependentString(reinterpret_cast<WKSTA_INFO_100 *>(info)->
-                                        wki100_langroup));
+    *aDomain = ToNewUTF8String(nsDependentString(
+        reinterpret_cast<WKSTA_INFO_100 *>(info)->wki100_langroup));
     NetApiBufferFree(info);
   }
 
@@ -112,8 +104,7 @@ nsUserInfo::GetDomain(char **aDomain)
 }
 
 NS_IMETHODIMP
-nsUserInfo::GetEmailAddress(char **aEmailAddress)
-{
+nsUserInfo::GetEmailAddress(char **aEmailAddress) {
   NS_ENSURE_ARG_POINTER(aEmailAddress);
   *aEmailAddress = nullptr;
 
@@ -123,8 +114,8 @@ nsUserInfo::GetEmailAddress(char **aEmailAddress)
 
   if (!GetUserNameExW(NameUserPrincipal, emailAddress, &size)) {
     DWORD getUsernameError = GetLastError();
-    return getUsernameError == ERROR_NONE_MAPPED ?
-           NS_ERROR_NOT_AVAILABLE : NS_ERROR_FAILURE;
+    return getUsernameError == ERROR_NONE_MAPPED ? NS_ERROR_NOT_AVAILABLE
+                                                 : NS_ERROR_FAILURE;
   }
 
   *aEmailAddress = ToNewUTF8String(nsDependentString(emailAddress));

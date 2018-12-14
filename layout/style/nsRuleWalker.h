@@ -18,7 +18,7 @@
 #include "nsQueryObject.h"
 
 class nsRuleWalker {
-public:
+ public:
   nsRuleNode* CurrentNode() { return mCurrent; }
   void SetCurrentNode(nsRuleNode* aNode) {
     NS_ASSERTION(aNode, "Must have node here!");
@@ -27,13 +27,13 @@ public:
 
   nsPresContext* PresContext() const { return mRoot->PresContext(); }
 
-protected:
+ protected:
   void DoForward(nsIStyleRule* aRule) {
     mCurrent = mCurrent->Transition(aRule, mLevel, mImportance);
     MOZ_ASSERT(mCurrent, "Transition messed up");
   }
 
-public:
+ public:
   void Forward(nsIStyleRule* aRule) {
     NS_PRECONDITION(!RefPtr<mozilla::css::Declaration>(do_QueryObject(aRule)),
                     "Calling the wrong Forward() overload");
@@ -42,14 +42,12 @@ public:
   void Forward(mozilla::css::Declaration* aRule) {
     DoForward(aRule);
     mCheckForImportantRules =
-      mCheckForImportantRules && !aRule->HasImportantData();
+        mCheckForImportantRules && !aRule->HasImportantData();
   }
   // ForwardOnPossiblyCSSRule should only be used by callers that have
   // an explicit list of rules they need to walk, with the list
   // already containing any important rules they care about.
-  void ForwardOnPossiblyCSSRule(nsIStyleRule* aRule) {
-    DoForward(aRule);
-  }
+  void ForwardOnPossiblyCSSRule(nsIStyleRule* aRule) { DoForward(aRule); }
 
   void Reset() { mCurrent = mRoot; }
 
@@ -84,22 +82,21 @@ public:
     eLinksVisitedOrUnvisited
   };
 
-private:
-  nsRuleNode* mCurrent; // Our current position.  Never null.
-  nsRuleNode* mRoot; // The root of the tree we're walking.
+ private:
+  nsRuleNode* mCurrent;  // Our current position.  Never null.
+  nsRuleNode* mRoot;     // The root of the tree we're walking.
   mozilla::SheetType mLevel;
   bool mImportance;
-  bool mCheckForImportantRules; // If true, check for important rules as
-                                // we walk and set to false if we find
-                                // one.
+  bool mCheckForImportantRules;  // If true, check for important rules as
+                                 // we walk and set to false if we find
+                                 // one.
   bool mAuthorStyleDisabled;
 
-public:
+ public:
   nsRuleWalker(nsRuleNode* aRoot, bool aAuthorStyleDisabled)
-    : mCurrent(aRoot)
-    , mRoot(aRoot)
-    , mAuthorStyleDisabled(aAuthorStyleDisabled)
-  {
+      : mCurrent(aRoot),
+        mRoot(aRoot),
+        mAuthorStyleDisabled(aAuthorStyleDisabled) {
     NS_ASSERTION(mCurrent, "Caller screwed up and gave us null node");
     MOZ_COUNT_CTOR(nsRuleWalker);
   }

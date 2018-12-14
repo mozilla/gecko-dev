@@ -22,10 +22,9 @@ using namespace mozilla::a11y;
 // XULComboboxAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULComboboxAccessible::
-  XULComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
+XULComboboxAccessible::XULComboboxAccessible(nsIContent* aContent,
+                                             DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                                          nsGkAtoms::autocomplete, eIgnoreCase))
     mGenericTypes |= eAutoComplete;
@@ -43,15 +42,11 @@ XULComboboxAccessible::
   }
 }
 
-role
-XULComboboxAccessible::NativeRole()
-{
+role XULComboboxAccessible::NativeRole() {
   return IsAutoComplete() ? roles::AUTOCOMPLETE : roles::COMBOBOX;
 }
 
-uint64_t
-XULComboboxAccessible::NativeState()
-{
+uint64_t XULComboboxAccessible::NativeState() {
   // As a nsComboboxAccessible we can have the following states:
   //     STATE_FOCUSED
   //     STATE_FOCUSABLE
@@ -75,54 +70,41 @@ XULComboboxAccessible::NativeState()
   return state | states::HASPOPUP;
 }
 
-void
-XULComboboxAccessible::Description(nsString& aDescription)
-{
+void XULComboboxAccessible::Description(nsString& aDescription) {
   aDescription.Truncate();
   // Use description of currently focused option
   nsCOMPtr<nsIDOMXULMenuListElement> menuListElm(do_QueryInterface(mContent));
-  if (!menuListElm)
-    return;
+  if (!menuListElm) return;
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> focusedOptionItem;
   menuListElm->GetSelectedItem(getter_AddRefs(focusedOptionItem));
   nsCOMPtr<nsIContent> focusedOptionContent =
-    do_QueryInterface(focusedOptionItem);
+      do_QueryInterface(focusedOptionItem);
   if (focusedOptionContent && mDoc) {
     Accessible* focusedOptionAcc = mDoc->GetAccessible(focusedOptionContent);
-    if (focusedOptionAcc)
-      focusedOptionAcc->Description(aDescription);
+    if (focusedOptionAcc) focusedOptionAcc->Description(aDescription);
   }
 }
 
-void
-XULComboboxAccessible::Value(nsString& aValue)
-{
+void XULComboboxAccessible::Value(nsString& aValue) {
   aValue.Truncate();
 
   // The value is the option or text shown entered in the combobox.
   nsCOMPtr<nsIDOMXULMenuListElement> menuList(do_QueryInterface(mContent));
-  if (menuList)
-    menuList->GetLabel(aValue);
+  if (menuList) menuList->GetLabel(aValue);
 }
 
-uint8_t
-XULComboboxAccessible::ActionCount()
-{
+uint8_t XULComboboxAccessible::ActionCount() {
   // Just one action (click).
   return 1;
 }
 
-bool
-XULComboboxAccessible::DoAction(uint8_t aIndex)
-{
-  if (aIndex != XULComboboxAccessible::eAction_Click)
-    return false;
+bool XULComboboxAccessible::DoAction(uint8_t aIndex) {
+  if (aIndex != XULComboboxAccessible::eAction_Click) return false;
 
   // Programmaticaly toggle the combo box.
   nsCOMPtr<nsIDOMXULMenuListElement> menuList(do_QueryInterface(mContent));
-  if (!menuList)
-    return false;
+  if (!menuList) return false;
 
   bool isDroppedDown = false;
   menuList->GetOpen(&isDroppedDown);
@@ -130,16 +112,12 @@ XULComboboxAccessible::DoAction(uint8_t aIndex)
   return true;
 }
 
-void
-XULComboboxAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
-{
+void XULComboboxAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
   aName.Truncate();
-  if (aIndex != XULComboboxAccessible::eAction_Click)
-    return;
+  if (aIndex != XULComboboxAccessible::eAction_Click) return;
 
   nsCOMPtr<nsIDOMXULMenuListElement> menuList(do_QueryInterface(mContent));
-  if (!menuList)
-    return;
+  if (!menuList) return;
 
   bool isDroppedDown = false;
   menuList->GetOpen(&isDroppedDown);
@@ -152,12 +130,10 @@ XULComboboxAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
 ////////////////////////////////////////////////////////////////////////////////
 // Widgets
 
-bool
-XULComboboxAccessible::IsActiveWidget() const
-{
+bool XULComboboxAccessible::IsActiveWidget() const {
   if (IsAutoComplete() ||
-     mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::editable,
-                                        nsGkAtoms::_true, eIgnoreCase)) {
+      mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::editable,
+                                         nsGkAtoms::_true, eIgnoreCase)) {
     int32_t childCount = mChildren.Length();
     for (int32_t idx = 0; idx < childCount; idx++) {
       Accessible* child = mChildren[idx];
@@ -170,12 +146,10 @@ XULComboboxAccessible::IsActiveWidget() const
   return FocusMgr()->HasDOMFocus(mContent);
 }
 
-bool
-XULComboboxAccessible::AreItemsOperable() const
-{
+bool XULComboboxAccessible::AreItemsOperable() const {
   if (IsAutoComplete()) {
     nsCOMPtr<nsIAutoCompleteInput> autoCompleteInputElm =
-      do_QueryInterface(mContent);
+        do_QueryInterface(mContent);
     if (autoCompleteInputElm) {
       bool isOpen = false;
       autoCompleteInputElm->GetPopupOpen(&isOpen);

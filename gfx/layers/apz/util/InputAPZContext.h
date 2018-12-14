@@ -17,31 +17,29 @@ namespace layers {
 // input block ID, APZ response from nsIWidget to RenderFrameParent.
 // It is conceptually attached to any WidgetInputEvent
 // that has been processed by APZ directly from a widget.
-class MOZ_STACK_CLASS InputAPZContext
-{
-private:
+class MOZ_STACK_CLASS InputAPZContext {
+ private:
   static ScrollableLayerGuid sGuid;
   static uint64_t sBlockId;
   static nsEventStatus sApzResponse;
   static bool sRoutedToChildProcess;
   static bool sPendingLayerization;
 
-public:
+ public:
   static ScrollableLayerGuid GetTargetLayerGuid();
   static uint64_t GetInputBlockId();
   static nsEventStatus GetApzResponse();
   static void SetRoutedToChildProcess();
   static void SetPendingLayerization();
 
-  InputAPZContext(const ScrollableLayerGuid& aGuid,
-                  const uint64_t& aBlockId,
+  InputAPZContext(const ScrollableLayerGuid& aGuid, const uint64_t& aBlockId,
                   const nsEventStatus& aApzResponse);
   ~InputAPZContext();
 
   static bool WasRoutedToChildProcess();
   static bool HavePendingLayerization();
 
-private:
+ private:
   ScrollableLayerGuid mOldGuid;
   uint64_t mOldBlockId;
   nsEventStatus mOldApzResponse;
@@ -49,7 +47,7 @@ private:
   bool mOldPendingLayerization;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* mozilla_layers_InputAPZContext_h */

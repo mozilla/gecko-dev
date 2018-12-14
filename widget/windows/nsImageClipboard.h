@@ -20,74 +20,75 @@ Any other render format? HTML?
 #include "imgIContainer.h"
 #include "nsIInputStream.h"
 
-
 //
 // nsImageToClipboard
 //
 // A utility class that takes an imgIContainer and does all the bitmap magic
 // to allow us to put it on the clipboard
 //
-class nsImageToClipboard
-{
-public:
+class nsImageToClipboard {
+ public:
   explicit nsImageToClipboard(imgIContainer* aInImage, bool aWantDIBV5 = true);
   ~nsImageToClipboard();
 
-    // Call to get the actual bits that go on the clipboard. If |nullptr|, the
-    // setup operations have failed.
-    //
-    // NOTE: The caller owns the handle and must delete it with ::GlobalRelease()
-  nsresult GetPicture ( HANDLE* outBits ) ;
+  // Call to get the actual bits that go on the clipboard. If |nullptr|, the
+  // setup operations have failed.
+  //
+  // NOTE: The caller owns the handle and must delete it with ::GlobalRelease()
+  nsresult GetPicture(HANDLE* outBits);
 
-private:
-
-    // Computes # of bytes needed by a bitmap with the specified attributes.
-  int32_t CalcSize(int32_t aHeight, int32_t aColors, WORD aBitsPerPixel, int32_t aSpanBytes);
+ private:
+  // Computes # of bytes needed by a bitmap with the specified attributes.
+  int32_t CalcSize(int32_t aHeight, int32_t aColors, WORD aBitsPerPixel,
+                   int32_t aSpanBytes);
   int32_t CalcSpanLength(uint32_t aWidth, uint32_t aBitCount);
 
-    // Do the work
-  nsresult CreateFromImage ( imgIContainer* inImage, HANDLE* outBitmap );
+  // Do the work
+  nsresult CreateFromImage(imgIContainer* inImage, HANDLE* outBitmap);
 
-  nsCOMPtr<imgIContainer> mImage;            // the image we're working with
+  nsCOMPtr<imgIContainer> mImage;  // the image we're working with
   bool mWantDIBV5;
 
-}; // class nsImageToClipboard
-
+};  // class nsImageToClipboard
 
 struct bitFields {
-    uint32_t red;
-    uint32_t green;
-    uint32_t blue;
-    uint8_t redLeftShift;
-    uint8_t redRightShift;
-    uint8_t greenLeftShift;
-    uint8_t greenRightShift;
-    uint8_t blueLeftShift;
-    uint8_t blueRightShift;
+  uint32_t red;
+  uint32_t green;
+  uint32_t blue;
+  uint8_t redLeftShift;
+  uint8_t redRightShift;
+  uint8_t greenLeftShift;
+  uint8_t greenRightShift;
+  uint8_t blueLeftShift;
+  uint8_t blueRightShift;
 };
 
 //
 // nsImageFromClipboard
 //
 // A utility class that takes a DIB from the win32 clipboard and does
-// all the bitmap magic to convert it to a PNG or a JPEG in the form of a nsIInputStream
+// all the bitmap magic to convert it to a PNG or a JPEG in the form of a
+// nsIInputStream
 //
-class nsImageFromClipboard
-{
-public:
-  nsImageFromClipboard () ;
-  ~nsImageFromClipboard ( ) ;
-  
-    // Retrieve the newly created image
-  nsresult GetEncodedImageStream (unsigned char * aClipboardData, const char * aMIMEFormat, nsIInputStream** outImage);
+class nsImageFromClipboard {
+ public:
+  nsImageFromClipboard();
+  ~nsImageFromClipboard();
 
-private:
+  // Retrieve the newly created image
+  nsresult GetEncodedImageStream(unsigned char* aClipboardData,
+                                 const char* aMIMEFormat,
+                                 nsIInputStream** outImage);
 
-  void InvertRows(unsigned char * aInitialBuffer, uint32_t aSizeOfBuffer, uint32_t aNumBytesPerRow);
-  nsresult ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPINFO pBitMapInfo, unsigned char * aOutBuffer);
+ private:
+  void InvertRows(unsigned char* aInitialBuffer, uint32_t aSizeOfBuffer,
+                  uint32_t aNumBytesPerRow);
+  nsresult ConvertColorBitMap(unsigned char* aInputBuffer,
+                              PBITMAPINFO pBitMapInfo,
+                              unsigned char* aOutBuffer);
   void CalcBitmask(uint32_t aMask, uint8_t& aBegin, uint8_t& aLength);
-  void CalcBitShift(bitFields * aColorMask);
+  void CalcBitShift(bitFields* aColorMask);
 
-}; // nsImageFromClipboard
+};  // nsImageFromClipboard
 
 #endif

@@ -17,31 +17,30 @@
 
 class AsyncLatencyLogger;
 
-mozilla::LogModule* GetLatencyLog();
+mozilla::LogModule *GetLatencyLog();
 
 // This class is a singleton. It is refcounted.
-class AsyncLatencyLogger : public nsIObserver
-{
+class AsyncLatencyLogger : public nsIObserver {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-public:
-
+ public:
   enum LatencyLogIndex {
     AudioMediaStreamTrack = 0,
     VideoMediaStreamTrack,
     Cubeb,
     AudioStream,
     NetEQ,
-    AudioCaptureBase, // base time for capturing an audio stream
-    AudioCapture, // records number of samples captured and the time
-    AudioTrackInsertion, // # of samples inserted into a mediastreamtrack and the time
-    MediaPipelineAudioInsertion, // Timestamp and time of timestamp
-    AudioTransmit, // Timestamp and socket send time
-    AudioReceive, // Timestamp and receive time
-    MediaPipelineAudioPlayout, // Timestamp and playout into MST time
-    MediaStreamCreate, // Source and TrackUnion streams
-    AudioStreamCreate, // TrackUnion stream and AudioStream
+    AudioCaptureBase,     // base time for capturing an audio stream
+    AudioCapture,         // records number of samples captured and the time
+    AudioTrackInsertion,  // # of samples inserted into a mediastreamtrack and
+                          // the time
+    MediaPipelineAudioInsertion,  // Timestamp and time of timestamp
+    AudioTransmit,                // Timestamp and socket send time
+    AudioReceive,                 // Timestamp and receive time
+    MediaPipelineAudioPlayout,    // Timestamp and playout into MST time
+    MediaStreamCreate,            // Source and TrackUnion streams
+    AudioStreamCreate,            // TrackUnion stream and AudioStream
     AudioSendRTP,
     AudioRecvRTP,
     _MAX_INDEX
@@ -57,11 +56,12 @@ public:
   // Get the base time used by the logger for delta calculations
   void GetStartTime(mozilla::TimeStamp &aStart);
 
-  static AsyncLatencyLogger* Get(bool aStartTimer = false);
+  static AsyncLatencyLogger *Get(bool aStartTimer = false);
   static void InitializeStatics();
   // After this is called, the global log object may go away
   static void ShutdownLogger();
-private:
+
+ private:
   AsyncLatencyLogger();
   virtual ~AsyncLatencyLogger();
   int64_t GetTimeStamp();
@@ -83,17 +83,19 @@ private:
 
 // need uint32_t versions for access from webrtc/trunk code
 // Log without a time delta
-void LogLatency(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID, int64_t aValue);
+void LogLatency(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID,
+                int64_t aValue);
 void LogLatency(uint32_t index, uint64_t aID, int64_t aValue);
 // Log TimeStamp::Now() (as delta)
-void LogTime(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID, int64_t aValue);
+void LogTime(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID,
+             int64_t aValue);
 void LogTime(uint32_t index, uint64_t aID, int64_t aValue);
 // Log the specified time (as delta)
-void LogTime(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID, int64_t aValue,
-             mozilla::TimeStamp &aTime);
+void LogTime(AsyncLatencyLogger::LatencyLogIndex index, uint64_t aID,
+             int64_t aValue, mozilla::TimeStamp &aTime);
 
 // For generating unique-ish ids for logged sources
 #define LATENCY_STREAM_ID(source, trackID) \
-  ((((uint64_t) (source)) & ~0x0F) | (trackID))
+  ((((uint64_t)(source)) & ~0x0F) | (trackID))
 
 #endif

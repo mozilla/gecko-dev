@@ -14,16 +14,14 @@ class nsIPlaintextEditor;
 
 #include "nsCOMPtr.h"
 
-class TextEditorTest
-{
-public:
-
-  void Run(nsIEditor *aEditor, int32_t *outNumTests, int32_t *outNumTestsFailed);
+class TextEditorTest {
+ public:
+  void Run(nsIEditor *aEditor, int32_t *outNumTests,
+           int32_t *outNumTestsFailed);
   TextEditorTest();
   ~TextEditorTest();
 
-protected:
-
+ protected:
   /** create an empty document */
   nsresult InitDoc();
 

@@ -15,29 +15,31 @@
 class nsAtom;
 class nsIContent;
 
-nsresult NS_NewSVGTextPathElement(nsIContent **aResult,
-                                  already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGTextPathElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 
 typedef SVGTextContentElement SVGTextPathElementBase;
 
-class SVGTextPathElement final : public SVGTextPathElementBase
-{
-friend class ::SVGTextFrame;
+class SVGTextPathElement final : public SVGTextPathElementBase {
+  friend class ::SVGTextFrame;
 
-protected:
-  friend nsresult (::NS_NewSVGTextPathElement(nsIContent **aResult,
-                                              already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  explicit SVGTextPathElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+ protected:
+  friend nsresult(::NS_NewSVGTextPathElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+  explicit SVGTextPathElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-public:
+ public:
   // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   // WebIDL
@@ -47,21 +49,20 @@ public:
   already_AddRefed<SVGAnimatedString> Href();
 
  protected:
-
   virtual LengthAttributesInfo GetLengthInfo() override;
   virtual EnumAttributesInfo GetEnumInfo() override;
   virtual StringAttributesInfo GetStringInfo() override;
 
   enum { /* TEXTLENGTH, */ STARTOFFSET = 1 };
   nsSVGLength2 mLengthAttributes[2];
-  virtual nsSVGLength2* LengthAttributes() override
-    { return mLengthAttributes; }
+  virtual nsSVGLength2* LengthAttributes() override {
+    return mLengthAttributes;
+  }
   static LengthInfo sLengthInfo[2];
 
   enum { /* LENGTHADJUST, */ METHOD = 1, SPACING };
   nsSVGEnum mEnumAttributes[3];
-  virtual nsSVGEnum* EnumAttributes() override
-    { return mEnumAttributes; }
+  virtual nsSVGEnum* EnumAttributes() override { return mEnumAttributes; }
   static nsSVGEnumMapping sMethodMap[];
   static nsSVGEnumMapping sSpacingMap[];
   static EnumInfo sEnumInfo[3];
@@ -71,7 +72,7 @@ public:
   static StringInfo sStringInfo[2];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGTextPathElement_h
+#endif  // mozilla_dom_SVGTextPathElement_h

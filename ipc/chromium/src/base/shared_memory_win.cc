@@ -26,18 +26,16 @@ typedef struct _SECTION_BASIC_INFORMATION {
 } SECTION_BASIC_INFORMATION, *PSECTION_BASIC_INFORMATION;
 
 typedef ULONG(__stdcall* NtQuerySectionType)(
-    HANDLE SectionHandle,
-    SECTION_INFORMATION_CLASS SectionInformationClass,
-    PVOID SectionInformation,
-    ULONG SectionInformationLength,
+    HANDLE SectionHandle, SECTION_INFORMATION_CLASS SectionInformationClass,
+    PVOID SectionInformation, ULONG SectionInformationLength,
     PULONG ResultLength);
 
 // Checks if the section object is safe to map. At the moment this just means
 // it's not an image section.
 bool IsSectionSafeToMap(HANDLE handle) {
   static NtQuerySectionType nt_query_section_func =
-    reinterpret_cast<NtQuerySectionType>(
-      ::GetProcAddress(::GetModuleHandle(L"ntdll.dll"), "NtQuerySection"));
+      reinterpret_cast<NtQuerySectionType>(
+          ::GetProcAddress(::GetModuleHandle(L"ntdll.dll"), "NtQuerySection"));
   DCHECK(nt_query_section_func);
 
   // The handle must have SECTION_QUERY access for this to succeed.
@@ -52,7 +50,7 @@ bool IsSectionSafeToMap(HANDLE handle) {
   return (basic_information.Attributes & SEC_IMAGE) != SEC_IMAGE;
 }
 
-} // namespace (unnamed)
+}  // namespace
 
 namespace base {
 
@@ -62,14 +60,12 @@ SharedMemory::SharedMemory()
       memory_(NULL),
       read_only_(false),
       max_size_(0),
-      lock_(NULL) {
-}
+      lock_(NULL) {}
 
 SharedMemory::~SharedMemory() {
   external_section_ = true;
   Close();
-  if (lock_ != NULL)
-    CloseHandle(lock_);
+  if (lock_ != NULL) CloseHandle(lock_);
 }
 
 bool SharedMemory::SetHandle(SharedMemoryHandle handle, bool read_only) {
@@ -87,21 +83,18 @@ bool SharedMemory::IsHandleValid(const SharedMemoryHandle& handle) {
 }
 
 // static
-SharedMemoryHandle SharedMemory::NULLHandle() {
-  return NULL;
-}
+SharedMemoryHandle SharedMemory::NULLHandle() { return NULL; }
 
-bool SharedMemory::Create(const std::string &cname, bool read_only,
+bool SharedMemory::Create(const std::string& cname, bool read_only,
                           bool open_existing, size_t size) {
   DCHECK(mapped_file_ == NULL);
   std::wstring name = UTF8ToWide(cname);
   name_ = name;
   read_only_ = read_only;
-  mapped_file_ = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
-      read_only_ ? PAGE_READONLY : PAGE_READWRITE, 0, static_cast<DWORD>(size),
-      name.empty() ? NULL : name.c_str());
-  if (!mapped_file_)
-    return false;
+  mapped_file_ = CreateFileMapping(
+      INVALID_HANDLE_VALUE, NULL, read_only_ ? PAGE_READONLY : PAGE_READWRITE,
+      0, static_cast<DWORD>(size), name.empty() ? NULL : name.c_str());
+  if (!mapped_file_) return false;
 
   // Check if the shared memory pre-exists.
   if (GetLastError() == ERROR_ALREADY_EXISTS && !open_existing) {
@@ -117,14 +110,14 @@ bool SharedMemory::Delete(const std::wstring& name) {
   return true;
 }
 
-bool SharedMemory::Open(const std::wstring &name, bool read_only) {
+bool SharedMemory::Open(const std::wstring& name, bool read_only) {
   DCHECK(mapped_file_ == NULL);
 
   name_ = name;
   read_only_ = read_only;
-  mapped_file_ = OpenFileMapping(
-      read_only_ ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS, false,
-      name.empty() ? NULL : name.c_str());
+  mapped_file_ =
+      OpenFileMapping(read_only_ ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS, false,
+                      name.empty() ? NULL : name.c_str());
   if (mapped_file_ != NULL) {
     // Note: size_ is not set in this case.
     return true;
@@ -133,15 +126,15 @@ bool SharedMemory::Open(const std::wstring &name, bool read_only) {
 }
 
 bool SharedMemory::Map(size_t bytes) {
-  if (mapped_file_ == NULL)
-    return false;
+  if (mapped_file_ == NULL) return false;
 
   if (external_section_ && !IsSectionSafeToMap(mapped_file_)) {
     return false;
   }
 
-  memory_ = MapViewOfFile(mapped_file_,
-      read_only_ ? FILE_MAP_READ : FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, bytes);
+  memory_ = MapViewOfFile(
+      mapped_file_, read_only_ ? FILE_MAP_READ : FILE_MAP_READ | FILE_MAP_WRITE,
+      0, 0, bytes);
   if (memory_ != NULL) {
     return true;
   }
@@ -149,8 +142,7 @@ bool SharedMemory::Map(size_t bytes) {
 }
 
 bool SharedMemory::Unmap() {
-  if (memory_ == NULL)
-    return false;
+  if (memory_ == NULL) return false;
 
   UnmapViewOfFile(memory_);
   memory_ = NULL;
@@ -158,15 +150,14 @@ bool SharedMemory::Unmap() {
 }
 
 bool SharedMemory::ShareToProcessCommon(ProcessId processId,
-                                        SharedMemoryHandle *new_handle,
+                                        SharedMemoryHandle* new_handle,
                                         bool close_self) {
   *new_handle = 0;
   DWORD access = FILE_MAP_READ | SECTION_QUERY;
   DWORD options = 0;
   HANDLE mapped_file = mapped_file_;
   HANDLE result;
-  if (!read_only_)
-    access |= FILE_MAP_WRITE;
+  if (!read_only_) access |= FILE_MAP_WRITE;
   if (close_self) {
     // DUPLICATE_CLOSE_SOURCE causes DuplicateHandle to close mapped_file.
     options = DUPLICATE_CLOSE_SOURCE;
@@ -187,7 +178,6 @@ bool SharedMemory::ShareToProcessCommon(ProcessId processId,
   *new_handle = result;
   return true;
 }
-
 
 void SharedMemory::Close(bool unmap_view) {
   if (unmap_view) {
@@ -219,8 +209,6 @@ void SharedMemory::Unlock() {
   ReleaseMutex(lock_);
 }
 
-SharedMemoryHandle SharedMemory::handle() const {
-  return mapped_file_;
-}
+SharedMemoryHandle SharedMemory::handle() const { return mapped_file_; }
 
 }  // namespace base

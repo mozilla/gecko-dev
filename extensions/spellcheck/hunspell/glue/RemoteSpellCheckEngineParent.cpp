@@ -10,30 +10,21 @@
 
 namespace mozilla {
 
-RemoteSpellcheckEngineParent::RemoteSpellcheckEngineParent()
-{
+RemoteSpellcheckEngineParent::RemoteSpellcheckEngineParent() {
   mSpellChecker = do_CreateInstance(NS_SPELLCHECKER_CONTRACTID);
 }
 
-RemoteSpellcheckEngineParent::~RemoteSpellcheckEngineParent()
-{
-}
+RemoteSpellcheckEngineParent::~RemoteSpellcheckEngineParent() {}
 
-mozilla::ipc::IPCResult
-RemoteSpellcheckEngineParent::RecvSetDictionary(
-  const nsString& aDictionary,
-  bool* success)
-{
+mozilla::ipc::IPCResult RemoteSpellcheckEngineParent::RecvSetDictionary(
+    const nsString& aDictionary, bool* success) {
   nsresult rv = mSpellChecker->SetCurrentDictionary(aDictionary);
   *success = NS_SUCCEEDED(rv);
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-RemoteSpellcheckEngineParent::RecvSetDictionaryFromList(
-                                nsTArray<nsString>&& aList,
-                                const intptr_t& aPromiseId)
-{
+mozilla::ipc::IPCResult RemoteSpellcheckEngineParent::RecvSetDictionaryFromList(
+    nsTArray<nsString>&& aList, const intptr_t& aPromiseId) {
   for (auto& dictionary : aList) {
     MOZ_ASSERT(!dictionary.IsEmpty());
     nsresult rv = mSpellChecker->SetCurrentDictionary(dictionary);
@@ -46,25 +37,18 @@ RemoteSpellcheckEngineParent::RecvSetDictionaryFromList(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-RemoteSpellcheckEngineParent::RecvCheck(
-  const nsString& aWord,
-  bool* aIsMisspelled)
-{
+mozilla::ipc::IPCResult RemoteSpellcheckEngineParent::RecvCheck(
+    const nsString& aWord, bool* aIsMisspelled) {
   nsresult rv = mSpellChecker->CheckWord(aWord, aIsMisspelled, nullptr);
 
   // If CheckWord failed, we can't tell whether the word is correctly spelled.
-  if (NS_FAILED(rv))
-    *aIsMisspelled = false;
+  if (NS_FAILED(rv)) *aIsMisspelled = false;
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-RemoteSpellcheckEngineParent::RecvCheckAndSuggest(
-  const nsString& aWord,
-  bool* aIsMisspelled,
-  InfallibleTArray<nsString>* aSuggestions)
-{
+mozilla::ipc::IPCResult RemoteSpellcheckEngineParent::RecvCheckAndSuggest(
+    const nsString& aWord, bool* aIsMisspelled,
+    InfallibleTArray<nsString>* aSuggestions) {
   nsresult rv = mSpellChecker->CheckWord(aWord, aIsMisspelled, aSuggestions);
   if (NS_FAILED(rv)) {
     aSuggestions->Clear();
@@ -73,9 +57,6 @@ RemoteSpellcheckEngineParent::RecvCheckAndSuggest(
   return IPC_OK();
 }
 
-void
-RemoteSpellcheckEngineParent::ActorDestroy(ActorDestroyReason aWhy)
-{
-}
+void RemoteSpellcheckEngineParent::ActorDestroy(ActorDestroyReason aWhy) {}
 
-} // namespace mozilla
+}  // namespace mozilla

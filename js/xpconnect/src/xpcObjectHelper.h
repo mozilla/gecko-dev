@@ -22,116 +22,95 @@
 #include "nsIXPCScriptable.h"
 #include "nsWrapperCache.h"
 
-class xpcObjectHelper
-{
-public:
-    explicit xpcObjectHelper(nsISupports* aObject, nsWrapperCache* aCache = nullptr)
-      : mCanonical(nullptr)
-      , mObject(aObject)
-      , mCache(aCache)
-    {
-        if (!mCache) {
-            if (aObject)
-                CallQueryInterface(aObject, &mCache);
-            else
-                mCache = nullptr;
-        }
+class xpcObjectHelper {
+ public:
+  explicit xpcObjectHelper(nsISupports* aObject,
+                           nsWrapperCache* aCache = nullptr)
+      : mCanonical(nullptr), mObject(aObject), mCache(aCache) {
+    if (!mCache) {
+      if (aObject)
+        CallQueryInterface(aObject, &mCache);
+      else
+        mCache = nullptr;
     }
+  }
 
-    nsISupports* Object()
-    {
-        return mObject;
+  nsISupports* Object() { return mObject; }
+
+  nsISupports* GetCanonical() {
+    if (!mCanonical) {
+      mCanonicalStrong = do_QueryInterface(mObject);
+      mCanonical = mCanonicalStrong;
     }
+    return mCanonical;
+  }
 
-    nsISupports* GetCanonical()
-    {
-        if (!mCanonical) {
-            mCanonicalStrong = do_QueryInterface(mObject);
-            mCanonical = mCanonicalStrong;
-        }
-        return mCanonical;
+  already_AddRefed<nsISupports> forgetCanonical() {
+    MOZ_ASSERT(mCanonical, "Huh, no canonical to forget?");
+
+    if (!mCanonicalStrong) mCanonicalStrong = mCanonical;
+    mCanonical = nullptr;
+    return mCanonicalStrong.forget();
+  }
+
+  nsIClassInfo* GetClassInfo() {
+    if (mXPCClassInfo) return mXPCClassInfo;
+    if (!mClassInfo) mClassInfo = do_QueryInterface(mObject);
+    return mClassInfo;
+  }
+  nsXPCClassInfo* GetXPCClassInfo() {
+    if (!mXPCClassInfo) {
+      CallQueryInterface(mObject, getter_AddRefs(mXPCClassInfo));
     }
+    return mXPCClassInfo;
+  }
 
-    already_AddRefed<nsISupports> forgetCanonical()
-    {
-        MOZ_ASSERT(mCanonical, "Huh, no canonical to forget?");
+  already_AddRefed<nsXPCClassInfo> forgetXPCClassInfo() {
+    GetXPCClassInfo();
 
-        if (!mCanonicalStrong)
-            mCanonicalStrong = mCanonical;
-        mCanonical = nullptr;
-        return mCanonicalStrong.forget();
-    }
+    return mXPCClassInfo.forget();
+  }
 
-    nsIClassInfo* GetClassInfo()
-    {
-        if (mXPCClassInfo)
-          return mXPCClassInfo;
-        if (!mClassInfo)
-            mClassInfo = do_QueryInterface(mObject);
-        return mClassInfo;
-    }
-    nsXPCClassInfo* GetXPCClassInfo()
-    {
-        if (!mXPCClassInfo) {
-            CallQueryInterface(mObject, getter_AddRefs(mXPCClassInfo));
-        }
-        return mXPCClassInfo;
-    }
+  // We assert that we can reach an nsIXPCScriptable somehow.
+  uint32_t GetScriptableFlags() {
+    // Try getting an nsXPCClassInfo - this handles DOM scriptable helpers.
+    nsCOMPtr<nsIXPCScriptable> sinfo = GetXPCClassInfo();
 
-    already_AddRefed<nsXPCClassInfo> forgetXPCClassInfo()
-    {
-        GetXPCClassInfo();
+    // If that didn't work, try just QI-ing. This handles BackstagePass.
+    if (!sinfo) sinfo = do_QueryInterface(GetCanonical());
 
-        return mXPCClassInfo.forget();
-    }
+    // We should have something by now.
+    MOZ_ASSERT(sinfo);
 
-    // We assert that we can reach an nsIXPCScriptable somehow.
-    uint32_t GetScriptableFlags()
-    {
-        // Try getting an nsXPCClassInfo - this handles DOM scriptable helpers.
-        nsCOMPtr<nsIXPCScriptable> sinfo = GetXPCClassInfo();
+    // Grab the flags.
+    return sinfo->GetScriptableFlags();
+  }
 
-        // If that didn't work, try just QI-ing. This handles BackstagePass.
-        if (!sinfo)
-            sinfo = do_QueryInterface(GetCanonical());
+  nsWrapperCache* GetWrapperCache() { return mCache; }
 
-        // We should have something by now.
-        MOZ_ASSERT(sinfo);
+ protected:
+  xpcObjectHelper(nsISupports* aObject, nsISupports* aCanonical,
+                  nsWrapperCache* aCache)
+      : mCanonical(aCanonical), mObject(aObject), mCache(aCache) {
+    if (!mCache && aObject) CallQueryInterface(aObject, &mCache);
+  }
 
-        // Grab the flags.
-        return sinfo->GetScriptableFlags();
-    }
+  nsCOMPtr<nsISupports> mCanonicalStrong;
+  nsISupports* MOZ_UNSAFE_REF(
+      "xpcObjectHelper has been specifically optimized "
+      "to avoid unnecessary AddRefs and Releases. "
+      "(see bug 565742)") mCanonical;
 
-    nsWrapperCache* GetWrapperCache()
-    {
-        return mCache;
-    }
+ private:
+  xpcObjectHelper(xpcObjectHelper& aOther) = delete;
 
-protected:
-    xpcObjectHelper(nsISupports* aObject, nsISupports* aCanonical,
-                    nsWrapperCache* aCache)
-      : mCanonical(aCanonical)
-      , mObject(aObject)
-      , mCache(aCache)
-    {
-        if (!mCache && aObject)
-            CallQueryInterface(aObject, &mCache);
-    }
-
-    nsCOMPtr<nsISupports>    mCanonicalStrong;
-    nsISupports* MOZ_UNSAFE_REF("xpcObjectHelper has been specifically optimized "
-                                "to avoid unnecessary AddRefs and Releases. "
-                                "(see bug 565742)") mCanonical;
-
-private:
-    xpcObjectHelper(xpcObjectHelper& aOther) = delete;
-
-    nsISupports* MOZ_UNSAFE_REF("xpcObjectHelper has been specifically optimized "
-                                "to avoid unnecessary AddRefs and Releases. "
-                                "(see bug 565742)") mObject;
-    nsWrapperCache*          mCache;
-    nsCOMPtr<nsIClassInfo>   mClassInfo;
-    RefPtr<nsXPCClassInfo> mXPCClassInfo;
+  nsISupports* MOZ_UNSAFE_REF(
+      "xpcObjectHelper has been specifically optimized "
+      "to avoid unnecessary AddRefs and Releases. "
+      "(see bug 565742)") mObject;
+  nsWrapperCache* mCache;
+  nsCOMPtr<nsIClassInfo> mClassInfo;
+  RefPtr<nsXPCClassInfo> mXPCClassInfo;
 };
 
 #endif

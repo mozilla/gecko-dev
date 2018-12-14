@@ -24,11 +24,8 @@ static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
 namespace base {
 
-
 bool LaunchApp(const std::vector<std::string>& argv,
-               const LaunchOptions& options,
-               ProcessHandle* process_handle)
-{
+               const LaunchOptions& options, ProcessHandle* process_handle) {
   bool retval = true;
 
   char* argv_copy[argv.size() + 1];
@@ -59,7 +56,8 @@ bool LaunchApp(const std::vector<std::string>& argv,
         fcntl(src_fd, F_SETFD, flags & ~FD_CLOEXEC);
       }
     } else {
-      if (posix_spawn_file_actions_adddup2(&file_actions, src_fd, dest_fd) != 0) {
+      if (posix_spawn_file_actions_adddup2(&file_actions, src_fd, dest_fd) !=
+          0) {
         posix_spawn_file_actions_destroy(&file_actions);
         return false;
       }
@@ -67,12 +65,8 @@ bool LaunchApp(const std::vector<std::string>& argv,
   }
 
   pid_t pid = 0;
-  int spawn_succeeded = (posix_spawnp(&pid,
-                                      argv_copy[0],
-                                      &file_actions,
-                                      NULL,
-                                      argv_copy,
-                                      vars.get()) == 0);
+  int spawn_succeeded = (posix_spawnp(&pid, argv_copy[0], &file_actions, NULL,
+                                      argv_copy, vars.get()) == 0);
 
   posix_spawn_file_actions_destroy(&file_actions);
 
@@ -82,18 +76,15 @@ bool LaunchApp(const std::vector<std::string>& argv,
   } else {
     gProcessLog.print("==> process %d launched child process %d\n",
                       GetCurrentProcId(), pid);
-    if (options.wait)
-      HANDLE_EINTR(waitpid(pid, 0, 0));
+    if (options.wait) HANDLE_EINTR(waitpid(pid, 0, 0));
 
-    if (process_handle)
-      *process_handle = pid;
+    if (process_handle) *process_handle = pid;
   }
 
   return retval;
 }
 
-bool LaunchApp(const CommandLine& cl,
-               const LaunchOptions& options,
+bool LaunchApp(const CommandLine& cl, const LaunchOptions& options,
                ProcessHandle* process_handle) {
   return LaunchApp(cl.argv(), options, process_handle);
 }

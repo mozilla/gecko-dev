@@ -29,31 +29,26 @@ class Element;
 
 class ShadowRoot final : public DocumentFragment,
                          public DocumentOrShadowRoot,
-                         public nsStubMutationObserver
-{
-public:
-  static ShadowRoot* FromNode(nsINode* aNode)
-  {
+                         public nsStubMutationObserver {
+ public:
+  static ShadowRoot* FromNode(nsINode* aNode) {
     return aNode->IsShadowRoot() ? static_cast<ShadowRoot*>(aNode) : nullptr;
   }
 
-  static const ShadowRoot* FromNode(const nsINode* aNode)
-  {
-    return aNode->IsShadowRoot() ? static_cast<const ShadowRoot*>(aNode) : nullptr;
+  static const ShadowRoot* FromNode(const nsINode* aNode) {
+    return aNode->IsShadowRoot() ? static_cast<const ShadowRoot*>(aNode)
+                                 : nullptr;
   }
 
-  static ShadowRoot* FromNodeOrNull(nsINode* aNode)
-  {
+  static ShadowRoot* FromNodeOrNull(nsINode* aNode) {
     return aNode ? FromNode(aNode) : nullptr;
   }
 
-  static const ShadowRoot* FromNodeOrNull(const nsINode* aNode)
-  {
+  static const ShadowRoot* FromNodeOrNull(const nsINode* aNode) {
     return aNode ? FromNode(aNode) : nullptr;
   }
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ShadowRoot,
-                                           DocumentFragment)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ShadowRoot, DocumentFragment)
   NS_DECL_ISUPPORTS_INHERITED
 
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
@@ -65,27 +60,20 @@ public:
              already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
   // Shadow DOM v1
-  Element* Host() const
-  {
-    MOZ_ASSERT(GetHost(), "ShadowRoot always has a host, how did we create "
-                          "this ShadowRoot?");
+  Element* Host() const {
+    MOZ_ASSERT(GetHost(),
+               "ShadowRoot always has a host, how did we create "
+               "this ShadowRoot?");
     return GetHost();
   }
 
-  ShadowRootMode Mode() const
-  {
-    return mMode;
-  }
-  bool IsClosed() const
-  {
-    return mMode == ShadowRootMode::Closed;
-  }
+  ShadowRootMode Mode() const { return mMode; }
+  bool IsClosed() const { return mMode == ShadowRootMode::Closed; }
 
   // [deprecated] Shadow DOM v0
   void InsertSheet(StyleSheet* aSheet, nsIContent* aLinkingContent);
   void RemoveSheet(StyleSheet* aSheet);
-  StyleSheetList* StyleSheets()
-  {
+  StyleSheetList* StyleSheets() {
     return &DocumentOrShadowRoot::EnsureDOMStyleSheets();
   }
 
@@ -93,8 +81,8 @@ public:
    * Clones internal state, for example stylesheets, of aOther to 'this'.
    */
   void CloneInternalDataFrom(ShadowRoot* aOther);
-private:
 
+ private:
   /**
    * Try to reassign an element to a slot and returns whether the assignment
    * changed.
@@ -117,26 +105,21 @@ private:
   const HTMLSlotElement* UnassignSlotFor(nsIContent* aContent,
                                          const nsAString& aSlotName);
 
-public:
+ public:
   void AddSlot(HTMLSlotElement* aSlot);
   void RemoveSlot(HTMLSlotElement* aSlot);
 
-  const RawServoAuthorStyles* ServoStyles() const
-  {
-    return mServoStyles.get();
-  }
+  const RawServoAuthorStyles* ServoStyles() const { return mServoStyles.get(); }
 
-  RawServoAuthorStyles* ServoStyles()
-  {
-    return mServoStyles.get();
-  }
+  RawServoAuthorStyles* ServoStyles() { return mServoStyles.get(); }
 
   // FIXME(emilio): This will need to become more fine-grained.
   void StyleSheetChanged();
 
   mozilla::ServoStyleRuleMap& ServoStyleRuleMap();
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   void AddToIdTable(Element* aElement, nsAtom* aId);
   void RemoveFromIdTable(Element* aElement, nsAtom* aId);
@@ -148,19 +131,15 @@ public:
   void GetInnerHTML(nsAString& aInnerHTML);
   void SetInnerHTML(const nsAString& aInnerHTML, ErrorResult& aError);
 
-  bool IsComposedDocParticipant() const
-  {
-    return mIsComposedDocParticipant;
-  }
+  bool IsComposedDocParticipant() const { return mIsComposedDocParticipant; }
 
-  void SetIsComposedDocParticipant(bool aIsComposedDocParticipant)
-  {
+  void SetIsComposedDocParticipant(bool aIsComposedDocParticipant) {
     mIsComposedDocParticipant = aIsComposedDocParticipant;
   }
 
   nsresult GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
 
-protected:
+ protected:
   virtual ~ShadowRoot();
 
   void SyncServoStyles();
@@ -177,17 +156,17 @@ protected:
   // are in the shadow tree and should be kept alive by its parent.
   nsClassHashtable<nsStringHashKey, SlotArray> mSlotMap;
 
-  // Flag to indicate whether the descendants of this shadow root are part of the
-  // composed document. Ideally, we would use a node flag on nodes to
-  // mark whether it is in the composed document, but we have run out of flags
-  // so instead we track it here.
+  // Flag to indicate whether the descendants of this shadow root are part of
+  // the composed document. Ideally, we would use a node flag on nodes to mark
+  // whether it is in the composed document, but we have run out of flags so
+  // instead we track it here.
   bool mIsComposedDocParticipant;
 
   nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                  bool aPreallocateChildren) const override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_shadowroot_h__
+#endif  // mozilla_dom_shadowroot_h__

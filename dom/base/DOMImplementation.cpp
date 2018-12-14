@@ -29,18 +29,14 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(DOMImplementation, mOwner)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMImplementation)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMImplementation)
 
-JSObject*
-DOMImplementation::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* DOMImplementation::WrapObject(JSContext* aCx,
+                                        JS::Handle<JSObject*> aGivenProto) {
   return DOMImplementationBinding::Wrap(aCx, this, aGivenProto);
 }
 
-already_AddRefed<DocumentType>
-DOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
-                                      const nsAString& aPublicId,
-                                      const nsAString& aSystemId,
-                                      ErrorResult& aRv)
-{
+already_AddRefed<DocumentType> DOMImplementation::CreateDocumentType(
+    const nsAString& aQualifiedName, const nsAString& aPublicId,
+    const nsAString& aSystemId, ErrorResult& aRv) {
   if (!mOwner) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
@@ -58,47 +54,42 @@ DOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
   }
 
   // Indicate that there is no internal subset (not just an empty one)
-  RefPtr<DocumentType> docType =
-    NS_NewDOMDocumentType(mOwner->NodeInfoManager(), name, aPublicId,
-                          aSystemId, VoidString(), aRv);
+  RefPtr<DocumentType> docType = NS_NewDOMDocumentType(
+      mOwner->NodeInfoManager(), name, aPublicId, aSystemId, VoidString(), aRv);
   return docType.forget();
 }
 
-nsresult
-DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
-                                  const nsAString& aQualifiedName,
-                                  nsIDOMDocumentType* aDoctype,
-                                  nsIDocument** aDocument)
-{
+nsresult DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
+                                           const nsAString& aQualifiedName,
+                                           nsIDOMDocumentType* aDoctype,
+                                           nsIDocument** aDocument) {
   *aDocument = nullptr;
 
   nsresult rv;
   if (!aQualifiedName.IsEmpty()) {
     const nsString& qName = PromiseFlatString(aQualifiedName);
-    const char16_t *colon;
+    const char16_t* colon;
     rv = nsContentUtils::CheckQName(qName, true, &colon);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (colon &&
-        (DOMStringIsNull(aNamespaceURI) ||
-         (Substring(qName.get(), colon).EqualsLiteral("xml") &&
-          !aNamespaceURI.EqualsLiteral("http://www.w3.org/XML/1998/namespace")))) {
+    if (colon && (DOMStringIsNull(aNamespaceURI) ||
+                  (Substring(qName.get(), colon).EqualsLiteral("xml") &&
+                   !aNamespaceURI.EqualsLiteral(
+                       "http://www.w3.org/XML/1998/namespace")))) {
       return NS_ERROR_DOM_NAMESPACE_ERR;
     }
   }
 
   nsCOMPtr<nsIGlobalObject> scriptHandlingObject =
-    do_QueryReferent(mScriptObject);
+      do_QueryReferent(mScriptObject);
 
   NS_ENSURE_STATE(!mScriptObject || scriptHandlingObject);
 
   nsCOMPtr<nsIDOMDocument> document;
 
-  rv = NS_NewDOMDocument(getter_AddRefs(document),
-                         aNamespaceURI, aQualifiedName, aDoctype,
-                         mDocumentURI, mBaseURI,
-                         mOwner->NodePrincipal(),
-                         true, scriptHandlingObject,
+  rv = NS_NewDOMDocument(getter_AddRefs(document), aNamespaceURI,
+                         aQualifiedName, aDoctype, mDocumentURI, mBaseURI,
+                         mOwner->NodePrincipal(), true, scriptHandlingObject,
                          DocumentFlavorLegacyGuess);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -121,59 +112,51 @@ DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
   return NS_OK;
 }
 
-already_AddRefed<nsIDocument>
-DOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
-                                  const nsAString& aQualifiedName,
-                                  nsIDOMDocumentType* aDoctype,
-                                  ErrorResult& aRv)
-{
+already_AddRefed<nsIDocument> DOMImplementation::CreateDocument(
+    const nsAString& aNamespaceURI, const nsAString& aQualifiedName,
+    nsIDOMDocumentType* aDoctype, ErrorResult& aRv) {
   nsCOMPtr<nsIDocument> document;
   aRv = CreateDocument(aNamespaceURI, aQualifiedName, aDoctype,
                        getter_AddRefs(document));
   return document.forget();
 }
 
-nsresult
-DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
-                                      nsIDocument** aDocument)
-{
+nsresult DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
+                                               nsIDocument** aDocument) {
   *aDocument = nullptr;
 
   NS_ENSURE_STATE(mOwner);
 
   nsCOMPtr<nsIDOMDocumentType> doctype;
   // Indicate that there is no internal subset (not just an empty one)
-  nsresult rv = NS_NewDOMDocumentType(getter_AddRefs(doctype),
-                                      mOwner->NodeInfoManager(),
-                                      nsGkAtoms::html, // aName
-                                      EmptyString(), // aPublicId
-                                      EmptyString(), // aSystemId
-                                      VoidString()); // aInternalSubset
+  nsresult rv =
+      NS_NewDOMDocumentType(getter_AddRefs(doctype), mOwner->NodeInfoManager(),
+                            nsGkAtoms::html,  // aName
+                            EmptyString(),    // aPublicId
+                            EmptyString(),    // aSystemId
+                            VoidString());    // aInternalSubset
   NS_ENSURE_SUCCESS(rv, rv);
 
-
   nsCOMPtr<nsIGlobalObject> scriptHandlingObject =
-    do_QueryReferent(mScriptObject);
+      do_QueryReferent(mScriptObject);
 
   NS_ENSURE_STATE(!mScriptObject || scriptHandlingObject);
 
   nsCOMPtr<nsIDOMDocument> document;
-  rv = NS_NewDOMDocument(getter_AddRefs(document),
-                         EmptyString(), EmptyString(),
+  rv = NS_NewDOMDocument(getter_AddRefs(document), EmptyString(), EmptyString(),
                          doctype, mDocumentURI, mBaseURI,
-                         mOwner->NodePrincipal(),
-                         true, scriptHandlingObject,
+                         mOwner->NodePrincipal(), true, scriptHandlingObject,
                          DocumentFlavorLegacyGuess);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(document);
 
-  nsCOMPtr<Element> root = doc->CreateElem(NS_LITERAL_STRING("html"), nullptr,
-                                           kNameSpaceID_XHTML);
+  nsCOMPtr<Element> root =
+      doc->CreateElem(NS_LITERAL_STRING("html"), nullptr, kNameSpaceID_XHTML);
   rv = doc->AppendChildTo(root, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<Element> head = doc->CreateElem(NS_LITERAL_STRING("head"), nullptr,
-                                           kNameSpaceID_XHTML);
+  nsCOMPtr<Element> head =
+      doc->CreateElem(NS_LITERAL_STRING("head"), nullptr, kNameSpaceID_XHTML);
   rv = root->AppendChildTo(head, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -190,8 +173,8 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<Element> body = doc->CreateElem(NS_LITERAL_STRING("body"), nullptr,
-                                           kNameSpaceID_XHTML);
+  nsCOMPtr<Element> body =
+      doc->CreateElem(NS_LITERAL_STRING("body"), nullptr, kNameSpaceID_XHTML);
   rv = root->AppendChildTo(body, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -201,15 +184,13 @@ DOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
   return NS_OK;
 }
 
-already_AddRefed<nsIDocument>
-DOMImplementation::CreateHTMLDocument(const Optional<nsAString>& aTitle,
-                                      ErrorResult& aRv)
-{
+already_AddRefed<nsIDocument> DOMImplementation::CreateHTMLDocument(
+    const Optional<nsAString>& aTitle, ErrorResult& aRv) {
   nsCOMPtr<nsIDocument> document;
   aRv = CreateHTMLDocument(aTitle.WasPassed() ? aTitle.Value() : VoidString(),
                            getter_AddRefs(document));
   return document.forget();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

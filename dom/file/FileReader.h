@@ -40,13 +40,11 @@ class FileReader final : public DOMEventTargetHelper,
                          public nsIInputStreamCallback,
                          public nsITimerCallback,
                          public nsINamed,
-                         public WorkerHolder
-{
+                         public WorkerHolder {
   friend class FileReaderDecreaseBusyCounter;
 
-public:
-  FileReader(nsIGlobalObject* aGlobal,
-             WorkerPrivate* aWorkerPrivate);
+ public:
+  FileReader(nsIGlobalObject* aGlobal, WorkerPrivate* aWorkerPrivate);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -62,16 +60,14 @@ public:
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
-  static already_AddRefed<FileReader>
-  Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
-  void ReadAsArrayBuffer(JSContext* aCx, Blob& aBlob, ErrorResult& aRv)
-  {
+  static already_AddRefed<FileReader> Constructor(const GlobalObject& aGlobal,
+                                                  ErrorResult& aRv);
+  void ReadAsArrayBuffer(JSContext* aCx, Blob& aBlob, ErrorResult& aRv) {
     ReadFileContent(aBlob, EmptyString(), FILE_AS_ARRAYBUFFER, aRv);
   }
 
   void ReadAsText(Blob& aBlob, const Optional<nsAString>& aLabel,
-                  ErrorResult& aRv)
-  {
+                  ErrorResult& aRv) {
     if (aLabel.WasPassed()) {
       ReadFileContent(aBlob, aLabel.Value(), FILE_AS_TEXT, aRv);
     } else {
@@ -79,22 +75,15 @@ public:
     }
   }
 
-  void ReadAsDataURL(Blob& aBlob, ErrorResult& aRv)
-  {
+  void ReadAsDataURL(Blob& aBlob, ErrorResult& aRv) {
     ReadFileContent(aBlob, EmptyString(), FILE_AS_DATAURL, aRv);
   }
 
   void Abort();
 
-  uint16_t ReadyState() const
-  {
-    return static_cast<uint16_t>(mReadyState);
-  }
+  uint16_t ReadyState() const { return static_cast<uint16_t>(mReadyState); }
 
-  DOMException* GetError() const
-  {
-    return mError;
-  }
+  DOMException* GetError() const { return mError; }
 
   void GetResult(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                  ErrorResult& aRv);
@@ -106,23 +95,18 @@ public:
   IMPL_EVENT_HANDLER(error)
   IMPL_EVENT_HANDLER(loadend)
 
-  void ReadAsBinaryString(Blob& aBlob, ErrorResult& aRv)
-  {
+  void ReadAsBinaryString(Blob& aBlob, ErrorResult& aRv) {
     ReadFileContent(aBlob, EmptyString(), FILE_AS_BINARY, aRv);
   }
 
   // WorkerHolder
   bool Notify(WorkerStatus) override;
 
-private:
+ private:
   virtual ~FileReader();
 
   // This must be in sync with dom/webidl/FileReader.webidl
-  enum eReadyState {
-    EMPTY = 0,
-    LOADING = 1,
-    DONE = 2
-  };
+  enum eReadyState { EMPTY = 0, LOADING = 1, DONE = 2 };
 
   enum eDataFormat {
     FILE_AS_ARRAYBUFFER,
@@ -133,14 +117,13 @@ private:
 
   void RootResultArrayBuffer();
 
-  void ReadFileContent(Blob& aBlob,
-                       const nsAString &aCharset, eDataFormat aDataFormat,
-                       ErrorResult& aRv);
-  nsresult GetAsText(Blob *aBlob, const nsACString &aCharset,
-                     const char *aFileData, uint32_t aDataLen,
-                     nsAString &aResult);
-  nsresult GetAsDataURL(Blob *aBlob, const char *aFileData,
-                        uint32_t aDataLen, nsAString &aResult);
+  void ReadFileContent(Blob& aBlob, const nsAString& aCharset,
+                       eDataFormat aDataFormat, ErrorResult& aRv);
+  nsresult GetAsText(Blob* aBlob, const nsACString& aCharset,
+                     const char* aFileData, uint32_t aDataLen,
+                     nsAString& aResult);
+  nsresult GetAsDataURL(Blob* aBlob, const char* aFileData, uint32_t aDataLen,
+                        nsAString& aResult);
 
   nsresult OnLoadEnd(nsresult aStatus);
 
@@ -157,8 +140,7 @@ private:
 
   void OnLoadEndArrayBuffer();
 
-  void FreeFileData()
-  {
+  void FreeFileData() {
     free(mFileData);
     mFileData = nullptr;
     mDataLen = 0;
@@ -169,7 +151,7 @@ private:
 
   void Shutdown();
 
-  char *mFileData;
+  char* mFileData;
   RefPtr<Blob> mBlob;
   nsCString mCharset;
   uint32_t mDataLen;
@@ -201,7 +183,7 @@ private:
   WorkerPrivate* mWorkerPrivate;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FileReader_h
+#endif  // mozilla_dom_FileReader_h

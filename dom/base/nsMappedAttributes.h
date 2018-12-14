@@ -26,10 +26,10 @@ class nsHTMLStyleSheet;
 
 class nsMappedAttributes final
 #ifdef MOZ_OLD_STYLE
-  : public nsIStyleRule
+    : public nsIStyleRule
 #endif
 {
-public:
+ public:
   nsMappedAttributes(nsHTMLStyleSheet* aSheet,
                      nsMapRuleToAttributesFunc aMapRuleFunc);
 
@@ -48,31 +48,20 @@ public:
   const nsAttrValue* GetAttr(nsAtom* aAttrName) const;
   const nsAttrValue* GetAttr(const nsAString& aAttrName) const;
 
-  uint32_t Count() const
-  {
-    return mAttrCount;
-  }
+  uint32_t Count() const { return mAttrCount; }
 
   bool Equals(const nsMappedAttributes* aAttributes) const;
   PLDHashNumber HashValue() const;
 
-  void DropStyleSheetReference()
-  {
-    mSheet = nullptr;
-  }
+  void DropStyleSheetReference() { mSheet = nullptr; }
   void SetStyleSheet(nsHTMLStyleSheet* aSheet);
-  nsHTMLStyleSheet* GetStyleSheet()
-  {
-    return mSheet;
-  }
+  nsHTMLStyleSheet* GetStyleSheet() { return mSheet; }
 
-  const nsAttrName* NameAt(uint32_t aPos) const
-  {
+  const nsAttrName* NameAt(uint32_t aPos) const {
     NS_ASSERTION(aPos < mAttrCount, "out-of-bounds");
     return &Attrs()[aPos].mName;
   }
-  const nsAttrValue* AttrAt(uint32_t aPos) const
-  {
+  const nsAttrValue* AttrAt(uint32_t aPos) const {
     NS_ASSERTION(aPos < mAttrCount, "out-of-bounds");
     return &Attrs()[aPos].mValue;
   }
@@ -89,8 +78,7 @@ public:
   // Obtain the contained servo declaration block
   // May return null if called before the inner block
   // has been (lazily) resolved
-  const RefPtr<RawServoDeclarationBlock>& GetServoStyle() const
-  {
+  const RefPtr<RawServoDeclarationBlock>& GetServoStyle() const {
     return mServoStyle;
   }
 
@@ -113,15 +101,14 @@ public:
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
   static void Shutdown();
-private:
 
+ private:
   void LastRelease();
 
   nsMappedAttributes(const nsMappedAttributes& aCopy);
   ~nsMappedAttributes();
 
-  struct InternalAttr
-  {
+  struct InternalAttr {
     nsAttrName mName;
     nsAttrValue mValue;
   };
@@ -133,12 +120,10 @@ private:
    *
    * See Bug 231104 for more information.
    */
-  const InternalAttr* Attrs() const
-  {
+  const InternalAttr* Attrs() const {
     return reinterpret_cast<const InternalAttr*>(&(mAttrs[0]));
   }
-  InternalAttr* Attrs()
-  {
+  InternalAttr* Attrs() {
     return reinterpret_cast<InternalAttr*>(&(mAttrs[0]));
   }
 
@@ -146,7 +131,7 @@ private:
 #ifdef DEBUG
   uint16_t mBufferSize;
 #endif
-  nsHTMLStyleSheet* mSheet; //weak
+  nsHTMLStyleSheet* mSheet;  // weak
   nsMapRuleToAttributesFunc mRuleMapper;
   RefPtr<RawServoDeclarationBlock> mServoStyle;
   void* mAttrs[1];

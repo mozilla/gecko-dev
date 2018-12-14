@@ -29,7 +29,9 @@
  * canRunScript(MOZ_KnownLive(rawPointer));
  */
 template <typename T>
-static MOZ_ALWAYS_INLINE T* MOZ_KnownLive(T* ptr) { return ptr; }
+static MOZ_ALWAYS_INLINE T* MOZ_KnownLive(T* ptr) {
+  return ptr;
+}
 
 extern "C" {
 #endif

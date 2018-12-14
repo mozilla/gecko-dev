@@ -39,17 +39,13 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AnimationEffectReadOnly)
 NS_INTERFACE_MAP_END
 
 AnimationEffectReadOnly::AnimationEffectReadOnly(
-  nsIDocument* aDocument, AnimationEffectTimingReadOnly* aTiming)
-  : mDocument(aDocument)
-  , mTiming(aTiming)
-{
+    nsIDocument* aDocument, AnimationEffectTimingReadOnly* aTiming)
+    : mDocument(aDocument), mTiming(aTiming) {
   MOZ_ASSERT(aTiming);
 }
 
 // https://drafts.csswg.org/web-animations/#current
-bool
-AnimationEffectReadOnly::IsCurrent() const
-{
+bool AnimationEffectReadOnly::IsCurrent() const {
   if (!mAnimation || mAnimation->PlayState() == AnimationPlayState::Finished) {
     return false;
   }
@@ -60,23 +56,18 @@ AnimationEffectReadOnly::IsCurrent() const
 }
 
 // https://drafts.csswg.org/web-animations/#in-effect
-bool
-AnimationEffectReadOnly::IsInEffect() const
-{
+bool AnimationEffectReadOnly::IsInEffect() const {
   ComputedTiming computedTiming = GetComputedTiming();
   return !computedTiming.mProgress.IsNull();
 }
 
 already_AddRefed<AnimationEffectTimingReadOnly>
-AnimationEffectReadOnly::Timing()
-{
+AnimationEffectReadOnly::Timing() {
   RefPtr<AnimationEffectTimingReadOnly> temp(mTiming);
   return temp.forget();
 }
 
-void
-AnimationEffectReadOnly::SetSpecifiedTiming(const TimingParams& aTiming)
-{
+void AnimationEffectReadOnly::SetSpecifiedTiming(const TimingParams& aTiming) {
   if (mTiming->AsTimingParams() == aTiming) {
     return;
   }
@@ -92,12 +83,9 @@ AnimationEffectReadOnly::SetSpecifiedTiming(const TimingParams& aTiming)
   // update its registration with the target element as necessary.
 }
 
-ComputedTiming
-AnimationEffectReadOnly::GetComputedTimingAt(
-    const Nullable<TimeDuration>& aLocalTime,
-    const TimingParams& aTiming,
-    double aPlaybackRate)
-{
+ComputedTiming AnimationEffectReadOnly::GetComputedTimingAt(
+    const Nullable<TimeDuration>& aLocalTime, const TimingParams& aTiming,
+    double aPlaybackRate) {
   static const StickyTimeDuration zeroDuration;
 
   // Always return the same object to benefit from return-value optimization.
@@ -121,9 +109,8 @@ AnimationEffectReadOnly::GetComputedTimingAt(
 
   result.mActiveDuration = aTiming.ActiveDuration();
   result.mEndTime = aTiming.EndTime();
-  result.mFill = aTiming.Fill() == dom::FillMode::Auto ?
-                 dom::FillMode::None :
-                 aTiming.Fill();
+  result.mFill = aTiming.Fill() == dom::FillMode::Auto ? dom::FillMode::None
+                                                       : aTiming.Fill();
 
   // The default constructor for ComputedTiming sets all other members to
   // values consistent with an animation that has not been sampled.
@@ -133,14 +120,13 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   const TimeDuration& localTime = aLocalTime.Value();
 
   StickyTimeDuration beforeActiveBoundary =
-    std::max(std::min(StickyTimeDuration(aTiming.Delay()), result.mEndTime),
-             zeroDuration);
+      std::max(std::min(StickyTimeDuration(aTiming.Delay()), result.mEndTime),
+               zeroDuration);
 
-  StickyTimeDuration activeAfterBoundary =
-    std::max(std::min(StickyTimeDuration(aTiming.Delay() +
-                                         result.mActiveDuration),
-                      result.mEndTime),
-             zeroDuration);
+  StickyTimeDuration activeAfterBoundary = std::max(
+      std::min(StickyTimeDuration(aTiming.Delay() + result.mActiveDuration),
+               result.mEndTime),
+      zeroDuration);
 
   if (localTime > activeAfterBoundary ||
       (aPlaybackRate >= 0 && localTime == activeAfterBoundary)) {
@@ -150,9 +136,9 @@ AnimationEffectReadOnly::GetComputedTimingAt(
       return result;
     }
     result.mActiveTime =
-      std::max(std::min(StickyTimeDuration(localTime - aTiming.Delay()),
-                        result.mActiveDuration),
-               zeroDuration);
+        std::max(std::min(StickyTimeDuration(localTime - aTiming.Delay()),
+                          result.mActiveDuration),
+                 zeroDuration);
   } else if (localTime < beforeActiveBoundary ||
              (aPlaybackRate < 0 && localTime == beforeActiveBoundary)) {
     result.mPhase = ComputedTiming::AnimationPhase::Before;
@@ -160,9 +146,8 @@ AnimationEffectReadOnly::GetComputedTimingAt(
       // The animation isn't active or filling at this time.
       return result;
     }
-    result.mActiveTime
-      = std::max(StickyTimeDuration(localTime - aTiming.Delay()),
-                 zeroDuration);
+    result.mActiveTime =
+        std::max(StickyTimeDuration(localTime - aTiming.Delay()), zeroDuration);
   } else {
     MOZ_ASSERT(result.mActiveDuration,
                "How can we be in the middle of a zero-duration interval?");
@@ -175,8 +160,8 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   double overallProgress;
   if (!result.mDuration) {
     overallProgress = result.mPhase == ComputedTiming::AnimationPhase::Before
-                      ? 0.0
-                      : result.mIterations;
+                          ? 0.0
+                          : result.mIterations;
   } else {
     overallProgress = result.mActiveTime / result.mDuration;
   }
@@ -189,19 +174,19 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   // Determine the 0-based index of the current iteration.
   // https://drafts.csswg.org/web-animations/#current-iteration
   result.mCurrentIteration =
-    (result.mIterations >= UINT64_MAX
-     && result.mPhase == ComputedTiming::AnimationPhase::After)
-    || overallProgress >= UINT64_MAX
-    ? UINT64_MAX // In GetComputedTimingDictionary(),
-                 // we will convert this into Infinity
-    : static_cast<uint64_t>(overallProgress);
+      (result.mIterations >= UINT64_MAX &&
+       result.mPhase == ComputedTiming::AnimationPhase::After) ||
+              overallProgress >= UINT64_MAX
+          ? UINT64_MAX  // In GetComputedTimingDictionary(),
+                        // we will convert this into Infinity
+          : static_cast<uint64_t>(overallProgress);
 
   // Convert the overall progress to a fraction of a single iteration--the
   // simply iteration progress.
   // https://drafts.csswg.org/web-animations/#simple-iteration-progress
   double progress = IsFinite(overallProgress)
-                    ? fmod(overallProgress, 1.0)
-                    : fmod(result.mIterationStart, 1.0);
+                        ? fmod(overallProgress, 1.0)
+                        : fmod(result.mIterationStart, 1.0);
 
   // When we are at the end of the active interval and the end of an iteration
   // we need to report the end of the final iteration and not the start of the
@@ -264,22 +249,18 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   return result;
 }
 
-ComputedTiming
-AnimationEffectReadOnly::GetComputedTiming(const TimingParams* aTiming) const
-{
+ComputedTiming AnimationEffectReadOnly::GetComputedTiming(
+    const TimingParams* aTiming) const {
   double playbackRate = mAnimation ? mAnimation->PlaybackRate() : 1;
-  return GetComputedTimingAt(GetLocalTime(),
-                             aTiming ? *aTiming : SpecifiedTiming(),
-                             playbackRate);
+  return GetComputedTimingAt(
+      GetLocalTime(), aTiming ? *aTiming : SpecifiedTiming(), playbackRate);
 }
 
 // Helper functions for generating a ComputedTimingProperties dictionary
-static void
-GetComputedTimingDictionary(const ComputedTiming& aComputedTiming,
-                            const Nullable<TimeDuration>& aLocalTime,
-                            const TimingParams& aTiming,
-                            ComputedTimingProperties& aRetVal)
-{
+static void GetComputedTimingDictionary(
+    const ComputedTiming& aComputedTiming,
+    const Nullable<TimeDuration>& aLocalTime, const TimingParams& aTiming,
+    ComputedTimingProperties& aRetVal) {
   // AnimationEffectTimingProperties
   aRetVal.mDelay = aTiming.Delay().ToMilliseconds();
   aRetVal.mEndDelay = aTiming.EndDelay().ToMilliseconds();
@@ -287,7 +268,7 @@ GetComputedTimingDictionary(const ComputedTiming& aComputedTiming,
   aRetVal.mIterations = aComputedTiming.mIterations;
   aRetVal.mIterationStart = aComputedTiming.mIterationStart;
   aRetVal.mDuration.SetAsUnrestrictedDouble() =
-    aComputedTiming.mDuration.ToMilliseconds();
+      aComputedTiming.mDuration.ToMilliseconds();
   aRetVal.mDirection = aTiming.Direction();
 
   // ComputedTimingProperties
@@ -299,29 +280,24 @@ GetComputedTimingDictionary(const ComputedTiming& aComputedTiming,
   if (!aRetVal.mProgress.IsNull()) {
     // Convert the returned currentIteration into Infinity if we set
     // (uint64_t) aComputedTiming.mCurrentIteration to UINT64_MAX
-    double iteration = aComputedTiming.mCurrentIteration == UINT64_MAX
-                       ? PositiveInfinity<double>()
-                       : static_cast<double>(aComputedTiming.mCurrentIteration);
+    double iteration =
+        aComputedTiming.mCurrentIteration == UINT64_MAX
+            ? PositiveInfinity<double>()
+            : static_cast<double>(aComputedTiming.mCurrentIteration);
     aRetVal.mCurrentIteration.SetValue(iteration);
   }
 }
 
-void
-AnimationEffectReadOnly::GetComputedTimingAsDict(
-  ComputedTimingProperties& aRetVal) const
-{
+void AnimationEffectReadOnly::GetComputedTimingAsDict(
+    ComputedTimingProperties& aRetVal) const {
   double playbackRate = mAnimation ? mAnimation->PlaybackRate() : 1;
   const Nullable<TimeDuration> currentTime = GetLocalTime();
-  GetComputedTimingDictionary(GetComputedTimingAt(currentTime,
-                                                  SpecifiedTiming(),
-                                                  playbackRate),
-                              currentTime,
-                              SpecifiedTiming(),
-                              aRetVal);
+  GetComputedTimingDictionary(
+      GetComputedTimingAt(currentTime, SpecifiedTiming(), playbackRate),
+      currentTime, SpecifiedTiming(), aRetVal);
 }
 
-AnimationEffectReadOnly::~AnimationEffectReadOnly()
-{
+AnimationEffectReadOnly::~AnimationEffectReadOnly() {
   // mTiming is cycle collected, so we have to do null check first even though
   // mTiming shouldn't be null during the lifetime of KeyframeEffect.
   if (mTiming) {
@@ -329,9 +305,7 @@ AnimationEffectReadOnly::~AnimationEffectReadOnly()
   }
 }
 
-Nullable<TimeDuration>
-AnimationEffectReadOnly::GetLocalTime() const
-{
+Nullable<TimeDuration> AnimationEffectReadOnly::GetLocalTime() const {
   // Since the *animation* start time is currently always zero, the local
   // time is equal to the parent time.
   Nullable<TimeDuration> result;
@@ -341,5 +315,5 @@ AnimationEffectReadOnly::GetLocalTime() const
   return result;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

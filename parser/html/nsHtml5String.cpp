@@ -7,9 +7,7 @@
 #include "nsUTF8Utils.h"
 #include "nsHtml5TreeBuilder.h"
 
-void
-nsHtml5String::ToString(nsAString& aString)
-{
+void nsHtml5String::ToString(nsAString& aString) {
   switch (GetKind()) {
     case eStringBuffer:
       return AsStringBuffer()->ToString(Length(), aString);
@@ -25,29 +23,22 @@ nsHtml5String::ToString(nsAString& aString)
   }
 }
 
-void
-nsHtml5String::CopyToBuffer(char16_t* aBuffer) const
-{
+void nsHtml5String::CopyToBuffer(char16_t* aBuffer) const {
   memcpy(aBuffer, AsPtr(), Length() * sizeof(char16_t));
 }
 
-bool
-nsHtml5String::LowerCaseEqualsASCII(const char* aLowerCaseLiteral) const
-{
+bool nsHtml5String::LowerCaseEqualsASCII(const char* aLowerCaseLiteral) const {
   return !nsCharTraits<char16_t>::compareLowerCaseToASCIINullTerminated(
-    AsPtr(), Length(), aLowerCaseLiteral);
+      AsPtr(), Length(), aLowerCaseLiteral);
 }
 
-bool
-nsHtml5String::EqualsASCII(const char* aLiteral) const
-{
-  return !nsCharTraits<char16_t>::compareASCIINullTerminated(
-    AsPtr(), Length(), aLiteral);
+bool nsHtml5String::EqualsASCII(const char* aLiteral) const {
+  return !nsCharTraits<char16_t>::compareASCIINullTerminated(AsPtr(), Length(),
+                                                             aLiteral);
 }
 
-bool
-nsHtml5String::LowerCaseStartsWithASCII(const char* aLowerCaseLiteral) const
-{
+bool nsHtml5String::LowerCaseStartsWithASCII(
+    const char* aLowerCaseLiteral) const {
   const char* litPtr = aLowerCaseLiteral;
   const char16_t* strPtr = AsPtr();
   const char16_t* end = strPtr + Length();
@@ -71,21 +62,16 @@ nsHtml5String::LowerCaseStartsWithASCII(const char* aLowerCaseLiteral) const
   return true;
 }
 
-bool
-nsHtml5String::Equals(nsHtml5String aOther) const
-{
+bool nsHtml5String::Equals(nsHtml5String aOther) const {
   MOZ_ASSERT(operator bool());
   MOZ_ASSERT(aOther);
   if (Length() != aOther.Length()) {
     return false;
   }
-  return !memcmp(
-    AsPtr(), aOther.AsPtr(), Length() * sizeof(char16_t));
+  return !memcmp(AsPtr(), aOther.AsPtr(), Length() * sizeof(char16_t));
 }
 
-nsHtml5String
-nsHtml5String::Clone()
-{
+nsHtml5String nsHtml5String::Clone() {
   switch (GetKind()) {
     case eStringBuffer:
       AsStringBuffer()->AddRef();
@@ -99,9 +85,7 @@ nsHtml5String::Clone()
   return nsHtml5String(mBits);
 }
 
-void
-nsHtml5String::Release()
-{
+void nsHtml5String::Release() {
   switch (GetKind()) {
     case eStringBuffer:
       AsStringBuffer()->Release();
@@ -116,11 +100,8 @@ nsHtml5String::Release()
 }
 
 // static
-nsHtml5String
-nsHtml5String::FromBuffer(char16_t* aBuffer,
-                          int32_t aLength,
-                          nsHtml5TreeBuilder* aTreeBuilder)
-{
+nsHtml5String nsHtml5String::FromBuffer(char16_t* aBuffer, int32_t aLength,
+                                        nsHtml5TreeBuilder* aTreeBuilder) {
   if (!aLength) {
     return nsHtml5String(eEmpty);
   }
@@ -129,7 +110,7 @@ nsHtml5String::FromBuffer(char16_t* aBuffer,
   // nsAttrValue::GetStringBuffer, so that it doesn't need to reallocate and
   // copy.
   RefPtr<nsStringBuffer> buffer(
-    nsStringBuffer::Alloc((aLength + 1) * sizeof(char16_t)));
+      nsStringBuffer::Alloc((aLength + 1) * sizeof(char16_t)));
   if (!buffer) {
     if (!aTreeBuilder) {
       MOZ_CRASH("Out of memory.");
@@ -138,23 +119,23 @@ nsHtml5String::FromBuffer(char16_t* aBuffer,
     buffer = nsStringBuffer::Alloc(2 * sizeof(char16_t));
     if (!buffer) {
       MOZ_CRASH(
-        "Out of memory so badly that couldn't even allocate placeholder.");
+          "Out of memory so badly that couldn't even allocate placeholder.");
     }
     char16_t* data = reinterpret_cast<char16_t*>(buffer->Data());
     data[0] = 0xFFFD;
     data[1] = 0;
-    return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) | eStringBuffer);
+    return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) |
+                         eStringBuffer);
   }
   char16_t* data = reinterpret_cast<char16_t*>(buffer->Data());
   memcpy(data, aBuffer, aLength * sizeof(char16_t));
   data[aLength] = 0;
-  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) | eStringBuffer);
+  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) |
+                       eStringBuffer);
 }
 
 // static
-nsHtml5String
-nsHtml5String::FromLiteral(const char* aLiteral)
-{
+nsHtml5String nsHtml5String::FromLiteral(const char* aLiteral) {
   size_t length = std::strlen(aLiteral);
   if (!length) {
     return nsHtml5String(eEmpty);
@@ -164,7 +145,7 @@ nsHtml5String::FromLiteral(const char* aLiteral)
   // nsAttrValue::GetStringBuffer, so that it doesn't need to reallocate and
   // copy.
   RefPtr<nsStringBuffer> buffer(
-    nsStringBuffer::Alloc((length + 1) * sizeof(char16_t)));
+      nsStringBuffer::Alloc((length + 1) * sizeof(char16_t)));
   if (!buffer) {
     MOZ_CRASH("Out of memory.");
   }
@@ -172,20 +153,20 @@ nsHtml5String::FromLiteral(const char* aLiteral)
   LossyConvertEncoding8to16 converter(data);
   converter.write(aLiteral, length);
   data[length] = 0;
-  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) | eStringBuffer);
+  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) |
+                       eStringBuffer);
 }
 
 // static
-nsHtml5String
-nsHtml5String::FromString(const nsAString& aString)
-{
+nsHtml5String nsHtml5String::FromString(const nsAString& aString) {
   auto length = aString.Length();
   if (!length) {
     return nsHtml5String(eEmpty);
   }
   RefPtr<nsStringBuffer> buffer = nsStringBuffer::FromString(aString);
-  if (buffer && (length == buffer->StorageSize()/sizeof(char16_t) - 1)) {
-    return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) | eStringBuffer);
+  if (buffer && (length == buffer->StorageSize() / sizeof(char16_t) - 1)) {
+    return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) |
+                         eStringBuffer);
   }
   buffer = nsStringBuffer::Alloc((length + 1) * sizeof(char16_t));
   if (!buffer) {
@@ -194,19 +175,14 @@ nsHtml5String::FromString(const nsAString& aString)
   char16_t* data = reinterpret_cast<char16_t*>(buffer->Data());
   memcpy(data, aString.BeginReading(), length * sizeof(char16_t));
   data[length] = 0;
-  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) | eStringBuffer);
+  return nsHtml5String(reinterpret_cast<uintptr_t>(buffer.forget().take()) |
+                       eStringBuffer);
 }
 
 // static
-nsHtml5String
-nsHtml5String::FromAtom(already_AddRefed<nsAtom> aAtom)
-{
+nsHtml5String nsHtml5String::FromAtom(already_AddRefed<nsAtom> aAtom) {
   return nsHtml5String(reinterpret_cast<uintptr_t>(aAtom.take()) | eAtom);
 }
 
 // static
-nsHtml5String
-nsHtml5String::EmptyString()
-{
-  return nsHtml5String(eEmpty);
-}
+nsHtml5String nsHtml5String::EmptyString() { return nsHtml5String(eEmpty); }

@@ -29,9 +29,8 @@ class Element;
  * Class for sharing data and logic common to both GeckoRestyleManager and
  * ServoRestyleManager.
  */
-class RestyleManager
-{
-public:
+class RestyleManager {
+ public:
   typedef mozilla::dom::Element Element;
 
   NS_INLINE_DECL_REFCOUNTING(mozilla::RestyleManager)
@@ -64,9 +63,7 @@ public:
   void DebugVerifyStyleTree(nsIFrame* aFrame);
 #endif
 
-  void FlushOverflowChangedTracker() {
-    mOverflowChangedTracker.Flush();
-  }
+  void FlushOverflowChangedTracker() { mOverflowChangedTracker.Flush(); }
 
   // Should be called when a frame is going to be destroyed and
   // WillDestroyFrameTree hasn't been called yet.
@@ -92,7 +89,7 @@ public:
   // on elements that have no frame at the end of the restyling process.
   // It only lives during the restyling process.
   class MOZ_STACK_CLASS AnimationsWithDestroyedFrame final {
-  public:
+   public:
     // Construct a AnimationsWithDestroyedFrame object.  The caller must
     // ensure that aRestyleManager lives at least as long as the
     // object.  (This is generally easy since the caller is typically a
@@ -109,18 +106,18 @@ public:
         mContents.AppendElement(aContent);
       } else if (pseudoType == CSSPseudoElementType::before) {
         MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
-                     nsGkAtoms::mozgeneratedcontentbefore);
+                   nsGkAtoms::mozgeneratedcontentbefore);
         mBeforeContents.AppendElement(aContent->GetParent());
       } else if (pseudoType == CSSPseudoElementType::after) {
         MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
-                     nsGkAtoms::mozgeneratedcontentafter);
+                   nsGkAtoms::mozgeneratedcontentafter);
         mAfterContents.AppendElement(aContent->GetParent());
       }
     }
 
     void StopAnimationsForElementsWithoutFrames();
 
-  private:
+   private:
     void StopAnimationsWithoutFrame(nsTArray<RefPtr<nsIContent>>& aArray,
                                     CSSPseudoElementType aPseudoType);
 
@@ -154,8 +151,7 @@ public:
   // following sibling in addition to the old child.  |aContainer| must be
   // non-null; when the container is null, no work is needed.  aFollowingSibling
   // is the sibling that used to come after aOldChild before the removal.
-  void ContentRemoved(nsINode* aContainer,
-                      nsIContent* aOldChild,
+  void ContentRemoved(nsINode* aContainer, nsIContent* aOldChild,
                       nsIContent* aFollowingSibling);
 
   // Restyling for a ContentInserted (notification after insertion) or
@@ -177,17 +173,12 @@ public:
   inline void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint,
                                            nsRestyleHint aRestyleHint);
   inline void ProcessPendingRestyles();
-  inline void ContentStateChanged(nsIContent* aContent,
-                                  EventStates aStateMask);
-  inline void AttributeWillChange(dom::Element* aElement,
-                                  int32_t aNameSpaceID,
-                                  nsAtom* aAttribute,
-                                  int32_t aModType,
+  inline void ContentStateChanged(nsIContent* aContent, EventStates aStateMask);
+  inline void AttributeWillChange(dom::Element* aElement, int32_t aNameSpaceID,
+                                  nsAtom* aAttribute, int32_t aModType,
                                   const nsAttrValue* aNewValue);
-  inline void AttributeChanged(dom::Element* aElement,
-                               int32_t aNameSpaceID,
-                               nsAtom* aAttribute,
-                               int32_t aModType,
+  inline void AttributeChanged(dom::Element* aElement, int32_t aNameSpaceID,
+                               nsAtom* aAttribute, int32_t aModType,
                                const nsAttrValue* aOldValue);
   inline nsresult ReparentStyleContext(nsIFrame* aFrame);
 
@@ -207,32 +198,28 @@ public:
   // such as changes made through the Web Animations API.
   void IncrementAnimationGeneration();
 
-  static void AddLayerChangesForAnimation(nsIFrame* aFrame,
-                                          nsIContent* aContent,
-                                          nsStyleChangeList&
-                                            aChangeListToProcess);
+  static void AddLayerChangesForAnimation(
+      nsIFrame* aFrame, nsIContent* aContent,
+      nsStyleChangeList& aChangeListToProcess);
 
-protected:
+ protected:
   RestyleManager(StyleBackendType aType, nsPresContext* aPresContext);
 
-  virtual ~RestyleManager()
-  {
+  virtual ~RestyleManager() {
     MOZ_ASSERT(!mAnimationsWithDestroyedFrame,
                "leaving dangling pointers from AnimationsWithDestroyedFrame");
   }
 
   void RestyleForEmptyChange(Element* aContainer);
-  void MaybeRestyleForEdgeChildChange(Element* aContainer, nsIContent* aChangedChild);
+  void MaybeRestyleForEdgeChildChange(Element* aContainer,
+                                      nsIContent* aChangedChild);
 
-  void ContentStateChangedInternal(Element* aElement,
-                                   EventStates aStateMask,
+  void ContentStateChangedInternal(Element* aElement, EventStates aStateMask,
                                    nsChangeHint* aOutChangeHint);
 
   bool IsDisconnected() { return mPresContext == nullptr; }
 
-  void IncrementHoverGeneration() {
-    ++mHoverGeneration;
-  }
+  void IncrementHoverGeneration() { ++mHoverGeneration; }
 
   void IncrementRestyleGeneration() {
     if (++mRestyleGeneration == 0) {
@@ -261,8 +248,8 @@ protected:
     return PresContext()->FrameConstructor();
   }
 
-private:
-  nsPresContext* mPresContext; // weak, can be null after Disconnect().
+ private:
+  nsPresContext* mPresContext;  // weak, can be null after Disconnect().
   uint64_t mRestyleGeneration;
   uint64_t mUndisplayedRestyleGeneration;
   uint32_t mHoverGeneration;
@@ -270,9 +257,10 @@ private:
   // Used to keep track of frames that have been destroyed during
   // ProcessRestyledFrames, so we don't try to touch them again even if
   // they're referenced again later in the changelist.
-  mozilla::UniquePtr<nsTHashtable<nsPtrHashKey<const nsIFrame>>> mDestroyedFrames;
+  mozilla::UniquePtr<nsTHashtable<nsPtrHashKey<const nsIFrame>>>
+      mDestroyedFrames;
 
-protected:
+ protected:
   const StyleBackendType mType;
 
   // True if we're in the middle of a nsRefreshDriver refresh
@@ -290,6 +278,6 @@ protected:
   friend class mozilla::ServoRestyleManager;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

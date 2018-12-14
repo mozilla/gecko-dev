@@ -23,8 +23,7 @@
 // We would like to move away from this binary compatibility requirement
 // in service workers.  See bug 1248628.
 
-TEST(psm_DeserializeCert, gecko33)
-{
+TEST(psm_DeserializeCert, gecko33) {
   // clang-format off
   // Gecko 33+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
@@ -61,8 +60,7 @@ TEST(psm_DeserializeCert, gecko33)
   ASSERT_TRUE(cert);
 }
 
-TEST(psm_DeserializeCert, gecko46)
-{
+TEST(psm_DeserializeCert, gecko46) {
   // clang-format off
   // Gecko 46+ vintage Security info serialized with UUIDs:
   //  - nsISupports  00000000-0000-0000-c000-000000000046
@@ -99,8 +97,7 @@ TEST(psm_DeserializeCert, gecko46)
   ASSERT_TRUE(cert);
 }
 
-TEST(psm_DeserializeCert, gecko64)
-{
+TEST(psm_DeserializeCert, gecko64) {
   // clang-format off
   // This is a serialization of nsITransportSecurityInfo from gecko 64.
   // Deserialization should fail.
@@ -182,7 +179,8 @@ TEST(psm_DeserializeCert, gecko64)
   // clang-format on
 
   nsCOMPtr<nsISupports> transportSecurityInfo;
-  nsresult rv = NS_DeserializeObject(base64Serialization, getter_AddRefs(transportSecurityInfo));
+  nsresult rv = NS_DeserializeObject(base64Serialization,
+                                     getter_AddRefs(transportSecurityInfo));
   ASSERT_EQ(NS_ERROR_FACTORY_NOT_REGISTERED, rv);
   ASSERT_FALSE(transportSecurityInfo);
 }

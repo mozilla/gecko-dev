@@ -14,8 +14,8 @@
 namespace mozilla {
 namespace css {
 class ErrorReporter;
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 // Token types; in close but not perfect correspondence to the token
 // categorization in section 4.1.1 of CSS2.1.  (The deviations are all
@@ -27,20 +27,20 @@ enum nsCSSTokenType {
   // White space of any kind.  No value fields are used.  Note that
   // comments do *not* count as white space; comments separate tokens
   // but are not themselves tokens.
-  eCSSToken_Whitespace,     //
+  eCSSToken_Whitespace,  //
   // A comment.
-  eCSSToken_Comment,        // /*...*/
+  eCSSToken_Comment,  // /*...*/
 
   // Identifier-like tokens.  mIdent is the text of the identifier.
   // The difference between ID and Hash is: if the text after the #
   // would have been a valid Ident if the # hadn't been there, the
   // scanner produces an ID token.  Otherwise it produces a Hash token.
   // (This distinction is required by css3-selectors.)
-  eCSSToken_Ident,          // word
-  eCSSToken_Function,       // word(
-  eCSSToken_AtKeyword,      // @word
-  eCSSToken_ID,             // #word
-  eCSSToken_Hash,           // #0word
+  eCSSToken_Ident,      // word
+  eCSSToken_Function,   // word(
+  eCSSToken_AtKeyword,  // @word
+  eCSSToken_ID,         // #word
+  eCSSToken_Hash,       // #0word
 
   // Numeric tokens.  mNumber is the floating-point value of the
   // number, and mHasSign indicates whether there was an explicit sign
@@ -52,22 +52,22 @@ enum nsCSSTokenType {
   // are always considered not to be integers, even if their numeric
   // value is integral (100% => mNumber = 1.0).  For Dimension
   // tokens, mIdent holds the text of the unit.
-  eCSSToken_Number,         // 1 -5 +2e3 3.14159 7.297352e-3
-  eCSSToken_Dimension,      // 24px 8.5in
-  eCSSToken_Percentage,     // 85% 1280.4%
+  eCSSToken_Number,      // 1 -5 +2e3 3.14159 7.297352e-3
+  eCSSToken_Dimension,   // 24px 8.5in
+  eCSSToken_Percentage,  // 85% 1280.4%
 
   // String-like tokens.  In all cases, mIdent holds the text
   // belonging to the string, and mSymbol holds the delimiter
   // character, which may be ', ", or zero (only for unquoted URLs).
   // Bad_String and Bad_URL tokens are emitted when the closing
   // delimiter or parenthesis was missing.
-  eCSSToken_String,         // 'foo bar' "foo bar"
-  eCSSToken_Bad_String,     // 'foo bar
-  eCSSToken_URL,            // url(foobar) url("foo bar")
-  eCSSToken_Bad_URL,        // url(foo
+  eCSSToken_String,      // 'foo bar' "foo bar"
+  eCSSToken_Bad_String,  // 'foo bar
+  eCSSToken_URL,         // url(foobar) url("foo bar")
+  eCSSToken_Bad_URL,     // url(foo
 
   // Any one-character symbol.  mSymbol holds the character.
-  eCSSToken_Symbol,         // . ; { } ! *
+  eCSSToken_Symbol,  // . ; { } ! *
 
   // Match operators.  These are single tokens rather than pairs of
   // Symbol tokens because css3-selectors forbids the presence of
@@ -87,7 +87,7 @@ enum nsCSSTokenType {
   // token is semantically valid.  In that case, mInteger holds the
   // lowest value included in the range, and mInteger2 holds the
   // highest value included in the range.
-  eCSSToken_URange,         // U+007e U+01?? U+2000-206F
+  eCSSToken_URange,  // U+007e U+01?? U+2000-206F
 
   // HTML comment delimiters, ignored as a unit when they appear at
   // the top level of a style sheet, for compatibility with websites
@@ -95,7 +95,7 @@ enum nsCSSTokenType {
   // subsumes the css2.1 CDO and CDC tokens, which are always treated
   // the same by the parser.  mIdent holds the text of the token, for
   // diagnostics.
-  eCSSToken_HTMLComment,    // <!-- -->
+  eCSSToken_HTMLComment,  // <!-- -->
 };
 
 // Classification of tokens used to determine if a "/**/" string must be
@@ -138,19 +138,23 @@ enum nsCSSTokenSerializationType {
 // meaningful; comments above describe which other fields are
 // meaningful for which token types.
 struct nsCSSToken {
-  nsAutoString    mIdent;
-  float           mNumber;
-  int32_t         mInteger;
-  int32_t         mInteger2;
-  nsCSSTokenType  mType;
-  char16_t       mSymbol;
-  bool            mIntegerValid;
-  bool            mHasSign;
+  nsAutoString mIdent;
+  float mNumber;
+  int32_t mInteger;
+  int32_t mInteger2;
+  nsCSSTokenType mType;
+  char16_t mSymbol;
+  bool mIntegerValid;
+  bool mHasSign;
 
   nsCSSToken()
-    : mNumber(0), mInteger(0), mInteger2(0), mType(eCSSToken_Whitespace),
-      mSymbol('\0'), mIntegerValid(false), mHasSign(false)
-  {}
+      : mNumber(0),
+        mInteger(0),
+        mInteger2(0),
+        mType(eCSSToken_Whitespace),
+        mSymbol('\0'),
+        mIntegerValid(false),
+        mHasSign(false) {}
 
   bool IsSymbol(char16_t aSymbol) const {
     return mType == eCSSToken_Symbol && mSymbol == aSymbol;
@@ -162,8 +166,9 @@ struct nsCSSToken {
 // Represents an nsCSSScanner's saved position in the input buffer.
 class nsCSSScannerPosition {
   friend class nsCSSScanner;
-public:
-  nsCSSScannerPosition() : mInitialized(false) { }
+
+ public:
+  nsCSSScannerPosition() : mInitialized(false) {}
 
   uint32_t LineNumber() {
     MOZ_ASSERT(mInitialized);
@@ -175,7 +180,7 @@ public:
     return mLineOffset;
   }
 
-private:
+ private:
   uint32_t mOffset;
   uint32_t mLineNumber;
   uint32_t mLineOffset;
@@ -198,7 +203,7 @@ enum nsCSSScannerExclude {
 // compatible tokenization rules.  Used internally by nsCSSParser;
 // not available for use by other code.
 class nsCSSScanner {
-  public:
+ public:
   // |aLineNumber == 1| is the beginning of a file, use |aLineNumber == 0|
   // when the line number is unknown.  The scanner does not take
   // ownership of |aBuffer|, so the caller must be sure to keep it
@@ -224,20 +229,15 @@ class nsCSSScanner {
 
   // Get the 0-based column number of the first character of
   // the most recently processed token.
-  uint32_t GetColumnNumber() const
-  { return mTokenOffset - mTokenLineOffset; }
+  uint32_t GetColumnNumber() const { return mTokenOffset - mTokenLineOffset; }
 
-  uint32_t GetTokenOffset() const
-  { return mTokenOffset; }
+  uint32_t GetTokenOffset() const { return mTokenOffset; }
 
-  uint32_t GetTokenEndOffset() const
-  { return mOffset; }
+  uint32_t GetTokenEndOffset() const { return mOffset; }
 
-  const nsAString& GetSourceMapURL() const
-  { return mSourceMapURL; }
+  const nsAString& GetSourceMapURL() const { return mSourceMapURL; }
 
-  const nsAString& GetSourceURL() const
-  { return mSourceURL; }
+  const nsAString& GetSourceURL() const { return mSourceURL; }
 
   // Get the text of the line containing the first character of
   // the most recently processed token.
@@ -288,26 +288,26 @@ class nsCSSScanner {
   void RestoreSavedPosition(const nsCSSScannerPosition& aState);
 
   enum EOFCharacters {
-    eEOFCharacters_None =                    0x0000,
+    eEOFCharacters_None = 0x0000,
 
     // to handle \<EOF> inside strings
-    eEOFCharacters_DropBackslash =           0x0001,
+    eEOFCharacters_DropBackslash = 0x0001,
 
     // to handle \<EOF> outside strings
-    eEOFCharacters_ReplacementChar =         0x0002,
+    eEOFCharacters_ReplacementChar = 0x0002,
 
     // to close comments
-    eEOFCharacters_Asterisk =                0x0004,
-    eEOFCharacters_Slash =                   0x0008,
+    eEOFCharacters_Asterisk = 0x0004,
+    eEOFCharacters_Slash = 0x0008,
 
     // to close double-quoted strings
-    eEOFCharacters_DoubleQuote =             0x0010,
+    eEOFCharacters_DoubleQuote = 0x0010,
 
     // to close single-quoted strings
-    eEOFCharacters_SingleQuote =             0x0020,
+    eEOFCharacters_SingleQuote = 0x0020,
 
     // to close URLs
-    eEOFCharacters_CloseParen =              0x0040,
+    eEOFCharacters_CloseParen = 0x0040,
   };
 
   // Appends any characters to the specified string the input stream to make the
@@ -328,7 +328,7 @@ class nsCSSScanner {
   static void AssertEOFCharactersValid(uint32_t c);
 #endif
 
-protected:
+ protected:
   int32_t Peek(uint32_t n = 0);
   void Advance(uint32_t n = 1);
   void AdvanceLine();
@@ -350,7 +350,7 @@ protected:
   void SetEOFCharacters(uint32_t aEOFCharacters);
   void AddEOFCharacters(uint32_t aEOFCharacters);
 
-  const char16_t *mBuffer;
+  const char16_t* mBuffer;
   uint32_t mOffset;
   uint32_t mCount;
 
@@ -364,7 +364,7 @@ protected:
   uint32_t mRecordStartOffset;
   EOFCharacters mEOFCharacters;
 
-  mozilla::css::ErrorReporter *mReporter;
+  mozilla::css::ErrorReporter* mReporter;
 
   bool mRecording;
   bool mSeenBadToken;
@@ -378,20 +378,20 @@ protected:
 // http://dev.w3.org/csswg/css-grid/#propdef-grid-template-areas
 struct MOZ_STACK_CLASS nsCSSGridTemplateAreaToken {
   nsAutoString mName;  // Empty for a null cell, non-empty for a named cell
-  bool isTrash;  // True for a trash token, mName is ignored in this case.
+  bool isTrash;        // True for a trash token, mName is ignored in this case.
 };
 
 // Scanner for the grid-template-areas micro-syntax
 class nsCSSGridTemplateAreaScanner {
-public:
+ public:
   explicit nsCSSGridTemplateAreaScanner(const nsAString& aBuffer);
 
   // Get the next token.  Return false on EOF.
   // aTokenResult is filled in with the data for the token.
   bool Next(nsCSSGridTemplateAreaToken& aTokenResult);
 
-private:
-  const char16_t *mBuffer;
+ private:
+  const char16_t* mBuffer;
   uint32_t mOffset;
   uint32_t mCount;
 };

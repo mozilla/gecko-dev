@@ -15,21 +15,15 @@
 namespace mozilla {
 namespace widget {
 
-WindowSurfaceX11Image::WindowSurfaceX11Image(Display* aDisplay,
-                                             Window aWindow,
+WindowSurfaceX11Image::WindowSurfaceX11Image(Display* aDisplay, Window aWindow,
                                              Visual* aVisual,
                                              unsigned int aDepth)
-  : WindowSurfaceX11(aDisplay, aWindow, aVisual, aDepth)
-{
-}
+    : WindowSurfaceX11(aDisplay, aWindow, aVisual, aDepth) {}
 
-WindowSurfaceX11Image::~WindowSurfaceX11Image()
-{
-}
+WindowSurfaceX11Image::~WindowSurfaceX11Image() {}
 
-already_AddRefed<gfx::DrawTarget>
-WindowSurfaceX11Image::Lock(const LayoutDeviceIntRegion& aRegion)
-{
+already_AddRefed<gfx::DrawTarget> WindowSurfaceX11Image::Lock(
+    const LayoutDeviceIntRegion& aRegion) {
   gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
   gfx::IntSize size(bounds.XMost(), bounds.YMost());
 
@@ -45,9 +39,8 @@ WindowSurfaceX11Image::Lock(const LayoutDeviceIntRegion& aRegion)
       !(size <= mImageSurface->GetSize())) {
     gfxImageFormat format = SurfaceFormatToImageFormat(mFormat);
     if (format == gfx::SurfaceFormat::UNKNOWN) {
-      format = mDepth == 32 ?
-                 gfx::SurfaceFormat::A8R8G8B8_UINT32 :
-                 gfx::SurfaceFormat::X8R8G8B8_UINT32;
+      format = mDepth == 32 ? gfx::SurfaceFormat::A8R8G8B8_UINT32
+                            : gfx::SurfaceFormat::X8R8G8B8_UINT32;
     }
 
     mImageSurface = new gfxImageSurface(size, format);
@@ -76,22 +69,19 @@ WindowSurfaceX11Image::Lock(const LayoutDeviceIntRegion& aRegion)
     }
   }
 
-  return gfxPlatform::CreateDrawTargetForData(mImageSurface->Data(),
-                                              mImageSurface->GetSize(),
-                                              mImageSurface->Stride(),
-                                              ImageFormatToSurfaceFormat(format));
+  return gfxPlatform::CreateDrawTargetForData(
+      mImageSurface->Data(), mImageSurface->GetSize(), mImageSurface->Stride(),
+      ImageFormatToSurfaceFormat(format));
 }
 
-void
-WindowSurfaceX11Image::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
-{
-  RefPtr<gfx::DrawTarget> dt =
-    gfx::Factory::CreateDrawTargetForCairoSurface(mWindowSurface->CairoSurface(),
-                                                  mWindowSurface->GetSize());
+void WindowSurfaceX11Image::Commit(
+    const LayoutDeviceIntRegion& aInvalidRegion) {
+  RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateDrawTargetForCairoSurface(
+      mWindowSurface->CairoSurface(), mWindowSurface->GetSize());
   RefPtr<gfx::SourceSurface> surf =
-    gfx::Factory::CreateSourceSurfaceForCairoSurface(mImageSurface->CairoSurface(),
-                                                     mImageSurface->GetSize(),
-                                                     mImageSurface->Format());
+      gfx::Factory::CreateSourceSurfaceForCairoSurface(
+          mImageSurface->CairoSurface(), mImageSurface->GetSize(),
+          mImageSurface->Format());
   if (!dt || !surf) {
     return;
   }

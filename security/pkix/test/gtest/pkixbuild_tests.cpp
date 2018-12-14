@@ -27,7 +27,7 @@
 // warning C4702: unreachable code.
 // https://connect.microsoft.com/VisualStudio/feedback/details/809962
 #pragma warning(push)
-#pragma warning(disable: 4702)
+#pragma warning(disable : 4702)
 #endif
 
 #include <map>
@@ -43,40 +43,39 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-static ByteString
-CreateCert(const char* issuerCN, // null means "empty name"
-           const char* subjectCN, // null means "empty name"
-           EndEntityOrCA endEntityOrCA,
-           /*optional modified*/ std::map<ByteString, ByteString>*
-             subjectDERToCertDER = nullptr,
-           /*optional*/ const ByteString* extension = nullptr)
-{
+static ByteString CreateCert(
+    const char* issuerCN,   // null means "empty name"
+    const char* subjectCN,  // null means "empty name"
+    EndEntityOrCA endEntityOrCA,
+    /*optional modified*/
+    std::map<ByteString, ByteString>* subjectDERToCertDER = nullptr,
+    /*optional*/ const ByteString* extension = nullptr) {
   static long serialNumberValue = 0;
   ++serialNumberValue;
   ByteString serialNumber(CreateEncodedSerialNumber(serialNumberValue));
   EXPECT_FALSE(ENCODING_FAILED(serialNumber));
 
   ByteString issuerDER(issuerCN ? CNToDERName(issuerCN) : Name(ByteString()));
-  ByteString subjectDER(subjectCN ? CNToDERName(subjectCN) : Name(ByteString()));
+  ByteString subjectDER(subjectCN ? CNToDERName(subjectCN)
+                                  : Name(ByteString()));
 
   std::vector<ByteString> extensions;
   if (endEntityOrCA == EndEntityOrCA::MustBeCA) {
     ByteString basicConstraints =
-      CreateEncodedBasicConstraints(true, nullptr, Critical::Yes);
+        CreateEncodedBasicConstraints(true, nullptr, Critical::Yes);
     EXPECT_FALSE(ENCODING_FAILED(basicConstraints));
     extensions.push_back(basicConstraints);
   }
   if (extension) {
     extensions.push_back(*extension);
   }
-  extensions.push_back(ByteString()); // marks the end of the list
+  extensions.push_back(ByteString());  // marks the end of the list
 
   ScopedTestKeyPair reusedKey(CloneReusedKeyPair());
   ByteString certDER(CreateEncodedCertificate(
-                       v3, sha256WithRSAEncryption(), serialNumber, issuerDER,
-                       oneDayBeforeNow, oneDayAfterNow, subjectDER,
-                       *reusedKey, extensions.data(), *reusedKey,
-                       sha256WithRSAEncryption()));
+      v3, sha256WithRSAEncryption(), serialNumber, issuerDER, oneDayBeforeNow,
+      oneDayAfterNow, subjectDER, *reusedKey, extensions.data(), *reusedKey,
+      sha256WithRSAEncryption()));
   EXPECT_FALSE(ENCODING_FAILED(certDER));
 
   if (subjectDERToCertDER) {
@@ -86,20 +85,17 @@ CreateCert(const char* issuerCN, // null means "empty name"
   return certDER;
 }
 
-class TestTrustDomain final : public DefaultCryptoTrustDomain
-{
-public:
+class TestTrustDomain final : public DefaultCryptoTrustDomain {
+ public:
   // The "cert chain tail" is a longish chain of certificates that is used by
   // all of the tests here. We share this chain across all the tests in order
   // to speed up the tests (generating keypairs for the certs is very slow).
-  bool SetUpCertChainTail()
-  {
-    static char const* const names[] = {
-        "CA1 (Root)", "CA2", "CA3", "CA4", "CA5", "CA6", "CA7"
-    };
+  bool SetUpCertChainTail() {
+    static char const* const names[] = {"CA1 (Root)", "CA2", "CA3", "CA4",
+                                        "CA5",        "CA6", "CA7"};
 
     for (size_t i = 0; i < MOZILLA_PKIX_ARRAY_LENGTH(names); ++i) {
-      const char* issuerName = i == 0 ? names[0] : names[i-1];
+      const char* issuerName = i == 0 ? names[0] : names[i - 1];
       CreateCACert(issuerName, names[i]);
       if (i == 0) {
         rootCACertDER = leafCACertDER;
@@ -109,28 +105,25 @@ public:
     return true;
   }
 
-  void CreateCACert(const char* issuerName, const char* subjectName)
-  {
-    leafCACertDER = CreateCert(issuerName, subjectName,
-                               EndEntityOrCA::MustBeCA, &subjectDERToCertDER);
+  void CreateCACert(const char* issuerName, const char* subjectName) {
+    leafCACertDER = CreateCert(issuerName, subjectName, EndEntityOrCA::MustBeCA,
+                               &subjectDERToCertDER);
     assert(!ENCODING_FAILED(leafCACertDER));
   }
 
   ByteString GetLeafCACertDER() const { return leafCACertDER; }
 
-private:
+ private:
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
-                      /*out*/ TrustLevel& trustLevel) override
-  {
+                      /*out*/ TrustLevel& trustLevel) override {
     trustLevel = InputEqualsByteString(candidateCert, rootCACertDER)
-               ? TrustLevel::TrustAnchor
-               : TrustLevel::InheritsTrust;
+                     ? TrustLevel::TrustAnchor
+                     : TrustLevel::InheritsTrust;
     return Success;
   }
 
-  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker, Time)
-                    override
-  {
+  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker,
+                    Time) override {
     ByteString subjectDER(InputToByteString(encodedIssuerName));
     ByteString certDER(subjectDERToCertDER[subjectDER]);
     Input derCert;
@@ -139,7 +132,7 @@ private:
       return rv;
     }
     bool keepGoing;
-    rv = checker.Check(derCert, nullptr/*additionalNameConstraints*/,
+    rv = checker.Check(derCert, nullptr /*additionalNameConstraints*/,
                        keepGoing);
     if (rv != Success) {
       return rv;
@@ -148,14 +141,12 @@ private:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*)
-                         override
-  {
+                         /*optional*/ const Input*,
+                         /*optional*/ const Input*) override {
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
@@ -164,56 +155,49 @@ private:
   ByteString rootCACertDER;
 };
 
-class pkixbuild : public ::testing::Test
-{
-public:
-  static void SetUpTestCase()
-  {
+class pkixbuild : public ::testing::Test {
+ public:
+  static void SetUpTestCase() {
     if (!trustDomain.SetUpCertChainTail()) {
       abort();
     }
   }
 
-protected:
-
+ protected:
   static TestTrustDomain trustDomain;
 };
 
 /*static*/ TestTrustDomain pkixbuild::trustDomain;
 
-TEST_F(pkixbuild, MaxAcceptableCertChainLength)
-{
+TEST_F(pkixbuild, MaxAcceptableCertChainLength) {
   {
     ByteString leafCACert(trustDomain.GetLeafCACertDER());
     Input certDER;
     ASSERT_EQ(Success, certDER.Init(leafCACert.data(), leafCACert.length()));
-    ASSERT_EQ(Success,
-              BuildCertChain(trustDomain, certDER, Now(),
-                             EndEntityOrCA::MustBeCA,
-                             KeyUsage::noParticularKeyUsageRequired,
-                             KeyPurposeId::id_kp_serverAuth,
-                             CertPolicyId::anyPolicy,
-                             nullptr/*stapledOCSPResponse*/));
+    ASSERT_EQ(
+        Success,
+        BuildCertChain(trustDomain, certDER, Now(), EndEntityOrCA::MustBeCA,
+                       KeyUsage::noParticularKeyUsageRequired,
+                       KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                       nullptr /*stapledOCSPResponse*/));
   }
 
   {
-    ByteString certDER(CreateCert("CA7", "Direct End-Entity",
-                                  EndEntityOrCA::MustBeEndEntity));
+    ByteString certDER(
+        CreateCert("CA7", "Direct End-Entity", EndEntityOrCA::MustBeEndEntity));
     ASSERT_FALSE(ENCODING_FAILED(certDER));
     Input certDERInput;
     ASSERT_EQ(Success, certDERInput.Init(certDER.data(), certDER.length()));
-    ASSERT_EQ(Success,
-              BuildCertChain(trustDomain, certDERInput, Now(),
-                             EndEntityOrCA::MustBeEndEntity,
-                             KeyUsage::noParticularKeyUsageRequired,
-                             KeyPurposeId::id_kp_serverAuth,
-                             CertPolicyId::anyPolicy,
-                             nullptr/*stapledOCSPResponse*/));
+    ASSERT_EQ(Success, BuildCertChain(trustDomain, certDERInput, Now(),
+                                      EndEntityOrCA::MustBeEndEntity,
+                                      KeyUsage::noParticularKeyUsageRequired,
+                                      KeyPurposeId::id_kp_serverAuth,
+                                      CertPolicyId::anyPolicy,
+                                      nullptr /*stapledOCSPResponse*/));
   }
 }
 
-TEST_F(pkixbuild, BeyondMaxAcceptableCertChainLength)
-{
+TEST_F(pkixbuild, BeyondMaxAcceptableCertChainLength) {
   static char const* const caCertName = "CA Too Far";
 
   trustDomain.CreateCACert("CA7", caCertName);
@@ -223,12 +207,11 @@ TEST_F(pkixbuild, BeyondMaxAcceptableCertChainLength)
     Input certDERInput;
     ASSERT_EQ(Success, certDERInput.Init(certDER.data(), certDER.length()));
     ASSERT_EQ(Result::ERROR_UNKNOWN_ISSUER,
-              BuildCertChain(trustDomain, certDERInput, Now(),
-                             EndEntityOrCA::MustBeCA,
-                             KeyUsage::noParticularKeyUsageRequired,
-                             KeyPurposeId::id_kp_serverAuth,
-                             CertPolicyId::anyPolicy,
-                             nullptr/*stapledOCSPResponse*/));
+              BuildCertChain(
+                  trustDomain, certDERInput, Now(), EndEntityOrCA::MustBeCA,
+                  KeyUsage::noParticularKeyUsageRequired,
+                  KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                  nullptr /*stapledOCSPResponse*/));
   }
 
   {
@@ -237,13 +220,13 @@ TEST_F(pkixbuild, BeyondMaxAcceptableCertChainLength)
     ASSERT_FALSE(ENCODING_FAILED(certDER));
     Input certDERInput;
     ASSERT_EQ(Success, certDERInput.Init(certDER.data(), certDER.length()));
-    ASSERT_EQ(Result::ERROR_UNKNOWN_ISSUER,
-              BuildCertChain(trustDomain, certDERInput, Now(),
-                             EndEntityOrCA::MustBeEndEntity,
-                             KeyUsage::noParticularKeyUsageRequired,
-                             KeyPurposeId::id_kp_serverAuth,
-                             CertPolicyId::anyPolicy,
-                             nullptr/*stapledOCSPResponse*/));
+    ASSERT_EQ(
+        Result::ERROR_UNKNOWN_ISSUER,
+        BuildCertChain(trustDomain, certDERInput, Now(),
+                       EndEntityOrCA::MustBeEndEntity,
+                       KeyUsage::noParticularKeyUsageRequired,
+                       KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                       nullptr /*stapledOCSPResponse*/));
   }
 }
 
@@ -252,18 +235,13 @@ TEST_F(pkixbuild, BeyondMaxAcceptableCertChainLength)
 // is treated as a trust anchor and is assumed to have issued all certificates
 // (i.e. FindIssuer always attempts to build the next step in the chain with
 // it).
-class SingleRootTrustDomain : public DefaultCryptoTrustDomain
-{
-public:
-  explicit SingleRootTrustDomain(ByteString rootDER)
-    : rootDER(rootDER)
-  {
-  }
+class SingleRootTrustDomain : public DefaultCryptoTrustDomain {
+ public:
+  explicit SingleRootTrustDomain(ByteString rootDER) : rootDER(rootDER) {}
 
   // The CertPolicyId argument is unused because we don't care about EV.
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
-                      /*out*/ TrustLevel& trustLevel) override
-  {
+                      /*out*/ TrustLevel& trustLevel) override {
     Input rootCert;
     Result rv = rootCert.Init(rootDER.data(), rootDER.length());
     if (rv != Success) {
@@ -277,8 +255,7 @@ public:
     return Success;
   }
 
-  Result FindIssuer(Input, IssuerChecker& checker, Time) override
-  {
+  Result FindIssuer(Input, IssuerChecker& checker, Time) override {
     // keepGoing is an out parameter from IssuerChecker.Check. It would tell us
     // whether or not to continue attempting other potential issuers. We only
     // know of one potential issuer, however, so we ignore it.
@@ -291,46 +268,39 @@ public:
     return checker.Check(rootCert, nullptr, keepGoing);
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*)
-                         override
-  {
+                         /*optional*/ const Input*,
+                         /*optional*/ const Input*) override {
     return Success;
   }
 
-private:
+ private:
   ByteString rootDER;
 };
 
 // A TrustDomain that explicitly fails if CheckRevocation is called.
-class ExpiredCertTrustDomain final : public SingleRootTrustDomain
-{
-public:
+class ExpiredCertTrustDomain final : public SingleRootTrustDomain {
+ public:
   explicit ExpiredCertTrustDomain(ByteString rootDER)
-    : SingleRootTrustDomain(rootDER)
-  {
-  }
+      : SingleRootTrustDomain(rootDER) {}
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*)
-                         override
-  {
+                         /*optional*/ const Input*,
+                         /*optional*/ const Input*) override {
     ADD_FAILURE();
     return NotReached("CheckRevocation should not be called",
                       Result::FATAL_ERROR_LIBRARY_FAILURE);
   }
 };
 
-TEST_F(pkixbuild, NoRevocationCheckingForExpiredCert)
-{
+TEST_F(pkixbuild, NoRevocationCheckingForExpiredCert) {
   const char* rootCN = "Root CA";
-  ByteString rootDER(CreateCert(rootCN, rootCN, EndEntityOrCA::MustBeCA,
-                                nullptr));
+  ByteString rootDER(
+      CreateCert(rootCN, rootCN, EndEntityOrCA::MustBeCA, nullptr));
   EXPECT_FALSE(ENCODING_FAILED(rootDER));
   ExpiredCertTrustDomain expiredCertTrustDomain(rootDER);
 
@@ -340,12 +310,9 @@ TEST_F(pkixbuild, NoRevocationCheckingForExpiredCert)
   ByteString subjectDER(CNToDERName("Expired End-Entity Cert"));
   ScopedTestKeyPair reusedKey(CloneReusedKeyPair());
   ByteString certDER(CreateEncodedCertificate(
-                       v3, sha256WithRSAEncryption(),
-                       serialNumber, issuerDER,
-                       twoDaysBeforeNow,
-                       oneDayBeforeNow,
-                       subjectDER, *reusedKey, nullptr, *reusedKey,
-                       sha256WithRSAEncryption()));
+      v3, sha256WithRSAEncryption(), serialNumber, issuerDER, twoDaysBeforeNow,
+      oneDayBeforeNow, subjectDER, *reusedKey, nullptr, *reusedKey,
+      sha256WithRSAEncryption()));
   EXPECT_FALSE(ENCODING_FAILED(certDER));
 
   Input cert;
@@ -355,25 +322,21 @@ TEST_F(pkixbuild, NoRevocationCheckingForExpiredCert)
                            EndEntityOrCA::MustBeEndEntity,
                            KeyUsage::noParticularKeyUsageRequired,
                            KeyPurposeId::id_kp_serverAuth,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
+                           CertPolicyId::anyPolicy, nullptr));
 }
 
-class DSSTrustDomain final : public EverythingFailsByDefaultTrustDomain
-{
-public:
-  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&,
-                      Input, /*out*/ TrustLevel& trustLevel) override
-  {
+class DSSTrustDomain final : public EverythingFailsByDefaultTrustDomain {
+ public:
+  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input,
+                      /*out*/ TrustLevel& trustLevel) override {
     trustLevel = TrustLevel::TrustAnchor;
     return Success;
   }
 };
 
-class pkixbuild_DSS : public ::testing::Test { };
+class pkixbuild_DSS : public ::testing::Test {};
 
-TEST_F(pkixbuild_DSS, DSSEndEntityKeyNotAccepted)
-{
+TEST_F(pkixbuild_DSS, DSSEndEntityKeyNotAccepted) {
   DSSTrustDomain trustDomain;
 
   ByteString serialNumber(CreateEncodedSerialNumber(1));
@@ -389,44 +352,36 @@ TEST_F(pkixbuild_DSS, DSSEndEntityKeyNotAccepted)
   ScopedTestKeyPair issuerKey(CloneReusedKeyPair());
   ASSERT_TRUE(issuerKey.get());
 
-  ByteString cert(CreateEncodedCertificate(v3, sha256WithRSAEncryption(),
-                                           serialNumber, issuerDER,
-                                           oneDayBeforeNow, oneDayAfterNow,
-                                           subjectDER, *subjectKey, nullptr,
-                                           *issuerKey, sha256WithRSAEncryption()));
+  ByteString cert(CreateEncodedCertificate(
+      v3, sha256WithRSAEncryption(), serialNumber, issuerDER, oneDayBeforeNow,
+      oneDayAfterNow, subjectDER, *subjectKey, nullptr, *issuerKey,
+      sha256WithRSAEncryption()));
   ASSERT_FALSE(ENCODING_FAILED(cert));
   Input certDER;
   ASSERT_EQ(Success, certDER.Init(cert.data(), cert.length()));
 
   ASSERT_EQ(Result::ERROR_UNSUPPORTED_KEYALG,
-            BuildCertChain(trustDomain, certDER, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::id_kp_serverAuth,
-                           CertPolicyId::anyPolicy,
-                           nullptr/*stapledOCSPResponse*/));
+            BuildCertChain(
+                trustDomain, certDER, Now(), EndEntityOrCA::MustBeEndEntity,
+                KeyUsage::noParticularKeyUsageRequired,
+                KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                nullptr /*stapledOCSPResponse*/));
 }
 
-class IssuerNameCheckTrustDomain final : public DefaultCryptoTrustDomain
-{
-public:
+class IssuerNameCheckTrustDomain final : public DefaultCryptoTrustDomain {
+ public:
   IssuerNameCheckTrustDomain(const ByteString& issuer, bool expectedKeepGoing)
-    : issuer(issuer)
-    , expectedKeepGoing(expectedKeepGoing)
-  {
-  }
+      : issuer(issuer), expectedKeepGoing(expectedKeepGoing) {}
 
   Result GetCertTrust(EndEntityOrCA endEntityOrCA, const CertPolicyId&, Input,
-                      /*out*/ TrustLevel& trustLevel) override
-  {
+                      /*out*/ TrustLevel& trustLevel) override {
     trustLevel = endEntityOrCA == EndEntityOrCA::MustBeCA
-               ? TrustLevel::TrustAnchor
-               : TrustLevel::InheritsTrust;
+                     ? TrustLevel::TrustAnchor
+                     : TrustLevel::InheritsTrust;
     return Success;
   }
 
-  Result FindIssuer(Input, IssuerChecker& checker, Time) override
-  {
+  Result FindIssuer(Input, IssuerChecker& checker, Time) override {
     Input issuerInput;
     EXPECT_EQ(Success, issuerInput.Init(issuer.data(), issuer.length()));
     bool keepGoing;
@@ -438,54 +393,46 @@ public:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         /*optional*/ const Input*, /*optional*/ const Input*)
-                         override
-  {
+                         /*optional*/ const Input*,
+                         /*optional*/ const Input*) override {
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
-private:
+ private:
   const ByteString issuer;
   const bool expectedKeepGoing;
 };
 
-struct IssuerNameCheckParams
-{
-  const char* subjectIssuerCN; // null means "empty name"
-  const char* issuerSubjectCN; // null means "empty name"
+struct IssuerNameCheckParams {
+  const char* subjectIssuerCN;  // null means "empty name"
+  const char* issuerSubjectCN;  // null means "empty name"
   bool matches;
   Result expectedError;
 };
 
-static const IssuerNameCheckParams ISSUER_NAME_CHECK_PARAMS[] =
-{
-  { "foo", "foo", true, Success },
-  { "foo", "bar", false, Result::ERROR_UNKNOWN_ISSUER },
-  { "f", "foo", false, Result::ERROR_UNKNOWN_ISSUER }, // prefix
-  { "foo", "f", false, Result::ERROR_UNKNOWN_ISSUER }, // prefix
-  { "foo", "Foo", false, Result::ERROR_UNKNOWN_ISSUER }, // case sensitive
-  { "", "", true, Success },
-  { nullptr, nullptr, false, Result::ERROR_EMPTY_ISSUER_NAME }, // empty issuer
+static const IssuerNameCheckParams ISSUER_NAME_CHECK_PARAMS[] = {
+    {"foo", "foo", true, Success},
+    {"foo", "bar", false, Result::ERROR_UNKNOWN_ISSUER},
+    {"f", "foo", false, Result::ERROR_UNKNOWN_ISSUER},    // prefix
+    {"foo", "f", false, Result::ERROR_UNKNOWN_ISSUER},    // prefix
+    {"foo", "Foo", false, Result::ERROR_UNKNOWN_ISSUER},  // case sensitive
+    {"", "", true, Success},
+    {nullptr, nullptr, false, Result::ERROR_EMPTY_ISSUER_NAME},  // empty issuer
 
-  // check that certificate-related errors are deferred and superseded by
-  // ERROR_UNKNOWN_ISSUER when a chain can't be built due to name mismatches
-  { "foo", nullptr, false, Result::ERROR_UNKNOWN_ISSUER },
-  { nullptr, "foo", false, Result::ERROR_UNKNOWN_ISSUER }
-};
+    // check that certificate-related errors are deferred and superseded by
+    // ERROR_UNKNOWN_ISSUER when a chain can't be built due to name mismatches
+    {"foo", nullptr, false, Result::ERROR_UNKNOWN_ISSUER},
+    {nullptr, "foo", false, Result::ERROR_UNKNOWN_ISSUER}};
 
 class pkixbuild_IssuerNameCheck
-  : public ::testing::Test
-  , public ::testing::WithParamInterface<IssuerNameCheckParams>
-{
-};
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<IssuerNameCheckParams> {};
 
-TEST_P(pkixbuild_IssuerNameCheck, MatchingName)
-{
+TEST_P(pkixbuild_IssuerNameCheck, MatchingName) {
   const IssuerNameCheckParams& params(GetParam());
 
   ByteString issuerCertDER(CreateCert(params.issuerSubjectCN,
@@ -503,31 +450,26 @@ TEST_P(pkixbuild_IssuerNameCheck, MatchingName)
                                               subjectCertDER.length()));
 
   IssuerNameCheckTrustDomain trustDomain(issuerCertDER, !params.matches);
-  ASSERT_EQ(params.expectedError,
-            BuildCertChain(trustDomain, subjectCertDERInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::id_kp_serverAuth,
-                           CertPolicyId::anyPolicy,
-                           nullptr/*stapledOCSPResponse*/));
+  ASSERT_EQ(
+      params.expectedError,
+      BuildCertChain(trustDomain, subjectCertDERInput, Now(),
+                     EndEntityOrCA::MustBeEndEntity,
+                     KeyUsage::noParticularKeyUsageRequired,
+                     KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                     nullptr /*stapledOCSPResponse*/));
 }
 
 INSTANTIATE_TEST_CASE_P(pkixbuild_IssuerNameCheck, pkixbuild_IssuerNameCheck,
                         testing::ValuesIn(ISSUER_NAME_CHECK_PARAMS));
 
-
 // Records the embedded SCT list extension for later examination.
-class EmbeddedSCTListTestTrustDomain final : public SingleRootTrustDomain
-{
-public:
+class EmbeddedSCTListTestTrustDomain final : public SingleRootTrustDomain {
+ public:
   explicit EmbeddedSCTListTestTrustDomain(ByteString rootDER)
-    : SingleRootTrustDomain(rootDER)
-  {
-  }
+      : SingleRootTrustDomain(rootDER) {}
 
   virtual void NoteAuxiliaryExtension(AuxiliaryExtension extension,
-                                      Input extensionData) override
-  {
+                                      Input extensionData) override {
     if (extension == AuxiliaryExtension::EmbeddedSCTList) {
       signedCertificateTimestamps = InputToByteString(extensionData);
     } else {
@@ -538,25 +480,22 @@ public:
   ByteString signedCertificateTimestamps;
 };
 
-TEST_F(pkixbuild, CertificateTransparencyExtension)
-{
+TEST_F(pkixbuild, CertificateTransparencyExtension) {
   // python security/pkix/tools/DottedOIDToCode.py --tlv
   //   id-embeddedSctList 1.3.6.1.4.1.11129.2.4.2
   static const uint8_t tlv_id_embeddedSctList[] = {
-    0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x02
-  };
-  static const uint8_t dummySctList[] = {
-    0x01, 0x02, 0x03, 0x04, 0x05
-  };
+      0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x02};
+  static const uint8_t dummySctList[] = {0x01, 0x02, 0x03, 0x04, 0x05};
 
-  ByteString ctExtension = TLV(der::SEQUENCE,
-    BytesToByteString(tlv_id_embeddedSctList) +
-    Boolean(false) +
-    TLV(der::OCTET_STRING,
-      // SignedCertificateTimestampList structure is encoded as an OCTET STRING
-      // within the X.509v3 extension (see RFC 6962 section 3.3).
-      // pkix decodes it internally and returns the actual structure.
-      TLV(der::OCTET_STRING, BytesToByteString(dummySctList))));
+  ByteString ctExtension =
+      TLV(der::SEQUENCE,
+          BytesToByteString(tlv_id_embeddedSctList) + Boolean(false) +
+              TLV(der::OCTET_STRING,
+                  // SignedCertificateTimestampList structure is encoded as an
+                  // OCTET STRING within the X.509v3 extension (see RFC 6962
+                  // section 3.3). pkix decodes it internally and returns the
+                  // actual structure.
+                  TLV(der::OCTET_STRING, BytesToByteString(dummySctList))));
 
   const char* rootCN = "Root CA";
   ByteString rootDER(CreateCert(rootCN, rootCN, EndEntityOrCA::MustBeCA));
@@ -572,13 +511,12 @@ TEST_F(pkixbuild, CertificateTransparencyExtension)
   ASSERT_EQ(Success, certInput.Init(certDER.data(), certDER.length()));
 
   EmbeddedSCTListTestTrustDomain extTrustDomain(rootDER);
-  ASSERT_EQ(Success,
-            BuildCertChain(extTrustDomain, certInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::anyExtendedKeyUsage,
-                           CertPolicyId::anyPolicy,
-                           nullptr /*stapledOCSPResponse*/));
+  ASSERT_EQ(Success, BuildCertChain(extTrustDomain, certInput, Now(),
+                                    EndEntityOrCA::MustBeEndEntity,
+                                    KeyUsage::noParticularKeyUsageRequired,
+                                    KeyPurposeId::anyExtendedKeyUsage,
+                                    CertPolicyId::anyPolicy,
+                                    nullptr /*stapledOCSPResponse*/));
   ASSERT_EQ(BytesToByteString(dummySctList),
             extTrustDomain.signedCertificateTimestamps);
 }
@@ -595,11 +533,9 @@ TEST_F(pkixbuild, CertificateTransparencyExtension)
 // and D are intermediates with the same subject and subject public key, and E
 // is an end-entity (in practice, the end-entity will be generated by the test
 // functions using this trust domain).
-class MultiplePathTrustDomain: public DefaultCryptoTrustDomain
-{
-public:
-  void SetUpCerts()
-  {
+class MultiplePathTrustDomain : public DefaultCryptoTrustDomain {
+ public:
+  void SetUpCerts() {
     ASSERT_FALSE(ENCODING_FAILED(CreateCert("UntrustedRoot", "UntrustedRoot",
                                             EndEntityOrCA::MustBeCA,
                                             &subjectDERToCertDER)));
@@ -607,7 +543,7 @@ public:
     // "Intermediate" when we create the second "Intermediate" certificate, so
     // we keep a copy of this "Intermediate".
     intermediateSignedByUntrustedRootCertDER =
-      CreateCert("UntrustedRoot", "Intermediate", EndEntityOrCA::MustBeCA);
+        CreateCert("UntrustedRoot", "Intermediate", EndEntityOrCA::MustBeCA);
     ASSERT_FALSE(ENCODING_FAILED(intermediateSignedByUntrustedRootCertDER));
     rootCACertDER = CreateCert("TrustedRoot", "TrustedRoot",
                                EndEntityOrCA::MustBeCA, &subjectDERToCertDER);
@@ -617,30 +553,28 @@ public:
                                             &subjectDERToCertDER)));
   }
 
-private:
+ private:
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
-                      /*out*/ TrustLevel& trustLevel) override
-  {
+                      /*out*/ TrustLevel& trustLevel) override {
     trustLevel = InputEqualsByteString(candidateCert, rootCACertDER)
-               ? TrustLevel::TrustAnchor
-               : TrustLevel::InheritsTrust;
+                     ? TrustLevel::TrustAnchor
+                     : TrustLevel::InheritsTrust;
     return Success;
   }
 
-  Result CheckCert(ByteString& certDER, IssuerChecker& checker, bool& keepGoing)
-  {
+  Result CheckCert(ByteString& certDER, IssuerChecker& checker,
+                   bool& keepGoing) {
     Input derCert;
     Result rv = derCert.Init(certDER.data(), certDER.length());
     if (rv != Success) {
       return rv;
     }
-    return checker.Check(derCert, nullptr/*additionalNameConstraints*/,
+    return checker.Check(derCert, nullptr /*additionalNameConstraints*/,
                          keepGoing);
   }
 
-  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker, Time)
-                    override
-  {
+  Result FindIssuer(Input encodedIssuerName, IssuerChecker& checker,
+                    Time) override {
     ByteString subjectDER(InputToByteString(encodedIssuerName));
     ByteString certDER(subjectDERToCertDER[subjectDER]);
     assert(!ENCODING_FAILED(certDER));
@@ -662,13 +596,11 @@ private:
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
                          /*optional*/ const Input*,
-                         /*optional*/ const Input*) override
-  {
+                         /*optional*/ const Input*) override {
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
@@ -677,26 +609,22 @@ private:
   ByteString intermediateSignedByUntrustedRootCertDER;
 };
 
-TEST_F(pkixbuild, BadEmbeddedSCTWithMultiplePaths)
-{
+TEST_F(pkixbuild, BadEmbeddedSCTWithMultiplePaths) {
   MultiplePathTrustDomain trustDomain;
   trustDomain.SetUpCerts();
 
   // python security/pkix/tools/DottedOIDToCode.py --tlv
   //   id-embeddedSctList 1.3.6.1.4.1.11129.2.4.2
   static const uint8_t tlv_id_embeddedSctList[] = {
-    0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x02
-  };
-  static const uint8_t dummySctList[] = {
-    0x01, 0x02, 0x03, 0x04, 0x05
-  };
-  ByteString ctExtension = TLV(der::SEQUENCE,
-    BytesToByteString(tlv_id_embeddedSctList) +
-    Boolean(false) +
-    // The contents of the OCTET STRING are supposed to consist of an OCTET
-    // STRING of useful data. We're testing what happens if it isn't, so shove
-    // some bogus (non-OCTET STRING) data in there.
-    TLV(der::OCTET_STRING, BytesToByteString(dummySctList)));
+      0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xd6, 0x79, 0x02, 0x04, 0x02};
+  static const uint8_t dummySctList[] = {0x01, 0x02, 0x03, 0x04, 0x05};
+  ByteString ctExtension =
+      TLV(der::SEQUENCE,
+          BytesToByteString(tlv_id_embeddedSctList) + Boolean(false) +
+              // The contents of the OCTET STRING are supposed to consist of an
+              // OCTET STRING of useful data. We're testing what happens if it
+              // isn't, so shove some bogus (non-OCTET STRING) data in there.
+              TLV(der::OCTET_STRING, BytesToByteString(dummySctList)));
   ByteString certDER(CreateCert("Intermediate", "Cert with bogus SCT list",
                                 EndEntityOrCA::MustBeEndEntity,
                                 nullptr, /*subjectDERToCertDER*/
@@ -704,23 +632,21 @@ TEST_F(pkixbuild, BadEmbeddedSCTWithMultiplePaths)
   ASSERT_FALSE(ENCODING_FAILED(certDER));
   Input certDERInput;
   ASSERT_EQ(Success, certDERInput.Init(certDER.data(), certDER.length()));
-  ASSERT_EQ(Result::ERROR_BAD_DER,
-            BuildCertChain(trustDomain, certDERInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::id_kp_serverAuth,
-                           CertPolicyId::anyPolicy,
-                           nullptr/*stapledOCSPResponse*/));
+  ASSERT_EQ(
+      Result::ERROR_BAD_DER,
+      BuildCertChain(trustDomain, certDERInput, Now(),
+                     EndEntityOrCA::MustBeEndEntity,
+                     KeyUsage::noParticularKeyUsageRequired,
+                     KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                     nullptr /*stapledOCSPResponse*/));
 }
 
 // Same as a MultiplePathTrustDomain, but the end-entity is revoked.
-class RevokedEndEntityTrustDomain final : public MultiplePathTrustDomain
-{
-public:
+class RevokedEndEntityTrustDomain final : public MultiplePathTrustDomain {
+ public:
   Result CheckRevocation(EndEntityOrCA endEntityOrCA, const CertID&, Time,
                          Duration, /*optional*/ const Input*,
-                         /*optional*/ const Input*) override
-  {
+                         /*optional*/ const Input*) override {
     if (endEntityOrCA == EndEntityOrCA::MustBeEndEntity) {
       return Result::ERROR_REVOKED_CERTIFICATE;
     }
@@ -728,8 +654,7 @@ public:
   }
 };
 
-TEST_F(pkixbuild, RevokedEndEntityWithMultiplePaths)
-{
+TEST_F(pkixbuild, RevokedEndEntityWithMultiplePaths) {
   RevokedEndEntityTrustDomain trustDomain;
   trustDomain.SetUpCerts();
   ByteString certDER(CreateCert("Intermediate", "RevokedEndEntity",
@@ -737,11 +662,11 @@ TEST_F(pkixbuild, RevokedEndEntityWithMultiplePaths)
   ASSERT_FALSE(ENCODING_FAILED(certDER));
   Input certDERInput;
   ASSERT_EQ(Success, certDERInput.Init(certDER.data(), certDER.length()));
-  ASSERT_EQ(Result::ERROR_REVOKED_CERTIFICATE,
-            BuildCertChain(trustDomain, certDERInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           KeyPurposeId::id_kp_serverAuth,
-                           CertPolicyId::anyPolicy,
-                           nullptr/*stapledOCSPResponse*/));
+  ASSERT_EQ(
+      Result::ERROR_REVOKED_CERTIFICATE,
+      BuildCertChain(trustDomain, certDERInput, Now(),
+                     EndEntityOrCA::MustBeEndEntity,
+                     KeyUsage::noParticularKeyUsageRequired,
+                     KeyPurposeId::id_kp_serverAuth, CertPolicyId::anyPolicy,
+                     nullptr /*stapledOCSPResponse*/));
 }

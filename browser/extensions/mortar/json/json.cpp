@@ -29,7 +29,7 @@ using namespace std;
 namespace JSON {
 
 enum {
-  PRIMITIVE = 0, // number, boolean, true, false, null
+  PRIMITIVE = 0,  // number, boolean, true, false, null
   OBJECT = 1,
   ARRAY = 2,
   STRING = 3
@@ -41,35 +41,27 @@ Token::Token(int _type, const string& _v) {
   v = _v;
 }
 
-bool Token::isPrimitive() const {
-  return type == PRIMITIVE;
-}
+bool Token::isPrimitive() const { return type == PRIMITIVE; }
 
-bool Token::isString() const {
-  return type == STRING;
-}
+bool Token::isString() const { return type == STRING; }
 
-bool Token::isObject() const {
-  return type == OBJECT;
-}
+bool Token::isObject() const { return type == OBJECT; }
 
-bool Token::isArray() const {
-  return type == ARRAY;
-}
+bool Token::isArray() const { return type == ARRAY; }
 
 void Parser::addToken(int type, const string& value, stack<int>& parents) {
   tokens.push_back(Token(type, value));
   if (!parents.empty()) {
     // Add this token to the enclosing value.
-    Token *t = &tokens[parents.top()];
+    Token* t = &tokens[parents.top()];
     t->size++;
     // String keys only have one child value, so we pop the parent here.
-    if (t->type == STRING)
-      parents.pop();
+    if (t->type == STRING) parents.pop();
   }
 }
 
-int Parser::parsePrimitive(const string& js, string::const_iterator& pos, stack<int>& parents) {
+int Parser::parsePrimitive(const string& js, string::const_iterator& pos,
+                           stack<int>& parents) {
   string::const_iterator start = pos;
 
   for (; pos != js.cend(); pos++) {
@@ -87,10 +79,11 @@ int Parser::parsePrimitive(const string& js, string::const_iterator& pos, stack<
   return ERROR_PART;
 }
 
-int Parser::parseString(const string& js, string::const_iterator& pos, stack<int>& parents) {
+int Parser::parseString(const string& js, string::const_iterator& pos,
+                        stack<int>& parents) {
   string::const_iterator start = pos;
 
-  pos++; // skip starting quote
+  pos++;  // skip starting quote
 
   for (; pos != js.cend(); pos++) {
     // Quote: end of string
@@ -103,26 +96,32 @@ int Parser::parseString(const string& js, string::const_iterator& pos, stack<int
     if (*pos == '\\' && pos + 1 < js.cend()) {
       pos++;
       switch (*pos) {
-	// Allowed escaped symbols
-      case '\"': case '/' : case '\\' : case 'b' :
-      case 'f' : case 'r' : case 'n'  : case 't' :
-	break;
-	// Allows escaped symbol \uXXXX
-      case 'u':
-	pos++;
-	for (int i = 0; i < 4 && pos < js.cend(); i++) {
-	  if (!isxdigit(*pos)) {
-	    pos = start;
-	    return ERROR_INVAL;
-	  }
-	  pos++;
-	}
-	pos--;
-	break;
-	// Unexpected symbol
-      default:
-	pos = start;
-	return ERROR_INVAL;
+          // Allowed escaped symbols
+        case '\"':
+        case '/':
+        case '\\':
+        case 'b':
+        case 'f':
+        case 'r':
+        case 'n':
+        case 't':
+          break;
+          // Allows escaped symbol \uXXXX
+        case 'u':
+          pos++;
+          for (int i = 0; i < 4 && pos < js.cend(); i++) {
+            if (!isxdigit(*pos)) {
+              pos = start;
+              return ERROR_INVAL;
+            }
+            pos++;
+          }
+          pos--;
+          break;
+          // Unexpected symbol
+        default:
+          pos = start;
+          return ERROR_INVAL;
       }
     }
   }
@@ -137,65 +136,70 @@ int Parser::parse(const std::string& js) {
   tokens.clear();
 
   for (; pos != js.cend(); pos++) {
-    if (isspace(*pos))
-      continue;
+    if (isspace(*pos)) continue;
     switch (*pos) {
-    case '{': case '[': {
-      int type = (*pos == '{' ? OBJECT : ARRAY);
-      addToken(type, string(), parents);
-      parents.push(tokens.size() - 1);
-      break;
-    }
-    case '}': case ']': {
-      if (parents.empty())
-	return ERROR_INVAL;
-      int type = (*pos == '}' ? OBJECT : ARRAY);
-      Token* t = &tokens[parents.top()];
-      parents.pop();
-      if (t->type != type)
-	return ERROR_INVAL;
-      break;
-    }
-    case '\"': {
-      int r = parseString(js, pos, parents);
-      if (r < 0) return r;
-      break;
-    }
-    case ':': {
-      if (tokens.empty() || tokens.back().type != STRING)
-	return ERROR_INVAL;
-      parents.push(tokens.size() - 1);
-      break;
-    }
-    case ',': {
-      if (parents.empty())
-	return ERROR_INVAL;
-      break;
-    }
-    case '-': case '0': case '1' : case '2': case '3' : case '4':
-    case '5': case '6': case '7' : case '8': case '9':
-    case 't': case 'f': case 'n' : {
-      if (parents.empty())
-	return ERROR_INVAL;
-      Token *t = &tokens[parents.top()];
-      if (t->type == OBJECT ||
-	  (t->type == STRING && t->size != 0)) {
-	return ERROR_INVAL;
+      case '{':
+      case '[': {
+        int type = (*pos == '{' ? OBJECT : ARRAY);
+        addToken(type, string(), parents);
+        parents.push(tokens.size() - 1);
+        break;
       }
-      int r = parsePrimitive(js, pos, parents);
-      if (r < 0) return r;
-      break;
-    }
-    default:
-      // Unexpected character
-      return ERROR_INVAL;
+      case '}':
+      case ']': {
+        if (parents.empty()) return ERROR_INVAL;
+        int type = (*pos == '}' ? OBJECT : ARRAY);
+        Token* t = &tokens[parents.top()];
+        parents.pop();
+        if (t->type != type) return ERROR_INVAL;
+        break;
+      }
+      case '\"': {
+        int r = parseString(js, pos, parents);
+        if (r < 0) return r;
+        break;
+      }
+      case ':': {
+        if (tokens.empty() || tokens.back().type != STRING) return ERROR_INVAL;
+        parents.push(tokens.size() - 1);
+        break;
+      }
+      case ',': {
+        if (parents.empty()) return ERROR_INVAL;
+        break;
+      }
+      case '-':
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case 't':
+      case 'f':
+      case 'n': {
+        if (parents.empty()) return ERROR_INVAL;
+        Token* t = &tokens[parents.top()];
+        if (t->type == OBJECT || (t->type == STRING && t->size != 0)) {
+          return ERROR_INVAL;
+        }
+        int r = parsePrimitive(js, pos, parents);
+        if (r < 0) return r;
+        break;
+      }
+      default:
+        // Unexpected character
+        return ERROR_INVAL;
     }
   }
 
-  if (!parents.empty())
-    return ERROR_PART;
+  if (!parents.empty()) return ERROR_PART;
 
   return tokens.size();
 }
 
-}
+}  // namespace JSON

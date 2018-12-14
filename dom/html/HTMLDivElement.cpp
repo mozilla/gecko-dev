@@ -15,25 +15,19 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Div)
 namespace mozilla {
 namespace dom {
 
-HTMLDivElement::~HTMLDivElement()
-{
-}
+HTMLDivElement::~HTMLDivElement() {}
 
 NS_IMPL_ELEMENT_CLONE(HTMLDivElement)
 
-JSObject*
-HTMLDivElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLDivElement::WrapNode(JSContext* aCx,
+                                   JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLDivElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-bool
-HTMLDivElement::ParseAttribute(int32_t aNamespaceID,
-                               nsAtom* aAttribute,
-                               const nsAString& aValue,
-                               nsIPrincipal* aMaybeScriptedPrincipal,
-                               nsAttrValue& aResult)
-{
+bool HTMLDivElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                                    const nsAString& aValue,
+                                    nsIPrincipal* aMaybeScriptedPrincipal,
+                                    nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (mNodeInfo->Equals(nsGkAtoms::marquee)) {
       if ((aAttribute == nsGkAtoms::width) ||
@@ -49,8 +43,7 @@ HTMLDivElement::ParseAttribute(int32_t aNamespaceID,
       }
     }
 
-    if (mNodeInfo->Equals(nsGkAtoms::div) &&
-        aAttribute == nsGkAtoms::align) {
+    if (mNodeInfo->Equals(nsGkAtoms::div) && aAttribute == nsGkAtoms::align) {
       return ParseDivAlignValue(aValue, aResult);
     }
   }
@@ -59,17 +52,14 @@ HTMLDivElement::ParseAttribute(int32_t aNamespaceID,
                                               aMaybeScriptedPrincipal, aResult);
 }
 
-void
-HTMLDivElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                      GenericSpecifiedValues* aData)
-{
+void HTMLDivElement::MapAttributesIntoRule(
+    const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData) {
   nsGenericHTMLElement::MapDivAlignAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
 }
 
-static void
-MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData)
-{
+static void MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                         GenericSpecifiedValues* aData) {
   nsGenericHTMLElement::MapImageMarginAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapImageSizeAttributesInto(aAttributes, aData);
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
@@ -77,30 +67,23 @@ MapMarqueeAttributesIntoRule(const nsMappedAttributes* aAttributes, GenericSpeci
 }
 
 NS_IMETHODIMP_(bool)
-HTMLDivElement::IsAttributeMapped(const nsAtom* aAttribute) const
-{
+HTMLDivElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   if (mNodeInfo->Equals(nsGkAtoms::div)) {
-    static const MappedAttributeEntry* const map[] = {
-      sDivAlignAttributeMap,
-      sCommonAttributeMap
-    };
+    static const MappedAttributeEntry* const map[] = {sDivAlignAttributeMap,
+                                                      sCommonAttributeMap};
     return FindAttributeDependence(aAttribute, map);
   }
   if (mNodeInfo->Equals(nsGkAtoms::marquee)) {
     static const MappedAttributeEntry* const map[] = {
-      sImageMarginSizeAttributeMap,
-      sBackgroundColorAttributeMap,
-      sCommonAttributeMap
-    };
+        sImageMarginSizeAttributeMap, sBackgroundColorAttributeMap,
+        sCommonAttributeMap};
     return FindAttributeDependence(aAttribute, map);
   }
 
   return nsGenericHTMLElement::IsAttributeMapped(aAttribute);
 }
 
-nsMapRuleToAttributesFunc
-HTMLDivElement::GetAttributeMappingFunction() const
-{
+nsMapRuleToAttributesFunc HTMLDivElement::GetAttributeMappingFunction() const {
   if (mNodeInfo->Equals(nsGkAtoms::div)) {
     return &MapAttributesIntoRule;
   }
@@ -110,5 +93,5 @@ HTMLDivElement::GetAttributeMappingFunction() const
   return nsGenericHTMLElement::GetAttributeMappingFunction();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

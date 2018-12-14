@@ -99,181 +99,175 @@ namespace js {
 //
 // For more detailed information, see vm/GeckoProfiler.h.
 //
-class ProfileEntry
-{
-    // A ProfileEntry represents either a C++ profile entry or a JS one.
+class ProfileEntry {
+  // A ProfileEntry represents either a C++ profile entry or a JS one.
 
-    // WARNING WARNING WARNING
-    //
-    // All the fields below are Atomic<...,ReleaseAcquire>. This is needed so
-    // that writes to these fields are release-writes, which ensures that
-    // earlier writes in this thread don't get reordered after the writes to
-    // these fields. In particular, the decrement of the stack pointer in
-    // PseudoStack::pop() is a write that *must* happen before the values in
-    // this ProfileEntry are changed. Otherwise, the sampler thread might see
-    // an inconsistent state where the stack pointer still points to a
-    // ProfileEntry which has already been popped off the stack and whose
-    // fields have now been partially repopulated with new values.
-    // See the "Concurrency considerations" paragraph at the top of this file
-    // for more details.
+  // WARNING WARNING WARNING
+  //
+  // All the fields below are Atomic<...,ReleaseAcquire>. This is needed so
+  // that writes to these fields are release-writes, which ensures that
+  // earlier writes in this thread don't get reordered after the writes to
+  // these fields. In particular, the decrement of the stack pointer in
+  // PseudoStack::pop() is a write that *must* happen before the values in
+  // this ProfileEntry are changed. Otherwise, the sampler thread might see
+  // an inconsistent state where the stack pointer still points to a
+  // ProfileEntry which has already been popped off the stack and whose
+  // fields have now been partially repopulated with new values.
+  // See the "Concurrency considerations" paragraph at the top of this file
+  // for more details.
 
-    // Descriptive label for this entry. Must be a static string! Can be an
-    // empty string, but not a null pointer.
-    mozilla::Atomic<const char*, mozilla::ReleaseAcquire> label_;
+  // Descriptive label for this entry. Must be a static string! Can be an
+  // empty string, but not a null pointer.
+  mozilla::Atomic<const char*, mozilla::ReleaseAcquire> label_;
 
-    // An additional descriptive string of this entry which is combined with
-    // |label_| in profiler output. Need not be (and usually isn't) static. Can
-    // be null.
-    mozilla::Atomic<const char*, mozilla::ReleaseAcquire> dynamicString_;
+  // An additional descriptive string of this entry which is combined with
+  // |label_| in profiler output. Need not be (and usually isn't) static. Can
+  // be null.
+  mozilla::Atomic<const char*, mozilla::ReleaseAcquire> dynamicString_;
 
-    // Stack pointer for non-JS entries, the script pointer otherwise.
-    mozilla::Atomic<void*, mozilla::ReleaseAcquire> spOrScript;
+  // Stack pointer for non-JS entries, the script pointer otherwise.
+  mozilla::Atomic<void*, mozilla::ReleaseAcquire> spOrScript;
 
-    // Line number for non-JS entries, the bytecode offset otherwise.
-    mozilla::Atomic<int32_t, mozilla::ReleaseAcquire> lineOrPcOffset;
+  // Line number for non-JS entries, the bytecode offset otherwise.
+  mozilla::Atomic<int32_t, mozilla::ReleaseAcquire> lineOrPcOffset;
 
-    // Bits 0...1 hold the Kind. Bits 2...3 are unused. Bits 4...12 hold the
-    // Category.
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> kindAndCategory_;
+  // Bits 0...1 hold the Kind. Bits 2...3 are unused. Bits 4...12 hold the
+  // Category.
+  mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> kindAndCategory_;
 
-    static int32_t pcToOffset(JSScript* aScript, jsbytecode* aPc);
+  static int32_t pcToOffset(JSScript* aScript, jsbytecode* aPc);
 
-  public:
-    enum class Kind : uint32_t {
-        // A normal C++ frame.
-        CPP_NORMAL = 0,
+ public:
+  enum class Kind : uint32_t {
+    // A normal C++ frame.
+    CPP_NORMAL = 0,
 
-        // A special C++ frame indicating the start of a run of JS pseudostack
-        // entries. CPP_MARKER_FOR_JS frames are ignored, except for the sp
-        // field.
-        CPP_MARKER_FOR_JS = 1,
+    // A special C++ frame indicating the start of a run of JS pseudostack
+    // entries. CPP_MARKER_FOR_JS frames are ignored, except for the sp
+    // field.
+    CPP_MARKER_FOR_JS = 1,
 
-        // A normal JS frame.
-        JS_NORMAL = 2,
+    // A normal JS frame.
+    JS_NORMAL = 2,
 
-        // An interpreter JS frame that has OSR-ed into baseline. JS_NORMAL
-        // frames can be converted to JS_OSR and back. JS_OSR frames are
-        // ignored.
-        JS_OSR = 3,
+    // An interpreter JS frame that has OSR-ed into baseline. JS_NORMAL
+    // frames can be converted to JS_OSR and back. JS_OSR frames are
+    // ignored.
+    JS_OSR = 3,
 
-        KIND_MASK = 0x3,
-    };
+    KIND_MASK = 0x3,
+  };
 
-    // Keep these in sync with devtools/client/performance/modules/categories.js
-    enum class Category : uint32_t {
-        OTHER    = 1u << 4,
-        CSS      = 1u << 5,
-        JS       = 1u << 6,
-        GC       = 1u << 7,
-        CC       = 1u << 8,
-        NETWORK  = 1u << 9,
-        GRAPHICS = 1u << 10,
-        STORAGE  = 1u << 11,
-        EVENTS   = 1u << 12,
+  // Keep these in sync with devtools/client/performance/modules/categories.js
+  enum class Category : uint32_t {
+    OTHER = 1u << 4,
+    CSS = 1u << 5,
+    JS = 1u << 6,
+    GC = 1u << 7,
+    CC = 1u << 8,
+    NETWORK = 1u << 9,
+    GRAPHICS = 1u << 10,
+    STORAGE = 1u << 11,
+    EVENTS = 1u << 12,
 
-        FIRST    = OTHER,
-        LAST     = EVENTS,
+    FIRST = OTHER,
+    LAST = EVENTS,
 
-        CATEGORY_MASK = ~uint32_t(Kind::KIND_MASK),
-    };
+    CATEGORY_MASK = ~uint32_t(Kind::KIND_MASK),
+  };
 
-    static_assert((uint32_t(Category::FIRST) & uint32_t(Kind::KIND_MASK)) == 0,
-                  "Category overlaps with Kind");
+  static_assert((uint32_t(Category::FIRST) & uint32_t(Kind::KIND_MASK)) == 0,
+                "Category overlaps with Kind");
 
-    bool isCpp() const
-    {
-        Kind k = kind();
-        return k == Kind::CPP_NORMAL || k == Kind::CPP_MARKER_FOR_JS;
-    }
+  bool isCpp() const {
+    Kind k = kind();
+    return k == Kind::CPP_NORMAL || k == Kind::CPP_MARKER_FOR_JS;
+  }
 
-    bool isJs() const
-    {
-        Kind k = kind();
-        return k == Kind::JS_NORMAL || k == Kind::JS_OSR;
-    }
+  bool isJs() const {
+    Kind k = kind();
+    return k == Kind::JS_NORMAL || k == Kind::JS_OSR;
+  }
 
-    void setLabel(const char* aLabel) { label_ = aLabel; }
-    const char* label() const { return label_; }
+  void setLabel(const char* aLabel) { label_ = aLabel; }
+  const char* label() const { return label_; }
 
-    const char* dynamicString() const { return dynamicString_; }
+  const char* dynamicString() const { return dynamicString_; }
 
-    void initCppFrame(const char* aLabel, const char* aDynamicString, void* sp, uint32_t aLine,
-                      Kind aKind, Category aCategory)
-    {
-        label_ = aLabel;
-        dynamicString_ = aDynamicString;
-        spOrScript = sp;
-        lineOrPcOffset = static_cast<int32_t>(aLine);
-        kindAndCategory_ = uint32_t(aKind) | uint32_t(aCategory);
-        MOZ_ASSERT(isCpp());
-    }
+  void initCppFrame(const char* aLabel, const char* aDynamicString, void* sp,
+                    uint32_t aLine, Kind aKind, Category aCategory) {
+    label_ = aLabel;
+    dynamicString_ = aDynamicString;
+    spOrScript = sp;
+    lineOrPcOffset = static_cast<int32_t>(aLine);
+    kindAndCategory_ = uint32_t(aKind) | uint32_t(aCategory);
+    MOZ_ASSERT(isCpp());
+  }
 
-    void initJsFrame(const char* aLabel, const char* aDynamicString, JSScript* aScript,
-                     jsbytecode* aPc)
-    {
-        label_ = aLabel;
-        dynamicString_ = aDynamicString;
-        spOrScript = aScript;
-        lineOrPcOffset = pcToOffset(aScript, aPc);
-        kindAndCategory_ = uint32_t(Kind::JS_NORMAL) | uint32_t(Category::JS);
-        MOZ_ASSERT(isJs());
-    }
+  void initJsFrame(const char* aLabel, const char* aDynamicString,
+                   JSScript* aScript, jsbytecode* aPc) {
+    label_ = aLabel;
+    dynamicString_ = aDynamicString;
+    spOrScript = aScript;
+    lineOrPcOffset = pcToOffset(aScript, aPc);
+    kindAndCategory_ = uint32_t(Kind::JS_NORMAL) | uint32_t(Category::JS);
+    MOZ_ASSERT(isJs());
+  }
 
-    void setKind(Kind aKind) {
-        kindAndCategory_ = uint32_t(aKind) | uint32_t(category());
-    }
+  void setKind(Kind aKind) {
+    kindAndCategory_ = uint32_t(aKind) | uint32_t(category());
+  }
 
-    Kind kind() const {
-        return Kind(kindAndCategory_ & uint32_t(Kind::KIND_MASK));
-    }
+  Kind kind() const {
+    return Kind(kindAndCategory_ & uint32_t(Kind::KIND_MASK));
+  }
 
-    Category category() const {
-        return Category(kindAndCategory_ & uint32_t(Category::CATEGORY_MASK));
-    }
+  Category category() const {
+    return Category(kindAndCategory_ & uint32_t(Category::CATEGORY_MASK));
+  }
 
-    void* stackAddress() const {
-        MOZ_ASSERT(!isJs());
-        return spOrScript;
-    }
+  void* stackAddress() const {
+    MOZ_ASSERT(!isJs());
+    return spOrScript;
+  }
 
-    JS_PUBLIC_API JSScript* script() const;
+  JS_PUBLIC_API JSScript* script() const;
 
-    uint32_t line() const {
-        MOZ_ASSERT(!isJs());
-        return static_cast<uint32_t>(lineOrPcOffset);
-    }
+  uint32_t line() const {
+    MOZ_ASSERT(!isJs());
+    return static_cast<uint32_t>(lineOrPcOffset);
+  }
 
-    // Note that the pointer returned might be invalid.
-    JSScript* rawScript() const {
-        MOZ_ASSERT(isJs());
-        void* script = spOrScript;
-        return static_cast<JSScript*>(script);
-    }
+  // Note that the pointer returned might be invalid.
+  JSScript* rawScript() const {
+    MOZ_ASSERT(isJs());
+    void* script = spOrScript;
+    return static_cast<JSScript*>(script);
+  }
 
-    // We can't know the layout of JSScript, so look in vm/GeckoProfiler.cpp.
-    JS_FRIEND_API jsbytecode* pc() const;
-    void setPC(jsbytecode* pc);
+  // We can't know the layout of JSScript, so look in vm/GeckoProfiler.cpp.
+  JS_FRIEND_API jsbytecode* pc() const;
+  void setPC(jsbytecode* pc);
 
-    void trace(JSTracer* trc);
+  void trace(JSTracer* trc);
 
-    // The offset of a pc into a script's code can actually be 0, so to
-    // signify a nullptr pc, use a -1 index. This is checked against in
-    // pc() and setPC() to set/get the right pc.
-    static const int32_t NullPCOffset = -1;
+  // The offset of a pc into a script's code can actually be 0, so to
+  // signify a nullptr pc, use a -1 index. This is checked against in
+  // pc() and setPC() to set/get the right pc.
+  static const int32_t NullPCOffset = -1;
 };
 
-JS_FRIEND_API void
-SetContextProfilingStack(JSContext* cx, PseudoStack* pseudoStack);
+JS_FRIEND_API void SetContextProfilingStack(JSContext* cx,
+                                            PseudoStack* pseudoStack);
 
 // GetContextProfilingStack also exists, but it's defined in RootingAPI.h.
 
-JS_FRIEND_API void
-EnableContextProfilingStack(JSContext* cx, bool enabled);
+JS_FRIEND_API void EnableContextProfilingStack(JSContext* cx, bool enabled);
 
-JS_FRIEND_API void
-RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*));
+JS_FRIEND_API void RegisterContextProfilingEventMarker(JSContext* cx,
+                                                       void (*fn)(const char*));
 
-} // namespace js
+}  // namespace js
 
 // Each thread has its own PseudoStack. That thread modifies the PseudoStack,
 // pushing and popping elements as necessary.
@@ -294,92 +288,93 @@ RegisterContextProfilingEventMarker(JSContext* cx, void (*fn)(const char*));
 // - When popping an old entry, the only operation is the decrementing of the
 //   stack pointer, which is obviously atomic.
 //
-class PseudoStack final
-{
-  public:
-    PseudoStack()
-      : stackPointer(0)
-    {}
+class PseudoStack final {
+ public:
+  PseudoStack() : stackPointer(0) {}
 
-    ~PseudoStack() {
-        // The label macros keep a reference to the PseudoStack to avoid a TLS
-        // access. If these are somehow not all cleared we will get a
-        // use-after-free so better to crash now.
-        MOZ_RELEASE_ASSERT(stackPointer == 0);
+  ~PseudoStack() {
+    // The label macros keep a reference to the PseudoStack to avoid a TLS
+    // access. If these are somehow not all cleared we will get a
+    // use-after-free so better to crash now.
+    MOZ_RELEASE_ASSERT(stackPointer == 0);
+  }
+
+  void pushCppFrame(const char* label, const char* dynamicString, void* sp,
+                    uint32_t line, js::ProfileEntry::Kind kind,
+                    js::ProfileEntry::Category category) {
+    if (stackPointer < MaxEntries) {
+      entries[stackPointer].initCppFrame(label, dynamicString, sp, line, kind,
+                                         category);
     }
 
-    void pushCppFrame(const char* label, const char* dynamicString, void* sp, uint32_t line,
-                      js::ProfileEntry::Kind kind, js::ProfileEntry::Category category) {
-        if (stackPointer < MaxEntries) {
-            entries[stackPointer].initCppFrame(label, dynamicString, sp, line, kind, category);
-        }
+    // This must happen at the end! The compiler will not reorder this
+    // update because stackPointer is Atomic<..., ReleaseAcquire>, so any
+    // the writes above will not be reordered below the stackPointer store.
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic increment, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer + 1;
+  }
 
-        // This must happen at the end! The compiler will not reorder this
-        // update because stackPointer is Atomic<..., ReleaseAcquire>, so any
-        // the writes above will not be reordered below the stackPointer store.
-        // Do the read and the write as two separate statements, in order to
-        // make it clear that we don't need an atomic increment, which would be
-        // more expensive on x86 than the separate operations done here.
-        // This thread is the only one that ever changes the value of
-        // stackPointer.
-        uint32_t oldStackPointer = stackPointer;
-        stackPointer = oldStackPointer + 1;
+  void pushJsFrame(const char* label, const char* dynamicString,
+                   JSScript* script, jsbytecode* pc) {
+    if (stackPointer < MaxEntries) {
+      entries[stackPointer].initJsFrame(label, dynamicString, script, pc);
     }
 
-    void pushJsFrame(const char* label, const char* dynamicString, JSScript* script,
-                     jsbytecode* pc) {
-        if (stackPointer < MaxEntries) {
-            entries[stackPointer].initJsFrame(label, dynamicString, script, pc);
-        }
+    // This must happen at the end! The compiler will not reorder this
+    // update because stackPointer is Atomic<..., ReleaseAcquire>, which
+    // makes this assignment a release-store, so the writes above will not
+    // be reordered to occur after the stackPointer store.
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic increment, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer + 1;
+  }
 
-        // This must happen at the end! The compiler will not reorder this
-        // update because stackPointer is Atomic<..., ReleaseAcquire>, which
-        // makes this assignment a release-store, so the writes above will not
-        // be reordered to occur after the stackPointer store.
-        // Do the read and the write as two separate statements, in order to
-        // make it clear that we don't need an atomic increment, which would be
-        // more expensive on x86 than the separate operations done here.
-        // This thread is the only one that ever changes the value of
-        // stackPointer.
-        uint32_t oldStackPointer = stackPointer;
-        stackPointer = oldStackPointer + 1;
-    }
+  void pop() {
+    MOZ_ASSERT(stackPointer > 0);
+    // Do the read and the write as two separate statements, in order to
+    // make it clear that we don't need an atomic decrement, which would be
+    // more expensive on x86 than the separate operations done here.
+    // This thread is the only one that ever changes the value of
+    // stackPointer.
+    uint32_t oldStackPointer = stackPointer;
+    stackPointer = oldStackPointer - 1;
+  }
 
-    void pop() {
-        MOZ_ASSERT(stackPointer > 0);
-        // Do the read and the write as two separate statements, in order to
-        // make it clear that we don't need an atomic decrement, which would be
-        // more expensive on x86 than the separate operations done here.
-        // This thread is the only one that ever changes the value of
-        // stackPointer.
-        uint32_t oldStackPointer = stackPointer;
-        stackPointer = oldStackPointer - 1;
-    }
+  uint32_t stackSize() const {
+    return std::min(uint32_t(stackPointer), uint32_t(MaxEntries));
+  }
 
-    uint32_t stackSize() const { return std::min(uint32_t(stackPointer), uint32_t(MaxEntries)); }
+ private:
+  // No copying.
+  PseudoStack(const PseudoStack&) = delete;
+  void operator=(const PseudoStack&) = delete;
 
-  private:
-    // No copying.
-    PseudoStack(const PseudoStack&) = delete;
-    void operator=(const PseudoStack&) = delete;
+ public:
+  static const uint32_t MaxEntries = 1024;
 
-  public:
-    static const uint32_t MaxEntries = 1024;
+  // The stack entries.
+  js::ProfileEntry entries[MaxEntries];
 
-    // The stack entries.
-    js::ProfileEntry entries[MaxEntries];
-
-    // This may exceed MaxEntries, so instead use the stackSize() method to
-    // determine the number of valid samples in entries. When this is less
-    // than MaxEntries, it refers to the first free entry past the top of the
-    // in-use stack (i.e. entries[stackPointer - 1] is the top stack entry).
-    //
-    // WARNING WARNING WARNING
-    //
-    // This is an atomic variable that uses ReleaseAcquire memory ordering.
-    // See the "Concurrency considerations" paragraph at the top of this file
-    // for more details.
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stackPointer;
+  // This may exceed MaxEntries, so instead use the stackSize() method to
+  // determine the number of valid samples in entries. When this is less
+  // than MaxEntries, it refers to the first free entry past the top of the
+  // in-use stack (i.e. entries[stackPointer - 1] is the top stack entry).
+  //
+  // WARNING WARNING WARNING
+  //
+  // This is an atomic variable that uses ReleaseAcquire memory ordering.
+  // See the "Concurrency considerations" paragraph at the top of this file
+  // for more details.
+  mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> stackPointer;
 };
 
 namespace js {
@@ -388,41 +383,43 @@ class AutoGeckoProfilerEntry;
 class GeckoProfilerEntryMarker;
 class GeckoProfilerBaselineOSRMarker;
 
-class GeckoProfilerThread
-{
-    friend class AutoGeckoProfilerEntry;
-    friend class GeckoProfilerEntryMarker;
-    friend class GeckoProfilerBaselineOSRMarker;
+class GeckoProfilerThread {
+  friend class AutoGeckoProfilerEntry;
+  friend class GeckoProfilerEntryMarker;
+  friend class GeckoProfilerBaselineOSRMarker;
 
-    PseudoStack*         pseudoStack_;
+  PseudoStack* pseudoStack_;
 
-  public:
-    GeckoProfilerThread();
+ public:
+  GeckoProfilerThread();
 
-    uint32_t stackPointer() { MOZ_ASSERT(installed()); return pseudoStack_->stackPointer; }
-    ProfileEntry* stack() { return pseudoStack_->entries; }
-    PseudoStack* getPseudoStack() { return pseudoStack_; }
+  uint32_t stackPointer() {
+    MOZ_ASSERT(installed());
+    return pseudoStack_->stackPointer;
+  }
+  ProfileEntry* stack() { return pseudoStack_->entries; }
+  PseudoStack* getPseudoStack() { return pseudoStack_; }
 
-    /* management of whether instrumentation is on or off */
-    bool installed() { return pseudoStack_ != nullptr; }
+  /* management of whether instrumentation is on or off */
+  bool installed() { return pseudoStack_ != nullptr; }
 
-    void setProfilingStack(PseudoStack* pseudoStack);
-    void trace(JSTracer* trc);
+  void setProfilingStack(PseudoStack* pseudoStack);
+  void trace(JSTracer* trc);
 
-    /*
-     * Functions which are the actual instrumentation to track run information
-     *
-     *   - enter: a function has started to execute
-     *   - updatePC: updates the pc information about where a function
-     *               is currently executing
-     *   - exit: this function has ceased execution, and no further
-     *           entries/exits will be made
-     */
-    bool enter(JSContext* cx, JSScript* script, JSFunction* maybeFun);
-    void exit(JSScript* script, JSFunction* maybeFun);
-    inline void updatePC(JSContext* cx, JSScript* script, jsbytecode* pc);
+  /*
+   * Functions which are the actual instrumentation to track run information
+   *
+   *   - enter: a function has started to execute
+   *   - updatePC: updates the pc information about where a function
+   *               is currently executing
+   *   - exit: this function has ceased execution, and no further
+   *           entries/exits will be made
+   */
+  bool enter(JSContext* cx, JSScript* script, JSFunction* maybeFun);
+  void exit(JSScript* script, JSFunction* maybeFun);
+  inline void updatePC(JSContext* cx, JSScript* script, jsbytecode* pc);
 };
 
-} // namespace js
+}  // namespace js
 
-#endif  /* js_ProfilingStack_h */
+#endif /* js_ProfilingStack_h */

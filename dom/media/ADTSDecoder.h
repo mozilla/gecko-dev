@@ -11,15 +11,14 @@ namespace mozilla {
 
 class MediaContainerType;
 
-class ADTSDecoder
-{
-public:
+class ADTSDecoder {
+ public:
   // Returns true if the ADTS backend is pref'ed on, and we're running on a
   // platform that is likely to have decoders for the format.
   static bool IsEnabled();
   static bool IsSupportedType(const MediaContainerType& aContainerType);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // !ADTS_DECODER_H_
+#endif  // !ADTS_DECODER_H_

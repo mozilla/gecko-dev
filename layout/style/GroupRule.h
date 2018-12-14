@@ -32,7 +32,7 @@ class StyleSheet;
 
 namespace dom {
 class CSSRuleList;
-} // namespace dom
+}  // namespace dom
 
 namespace css {
 
@@ -40,8 +40,7 @@ class GroupRule;
 class GroupRuleRuleList;
 
 #ifdef MOZ_OLD_STYLE
-struct GeckoGroupRuleRules
-{
+struct GeckoGroupRuleRules {
   GeckoGroupRuleRules();
   GeckoGroupRuleRules(GeckoGroupRuleRules&& aOther);
   GeckoGroupRuleRules(const GeckoGroupRuleRules& aCopy);
@@ -77,16 +76,15 @@ struct GeckoGroupRuleRules
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const;
 
   IncrementalClearCOMRuleArray mRules;
-  RefPtr<GroupRuleRuleList> mRuleCollection; // lazily constructed
+  RefPtr<GroupRuleRuleList> mRuleCollection;  // lazily constructed
 };
 #endif
 
-struct ServoGroupRuleRules
-{
+struct ServoGroupRuleRules {
   explicit ServoGroupRuleRules(already_AddRefed<ServoCssRules> aRawRules)
-    : mRuleList(new ServoCSSRuleList(Move(aRawRules), nullptr)) {}
+      : mRuleList(new ServoCSSRuleList(Move(aRawRules), nullptr)) {}
   ServoGroupRuleRules(ServoGroupRuleRules&& aOther)
-    : mRuleList(Move(aOther.mRuleList)) {}
+      : mRuleList(Move(aOther.mRuleList)) {}
   ServoGroupRuleRules(const ServoGroupRuleRules& aCopy) {
     // Do we ever clone Servo rules?
     MOZ_ASSERT_UNREACHABLE("stylo: Cloning GroupRule not implemented");
@@ -127,17 +125,14 @@ struct ServoGroupRuleRules
     return mRuleList->DeleteRule(aIndex);
   }
 
-  dom::CSSRuleList* CssRules(GroupRule* aParentRule) {
-    return mRuleList;
-  }
+  dom::CSSRuleList* CssRules(GroupRule* aParentRule) { return mRuleList; }
 
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const;
 
   RefPtr<ServoCSSRuleList> mRuleList;
 };
 
-struct DummyGroupRuleRules
-{
+struct DummyGroupRuleRules {
   void SetParentRule(GroupRule* aParentRule) {}
   void SetStyleSheet(StyleSheet* aSheet) {}
   void Clear() {}
@@ -147,7 +142,9 @@ struct DummyGroupRuleRules
 #endif
   int32_t StyleRuleCount() const { return 0; }
   Rule* GetStyleRuleAt(int32_t aIndex) const { return nullptr; }
-  nsresult DeleteStyleRuleAt(uint32_t aIndex) { return NS_ERROR_NOT_IMPLEMENTED; }
+  nsresult DeleteStyleRuleAt(uint32_t aIndex) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
   dom::CSSRuleList* CssRules(GroupRule* aParentRule) { return nullptr; }
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const { return 0; }
 };
@@ -170,16 +167,15 @@ struct DummyGroupRuleRules
 
 // inherits from Rule so it can be shared between
 // MediaRule and DocumentRule
-class GroupRule : public Rule
-{
-protected:
+class GroupRule : public Rule {
+ protected:
   GroupRule(uint32_t aLineNumber, uint32_t aColumnNumber);
-  GroupRule(already_AddRefed<ServoCssRules> aRules,
-            uint32_t aLineNumber, uint32_t aColumnNumber);
+  GroupRule(already_AddRefed<ServoCssRules> aRules, uint32_t aLineNumber,
+            uint32_t aColumnNumber);
   GroupRule(const GroupRule& aCopy);
   virtual ~GroupRule();
-public:
 
+ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(GroupRule, Rule)
   NS_DECL_ISUPPORTS_INHERITED
   virtual bool IsCCLeaf() const override;
@@ -191,21 +187,19 @@ public:
 #endif
   virtual void SetStyleSheet(StyleSheet* aSheet) override;
 
-public:
+ public:
 #ifdef MOZ_OLD_STYLE
   void AppendStyleRule(Rule* aRule);
 #endif
 
-  int32_t StyleRuleCount() const {
-    REDIRECT_TO_INNER(StyleRuleCount())
-  }
-  Rule* GetStyleRuleAt(uint32_t aIndex) const {
+  int32_t StyleRuleCount() const {REDIRECT_TO_INNER(
+      StyleRuleCount())} Rule* GetStyleRuleAt(uint32_t aIndex) const {
     REDIRECT_TO_INNER(GetStyleRuleAt(aIndex))
   }
 
 #ifdef MOZ_OLD_STYLE
   typedef bool (*RuleEnumFunc)(Rule* aElement, void* aData);
-  bool EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const;
+  bool EnumerateRulesForwards(RuleEnumFunc aFunc, void* aData) const;
 #endif
 
   /*
@@ -220,14 +214,15 @@ public:
   nsresult InsertStyleRuleAt(uint32_t aIndex, Rule* aRule);
 
   virtual bool UseForPresentation(nsPresContext* aPresContext,
-                                    nsMediaQueryResultCacheKey& aKey) = 0;
+                                  nsMediaQueryResultCacheKey& aKey) = 0;
 #endif
 
   // non-virtual -- it is only called by subclasses
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
     REDIRECT_TO_INNER(SizeOfExcludingThis(aMallocSizeOf))
   }
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override = 0;
+  virtual size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override = 0;
 
   // WebIDL API
   dom::CSSRuleList* CssRules();
@@ -235,7 +230,7 @@ public:
                       ErrorResult& aRv);
   void DeleteRule(uint32_t aIndex, ErrorResult& aRv);
 
-protected:
+ protected:
 #ifdef MOZ_OLD_STYLE
   void AppendRulesToCssText(nsAString& aCssText) const;
 
@@ -248,7 +243,7 @@ protected:
   }
 #endif
 
-private:
+ private:
 #ifdef MOZ_OLD_STYLE
   Variant<GeckoGroupRuleRules, ServoGroupRuleRules> mInner;
 #else
@@ -263,18 +258,17 @@ private:
 #undef REDIRECT_TO_INNER
 
 // Implementation of WebIDL CSSConditionRule.
-class ConditionRule : public GroupRule
-{
-protected:
+class ConditionRule : public GroupRule {
+ protected:
   using GroupRule::GroupRule;
 
-public:
+ public:
   virtual void GetConditionText(nsAString& aConditionText) = 0;
   virtual void SetConditionText(const nsAString& aConditionText,
                                 ErrorResult& aRv) = 0;
 };
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 #endif /* mozilla_css_GroupRule_h__ */

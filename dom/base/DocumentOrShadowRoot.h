@@ -28,55 +28,37 @@ class ShadowRoot;
  * TODO(emilio, bug 1418159): In the future this should hold most of the
  * relevant style state, this should allow us to fix bug 548397.
  */
-class DocumentOrShadowRoot
-{
-  enum class Kind
-  {
+class DocumentOrShadowRoot {
+  enum class Kind {
     Document,
     ShadowRoot,
   };
 
-public:
+ public:
   explicit DocumentOrShadowRoot(nsIDocument&);
   explicit DocumentOrShadowRoot(mozilla::dom::ShadowRoot&);
 
-  nsINode& AsNode()
-  {
-    return mAsNode;
-  }
+  nsINode& AsNode() { return mAsNode; }
 
-  const nsINode& AsNode() const
-  {
-    return mAsNode;
-  }
+  const nsINode& AsNode() const { return mAsNode; }
 
-  StyleSheet* SheetAt(size_t aIndex) const
-  {
+  StyleSheet* SheetAt(size_t aIndex) const {
     return mStyleSheets.SafeElementAt(aIndex);
   }
 
-  size_t SheetCount() const
-  {
-    return mStyleSheets.Length();
-  }
+  size_t SheetCount() const { return mStyleSheets.Length(); }
 
-  int32_t IndexOfSheet(const StyleSheet& aSheet) const
-  {
+  int32_t IndexOfSheet(const StyleSheet& aSheet) const {
     return mStyleSheets.IndexOf(&aSheet);
   }
 
-  void InsertSheetAt(size_t aIndex, StyleSheet& aSheet)
-  {
+  void InsertSheetAt(size_t aIndex, StyleSheet& aSheet) {
     mStyleSheets.InsertElementAt(aIndex, &aSheet);
   }
 
-  void RemoveSheet(StyleSheet& aSheet)
-  {
-    mStyleSheets.RemoveElement(&aSheet);
-  }
+  void RemoveSheet(StyleSheet& aSheet) { mStyleSheets.RemoveElement(&aSheet); }
 
-  void AppendStyleSheet(StyleSheet& aSheet)
-  {
+  void AppendStyleSheet(StyleSheet& aSheet) {
     mStyleSheets.AppendElement(&aSheet);
   }
 
@@ -90,26 +72,23 @@ public:
    *
    * This is useful for stuff like QuerySelector optimization and such.
    */
-  inline const nsTArray<Element*>*
-  GetAllElementsForId(const nsAString& aElementId) const;
+  inline const nsTArray<Element*>* GetAllElementsForId(
+      const nsAString& aElementId) const;
 
-  already_AddRefed<nsContentList>
-  GetElementsByTagName(const nsAString& aTagName)
-  {
+  already_AddRefed<nsContentList> GetElementsByTagName(
+      const nsAString& aTagName) {
     return NS_GetContentList(&AsNode(), kNameSpaceID_Unknown, aTagName);
   }
 
-  already_AddRefed<nsContentList>
-  GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                         const nsAString& aLocalName);
+  already_AddRefed<nsContentList> GetElementsByTagNameNS(
+      const nsAString& aNamespaceURI, const nsAString& aLocalName);
 
-  already_AddRefed<nsContentList>
-  GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                         const nsAString& aLocalName,
-                         mozilla::ErrorResult&);
+  already_AddRefed<nsContentList> GetElementsByTagNameNS(
+      const nsAString& aNamespaceURI, const nsAString& aLocalName,
+      mozilla::ErrorResult&);
 
-  already_AddRefed<nsContentList>
-  GetElementsByClassName(const nsAString& aClasses);
+  already_AddRefed<nsContentList> GetElementsByClassName(
+      const nsAString& aClasses);
 
   ~DocumentOrShadowRoot() = default;
 
@@ -129,17 +108,17 @@ public:
   Element* ElementFromPointHelper(float aX, float aY,
                                   bool aIgnoreRootScrollFrame,
                                   bool aFlushLayout);
-  enum ElementsFromPointFlags
-  {
+  enum ElementsFromPointFlags {
     IGNORE_ROOT_SCROLL_FRAME = 1,
     FLUSH_LAYOUT = 2,
     IS_ELEMENT_FROM_POINT = 4
   };
 
-  void ElementsFromPointHelper(float aX, float aY, uint32_t aFlags,
-                               nsTArray<RefPtr<mozilla::dom::Element>>& aElements);
+  void ElementsFromPointHelper(
+      float aX, float aY, uint32_t aFlags,
+      nsTArray<RefPtr<mozilla::dom::Element>>& aElements);
 
-protected:
+ protected:
   nsIContent* Retarget(nsIContent* aContent) const;
 
   /**
@@ -166,9 +145,8 @@ protected:
   const Kind mKind;
 };
 
-inline const nsTArray<Element*>*
-DocumentOrShadowRoot::GetAllElementsForId(const nsAString& aElementId) const
-{
+inline const nsTArray<Element*>* DocumentOrShadowRoot::GetAllElementsForId(
+    const nsAString& aElementId) const {
   if (aElementId.IsEmpty()) {
     return nullptr;
   }
@@ -177,8 +155,8 @@ DocumentOrShadowRoot::GetAllElementsForId(const nsAString& aElementId) const
   return entry ? &entry->GetIdElements() : nullptr;
 }
 
-}
+}  // namespace dom
 
-}
+}  // namespace mozilla
 
 #endif

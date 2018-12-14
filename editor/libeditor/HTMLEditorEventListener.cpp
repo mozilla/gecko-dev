@@ -27,9 +27,7 @@ namespace mozilla {
 
 using namespace dom;
 
-nsresult
-HTMLEditorEventListener::Connect(EditorBase* aEditorBase)
-{
+nsresult HTMLEditorEventListener::Connect(EditorBase* aEditorBase) {
   if (NS_WARN_IF(!aEditorBase)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -41,9 +39,7 @@ HTMLEditorEventListener::Connect(EditorBase* aEditorBase)
   return EditorEventListener::Connect(htmlEditor);
 }
 
-nsresult
-HTMLEditorEventListener::MouseUp(nsIDOMMouseEvent* aMouseEvent)
-{
+nsresult HTMLEditorEventListener::MouseUp(nsIDOMMouseEvent* aMouseEvent) {
   if (DetachedFromEditor()) {
     return NS_OK;
   }
@@ -67,9 +63,7 @@ HTMLEditorEventListener::MouseUp(nsIDOMMouseEvent* aMouseEvent)
   return EditorEventListener::MouseUp(aMouseEvent);
 }
 
-nsresult
-HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
-{
+nsresult HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent) {
   if (NS_WARN_IF(!aMouseEvent) || DetachedFromEditor()) {
     return NS_OK;
   }
@@ -83,7 +77,7 @@ HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
   }
 
   WidgetMouseEvent* mousedownEvent =
-    aMouseEvent->AsEvent()->WidgetEventPtr()->AsMouseEvent();
+      aMouseEvent->AsEvent()->WidgetEventPtr()->AsMouseEvent();
 
   HTMLEditor* htmlEditor = mEditorBase->AsHTMLEditor();
   MOZ_ASSERT(htmlEditor);
@@ -109,7 +103,8 @@ HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDOMEventTarget> target;
-  rv = aMouseEvent->AsEvent()->GetExplicitOriginalTarget(getter_AddRefs(target));
+  rv =
+      aMouseEvent->AsEvent()->GetExplicitOriginalTarget(getter_AddRefs(target));
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(target, NS_ERROR_NULL_POINTER);
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
@@ -158,8 +153,7 @@ HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
           // Get enclosing link if in text so we can select the link
           nsCOMPtr<nsIDOMElement> linkElement;
           rv = htmlEditor->GetElementOrParentByTagName(
-                             NS_LITERAL_STRING("href"), node,
-                             getter_AddRefs(linkElement));
+              NS_LITERAL_STRING("href"), node, getter_AddRefs(linkElement));
           NS_ENSURE_SUCCESS(rv, rv);
           if (linkElement) {
             element = linkElement;
@@ -200,9 +194,7 @@ HTMLEditorEventListener::MouseDown(nsIDOMMouseEvent* aMouseEvent)
   return EditorEventListener::MouseDown(aMouseEvent);
 }
 
-nsresult
-HTMLEditorEventListener::MouseClick(nsIDOMMouseEvent* aMouseEvent)
-{
+nsresult HTMLEditorEventListener::MouseClick(nsIDOMMouseEvent* aMouseEvent) {
   if (NS_WARN_IF(DetachedFromEditor())) {
     return NS_OK;
   }
@@ -228,4 +220,4 @@ HTMLEditorEventListener::MouseClick(nsIDOMMouseEvent* aMouseEvent)
   return EditorEventListener::MouseClick(aMouseEvent);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

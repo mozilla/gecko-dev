@@ -32,27 +32,19 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Clients)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-Clients::Clients(nsIGlobalObject* aGlobal)
-  : mGlobal(aGlobal)
-{
+Clients::Clients(nsIGlobalObject* aGlobal) : mGlobal(aGlobal) {
   MOZ_DIAGNOSTIC_ASSERT(mGlobal);
 }
 
-JSObject*
-Clients::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* Clients::WrapObject(JSContext* aCx,
+                              JS::Handle<JSObject*> aGivenProto) {
   return ClientsBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsIGlobalObject*
-Clients::GetParentObject() const
-{
-  return mGlobal;
-}
+nsIGlobalObject* Clients::GetParentObject() const { return mGlobal; }
 
-already_AddRefed<Promise>
-Clients::Get(const nsAString& aClientID, ErrorResult& aRv)
-{
+already_AddRefed<Promise> Clients::Get(const nsAString& aClientID,
+                                       ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   MOZ_DIAGNOSTIC_ASSERT(workerPrivate);
@@ -78,45 +70,45 @@ Clients::Get(const nsAString& aClientID, ErrorResult& aRv)
 
   const PrincipalInfo& principalInfo = workerPrivate->GetPrincipalInfo();
   nsCOMPtr<nsISerialEventTarget> target =
-    mGlobal->EventTargetFor(TaskCategory::Other);
+      mGlobal->EventTargetFor(TaskCategory::Other);
 
-  RefPtr<ClientOpPromise> innerPromise =
-    ClientManager::GetInfoAndState(ClientGetInfoAndStateArgs(id, principalInfo),
-                                   target);
+  RefPtr<ClientOpPromise> innerPromise = ClientManager::GetInfoAndState(
+      ClientGetInfoAndStateArgs(id, principalInfo), target);
 
   nsCOMPtr<nsIGlobalObject> global = mGlobal;
   nsCString scope = workerPrivate->ServiceWorkerScope();
 
-  innerPromise->Then(target, __func__,
-    [outerPromise, global, scope] (const ClientOpResult& aResult) {
-      RefPtr<Client> client = new Client(global, aResult.get_ClientInfoAndState());
-      if (client->GetStorageAccess() == nsContentUtils::StorageAccess::eAllow) {
-        outerPromise->MaybeResolve(Move(client));
-        return;
-      }
-      nsCOMPtr<nsIRunnable> r =
-        NS_NewRunnableFunction("Clients::MatchAll() storage denied",
-        [scope] {
-          ServiceWorkerManager::LocalizeAndReportToAllClients(
-            scope, "ServiceWorkerGetClientStorageError", nsTArray<nsString>());
-        });
-      SystemGroup::Dispatch(TaskCategory::Other, r.forget());
-      outerPromise->MaybeResolveWithUndefined();
-    }, [outerPromise] (nsresult aResult) {
-      outerPromise->MaybeResolveWithUndefined();
-    });
+  innerPromise->Then(
+      target, __func__,
+      [outerPromise, global, scope](const ClientOpResult& aResult) {
+        RefPtr<Client> client =
+            new Client(global, aResult.get_ClientInfoAndState());
+        if (client->GetStorageAccess() ==
+            nsContentUtils::StorageAccess::eAllow) {
+          outerPromise->MaybeResolve(Move(client));
+          return;
+        }
+        nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+            "Clients::MatchAll() storage denied", [scope] {
+              ServiceWorkerManager::LocalizeAndReportToAllClients(
+                  scope, "ServiceWorkerGetClientStorageError",
+                  nsTArray<nsString>());
+            });
+        SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+        outerPromise->MaybeResolveWithUndefined();
+      },
+      [outerPromise](nsresult aResult) {
+        outerPromise->MaybeResolveWithUndefined();
+      });
 
   return outerPromise.forget();
 }
 
 namespace {
 
-class MatchAllComparator final
-{
-public:
-  bool
-  LessThan(Client* aLeft, Client* aRight) const
-  {
+class MatchAllComparator final {
+ public:
+  bool LessThan(Client* aLeft, Client* aRight) const {
     TimeStamp leftFocusTime = aLeft->LastFocusTime();
     TimeStamp rightFocusTime = aRight->LastFocusTime();
     // If the focus times are the same, then default to creation order.
@@ -136,19 +128,16 @@ public:
     return leftFocusTime > rightFocusTime;
   }
 
-  bool
-  Equals(Client* aLeft, Client* aRight) const
-  {
+  bool Equals(Client* aLeft, Client* aRight) const {
     return aLeft->LastFocusTime() == aRight->LastFocusTime() &&
            aLeft->CreationTime() == aRight->CreationTime();
   }
 };
 
-} // anonymous namespace
+}  // anonymous namespace
 
-already_AddRefed<Promise>
-Clients::MatchAll(const ClientQueryOptions& aOptions, ErrorResult& aRv)
-{
+already_AddRefed<Promise> Clients::MatchAll(const ClientQueryOptions& aOptions,
+                                            ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   MOZ_DIAGNOSTIC_ASSERT(workerPrivate);
@@ -164,42 +153,42 @@ Clients::MatchAll(const ClientQueryOptions& aOptions, ErrorResult& aRv)
   nsCString scope = workerPrivate->ServiceWorkerScope();
 
   ClientMatchAllArgs args(workerPrivate->GetServiceWorkerDescriptor().ToIPC(),
-                          aOptions.mType,
-                          aOptions.mIncludeUncontrolled);
-  StartClientManagerOp(&ClientManager::MatchAll, args,
-    mGlobal->EventTargetFor(TaskCategory::Other),
-    [outerPromise, global, scope] (const ClientOpResult& aResult) {
-      nsTArray<RefPtr<Client>> clientList;
-      bool storageDenied = false;
-      for (const ClientInfoAndState& value : aResult.get_ClientList().values()) {
-        RefPtr<Client> client = new Client(global, value);
-        if (client->GetStorageAccess() != nsContentUtils::StorageAccess::eAllow) {
-          storageDenied = true;
-          continue;
+                          aOptions.mType, aOptions.mIncludeUncontrolled);
+  StartClientManagerOp(
+      &ClientManager::MatchAll, args,
+      mGlobal->EventTargetFor(TaskCategory::Other),
+      [outerPromise, global, scope](const ClientOpResult& aResult) {
+        nsTArray<RefPtr<Client>> clientList;
+        bool storageDenied = false;
+        for (const ClientInfoAndState& value :
+             aResult.get_ClientList().values()) {
+          RefPtr<Client> client = new Client(global, value);
+          if (client->GetStorageAccess() !=
+              nsContentUtils::StorageAccess::eAllow) {
+            storageDenied = true;
+            continue;
+          }
+          clientList.AppendElement(Move(client));
         }
-        clientList.AppendElement(Move(client));
-      }
-      if (storageDenied) {
-        nsCOMPtr<nsIRunnable> r =
-          NS_NewRunnableFunction("Clients::MatchAll() storage denied",
-          [scope] {
-            ServiceWorkerManager::LocalizeAndReportToAllClients(
-              scope, "ServiceWorkerGetClientStorageError", nsTArray<nsString>());
-          });
-        SystemGroup::Dispatch(TaskCategory::Other, r.forget());
-      }
-      clientList.Sort(MatchAllComparator());
-      outerPromise->MaybeResolve(clientList);
-    }, [outerPromise] (nsresult aResult) {
-      outerPromise->MaybeReject(aResult);
-    });
+        if (storageDenied) {
+          nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+              "Clients::MatchAll() storage denied", [scope] {
+                ServiceWorkerManager::LocalizeAndReportToAllClients(
+                    scope, "ServiceWorkerGetClientStorageError",
+                    nsTArray<nsString>());
+              });
+          SystemGroup::Dispatch(TaskCategory::Other, r.forget());
+        }
+        clientList.Sort(MatchAllComparator());
+        outerPromise->MaybeResolve(clientList);
+      },
+      [outerPromise](nsresult aResult) { outerPromise->MaybeReject(aResult); });
 
   return outerPromise.forget();
 }
 
-already_AddRefed<Promise>
-Clients::OpenWindow(const nsAString& aURL, ErrorResult& aRv)
-{
+already_AddRefed<Promise> Clients::OpenWindow(const nsAString& aURL,
+                                              ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   MOZ_DIAGNOSTIC_ASSERT(workerPrivate);
@@ -229,28 +218,28 @@ Clients::OpenWindow(const nsAString& aURL, ErrorResult& aRv)
 
   nsCOMPtr<nsIGlobalObject> global = mGlobal;
 
-  StartClientManagerOp(&ClientManager::OpenWindow, args,
-    mGlobal->EventTargetFor(TaskCategory::Other),
-    [outerPromise, global] (const ClientOpResult& aResult) {
-      if (aResult.type() != ClientOpResult::TClientInfoAndState) {
-        outerPromise->MaybeResolve(JS::NullHandleValue);
-        return;
-      }
-      RefPtr<Client> client =
-        new Client(global, aResult.get_ClientInfoAndState());
-      outerPromise->MaybeResolve(client);
-    }, [outerPromise] (nsresult aResult) {
-      // TODO: Improve this error in bug 1412856.  Ideally we should throw
-      //       the TypeError in the child process and pass it back to here.
-      outerPromise->MaybeReject(NS_ERROR_TYPE_ERR);
-    });
+  StartClientManagerOp(
+      &ClientManager::OpenWindow, args,
+      mGlobal->EventTargetFor(TaskCategory::Other),
+      [outerPromise, global](const ClientOpResult& aResult) {
+        if (aResult.type() != ClientOpResult::TClientInfoAndState) {
+          outerPromise->MaybeResolve(JS::NullHandleValue);
+          return;
+        }
+        RefPtr<Client> client =
+            new Client(global, aResult.get_ClientInfoAndState());
+        outerPromise->MaybeResolve(client);
+      },
+      [outerPromise](nsresult aResult) {
+        // TODO: Improve this error in bug 1412856.  Ideally we should throw
+        //       the TypeError in the child process and pass it back to here.
+        outerPromise->MaybeReject(NS_ERROR_TYPE_ERR);
+      });
 
   return outerPromise.forget();
 }
 
-already_AddRefed<Promise>
-Clients::Claim(ErrorResult& aRv)
-{
+already_AddRefed<Promise> Clients::Claim(ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
   MOZ_DIAGNOSTIC_ASSERT(workerPrivate);
@@ -263,7 +252,7 @@ Clients::Claim(ErrorResult& aRv)
   }
 
   const ServiceWorkerDescriptor& serviceWorker =
-    workerPrivate->GetServiceWorkerDescriptor();
+      workerPrivate->GetServiceWorkerDescriptor();
 
   if (serviceWorker.State() != ServiceWorkerState::Activating &&
       serviceWorker.State() != ServiceWorkerState::Activated) {
@@ -271,16 +260,16 @@ Clients::Claim(ErrorResult& aRv)
     return outerPromise.forget();
   }
 
-  StartClientManagerOp(&ClientManager::Claim, ClientClaimArgs(serviceWorker.ToIPC()),
-    mGlobal->EventTargetFor(TaskCategory::Other),
-    [outerPromise] (const ClientOpResult& aResult) {
-      outerPromise->MaybeResolveWithUndefined();
-    }, [outerPromise] (nsresult aResult) {
-      outerPromise->MaybeReject(aResult);
-    });
+  StartClientManagerOp(
+      &ClientManager::Claim, ClientClaimArgs(serviceWorker.ToIPC()),
+      mGlobal->EventTargetFor(TaskCategory::Other),
+      [outerPromise](const ClientOpResult& aResult) {
+        outerPromise->MaybeResolveWithUndefined();
+      },
+      [outerPromise](nsresult aResult) { outerPromise->MaybeReject(aResult); });
 
   return outerPromise.forget();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -30,19 +30,19 @@ class MozStackFrameSymbolizer : public StackFrameSymbolizer {
 
   std::map<std::string, std::shared_ptr<ModuleUnwindParser>> mModuleMap;
 
-public:
+ public:
   MozStackFrameSymbolizer();
 
   virtual SymbolizerResult FillSourceLineInfo(const CodeModules* modules,
-    const SystemInfo* system_info,
-    StackFrame* stack_frame);
+                                              const SystemInfo* system_info,
+                                              StackFrame* stack_frame);
 
   virtual class google_breakpad::CFIFrameInfo* FindCFIFrameInfo(
-    const StackFrame* frame);
+      const StackFrame* frame);
 };
 
-} // namespace CrashReporter
+}  // namespace CrashReporter
 
-#endif // XP_WIN && HAVE_64BIT_BUILD
+#endif  // XP_WIN && HAVE_64BIT_BUILD
 
-#endif // MozStackFrameSymbolizer_h
+#endif  // MozStackFrameSymbolizer_h

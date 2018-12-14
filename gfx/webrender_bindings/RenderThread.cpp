@@ -22,30 +22,18 @@ namespace wr {
 static StaticRefPtr<RenderThread> sRenderThread;
 
 RenderThread::RenderThread(base::Thread* aThread)
-  : mThread(aThread)
-  , mFrameCountMapLock("RenderThread.mFrameCountMapLock")
-  , mRenderTextureMapLock("RenderThread.mRenderTextureMapLock")
-  , mHasShutdown(false)
-{
+    : mThread(aThread),
+      mFrameCountMapLock("RenderThread.mFrameCountMapLock"),
+      mRenderTextureMapLock("RenderThread.mRenderTextureMapLock"),
+      mHasShutdown(false) {}
 
-}
-
-RenderThread::~RenderThread()
-{
-  delete mThread;
-}
+RenderThread::~RenderThread() { delete mThread; }
 
 // static
-RenderThread*
-RenderThread::Get()
-{
-  return sRenderThread;
-}
+RenderThread* RenderThread::Get() { return sRenderThread; }
 
 // static
-void
-RenderThread::Start()
-{
+void RenderThread::Start() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!sRenderThread);
 
@@ -63,9 +51,7 @@ RenderThread::Start()
 }
 
 // static
-void
-RenderThread::ShutDown()
-{
+void RenderThread::ShutDown() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sRenderThread);
 
@@ -75,40 +61,33 @@ RenderThread::ShutDown()
   }
 
   layers::SynchronousTask task("RenderThread");
-  RefPtr<Runnable> runnable = WrapRunnable(
-    RefPtr<RenderThread>(sRenderThread.get()),
-    &RenderThread::ShutDownTask,
-    &task);
+  RefPtr<Runnable> runnable =
+      WrapRunnable(RefPtr<RenderThread>(sRenderThread.get()),
+                   &RenderThread::ShutDownTask, &task);
   sRenderThread->Loop()->PostTask(runnable.forget());
   task.Wait();
 
   sRenderThread = nullptr;
 }
 
-void
-RenderThread::ShutDownTask(layers::SynchronousTask* aTask)
-{
+void RenderThread::ShutDownTask(layers::SynchronousTask* aTask) {
   layers::AutoCompleteTask complete(aTask);
   MOZ_ASSERT(IsInRenderThread());
 }
 
 // static
-MessageLoop*
-RenderThread::Loop()
-{
+MessageLoop* RenderThread::Loop() {
   return sRenderThread ? sRenderThread->mThread->message_loop() : nullptr;
 }
 
 // static
-bool
-RenderThread::IsInRenderThread()
-{
-  return sRenderThread && sRenderThread->mThread->thread_id() == PlatformThread::CurrentId();
+bool RenderThread::IsInRenderThread() {
+  return sRenderThread &&
+         sRenderThread->mThread->thread_id() == PlatformThread::CurrentId();
 }
 
-void
-RenderThread::AddRenderer(wr::WindowId aWindowId, UniquePtr<RendererOGL> aRenderer)
-{
+void RenderThread::AddRenderer(wr::WindowId aWindowId,
+                               UniquePtr<RendererOGL> aRenderer) {
   MOZ_ASSERT(IsInRenderThread());
 
   if (mHasShutdown) {
@@ -121,9 +100,7 @@ RenderThread::AddRenderer(wr::WindowId aWindowId, UniquePtr<RendererOGL> aRender
   mWindowInfos.Put(AsUint64(aWindowId), WindowInfo());
 }
 
-void
-RenderThread::RemoveRenderer(wr::WindowId aWindowId)
-{
+void RenderThread::RemoveRenderer(wr::WindowId aWindowId) {
   MOZ_ASSERT(IsInRenderThread());
 
   if (mHasShutdown) {
@@ -136,9 +113,7 @@ RenderThread::RemoveRenderer(wr::WindowId aWindowId)
   mWindowInfos.Remove(AsUint64(aWindowId));
 }
 
-RendererOGL*
-RenderThread::GetRenderer(wr::WindowId aWindowId)
-{
+RendererOGL* RenderThread::GetRenderer(wr::WindowId aWindowId) {
   MOZ_ASSERT(IsInRenderThread());
 
   auto it = mRenderers.find(aWindowId);
@@ -151,19 +126,15 @@ RenderThread::GetRenderer(wr::WindowId aWindowId)
   return it->second.get();
 }
 
-void
-RenderThread::NewFrameReady(wr::WindowId aWindowId)
-{
+void RenderThread::NewFrameReady(wr::WindowId aWindowId) {
   if (mHasShutdown) {
     return;
   }
 
   if (!IsInRenderThread()) {
-    Loop()->PostTask(
-      NewRunnableMethod<wr::WindowId>("wr::RenderThread::NewFrameReady",
-                                      this,
-                                      &RenderThread::NewFrameReady,
-                                      aWindowId));
+    Loop()->PostTask(NewRunnableMethod<wr::WindowId>(
+        "wr::RenderThread::NewFrameReady", this, &RenderThread::NewFrameReady,
+        aWindowId));
     return;
   }
 
@@ -175,19 +146,14 @@ RenderThread::NewFrameReady(wr::WindowId aWindowId)
   DecPendingFrameCount(aWindowId);
 }
 
-void
-RenderThread::WakeUp(wr::WindowId aWindowId)
-{
+void RenderThread::WakeUp(wr::WindowId aWindowId) {
   if (mHasShutdown) {
     return;
   }
 
   if (!IsInRenderThread()) {
-    Loop()->PostTask(
-      NewRunnableMethod<wr::WindowId>("wr::RenderThread::WakeUp",
-                                      this,
-                                      &RenderThread::WakeUp,
-                                      aWindowId));
+    Loop()->PostTask(NewRunnableMethod<wr::WindowId>(
+        "wr::RenderThread::WakeUp", this, &RenderThread::WakeUp, aWindowId));
     return;
   }
 
@@ -202,17 +168,13 @@ RenderThread::WakeUp(wr::WindowId aWindowId)
   }
 }
 
-void
-RenderThread::RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent)
-{
+void RenderThread::RunEvent(wr::WindowId aWindowId,
+                            UniquePtr<RendererEvent> aEvent) {
   if (!IsInRenderThread()) {
     Loop()->PostTask(
-      NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&>(
-        "wr::RenderThread::RunEvent",
-        this,
-        &RenderThread::RunEvent,
-        aWindowId,
-        Move(aEvent)));
+        NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&>(
+            "wr::RenderThread::RunEvent", this, &RenderThread::RunEvent,
+            aWindowId, Move(aEvent)));
     return;
   }
 
@@ -220,12 +182,9 @@ RenderThread::RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent)
   aEvent = nullptr;
 }
 
-static void
-NotifyDidRender(layers::CompositorBridgeParentBase* aBridge,
-                wr::WrPipelineInfo* aInfo,
-                TimeStamp aStart,
-                TimeStamp aEnd)
-{
+static void NotifyDidRender(layers::CompositorBridgeParentBase* aBridge,
+                            wr::WrPipelineInfo* aInfo, TimeStamp aStart,
+                            TimeStamp aEnd) {
   wr::WrPipelineId pipeline;
   wr::WrEpoch epoch;
   while (wr_pipeline_info_next_epoch(aInfo, &pipeline, &epoch)) {
@@ -238,9 +197,7 @@ NotifyDidRender(layers::CompositorBridgeParentBase* aBridge,
   wr_pipeline_info_delete(aInfo);
 }
 
-void
-RenderThread::UpdateAndRender(wr::WindowId aWindowId, bool aReadback)
-{
+void RenderThread::UpdateAndRender(wr::WindowId aWindowId, bool aReadback) {
   AUTO_PROFILER_TRACING("Paint", "Composite");
   MOZ_ASSERT(IsInRenderThread());
 
@@ -262,18 +219,12 @@ RenderThread::UpdateAndRender(wr::WindowId aWindowId, bool aReadback)
   TimeStamp end = TimeStamp::Now();
 
   auto info = renderer->FlushPipelineInfo();
-  layers::CompositorThreadHolder::Loop()->PostTask(NewRunnableFunction(
-    "NotifyDidRenderRunnable",
-    &NotifyDidRender,
-    renderer->GetCompositorBridge(),
-    info,
-    start, end
-  ));
+  layers::CompositorThreadHolder::Loop()->PostTask(
+      NewRunnableFunction("NotifyDidRenderRunnable", &NotifyDidRender,
+                          renderer->GetCompositorBridge(), info, start, end));
 }
 
-void
-RenderThread::Pause(wr::WindowId aWindowId)
-{
+void RenderThread::Pause(wr::WindowId aWindowId) {
   MOZ_ASSERT(IsInRenderThread());
 
   auto it = mRenderers.find(aWindowId);
@@ -285,9 +236,7 @@ RenderThread::Pause(wr::WindowId aWindowId)
   renderer->Pause();
 }
 
-bool
-RenderThread::Resume(wr::WindowId aWindowId)
-{
+bool RenderThread::Resume(wr::WindowId aWindowId) {
   MOZ_ASSERT(IsInRenderThread());
 
   auto it = mRenderers.find(aWindowId);
@@ -299,9 +248,7 @@ RenderThread::Resume(wr::WindowId aWindowId)
   return renderer->Resume();
 }
 
-bool
-RenderThread::TooManyPendingFrames(wr::WindowId aWindowId)
-{
+bool RenderThread::TooManyPendingFrames(wr::WindowId aWindowId) {
   const int64_t maxFrameCount = 1;
 
   // Too many pending frames if pending frames exit more than maxFrameCount
@@ -321,9 +268,7 @@ RenderThread::TooManyPendingFrames(wr::WindowId aWindowId)
   return info.mPendingCount > info.mRenderingCount;
 }
 
-bool
-RenderThread::IsDestroyed(wr::WindowId aWindowId)
-{
+bool RenderThread::IsDestroyed(wr::WindowId aWindowId) {
   MutexAutoLock lock(mFrameCountMapLock);
   WindowInfo info;
   if (!mWindowInfos.Get(AsUint64(aWindowId), &info)) {
@@ -333,9 +278,7 @@ RenderThread::IsDestroyed(wr::WindowId aWindowId)
   return info.mIsDestroyed;
 }
 
-void
-RenderThread::SetDestroyed(wr::WindowId aWindowId)
-{
+void RenderThread::SetDestroyed(wr::WindowId aWindowId) {
   MutexAutoLock lock(mFrameCountMapLock);
   WindowInfo info;
   if (!mWindowInfos.Get(AsUint64(aWindowId), &info)) {
@@ -346,9 +289,7 @@ RenderThread::SetDestroyed(wr::WindowId aWindowId)
   mWindowInfos.Put(AsUint64(aWindowId), info);
 }
 
-void
-RenderThread::IncPendingFrameCount(wr::WindowId aWindowId)
-{
+void RenderThread::IncPendingFrameCount(wr::WindowId aWindowId) {
   MutexAutoLock lock(mFrameCountMapLock);
   // Get the old count.
   WindowInfo info;
@@ -361,9 +302,7 @@ RenderThread::IncPendingFrameCount(wr::WindowId aWindowId)
   mWindowInfos.Put(AsUint64(aWindowId), info);
 }
 
-void
-RenderThread::IncRenderingFrameCount(wr::WindowId aWindowId)
-{
+void RenderThread::IncRenderingFrameCount(wr::WindowId aWindowId) {
   MutexAutoLock lock(mFrameCountMapLock);
   // Get the old count.
   WindowInfo info;
@@ -376,9 +315,7 @@ RenderThread::IncRenderingFrameCount(wr::WindowId aWindowId)
   mWindowInfos.Put(AsUint64(aWindowId), info);
 }
 
-void
-RenderThread::DecPendingFrameCount(wr::WindowId aWindowId)
-{
+void RenderThread::DecPendingFrameCount(wr::WindowId aWindowId) {
   MutexAutoLock lock(mFrameCountMapLock);
   // Get the old count.
   WindowInfo info;
@@ -397,9 +334,8 @@ RenderThread::DecPendingFrameCount(wr::WindowId aWindowId)
   mWindowInfos.Put(AsUint64(aWindowId), info);
 }
 
-void
-RenderThread::RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<RenderTextureHost> aTexture)
-{
+void RenderThread::RegisterExternalImage(
+    uint64_t aExternalImageId, already_AddRefed<RenderTextureHost> aTexture) {
   MutexAutoLock lock(mRenderTextureMapLock);
 
   if (mHasShutdown) {
@@ -409,9 +345,7 @@ RenderThread::RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<
   mRenderTextures.Put(aExternalImageId, Move(aTexture));
 }
 
-void
-RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
-{
+void RenderThread::UnregisterExternalImage(uint64_t aExternalImageId) {
   MutexAutoLock lock(mRenderTextureMapLock);
   if (mHasShutdown) {
     return;
@@ -428,23 +362,19 @@ RenderThread::UnregisterExternalImage(uint64_t aExternalImageId)
     RefPtr<RenderTextureHost> texture;
     mRenderTextures.Remove(aExternalImageId, getter_AddRefs(texture));
     Loop()->PostTask(NewRunnableMethod<RefPtr<RenderTextureHost>>(
-      "RenderThread::DeferredRenderTextureHostDestroy",
-      this, &RenderThread::DeferredRenderTextureHostDestroy, Move(texture)
-    ));
+        "RenderThread::DeferredRenderTextureHostDestroy", this,
+        &RenderThread::DeferredRenderTextureHostDestroy, Move(texture)));
   } else {
     mRenderTextures.Remove(aExternalImageId);
   }
 }
 
-void
-RenderThread::DeferredRenderTextureHostDestroy(RefPtr<RenderTextureHost>)
-{
+void RenderThread::DeferredRenderTextureHostDestroy(RefPtr<RenderTextureHost>) {
   // Do nothing. Just decrease the ref-count of RenderTextureHost.
 }
 
-RenderTextureHost*
-RenderThread::GetRenderTexture(wr::WrExternalImageId aExternalImageId)
-{
+RenderTextureHost* RenderThread::GetRenderTexture(
+    wr::WrExternalImageId aExternalImageId) {
   MOZ_ASSERT(IsInRenderThread());
 
   MutexAutoLock lock(mRenderTextureMapLock);
@@ -452,9 +382,7 @@ RenderThread::GetRenderTexture(wr::WrExternalImageId aExternalImageId)
   return mRenderTextures.GetWeak(aExternalImageId.mHandle);
 }
 
-WebRenderProgramCache*
-RenderThread::ProgramCache()
-{
+WebRenderProgramCache* RenderThread::ProgramCache() {
   MOZ_ASSERT(IsInRenderThread());
 
   if (!mProgramCache) {
@@ -463,49 +391,43 @@ RenderThread::ProgramCache()
   return mProgramCache.get();
 }
 
-WebRenderThreadPool::WebRenderThreadPool()
-{
+WebRenderThreadPool::WebRenderThreadPool() {
   mThreadPool = wr_thread_pool_new();
 }
 
-WebRenderThreadPool::~WebRenderThreadPool()
-{
+WebRenderThreadPool::~WebRenderThreadPool() {
   wr_thread_pool_delete(mThreadPool);
 }
 
-WebRenderProgramCache::WebRenderProgramCache()
-{
+WebRenderProgramCache::WebRenderProgramCache() {
   mProgramCache = wr_program_cache_new();
 }
 
-WebRenderProgramCache::~WebRenderProgramCache()
-{
+WebRenderProgramCache::~WebRenderProgramCache() {
   wr_program_cache_delete(mProgramCache);
 }
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
 extern "C" {
 
-static void NewFrameReady(mozilla::wr::WrWindowId aWindowId)
-{
+static void NewFrameReady(mozilla::wr::WrWindowId aWindowId) {
   mozilla::wr::RenderThread::Get()->IncRenderingFrameCount(aWindowId);
-  mozilla::wr::RenderThread::Get()->NewFrameReady(mozilla::wr::WindowId(aWindowId));
+  mozilla::wr::RenderThread::Get()->NewFrameReady(
+      mozilla::wr::WindowId(aWindowId));
 }
 
-void wr_notifier_wake_up(mozilla::wr::WrWindowId aWindowId)
-{
+void wr_notifier_wake_up(mozilla::wr::WrWindowId aWindowId) {
   mozilla::wr::RenderThread::Get()->WakeUp(mozilla::wr::WindowId(aWindowId));
 }
 
-void wr_notifier_new_frame_ready(mozilla::wr::WrWindowId aWindowId)
-{
+void wr_notifier_new_frame_ready(mozilla::wr::WrWindowId aWindowId) {
   NewFrameReady(aWindowId);
 }
 
-void wr_notifier_new_scroll_frame_ready(mozilla::wr::WrWindowId aWindowId, bool aCompositeNeeded)
-{
+void wr_notifier_new_scroll_frame_ready(mozilla::wr::WrWindowId aWindowId,
+                                        bool aCompositeNeeded) {
   // If we sent a transaction that contained both scrolling updates and a
   // GenerateFrame, we can get this function called with aCompositeNeeded=true
   // instead of wr_notifier_new_frame_ready. In that case we want to update the
@@ -515,12 +437,12 @@ void wr_notifier_new_scroll_frame_ready(mozilla::wr::WrWindowId aWindowId, bool 
   }
 }
 
-void wr_notifier_external_event(mozilla::wr::WrWindowId aWindowId, size_t aRawEvent)
-{
+void wr_notifier_external_event(mozilla::wr::WrWindowId aWindowId,
+                                size_t aRawEvent) {
   mozilla::UniquePtr<mozilla::wr::RendererEvent> evt(
-    reinterpret_cast<mozilla::wr::RendererEvent*>(aRawEvent));
+      reinterpret_cast<mozilla::wr::RendererEvent*>(aRawEvent));
   mozilla::wr::RenderThread::Get()->RunEvent(mozilla::wr::WindowId(aWindowId),
                                              mozilla::Move(evt));
 }
 
-} // extern C
+}  // extern C

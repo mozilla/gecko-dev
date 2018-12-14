@@ -37,40 +37,31 @@ using namespace gfx;
 namespace layers {
 
 WebRenderLayerManager::WebRenderLayerManager(nsIWidget* aWidget)
-  : mWidget(aWidget)
-  , mLatestTransactionId(0)
-  , mWindowOverlayChanged(false)
-  , mNeedsComposite(false)
-  , mIsFirstPaint(false)
-  , mTarget(nullptr)
-  , mPaintSequenceNumber(0)
-  , mWebRenderCommandBuilder(this)
-  , mLastDisplayListSize(0)
-{
+    : mWidget(aWidget),
+      mLatestTransactionId(0),
+      mWindowOverlayChanged(false),
+      mNeedsComposite(false),
+      mIsFirstPaint(false),
+      mTarget(nullptr),
+      mPaintSequenceNumber(0),
+      mWebRenderCommandBuilder(this),
+      mLastDisplayListSize(0) {
   MOZ_COUNT_CTOR(WebRenderLayerManager);
 }
 
-KnowsCompositor*
-WebRenderLayerManager::AsKnowsCompositor()
-{
-  return mWrChild;
-}
+KnowsCompositor* WebRenderLayerManager::AsKnowsCompositor() { return mWrChild; }
 
-bool
-WebRenderLayerManager::Initialize(PCompositorBridgeChild* aCBChild,
-                                  wr::PipelineId aLayersId,
-                                  TextureFactoryIdentifier* aTextureFactoryIdentifier)
-{
+bool WebRenderLayerManager::Initialize(
+    PCompositorBridgeChild* aCBChild, wr::PipelineId aLayersId,
+    TextureFactoryIdentifier* aTextureFactoryIdentifier) {
   MOZ_ASSERT(mWrChild == nullptr);
   MOZ_ASSERT(aTextureFactoryIdentifier);
 
   LayoutDeviceIntSize size = mWidget->GetClientSize();
   TextureFactoryIdentifier textureFactoryIdentifier;
   wr::IdNamespace id_namespace;
-  PWebRenderBridgeChild* bridge = aCBChild->SendPWebRenderBridgeConstructor(aLayersId,
-                                                                            size,
-                                                                            &textureFactoryIdentifier,
-                                                                            &id_namespace);
+  PWebRenderBridgeChild* bridge = aCBChild->SendPWebRenderBridgeConstructor(
+      aLayersId, size, &textureFactoryIdentifier, &id_namespace);
   if (!bridge) {
     // This should only fail if we attempt to access a layer we don't have
     // permission for, or more likely, the GPU process crashed again during
@@ -89,15 +80,9 @@ WebRenderLayerManager::Initialize(PCompositorBridgeChild* aCBChild,
   return true;
 }
 
-void
-WebRenderLayerManager::Destroy()
-{
-  DoDestroy(/* aIsSync */ false);
-}
+void WebRenderLayerManager::Destroy() { DoDestroy(/* aIsSync */ false); }
 
-void
-WebRenderLayerManager::DoDestroy(bool aIsSync)
-{
+void WebRenderLayerManager::DoDestroy(bool aIsSync) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (IsDestroyed()) {
@@ -131,10 +116,10 @@ WebRenderLayerManager::DoDestroy(bool aIsSync)
     uint64_t id = mLatestTransactionId;
 
     RefPtr<Runnable> task = NS_NewRunnableFunction(
-      "TransactionIdAllocator::NotifyTransactionCompleted",
-      [allocator, id] () -> void {
-      allocator->NotifyTransactionCompleted(id);
-    });
+        "TransactionIdAllocator::NotifyTransactionCompleted",
+        [allocator, id]() -> void {
+          allocator->NotifyTransactionCompleted(id);
+        });
     NS_DispatchToMainThread(task.forget());
   }
 
@@ -142,34 +127,25 @@ WebRenderLayerManager::DoDestroy(bool aIsSync)
   mWidget = nullptr;
 }
 
-WebRenderLayerManager::~WebRenderLayerManager()
-{
+WebRenderLayerManager::~WebRenderLayerManager() {
   Destroy();
   MOZ_COUNT_DTOR(WebRenderLayerManager);
 }
 
-CompositorBridgeChild*
-WebRenderLayerManager::GetCompositorBridgeChild()
-{
+CompositorBridgeChild* WebRenderLayerManager::GetCompositorBridgeChild() {
   return WrBridge()->GetCompositorBridgeChild();
 }
 
-int32_t
-WebRenderLayerManager::GetMaxTextureSize() const
-{
+int32_t WebRenderLayerManager::GetMaxTextureSize() const {
   return WrBridge()->GetMaxTextureSize();
 }
 
-bool
-WebRenderLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
-{
+bool WebRenderLayerManager::BeginTransactionWithTarget(gfxContext* aTarget) {
   mTarget = aTarget;
   return BeginTransaction();
 }
 
-bool
-WebRenderLayerManager::BeginTransaction()
-{
+bool WebRenderLayerManager::BeginTransaction() {
   if (!WrBridge()->IPCOpen()) {
     gfxCriticalNote << "IPC Channel is already torn down unexpectedly\n";
     return false;
@@ -185,9 +161,7 @@ WebRenderLayerManager::BeginTransaction()
   return true;
 }
 
-bool
-WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
-{
+bool WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
   if (mWindowOverlayChanged) {
     // If the window overlay changed then we can't do an empty transaction
     // because we need to repaint the window overlay which we only currently
@@ -205,7 +179,7 @@ WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
   // of "pending" information we need to send in an empty transaction are the
   // APZ focus state and canvases's CompositableOperations.
 
-  if (aFlags & EndTransactionFlags::END_NO_COMPOSITE && 
+  if (aFlags & EndTransactionFlags::END_NO_COMPOSITE &&
       !mWebRenderCommandBuilder.NeedsEmptyTransaction()) {
     MOZ_ASSERT(!mTarget);
     WrBridge()->SendSetFocusTarget(mFocusTarget);
@@ -219,7 +193,8 @@ WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
 
   WrBridge()->ClearReadLocks();
 
-  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
+  mLatestTransactionId =
+      mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
   TimeStamp transactionStart = mTransactionIdAllocator->GetTransactionStart();
 
   // Skip the synchronization for buffer since we also skip the painting during
@@ -231,27 +206,24 @@ WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags)
     }
   }
 
-  WrBridge()->EndEmptyTransaction(mFocusTarget, mLatestTransactionId, transactionStart);
+  WrBridge()->EndEmptyTransaction(mFocusTarget, mLatestTransactionId,
+                                  transactionStart);
 
   MakeSnapshotIfRequired(size);
   return true;
 }
 
-void
-WebRenderLayerManager::EndTransaction(DrawPaintedLayerCallback aCallback,
-                                      void* aCallbackData,
-                                      EndTransactionFlags aFlags)
-{
+void WebRenderLayerManager::EndTransaction(DrawPaintedLayerCallback aCallback,
+                                           void* aCallbackData,
+                                           EndTransactionFlags aFlags) {
   // This should never get called, all callers should use
   // EndTransactionWithoutLayer instead.
   MOZ_ASSERT(false);
 }
 
-void
-WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
-                                                  nsDisplayListBuilder* aDisplayListBuilder,
-                                                  const nsTArray<wr::WrFilterOp>& aFilters)
-{
+void WebRenderLayerManager::EndTransactionWithoutLayer(
+    nsDisplayList* aDisplayList, nsDisplayListBuilder* aDisplayListBuilder,
+    const nsTArray<wr::WrFilterOp>& aFilters) {
   MOZ_ASSERT(aDisplayList && aDisplayListBuilder);
   WrBridge()->RemoveExpiredFontKeys();
 
@@ -260,7 +232,8 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
 #if DUMP_LISTS
   // Useful for debugging, it dumps the display list *before* we try to build
   // WR commands from it
-  if (XRE_IsContentProcess()) nsFrame::PrintDisplayList(aDisplayListBuilder, *aDisplayList);
+  if (XRE_IsContentProcess())
+    nsFrame::PrintDisplayList(aDisplayListBuilder, *aDisplayList);
 #endif
 
 #ifdef XP_WIN
@@ -274,19 +247,17 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
   DiscardCompositorAnimations();
 
   LayoutDeviceIntSize size = mWidget->GetClientSize();
-  wr::LayoutSize contentSize { (float)size.width, (float)size.height };
-  wr::DisplayListBuilder builder(WrBridge()->GetPipeline(), contentSize, mLastDisplayListSize);
+  wr::LayoutSize contentSize{(float)size.width, (float)size.height};
+  wr::DisplayListBuilder builder(WrBridge()->GetPipeline(), contentSize,
+                                 mLastDisplayListSize);
   wr::IpcResourceUpdateQueue resourceUpdates(WrBridge());
 
-  mWebRenderCommandBuilder.BuildWebRenderCommands(builder,
-                                                  resourceUpdates,
-                                                  aDisplayList,
-                                                  aDisplayListBuilder,
-                                                  mScrollData,
-                                                  contentSize,
-                                                  aFilters);
+  mWebRenderCommandBuilder.BuildWebRenderCommands(
+      builder, resourceUpdates, aDisplayList, aDisplayListBuilder, mScrollData,
+      contentSize, aFilters);
 
-  mWidget->AddWindowOverlayWebRenderCommands(WrBridge(), builder, resourceUpdates);
+  mWidget->AddWindowOverlayWebRenderCommands(WrBridge(), builder,
+                                             resourceUpdates);
   mWindowOverlayChanged = false;
 
   WrBridge()->ClearReadLocks();
@@ -302,7 +273,8 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
     mScrollData.SetPaintSequenceNumber(mPaintSequenceNumber);
   }
 
-  mLatestTransactionId = mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
+  mLatestTransactionId =
+      mTransactionIdAllocator->GetTransactionId(/*aThrottle*/ true);
   TimeStamp transactionStart = mTransactionIdAllocator->GetTransactionStart();
 
   for (const auto& key : mImageKeysToDelete) {
@@ -330,8 +302,9 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
 
   {
     AUTO_PROFILER_TRACING("Paint", "ForwardDPTransaction");
-    WrBridge()->EndTransaction(contentSize, dl, resourceUpdates, size.ToUnknownSize(),
-                               mLatestTransactionId, mScrollData, transactionStart);
+    WrBridge()->EndTransaction(contentSize, dl, resourceUpdates,
+                               size.ToUnknownSize(), mLatestTransactionId,
+                               mScrollData, transactionStart);
   }
 
   MakeSnapshotIfRequired(size);
@@ -340,21 +313,15 @@ WebRenderLayerManager::EndTransactionWithoutLayer(nsDisplayList* aDisplayList,
   ClearDisplayItemLayers();
 }
 
-void
-WebRenderLayerManager::SetFocusTarget(const FocusTarget& aFocusTarget)
-{
+void WebRenderLayerManager::SetFocusTarget(const FocusTarget& aFocusTarget) {
   mFocusTarget = aFocusTarget;
 }
 
-bool
-WebRenderLayerManager::AsyncPanZoomEnabled() const
-{
+bool WebRenderLayerManager::AsyncPanZoomEnabled() const {
   return mWidget->AsyncPanZoomEnabled();
 }
 
-void
-WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize)
-{
+void WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize) {
   if (!mTarget || aSize.IsEmpty()) {
     return;
   }
@@ -363,12 +330,9 @@ WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize)
   // Only BufferTexture is supported now.
 
   // TODO: fixup for proper surface format.
-  RefPtr<TextureClient> texture =
-    TextureClient::CreateForRawBufferAccess(WrBridge(),
-                                            SurfaceFormat::B8G8R8A8,
-                                            aSize.ToUnknownSize(),
-                                            BackendType::SKIA,
-                                            TextureFlags::SNAPSHOT);
+  RefPtr<TextureClient> texture = TextureClient::CreateForRawBufferAccess(
+      WrBridge(), SurfaceFormat::B8G8R8A8, aSize.ToUnknownSize(),
+      BackendType::SKIA, TextureFlags::SNAPSHOT);
   if (!texture) {
     return;
   }
@@ -392,21 +356,22 @@ WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize)
     return;
   }
   RefPtr<SourceSurface> snapshot = drawTarget->Snapshot();
-/*
-  static int count = 0;
-  char filename[100];
-  snprintf(filename, 100, "output%d.png", count++);
-  printf_stderr("Writing to :%s\n", filename);
-  gfxUtils::WriteAsPNG(snapshot, filename);
-  */
+  /*
+    static int count = 0;
+    char filename[100];
+    snprintf(filename, 100, "output%d.png", count++);
+    printf_stderr("Writing to :%s\n", filename);
+    gfxUtils::WriteAsPNG(snapshot, filename);
+    */
 
   Rect dst(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height());
   Rect src(0, 0, bounds.Width(), bounds.Height());
 
-  // The data we get from webrender is upside down. So flip and translate up so the image is rightside up.
-  // Webrender always does a full screen readback.
-  SurfacePattern pattern(snapshot, ExtendMode::CLAMP,
-                         Matrix::Scaling(1.0, -1.0).PostTranslate(0.0, aSize.height));
+  // The data we get from webrender is upside down. So flip and translate up so
+  // the image is rightside up. Webrender always does a full screen readback.
+  SurfacePattern pattern(
+      snapshot, ExtendMode::CLAMP,
+      Matrix::Scaling(1.0, -1.0).PostTranslate(0.0, aSize.height));
   DrawTarget* dt = mTarget->GetDrawTarget();
   MOZ_RELEASE_ASSERT(dt);
   dt->FillRect(dst, pattern);
@@ -414,15 +379,11 @@ WebRenderLayerManager::MakeSnapshotIfRequired(LayoutDeviceIntSize aSize)
   mTarget = nullptr;
 }
 
-void
-WebRenderLayerManager::AddImageKeyForDiscard(wr::ImageKey key)
-{
+void WebRenderLayerManager::AddImageKeyForDiscard(wr::ImageKey key) {
   mImageKeysToDeleteLater.AppendElement(key);
 }
 
-void
-WebRenderLayerManager::DiscardImages()
-{
+void WebRenderLayerManager::DiscardImages() {
   wr::IpcResourceUpdateQueue resources(WrBridge());
   for (const auto& key : mImageKeysToDeleteLater) {
     resources.DeleteImage(key);
@@ -435,9 +396,7 @@ WebRenderLayerManager::DiscardImages()
   WrBridge()->UpdateResources(resources);
 }
 
-void
-WebRenderLayerManager::AddActiveCompositorAnimationId(uint64_t aId)
-{
+void WebRenderLayerManager::AddActiveCompositorAnimationId(uint64_t aId) {
   // In layers-free mode we track the active compositor animation ids on the
   // client side so that we don't try to discard the same animation id multiple
   // times. We could just ignore the multiple-discard on the parent side, but
@@ -445,31 +404,24 @@ WebRenderLayerManager::AddActiveCompositorAnimationId(uint64_t aId)
   mActiveCompositorAnimationIds.insert(aId);
 }
 
-void
-WebRenderLayerManager::AddCompositorAnimationsIdForDiscard(uint64_t aId)
-{
+void WebRenderLayerManager::AddCompositorAnimationsIdForDiscard(uint64_t aId) {
   if (mActiveCompositorAnimationIds.erase(aId)) {
-    // For layers-free ensure we don't try to discard an animation id that wasn't
-    // active. We also remove it from mActiveCompositorAnimationIds so we don't
-    // discard it again unless it gets re-activated.
+    // For layers-free ensure we don't try to discard an animation id that
+    // wasn't active. We also remove it from mActiveCompositorAnimationIds so we
+    // don't discard it again unless it gets re-activated.
     mDiscardedCompositorAnimationsIds.AppendElement(aId);
   }
 }
 
-void
-WebRenderLayerManager::DiscardCompositorAnimations()
-{
-  if (WrBridge()->IPCOpen() &&
-      !mDiscardedCompositorAnimationsIds.IsEmpty()) {
-    WrBridge()->
-      SendDeleteCompositorAnimations(mDiscardedCompositorAnimationsIds);
+void WebRenderLayerManager::DiscardCompositorAnimations() {
+  if (WrBridge()->IPCOpen() && !mDiscardedCompositorAnimationsIds.IsEmpty()) {
+    WrBridge()->SendDeleteCompositorAnimations(
+        mDiscardedCompositorAnimationsIds);
   }
   mDiscardedCompositorAnimationsIds.Clear();
 }
 
-void
-WebRenderLayerManager::DiscardLocalImages()
-{
+void WebRenderLayerManager::DiscardLocalImages() {
   // Removes images but doesn't tell the parent side about them
   // This is useful in empty / failed transactions where we created
   // image keys but didn't tell the parent about them yet.
@@ -477,19 +429,16 @@ WebRenderLayerManager::DiscardLocalImages()
   mImageKeysToDelete.Clear();
 }
 
-void
-WebRenderLayerManager::SetLayerObserverEpoch(uint64_t aLayerObserverEpoch)
-{
+void WebRenderLayerManager::SetLayerObserverEpoch(
+    uint64_t aLayerObserverEpoch) {
   if (WrBridge()->IPCOpen()) {
     WrBridge()->SendSetLayerObserverEpoch(aLayerObserverEpoch);
   }
 }
 
-void
-WebRenderLayerManager::DidComposite(uint64_t aTransactionId,
-                                    const mozilla::TimeStamp& aCompositeStart,
-                                    const mozilla::TimeStamp& aCompositeEnd)
-{
+void WebRenderLayerManager::DidComposite(
+    uint64_t aTransactionId, const mozilla::TimeStamp& aCompositeStart,
+    const mozilla::TimeStamp& aCompositeEnd) {
   MOZ_ASSERT(mWidget);
 
   // Notifying the observers may tick the refresh driver which can cause
@@ -501,13 +450,15 @@ WebRenderLayerManager::DidComposite(uint64_t aTransactionId,
   // |aTransactionId| will be > 0 if the compositor is acknowledging a shadow
   // layers transaction.
   if (aTransactionId) {
-    nsIWidgetListener *listener = mWidget->GetWidgetListener();
+    nsIWidgetListener* listener = mWidget->GetWidgetListener();
     if (listener) {
-      listener->DidCompositeWindow(aTransactionId, aCompositeStart, aCompositeEnd);
+      listener->DidCompositeWindow(aTransactionId, aCompositeStart,
+                                   aCompositeEnd);
     }
     listener = mWidget->GetAttachedWidgetListener();
     if (listener) {
-      listener->DidCompositeWindow(aTransactionId, aCompositeStart, aCompositeEnd);
+      listener->DidCompositeWindow(aTransactionId, aCompositeStart,
+                                   aCompositeEnd);
     }
     if (mTransactionIdAllocator) {
       mTransactionIdAllocator->NotifyTransactionCompleted(aTransactionId);
@@ -520,9 +471,7 @@ WebRenderLayerManager::DidComposite(uint64_t aTransactionId,
   }
 }
 
-void
-WebRenderLayerManager::ClearCachedResources(Layer* aSubtree)
-{
+void WebRenderLayerManager::ClearCachedResources(Layer* aSubtree) {
   WrBridge()->BeginClearCachedResources();
   mWebRenderCommandBuilder.ClearCachedResources();
   DiscardImages();
@@ -534,16 +483,12 @@ WebRenderLayerManager::ClearCachedResources(Layer* aSubtree)
   WrBridge()->EndClearCachedResources();
 }
 
-void
-WebRenderLayerManager::WrUpdated()
-{
+void WebRenderLayerManager::WrUpdated() {
   mWebRenderCommandBuilder.ClearCachedResources();
   DiscardLocalImages();
 }
 
-dom::TabGroup*
-WebRenderLayerManager::GetTabGroup()
-{
+dom::TabGroup* WebRenderLayerManager::GetTabGroup() {
   if (mWidget) {
     if (dom::TabChild* tabChild = mWidget->GetOwningTabChild()) {
       return tabChild->TabGroup();
@@ -552,21 +497,17 @@ WebRenderLayerManager::GetTabGroup()
   return nullptr;
 }
 
-void
-WebRenderLayerManager::UpdateTextureFactoryIdentifier(const TextureFactoryIdentifier& aNewIdentifier)
-{
+void WebRenderLayerManager::UpdateTextureFactoryIdentifier(
+    const TextureFactoryIdentifier& aNewIdentifier) {
   WrBridge()->IdentifyTextureHost(aNewIdentifier);
 }
 
-TextureFactoryIdentifier
-WebRenderLayerManager::GetTextureFactoryIdentifier()
-{
+TextureFactoryIdentifier WebRenderLayerManager::GetTextureFactoryIdentifier() {
   return WrBridge()->GetTextureFactoryIdentifier();
 }
 
-void
-WebRenderLayerManager::SetTransactionIdAllocator(TransactionIdAllocator* aAllocator)
-{
+void WebRenderLayerManager::SetTransactionIdAllocator(
+    TransactionIdAllocator* aAllocator) {
   // When changing the refresh driver, the previous refresh driver may never
   // receive updates of pending transactions it's waiting for. So clear the
   // waiting state before assigning another refresh driver.
@@ -577,87 +518,75 @@ WebRenderLayerManager::SetTransactionIdAllocator(TransactionIdAllocator* aAlloca
     // allocator's last transaction id, so that completed transactions for
     // previous allocator will be ignored and won't confuse the new allocator.
     if (aAllocator) {
-      aAllocator->ResetInitialTransactionId(mTransactionIdAllocator->LastTransactionId());
+      aAllocator->ResetInitialTransactionId(
+          mTransactionIdAllocator->LastTransactionId());
     }
   }
 
   mTransactionIdAllocator = aAllocator;
 }
 
-void
-WebRenderLayerManager::AddDidCompositeObserver(DidCompositeObserver* aObserver)
-{
+void WebRenderLayerManager::AddDidCompositeObserver(
+    DidCompositeObserver* aObserver) {
   if (!mDidCompositeObservers.Contains(aObserver)) {
     mDidCompositeObservers.AppendElement(aObserver);
   }
 }
 
-void
-WebRenderLayerManager::RemoveDidCompositeObserver(DidCompositeObserver* aObserver)
-{
+void WebRenderLayerManager::RemoveDidCompositeObserver(
+    DidCompositeObserver* aObserver) {
   mDidCompositeObservers.RemoveElement(aObserver);
 }
 
-void
-WebRenderLayerManager::FlushRendering()
-{
+void WebRenderLayerManager::FlushRendering() {
   CompositorBridgeChild* cBridge = GetCompositorBridgeChild();
   if (!cBridge) {
     return;
   }
   MOZ_ASSERT(mWidget);
 
-  if (mWidget->SynchronouslyRepaintOnResize() || gfxPrefs::LayersForceSynchronousResize()) {
+  if (mWidget->SynchronouslyRepaintOnResize() ||
+      gfxPrefs::LayersForceSynchronousResize()) {
     cBridge->SendFlushRendering();
   } else {
     cBridge->SendFlushRenderingAsync();
   }
 }
 
-void
-WebRenderLayerManager::WaitOnTransactionProcessed()
-{
+void WebRenderLayerManager::WaitOnTransactionProcessed() {
   CompositorBridgeChild* bridge = GetCompositorBridgeChild();
   if (bridge) {
     bridge->SendWaitOnTransactionProcessed();
   }
 }
 
-void
-WebRenderLayerManager::SendInvalidRegion(const nsIntRegion& aRegion)
-{
+void WebRenderLayerManager::SendInvalidRegion(const nsIntRegion& aRegion) {
   // XXX Webrender does not support invalid region yet.
 }
 
-void
-WebRenderLayerManager::ScheduleComposite()
-{
+void WebRenderLayerManager::ScheduleComposite() {
   WrBridge()->SendScheduleComposite();
 }
 
-void
-WebRenderLayerManager::SetRoot(Layer* aLayer)
-{
+void WebRenderLayerManager::SetRoot(Layer* aLayer) {
   // This should never get called
   MOZ_ASSERT(false);
 }
 
-bool
-WebRenderLayerManager::SetPendingScrollUpdateForNextTransaction(FrameMetrics::ViewID aScrollId,
-                                                                const ScrollUpdateInfo& aUpdateInfo)
-{
+bool WebRenderLayerManager::SetPendingScrollUpdateForNextTransaction(
+    FrameMetrics::ViewID aScrollId, const ScrollUpdateInfo& aUpdateInfo) {
   // If we ever support changing the scroll position in an "empty transactions"
   // properly in WR we can fill this in. Covered by bug 1382259.
   return false;
 }
 
 already_AddRefed<PersistentBufferProvider>
-WebRenderLayerManager::CreatePersistentBufferProvider(const gfx::IntSize& aSize,
-                                                      gfx::SurfaceFormat aFormat)
-{
+WebRenderLayerManager::CreatePersistentBufferProvider(
+    const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat) {
   if (gfxPrefs::PersistentBufferProviderSharedEnabled()) {
-    RefPtr<PersistentBufferProvider> provider
-      = PersistentBufferProviderShared::Create(aSize, aFormat, AsKnowsCompositor());
+    RefPtr<PersistentBufferProvider> provider =
+        PersistentBufferProviderShared::Create(aSize, aFormat,
+                                               AsKnowsCompositor());
     if (provider) {
       return provider.forget();
     }
@@ -665,5 +594,5 @@ WebRenderLayerManager::CreatePersistentBufferProvider(const gfx::IntSize& aSize,
   return LayerManager::CreatePersistentBufferProvider(aSize, aFormat);
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

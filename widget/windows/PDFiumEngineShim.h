@@ -23,22 +23,18 @@ struct PDFFunctionPointerTable;
  * This class exposes an interface to the PDFium library and
  * takes care of loading and linking to the appropriate PDFium symbols.
  */
-class PDFiumEngineShim
-{
-public:
-
+class PDFiumEngineShim {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PDFiumEngineShim)
 
   static already_AddRefed<PDFiumEngineShim> GetInstanceOrNull();
   // This function is used for testing purpose only, do not call it in regular
   // code.
-  static already_AddRefed<PDFiumEngineShim>
-  GetInstanceOrNull(const nsString& aLibrary);
+  static already_AddRefed<PDFiumEngineShim> GetInstanceOrNull(
+      const nsString& aLibrary);
 
-  FPDF_DOCUMENT LoadDocument(FPDF_STRING file_path,
-                             FPDF_BYTESTRING aPassword);
-  FPDF_DOCUMENT LoadDocument(PRFileDesc* aPrfile,
-                             FPDF_BYTESTRING aPassword);
+  FPDF_DOCUMENT LoadDocument(FPDF_STRING file_path, FPDF_BYTESTRING aPassword);
+  FPDF_DOCUMENT LoadDocument(PRFileDesc* aPrfile, FPDF_BYTESTRING aPassword);
   void CloseDocument(FPDF_DOCUMENT aDocument);
   int GetPageCount(FPDF_DOCUMENT aDocument);
   int GetPageSizeByIndex(FPDF_DOCUMENT aDocument, int aPageIndex,
@@ -46,23 +42,21 @@ public:
 
   FPDF_PAGE LoadPage(FPDF_DOCUMENT aDocument, int aPageIndex);
   void ClosePage(FPDF_PAGE aPage);
-  void RenderPage(HDC aDC, FPDF_PAGE aPage,
-                  int aStartX, int aStartY,
-                  int aSizeX, int aSizeY,
-                  int aRotate, int aFlags);
+  void RenderPage(HDC aDC, FPDF_PAGE aPage, int aStartX, int aStartY,
+                  int aSizeX, int aSizeY, int aRotate, int aFlags);
 
-private:
+ private:
   PDFiumEngineShim();
   ~PDFiumEngineShim();
   bool Init(const nsString& aLibrary);
 
   UniquePtr<PDFFunctionPointerTable> mTable;
-  bool        mInitialized ;
+  bool mInitialized;
 
-  PRLibrary*  mPRLibrary;
+  PRLibrary* mPRLibrary;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
 #endif /* PDFIUMENGINESHIM_H */

@@ -19,35 +19,26 @@ namespace dom {
 class BlobImpls;
 class File;
 
-class FileList final : public nsIDOMFileList,
-                       public nsWrapperCache
-{
-public:
+class FileList final : public nsIDOMFileList, public nsWrapperCache {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(FileList)
 
   NS_DECL_NSIDOMFILELIST
 
-  explicit FileList(nsISupports* aParent)
-    : mParent(aParent)
-  {}
+  explicit FileList(nsISupports* aParent) : mParent(aParent) {}
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  nsISupports* GetParentObject()
-  {
-    return mParent;
-  }
+  nsISupports* GetParentObject() { return mParent; }
 
-  bool Append(File* aFile)
-  {
+  bool Append(File* aFile) {
     MOZ_ASSERT(aFile);
     return mFiles.AppendElement(aFile, fallible);
   }
 
-  bool Remove(uint32_t aIndex)
-  {
+  bool Remove(uint32_t aIndex) {
     if (aIndex < mFiles.Length()) {
       mFiles.RemoveElementAt(aIndex);
       return true;
@@ -56,31 +47,24 @@ public:
     return false;
   }
 
-  void Clear()
-  {
-    return mFiles.Clear();
-  }
+  void Clear() { return mFiles.Clear(); }
 
   File* Item(uint32_t aIndex) const;
 
   File* IndexedGetter(uint32_t aIndex, bool& aFound) const;
 
-  uint32_t Length() const
-  {
-    return mFiles.Length();
-  }
+  uint32_t Length() const { return mFiles.Length(); }
 
-  void ToSequence(Sequence<RefPtr<File>>& aSequence,
-                  ErrorResult& aRv) const;
+  void ToSequence(Sequence<RefPtr<File>>& aSequence, ErrorResult& aRv) const;
 
-private:
+ private:
   ~FileList() {}
 
   FallibleTArray<RefPtr<File>> mFiles;
   nsCOMPtr<nsISupports> mParent;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FileList_h
+#endif  // mozilla_dom_FileList_h

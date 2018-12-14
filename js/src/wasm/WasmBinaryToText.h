@@ -31,15 +31,15 @@ class StringBuffer;
 
 namespace wasm {
 
-// Translate the given binary representation of a wasm module into the module's textual
-// representation.
+// Translate the given binary representation of a wasm module into the module's
+// textual representation.
 
-MOZ_MUST_USE bool
-BinaryToText(JSContext* cx, const uint8_t* bytes, size_t length, StringBuffer& buffer,
-             GeneratedSourceMap* sourceMap = nullptr);
+MOZ_MUST_USE bool BinaryToText(JSContext* cx, const uint8_t* bytes,
+                               size_t length, StringBuffer& buffer,
+                               GeneratedSourceMap* sourceMap = nullptr);
 
 }  // namespace wasm
 
 }  // namespace js
 
-#endif // namespace wasm_binary_to_text_h
+#endif  // namespace wasm_binary_to_text_h

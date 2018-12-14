@@ -37,30 +37,21 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsHistory)
 NS_INTERFACE_MAP_END
 
 nsHistory::nsHistory(nsPIDOMWindowInner* aInnerWindow)
-  : mInnerWindow(do_GetWeakReference(aInnerWindow))
-{
-}
+    : mInnerWindow(do_GetWeakReference(aInnerWindow)) {}
 
-nsHistory::~nsHistory()
-{
-}
+nsHistory::~nsHistory() {}
 
-nsPIDOMWindowInner*
-nsHistory::GetParentObject() const
-{
+nsPIDOMWindowInner* nsHistory::GetParentObject() const {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   return win;
 }
 
-JSObject*
-nsHistory::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* nsHistory::WrapObject(JSContext* aCx,
+                                JS::Handle<JSObject*> aGivenProto) {
   return HistoryBinding::Wrap(aCx, this, aGivenProto);
 }
 
-uint32_t
-nsHistory::GetLength(ErrorResult& aRv) const
-{
+uint32_t nsHistory::GetLength(ErrorResult& aRv) const {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -88,9 +79,7 @@ nsHistory::GetLength(ErrorResult& aRv) const
   return len >= 0 ? len : 0;
 }
 
-ScrollRestoration
-nsHistory::GetScrollRestoration(mozilla::ErrorResult& aRv)
-{
+ScrollRestoration nsHistory::GetScrollRestoration(mozilla::ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument() || !win->GetDocShell()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -98,32 +87,27 @@ nsHistory::GetScrollRestoration(mozilla::ErrorResult& aRv)
   }
 
   bool currentScrollRestorationIsManual = false;
-  win->GetDocShell()->
-    GetCurrentScrollRestorationIsManual(&currentScrollRestorationIsManual);
-  return currentScrollRestorationIsManual ?
-    mozilla::dom::ScrollRestoration::Manual :
-    mozilla::dom::ScrollRestoration::Auto;
+  win->GetDocShell()->GetCurrentScrollRestorationIsManual(
+      &currentScrollRestorationIsManual);
+  return currentScrollRestorationIsManual
+             ? mozilla::dom::ScrollRestoration::Manual
+             : mozilla::dom::ScrollRestoration::Auto;
 }
 
-void
-nsHistory::SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
-                                mozilla::ErrorResult& aRv)
-{
+void nsHistory::SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
+                                     mozilla::ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument() || !win->GetDocShell()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
 
-  win->GetDocShell()->
-    SetCurrentScrollRestorationIsManual(
+  win->GetDocShell()->SetCurrentScrollRestorationIsManual(
       aMode == mozilla::dom::ScrollRestoration::Manual);
 }
 
-void
-nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
-                    ErrorResult& aRv) const
-{
+void nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+                         ErrorResult& aRv) const {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
@@ -135,8 +119,7 @@ nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
     return;
   }
 
-  nsCOMPtr<nsIDocument> doc =
-    do_QueryInterface(win->GetExtantDoc());
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(win->GetExtantDoc());
   if (!doc) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
     return;
@@ -162,9 +145,7 @@ nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   aResult.setNull();
 }
 
-void
-nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
-{
+void nsHistory::Go(int32_t aDelta, ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -189,7 +170,7 @@ nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
 
       nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
 
-      nsPresContext *pcx;
+      nsPresContext* pcx;
       if (doc && (pcx = doc->GetPresContext())) {
         pcx->RebuildAllStyleData(NS_STYLE_HINT_REFLOW, eRestyle_Subtree);
       }
@@ -212,17 +193,14 @@ nsHistory::Go(int32_t aDelta, ErrorResult& aRv)
   session_history->GetCount(&len);
 
   int32_t index = curIndex + aDelta;
-  if (index > -1 && index < len)
-    webnav->GotoIndex(index);
+  if (index > -1 && index < len) webnav->GotoIndex(index);
 
   // Ignore the return value from GotoIndex(), since returning errors
   // from GotoIndex() can lead to exceptions and a possible leak
   // of history length
 }
 
-void
-nsHistory::Back(ErrorResult& aRv)
-{
+void nsHistory::Back(ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -241,9 +219,7 @@ nsHistory::Back(ErrorResult& aRv)
   webNav->GoBack();
 }
 
-void
-nsHistory::Forward(ErrorResult& aRv)
-{
+void nsHistory::Forward(ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win || !win->HasActiveDocument()) {
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -262,27 +238,22 @@ nsHistory::Forward(ErrorResult& aRv)
   webNav->GoForward();
 }
 
-void
-nsHistory::PushState(JSContext* aCx, JS::Handle<JS::Value> aData,
-                     const nsAString& aTitle, const nsAString& aUrl,
-                     ErrorResult& aRv)
-{
+void nsHistory::PushState(JSContext* aCx, JS::Handle<JS::Value> aData,
+                          const nsAString& aTitle, const nsAString& aUrl,
+                          ErrorResult& aRv) {
   PushOrReplaceState(aCx, aData, aTitle, aUrl, aRv, false);
 }
 
-void
-nsHistory::ReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
-                        const nsAString& aTitle, const nsAString& aUrl,
-                        ErrorResult& aRv)
-{
+void nsHistory::ReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+                             const nsAString& aTitle, const nsAString& aUrl,
+                             ErrorResult& aRv) {
   PushOrReplaceState(aCx, aData, aTitle, aUrl, aRv, true);
 }
 
-void
-nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
-                              const nsAString& aTitle, const nsAString& aUrl,
-                              ErrorResult& aRv, bool aReplace)
-{
+void nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+                                   const nsAString& aTitle,
+                                   const nsAString& aUrl, ErrorResult& aRv,
+                                   bool aReplace) {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
@@ -312,9 +283,7 @@ nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
   aRv = docShell->AddState(aData, aTitle, aUrl, aReplace, aCx);
 }
 
-nsIDocShell*
-nsHistory::GetDocShell() const
-{
+nsIDocShell* nsHistory::GetDocShell() const {
   nsCOMPtr<nsPIDOMWindowInner> win = do_QueryReferent(mInnerWindow);
   if (!win) {
     return nullptr;
@@ -322,10 +291,8 @@ nsHistory::GetDocShell() const
   return win->GetDocShell();
 }
 
-already_AddRefed<nsISHistory>
-nsHistory::GetSessionHistory() const
-{
-  nsIDocShell *docShell = GetDocShell();
+already_AddRefed<nsISHistory> nsHistory::GetSessionHistory() const {
+  nsIDocShell* docShell = GetDocShell();
   NS_ENSURE_TRUE(docShell, nullptr);
 
   // Get the root DocShell from it

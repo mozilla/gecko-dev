@@ -7,8 +7,12 @@
 #include "js/Wrapper.h"
 #include "mozilla/ModuleUtils.h"
 
-#define MOZ_MOZINTLHELPER_CID \
-  { 0xb43c96be, 0x2b3a, 0x4dc4, { 0x90, 0xe9, 0xb0, 0x6d, 0x34, 0x21, 0x9b, 0x68 } }
+#define MOZ_MOZINTLHELPER_CID                        \
+  {                                                  \
+    0xb43c96be, 0x2b3a, 0x4dc4, {                    \
+      0x90, 0xe9, 0xb0, 0x6d, 0x34, 0x21, 0x9b, 0x68 \
+    }                                                \
+  }
 
 using namespace mozilla;
 
@@ -18,9 +22,8 @@ MozIntlHelper::MozIntlHelper() = default;
 
 MozIntlHelper::~MozIntlHelper() = default;
 
-static nsresult
-AddFunctions(JSContext* cx, JS::Handle<JS::Value> val, const JSFunctionSpec* funcs)
-{
+static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
+                             const JSFunctionSpec* funcs) {
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -40,30 +43,26 @@ AddFunctions(JSContext* cx, JS::Handle<JS::Value> val, const JSFunctionSpec* fun
 }
 
 NS_IMETHODIMP
-MozIntlHelper::AddGetCalendarInfo(JS::Handle<JS::Value> val, JSContext* cx)
-{
+MozIntlHelper::AddGetCalendarInfo(JS::Handle<JS::Value> val, JSContext* cx) {
   static const JSFunctionSpec funcs[] = {
-    JS_SELF_HOSTED_FN("getCalendarInfo", "Intl_getCalendarInfo", 1, 0),
-    JS_FS_END
-  };
+      JS_SELF_HOSTED_FN("getCalendarInfo", "Intl_getCalendarInfo", 1, 0),
+      JS_FS_END};
 
   return AddFunctions(cx, val, funcs);
 }
 
 NS_IMETHODIMP
-MozIntlHelper::AddGetDisplayNames(JS::Handle<JS::Value> val, JSContext* cx)
-{
+MozIntlHelper::AddGetDisplayNames(JS::Handle<JS::Value> val, JSContext* cx) {
   static const JSFunctionSpec funcs[] = {
-    JS_SELF_HOSTED_FN("getDisplayNames", "Intl_getDisplayNames", 2, 0),
-    JS_FS_END
-  };
+      JS_SELF_HOSTED_FN("getDisplayNames", "Intl_getDisplayNames", 2, 0),
+      JS_FS_END};
 
   return AddFunctions(cx, val, funcs);
 }
 
 NS_IMETHODIMP
-MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val, JSContext* cx)
-{
+MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
+                                            JSContext* cx) {
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -83,12 +82,10 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val, JSContext
 }
 
 NS_IMETHODIMP
-MozIntlHelper::AddGetLocaleInfo(JS::Handle<JS::Value> val, JSContext* cx)
-{
+MozIntlHelper::AddGetLocaleInfo(JS::Handle<JS::Value> val, JSContext* cx) {
   static const JSFunctionSpec funcs[] = {
-    JS_SELF_HOSTED_FN("getLocaleInfo", "Intl_getLocaleInfo", 1, 0),
-    JS_FS_END
-  };
+      JS_SELF_HOSTED_FN("getLocaleInfo", "Intl_getLocaleInfo", 1, 0),
+      JS_FS_END};
 
   return AddFunctions(cx, val, funcs);
 }
@@ -97,23 +94,18 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(MozIntlHelper)
 NS_DEFINE_NAMED_CID(MOZ_MOZINTLHELPER_CID);
 
 static const Module::CIDEntry kMozIntlHelperCIDs[] = {
-  { &kMOZ_MOZINTLHELPER_CID, false, nullptr, MozIntlHelperConstructor },
-  { nullptr }
-};
+    {&kMOZ_MOZINTLHELPER_CID, false, nullptr, MozIntlHelperConstructor},
+    {nullptr}};
 
 static const mozilla::Module::ContractIDEntry kMozIntlHelperContracts[] = {
-  { "@mozilla.org/mozintlhelper;1", &kMOZ_MOZINTLHELPER_CID },
-  { nullptr }
-};
+    {"@mozilla.org/mozintlhelper;1", &kMOZ_MOZINTLHELPER_CID}, {nullptr}};
 
-static const mozilla::Module kMozIntlHelperModule = {
-  mozilla::Module::kVersion,
-  kMozIntlHelperCIDs,
-  kMozIntlHelperContracts,
-  nullptr,
-  nullptr,
-  nullptr,
-  nullptr
-};
+static const mozilla::Module kMozIntlHelperModule = {mozilla::Module::kVersion,
+                                                     kMozIntlHelperCIDs,
+                                                     kMozIntlHelperContracts,
+                                                     nullptr,
+                                                     nullptr,
+                                                     nullptr,
+                                                     nullptr};
 
 NSMODULE_DEFN(mozMozIntlHelperModule) = &kMozIntlHelperModule;

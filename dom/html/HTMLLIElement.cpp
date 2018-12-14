@@ -18,42 +18,34 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(LI)
 namespace mozilla {
 namespace dom {
 
-HTMLLIElement::~HTMLLIElement()
-{
-}
+HTMLLIElement::~HTMLLIElement() {}
 
 NS_IMPL_ELEMENT_CLONE(HTMLLIElement)
 
 // values that are handled case-insensitively
 static const nsAttrValue::EnumTable kUnorderedListItemTypeTable[] = {
-  { "disc", NS_STYLE_LIST_STYLE_DISC },
-  { "circle", NS_STYLE_LIST_STYLE_CIRCLE },
-  { "round", NS_STYLE_LIST_STYLE_CIRCLE },
-  { "square", NS_STYLE_LIST_STYLE_SQUARE },
-  { nullptr, 0 }
-};
+    {"disc", NS_STYLE_LIST_STYLE_DISC},
+    {"circle", NS_STYLE_LIST_STYLE_CIRCLE},
+    {"round", NS_STYLE_LIST_STYLE_CIRCLE},
+    {"square", NS_STYLE_LIST_STYLE_SQUARE},
+    {nullptr, 0}};
 
 // values that are handled case-sensitively
 static const nsAttrValue::EnumTable kOrderedListItemTypeTable[] = {
-  { "A", NS_STYLE_LIST_STYLE_UPPER_ALPHA },
-  { "a", NS_STYLE_LIST_STYLE_LOWER_ALPHA },
-  { "I", NS_STYLE_LIST_STYLE_UPPER_ROMAN },
-  { "i", NS_STYLE_LIST_STYLE_LOWER_ROMAN },
-  { "1", NS_STYLE_LIST_STYLE_DECIMAL },
-  { nullptr, 0 }
-};
+    {"A", NS_STYLE_LIST_STYLE_UPPER_ALPHA},
+    {"a", NS_STYLE_LIST_STYLE_LOWER_ALPHA},
+    {"I", NS_STYLE_LIST_STYLE_UPPER_ROMAN},
+    {"i", NS_STYLE_LIST_STYLE_LOWER_ROMAN},
+    {"1", NS_STYLE_LIST_STYLE_DECIMAL},
+    {nullptr, 0}};
 
-bool
-HTMLLIElement::ParseAttribute(int32_t aNamespaceID,
-                              nsAtom* aAttribute,
-                              const nsAString& aValue,
-                              nsIPrincipal* aMaybeScriptedPrincipal,
-                              nsAttrValue& aResult)
-{
+bool HTMLLIElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                                   const nsAString& aValue,
+                                   nsIPrincipal* aMaybeScriptedPrincipal,
+                                   nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::type) {
-      return aResult.ParseEnumValue(aValue, kOrderedListItemTypeTable,
-                                    true) ||
+      return aResult.ParseEnumValue(aValue, kOrderedListItemTypeTable, true) ||
              aResult.ParseEnumValue(aValue, kUnorderedListItemTypeTable, false);
     }
     if (aAttribute == nsGkAtoms::value) {
@@ -65,16 +57,15 @@ HTMLLIElement::ParseAttribute(int32_t aNamespaceID,
                                               aMaybeScriptedPrincipal, aResult);
 }
 
-void
-HTMLLIElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                     GenericSpecifiedValues* aData)
-{
+void HTMLLIElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
+                                          GenericSpecifiedValues* aData) {
   if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(List))) {
     if (!aData->PropertyIsSet(eCSSProperty_list_style_type)) {
       // type: enum
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::type);
       if (value && value->Type() == nsAttrValue::eEnum)
-        aData->SetKeywordValue(eCSSProperty_list_style_type, value->GetEnumValue());
+        aData->SetKeywordValue(eCSSProperty_list_style_type,
+                               value->GetEnumValue());
     }
   }
 
@@ -82,32 +73,28 @@ HTMLLIElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLLIElement::IsAttributeMapped(const nsAtom* aAttribute) const
-{
+HTMLLIElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   static const MappedAttributeEntry attributes[] = {
-    { &nsGkAtoms::type },
-    { nullptr },
+      {&nsGkAtoms::type},
+      {nullptr},
   };
 
   static const MappedAttributeEntry* const map[] = {
-    attributes,
-    sCommonAttributeMap,
+      attributes,
+      sCommonAttributeMap,
   };
 
   return FindAttributeDependence(aAttribute, map);
 }
 
-nsMapRuleToAttributesFunc
-HTMLLIElement::GetAttributeMappingFunction() const
-{
+nsMapRuleToAttributesFunc HTMLLIElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-JSObject*
-HTMLLIElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLLIElement::WrapNode(JSContext* aCx,
+                                  JS::Handle<JSObject*> aGivenProto) {
   return HTMLLIElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

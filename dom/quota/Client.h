@@ -28,28 +28,24 @@ class UsageInfo;
 // An abstract interface for quota manager clients.
 // Each storage API must provide an implementation of this interface in order
 // to participate in centralized quota and storage handling.
-class Client
-{
-public:
+class Client {
+ public:
   typedef mozilla::Atomic<bool> AtomicBool;
 
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   enum Type {
     IDB = 0,
-    //LS,
-    //APPCACHE,
+    // LS,
+    // APPCACHE,
     ASMJS,
     DOMCACHE,
     TYPE_MAX
   };
 
-  virtual Type
-  GetType() = 0;
+  virtual Type GetType() = 0;
 
-  static nsresult
-  TypeToText(Type aType, nsAString& aText)
-  {
+  static nsresult TypeToText(Type aType, nsAString& aText) {
     switch (aType) {
       case IDB:
         aText.AssignLiteral(IDB_DIRECTORY_NAME);
@@ -72,19 +68,14 @@ public:
     return NS_OK;
   }
 
-  static nsresult
-  TypeFromText(const nsAString& aText, Type& aType)
-  {
+  static nsresult TypeFromText(const nsAString& aText, Type& aType) {
     if (aText.EqualsLiteral(IDB_DIRECTORY_NAME)) {
       aType = IDB;
-    }
-    else if (aText.EqualsLiteral(ASMJSCACHE_DIRECTORY_NAME)) {
+    } else if (aText.EqualsLiteral(ASMJSCACHE_DIRECTORY_NAME)) {
       aType = ASMJS;
-    }
-    else if (aText.EqualsLiteral(DOMCACHE_DIRECTORY_NAME)) {
+    } else if (aText.EqualsLiteral(DOMCACHE_DIRECTORY_NAME)) {
       aType = DOMCACHE;
-    }
-    else {
+    } else {
       return NS_ERROR_FAILURE;
     }
 
@@ -92,69 +83,51 @@ public:
   }
 
   // Methods which are called on the IO thread.
-  virtual nsresult
-  UpgradeStorageFrom1_0To2_0(nsIFile* aDirectory)
-  {
+  virtual nsresult UpgradeStorageFrom1_0To2_0(nsIFile* aDirectory) {
     return NS_OK;
   }
 
-  virtual nsresult
-  UpgradeStorageFrom2_0To2_1(nsIFile* aDirectory)
-  {
+  virtual nsresult UpgradeStorageFrom2_0To2_1(nsIFile* aDirectory) {
     return NS_OK;
   }
 
-  virtual nsresult
-  InitOrigin(PersistenceType aPersistenceType,
-             const nsACString& aGroup,
-             const nsACString& aOrigin,
-             const AtomicBool& aCanceled,
-             UsageInfo* aUsageInfo) = 0;
+  virtual nsresult InitOrigin(PersistenceType aPersistenceType,
+                              const nsACString& aGroup,
+                              const nsACString& aOrigin,
+                              const AtomicBool& aCanceled,
+                              UsageInfo* aUsageInfo) = 0;
 
-  virtual nsresult
-  GetUsageForOrigin(PersistenceType aPersistenceType,
-                    const nsACString& aGroup,
-                    const nsACString& aOrigin,
-                    const AtomicBool& aCanceled,
-                    UsageInfo* aUsageInfo) = 0;
+  virtual nsresult GetUsageForOrigin(PersistenceType aPersistenceType,
+                                     const nsACString& aGroup,
+                                     const nsACString& aOrigin,
+                                     const AtomicBool& aCanceled,
+                                     UsageInfo* aUsageInfo) = 0;
 
-  virtual void
-  OnOriginClearCompleted(PersistenceType aPersistenceType,
-                         const nsACString& aOrigin) = 0;
+  virtual void OnOriginClearCompleted(PersistenceType aPersistenceType,
+                                      const nsACString& aOrigin) = 0;
 
-  virtual void
-  ReleaseIOThreadObjects() = 0;
+  virtual void ReleaseIOThreadObjects() = 0;
 
   // Methods which are called on the background thread.
-  virtual void
-  AbortOperations(const nsACString& aOrigin) = 0;
+  virtual void AbortOperations(const nsACString& aOrigin) = 0;
 
-  virtual void
-  AbortOperationsForProcess(ContentParentId aContentParentId) = 0;
+  virtual void AbortOperationsForProcess(ContentParentId aContentParentId) = 0;
 
-  virtual void
-  StartIdleMaintenance() = 0;
+  virtual void StartIdleMaintenance() = 0;
 
-  virtual void
-  StopIdleMaintenance() = 0;
+  virtual void StopIdleMaintenance() = 0;
 
-  virtual void
-  ShutdownWorkThreads() = 0;
+  virtual void ShutdownWorkThreads() = 0;
 
   // Methods which are called on the main thread.
-  virtual void
-  DidInitialize(QuotaManager* aQuotaManager)
-  { }
+  virtual void DidInitialize(QuotaManager* aQuotaManager) {}
 
-  virtual void
-  WillShutdown()
-  { }
+  virtual void WillShutdown() {}
 
-protected:
-  virtual ~Client()
-  { }
+ protected:
+  virtual ~Client() {}
 };
 
 END_QUOTA_NAMESPACE
 
-#endif // mozilla_dom_quota_client_h__
+#endif  // mozilla_dom_quota_client_h__

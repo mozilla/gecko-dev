@@ -16,15 +16,15 @@
 
 extern mozilla::LazyLogModule gCertVerifierLog;
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
 // Returns the number of embedded SCTs required to be present on a
 // certificate for Qualification Case #2 (embedded SCTs).
-static size_t
-GetRequiredEmbeddedSctsCount(size_t certLifetimeInFullCalendarMonths)
-{
+static size_t GetRequiredEmbeddedSctsCount(
+    size_t certLifetimeInFullCalendarMonths) {
   // "there are Embedded SCTs from AT LEAST N+1 once or currently qualified
   // logs, where N is the lifetime of the certificate in years (normally
   // rounding up, but rounding down when up to 3 months over), and must be
@@ -33,9 +33,7 @@ GetRequiredEmbeddedSctsCount(size_t certLifetimeInFullCalendarMonths)
 }
 
 // Whether a valid embedded SCT is present in the list.
-static bool
-HasValidEmbeddedSct(const VerifiedSCTList& verifiedScts)
-{
+static bool HasValidEmbeddedSct(const VerifiedSCTList& verifiedScts) {
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
     if (verifiedSct.status == VerifiedSCT::Status::Valid &&
         verifiedSct.origin == VerifiedSCT::Origin::Embedded) {
@@ -46,13 +44,11 @@ HasValidEmbeddedSct(const VerifiedSCTList& verifiedScts)
 }
 
 // Whether a valid non-embedded SCT is present in the list.
-static bool
-HasValidNonEmbeddedSct(const VerifiedSCTList& verifiedScts)
-{
+static bool HasValidNonEmbeddedSct(const VerifiedSCTList& verifiedScts) {
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
     if (verifiedSct.status == VerifiedSCT::Status::Valid &&
-         (verifiedSct.origin == VerifiedSCT::Origin::TLSExtension ||
-          verifiedSct.origin == VerifiedSCT::Origin::OCSPResponse)) {
+        (verifiedSct.origin == VerifiedSCT::Origin::TLSExtension ||
+         verifiedSct.origin == VerifiedSCT::Origin::OCSPResponse)) {
       return true;
     }
   }
@@ -63,12 +59,10 @@ HasValidNonEmbeddedSct(const VerifiedSCTList& verifiedScts)
 // log operators running the CT logs that issued the SCTs which satisfy
 // the provided boolean predicate.
 template <typename SelectFunc>
-static Result
-CountIndependentLogOperatorsForSelectedScts(const VerifiedSCTList& verifiedScts,
-  const CTLogOperatorList& dependentOperators,
-  size_t& count,
-  SelectFunc selected)
-{
+static Result CountIndependentLogOperatorsForSelectedScts(
+    const VerifiedSCTList& verifiedScts,
+    const CTLogOperatorList& dependentOperators, size_t& count,
+    SelectFunc selected) {
   CTLogOperatorList operatorIds;
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
     CTLogOperatorId sctLogOperatorId = verifiedSct.logOperatorId;
@@ -105,11 +99,8 @@ CountIndependentLogOperatorsForSelectedScts(const VerifiedSCTList& verifiedScts,
 // Given a list of verified SCTs, counts the number of distinct CT logs
 // that issued the SCTs that satisfy the |selected| predicate.
 template <typename SelectFunc>
-static Result
-CountLogsForSelectedScts(const VerifiedSCTList& verifiedScts,
-                         size_t& count,
-                         SelectFunc selected)
-{
+static Result CountLogsForSelectedScts(const VerifiedSCTList& verifiedScts,
+                                       size_t& count, SelectFunc selected) {
   // Keep pointers to log ids (of type Buffer) from |verifiedScts| to save on
   // memory allocations.
   Vector<const Buffer*, 8> logIds;
@@ -150,9 +141,8 @@ CountLogsForSelectedScts(const VerifiedSCTList& verifiedScts,
 // delivered via OCSP/TLS extension will cover the full certificate,
 // which necessarily will exist only after the precertificate
 // has been logged and the actual certificate issued.
-static uint64_t
-GetEffectiveCertIssuanceTime(const VerifiedSCTList& verifiedScts)
-{
+static uint64_t GetEffectiveCertIssuanceTime(
+    const VerifiedSCTList& verifiedScts) {
   uint64_t result = UINT64_MAX;
   for (const VerifiedSCT& verifiedSct : verifiedScts) {
     if (verifiedSct.status == VerifiedSCT::Status::Valid) {
@@ -165,16 +155,15 @@ GetEffectiveCertIssuanceTime(const VerifiedSCTList& verifiedScts)
 // Checks if the log that issued the given SCT is "once or currently qualified"
 // (i.e. was qualified at the time of the certificate issuance). In addition,
 // makes sure the SCT is before the disqualification.
-static bool
-LogWasQualifiedForSct(const VerifiedSCT& verifiedSct, uint64_t certIssuanceTime)
-{
+static bool LogWasQualifiedForSct(const VerifiedSCT& verifiedSct,
+                                  uint64_t certIssuanceTime) {
   if (verifiedSct.status == VerifiedSCT::Status::Valid) {
     return true;
   }
   if (verifiedSct.status == VerifiedSCT::Status::ValidFromDisqualifiedLog) {
     uint64_t logDisqualificationTime = verifiedSct.logDisqualificationTime;
     return certIssuanceTime < logDisqualificationTime &&
-      verifiedSct.sct.timestamp < logDisqualificationTime;
+           verifiedSct.sct.timestamp < logDisqualificationTime;
   }
   return false;
 }
@@ -186,18 +175,15 @@ LogWasQualifiedForSct(const VerifiedSCT& verifiedSct, uint64_t certIssuanceTime)
 // "are CT Qualified if they are presented with SCTs from once or
 // currently qualified logs run by a minimum of one entity independent
 // of the CA."
-static Result
-CheckOperatorDiversityCompliance(const VerifiedSCTList& verifiedScts,
-                                 uint64_t certIssuanceTime,
-                                 const CTLogOperatorList& dependentOperators,
-                                 bool& compliant)
-{
+static Result CheckOperatorDiversityCompliance(
+    const VerifiedSCTList& verifiedScts, uint64_t certIssuanceTime,
+    const CTLogOperatorList& dependentOperators, bool& compliant) {
   size_t independentOperatorsCount;
-  Result rv = CountIndependentLogOperatorsForSelectedScts(verifiedScts,
-    dependentOperators, independentOperatorsCount,
-    [certIssuanceTime](const VerifiedSCT& verifiedSct)->bool {
-      return LogWasQualifiedForSct(verifiedSct, certIssuanceTime);
-    });
+  Result rv = CountIndependentLogOperatorsForSelectedScts(
+      verifiedScts, dependentOperators, independentOperatorsCount,
+      [certIssuanceTime](const VerifiedSCT& verifiedSct) -> bool {
+        return LogWasQualifiedForSct(verifiedSct, certIssuanceTime);
+      });
   if (rv != Success) {
     return rv;
   }
@@ -218,26 +204,25 @@ CheckOperatorDiversityCompliance(const VerifiedSCTList& verifiedScts,
 // AND
 // b. There are at least two SCTs from logs qualified at the time of check,
 // presented via any method.
-static Result
-CheckNonEmbeddedCompliance(const VerifiedSCTList& verifiedScts, bool& compliant)
-{
+static Result CheckNonEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
+                                         bool& compliant) {
   if (!HasValidNonEmbeddedSct(verifiedScts)) {
     compliant = false;
     return Success;
   }
 
   size_t validSctsCount;
-  Result rv = CountLogsForSelectedScts(verifiedScts, validSctsCount,
-    [](const VerifiedSCT& verifiedSct)->bool {
-      return verifiedSct.status == VerifiedSCT::Status::Valid;
-    });
+  Result rv = CountLogsForSelectedScts(
+      verifiedScts, validSctsCount, [](const VerifiedSCT& verifiedSct) -> bool {
+        return verifiedSct.status == VerifiedSCT::Status::Valid;
+      });
   if (rv != Success) {
     return rv;
   }
 
-  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-          ("CT Policy non-embedded case status: validSCTs=%zu\n",
-           validSctsCount));
+  MOZ_LOG(
+      gCertVerifierLog, LogLevel::Debug,
+      ("CT Policy non-embedded case status: validSCTs=%zu\n", validSctsCount));
   compliant = validSctsCount >= 2;
   return Success;
 }
@@ -249,12 +234,10 @@ CheckNonEmbeddedCompliance(const VerifiedSCTList& verifiedScts, bool& compliant)
 // logs, where N is the lifetime of the certificate in years (normally
 // rounding up, but rounding down when up to 3 months over), and must be
 // at least 1.
-static Result
-CheckEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
-                        size_t certLifetimeInCalendarMonths,
-                        uint64_t certIssuanceTime,
-                        bool& compliant)
-{
+static Result CheckEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
+                                      size_t certLifetimeInCalendarMonths,
+                                      uint64_t certIssuanceTime,
+                                      bool& compliant) {
   if (!HasValidEmbeddedSct(verifiedScts)) {
     compliant = false;
     return Success;
@@ -264,17 +247,18 @@ CheckEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
   // is accepted. Note that a given log might return several different SCTs
   // for the same precertificate (it is permitted, but advised against).
   size_t embeddedSctsCount;
-  Result rv = CountLogsForSelectedScts(verifiedScts, embeddedSctsCount,
-    [certIssuanceTime](const VerifiedSCT& verifiedSct)->bool {
-      return verifiedSct.origin == VerifiedSCT::Origin::Embedded &&
-        LogWasQualifiedForSct(verifiedSct, certIssuanceTime);
-  });
+  Result rv = CountLogsForSelectedScts(
+      verifiedScts, embeddedSctsCount,
+      [certIssuanceTime](const VerifiedSCT& verifiedSct) -> bool {
+        return verifiedSct.origin == VerifiedSCT::Origin::Embedded &&
+               LogWasQualifiedForSct(verifiedSct, certIssuanceTime);
+      });
   if (rv != Success) {
     return rv;
   }
 
   size_t requiredSctsCount =
-    GetRequiredEmbeddedSctsCount(certLifetimeInCalendarMonths);
+      GetRequiredEmbeddedSctsCount(certLifetimeInCalendarMonths);
 
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
           ("CT Policy embedded case status: "
@@ -285,18 +269,15 @@ CheckEmbeddedCompliance(const VerifiedSCTList& verifiedScts,
   return Success;
 }
 
-Result
-CTPolicyEnforcer::CheckCompliance(const VerifiedSCTList& verifiedScts,
-                                  size_t certLifetimeInCalendarMonths,
-                                  const CTLogOperatorList& dependentOperators,
-                                  CTPolicyCompliance& compliance)
-{
+Result CTPolicyEnforcer::CheckCompliance(
+    const VerifiedSCTList& verifiedScts, size_t certLifetimeInCalendarMonths,
+    const CTLogOperatorList& dependentOperators,
+    CTPolicyCompliance& compliance) {
   uint64_t certIssuanceTime = GetEffectiveCertIssuanceTime(verifiedScts);
 
   bool diversityOK;
   Result rv = CheckOperatorDiversityCompliance(verifiedScts, certIssuanceTime,
-                                               dependentOperators,
-                                               diversityOK);
+                                               dependentOperators, diversityOK);
   if (rv != Success) {
     return rv;
   }
@@ -337,15 +318,15 @@ CTPolicyEnforcer::CheckCompliance(const VerifiedSCTList& verifiedScts,
   switch (compliance) {
     case CTPolicyCompliance::Compliant:
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-                ("CT Policy compliance: Compliant\n"));
+              ("CT Policy compliance: Compliant\n"));
       break;
     case CTPolicyCompliance::NotEnoughScts:
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-                ("CT Policy compliance: NotEnoughScts\n"));
+              ("CT Policy compliance: NotEnoughScts\n"));
       break;
     case CTPolicyCompliance::NotDiverseScts:
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-                ("CT Policy compliance: NotDiverseScts\n"));
+              ("CT Policy compliance: NotDiverseScts\n"));
       break;
     case CTPolicyCompliance::Unknown:
     default:
@@ -354,4 +335,5 @@ CTPolicyEnforcer::CheckCompliance(const VerifiedSCTList& verifiedScts,
   return Success;
 }
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

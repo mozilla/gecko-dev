@@ -17,21 +17,15 @@
 #include "mozilla/dom/HTMLSlotElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 
-inline bool
-nsIContent::IsInHTMLDocument() const
-{
+inline bool nsIContent::IsInHTMLDocument() const {
   return OwnerDoc()->IsHTMLDocument();
 }
 
-inline bool
-nsIContent::IsInChromeDocument() const
-{
+inline bool nsIContent::IsInChromeDocument() const {
   return nsContentUtils::IsChromeDoc(OwnerDoc());
 }
 
-inline void
-nsIContent::SetPrimaryFrame(nsIFrame* aFrame)
-{
+inline void nsIContent::SetPrimaryFrame(nsIFrame* aFrame) {
   MOZ_ASSERT(IsInUncomposedDoc() || IsInShadowTree(), "This will end badly!");
   NS_PRECONDITION(!aFrame || !mPrimaryFrame || aFrame == mPrimaryFrame,
                   "Losing track of existing primary frame");
@@ -51,8 +45,7 @@ nsIContent::SetPrimaryFrame(nsIFrame* aFrame)
   mPrimaryFrame = aFrame;
 }
 
-inline mozilla::dom::ShadowRoot* nsIContent::GetShadowRoot() const
-{
+inline mozilla::dom::ShadowRoot* nsIContent::GetShadowRoot() const {
   if (!IsElement()) {
     return nullptr;
   }
@@ -60,10 +53,8 @@ inline mozilla::dom::ShadowRoot* nsIContent::GetShadowRoot() const
   return AsElement()->GetShadowRoot();
 }
 
-template<nsINode::FlattenedParentType aType>
-static inline nsINode*
-GetFlattenedTreeParentNode(const nsINode* aNode)
-{
+template <nsINode::FlattenedParentType aType>
+static inline nsINode* GetFlattenedTreeParentNode(const nsINode* aNode) {
   if (!aNode->IsContent()) {
     return nullptr;
   }
@@ -80,7 +71,7 @@ GetFlattenedTreeParentNode(const nsINode* aNode)
       content->IsRootOfNativeAnonymousSubtree() &&
       parentAsContent == content->OwnerDoc()->GetRootElement()) {
     const bool docLevel =
-      content->GetProperty(nsGkAtoms::docLevelNativeAnonymousContent);
+        content->GetProperty(nsGkAtoms::docLevelNativeAnonymousContent);
     return docLevel ? content->OwnerDocAsNode() : parent;
   }
 
@@ -95,15 +86,15 @@ GetFlattenedTreeParentNode(const nsINode* aNode)
   }
 
   if (parentAsContent->IsInShadowTree()) {
-    if (auto* slot = mozilla::dom::HTMLSlotElement::FromContent(parentAsContent)) {
+    if (auto* slot =
+            mozilla::dom::HTMLSlotElement::FromContent(parentAsContent)) {
       // If the assigned nodes list is empty, we're fallback content which is
       // active, otherwise we are not part of the flat tree.
-      return slot->AssignedNodes().IsEmpty()
-        ? parent
-        : nullptr;
+      return slot->AssignedNodes().IsEmpty() ? parent : nullptr;
     }
 
-    if (auto* shadowRoot = mozilla::dom::ShadowRoot::FromNode(parentAsContent)) {
+    if (auto* shadowRoot =
+            mozilla::dom::ShadowRoot::FromNode(parentAsContent)) {
       return shadowRoot->GetHost();
     }
   }
@@ -114,7 +105,8 @@ GetFlattenedTreeParentNode(const nsINode* aNode)
       return xblInsertionPoint->GetParent();
     }
 
-    if (parent->OwnerDoc()->BindingManager()->GetBindingWithContent(parentAsContent)) {
+    if (parent->OwnerDoc()->BindingManager()->GetBindingWithContent(
+            parentAsContent)) {
       // This is an unassigned node child of the bound element, so it isn't part
       // of the flat tree.
       return nullptr;
@@ -128,22 +120,16 @@ GetFlattenedTreeParentNode(const nsINode* aNode)
   return parent;
 }
 
-inline nsINode*
-nsINode::GetFlattenedTreeParentNode() const
-{
+inline nsINode* nsINode::GetFlattenedTreeParentNode() const {
   return ::GetFlattenedTreeParentNode<nsINode::eNotForStyle>(this);
 }
 
-inline nsIContent*
-nsIContent::GetFlattenedTreeParent() const
-{
+inline nsIContent* nsIContent::GetFlattenedTreeParent() const {
   nsINode* parent = GetFlattenedTreeParentNode();
   return (parent && parent->IsContent()) ? parent->AsContent() : nullptr;
 }
 
-inline bool
-nsIContent::IsEventAttributeName(nsAtom* aName)
-{
+inline bool nsIContent::IsEventAttributeName(nsAtom* aName) {
   const char16_t* name = aName->GetUTF16String();
   if (name[0] != 'o' || name[1] != 'n') {
     return false;
@@ -152,16 +138,12 @@ nsIContent::IsEventAttributeName(nsAtom* aName)
   return IsEventAttributeNameInternal(aName);
 }
 
-inline nsINode*
-nsINode::GetFlattenedTreeParentNodeForStyle() const
-{
+inline nsINode* nsINode::GetFlattenedTreeParentNodeForStyle() const {
   return ::GetFlattenedTreeParentNode<nsINode::eForStyle>(this);
 }
 
-inline bool
-nsINode::NodeOrAncestorHasDirAuto() const
-{
+inline bool nsINode::NodeOrAncestorHasDirAuto() const {
   return AncestorHasDirAuto() || (IsElement() && AsElement()->HasDirAuto());
 }
 
-#endif // nsIContentInlines_h
+#endif  // nsIContentInlines_h

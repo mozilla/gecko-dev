@@ -16,24 +16,17 @@
 namespace mozilla {
 namespace dom {
 
-ContainerBoxObject::ContainerBoxObject()
-{
-}
+ContainerBoxObject::ContainerBoxObject() {}
 
-ContainerBoxObject::~ContainerBoxObject()
-{
-}
+ContainerBoxObject::~ContainerBoxObject() {}
 
-JSObject*
-ContainerBoxObject::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ContainerBoxObject::WrapObject(JSContext* aCx,
+                                         JS::Handle<JSObject*> aGivenProto) {
   return ContainerBoxObjectBinding::Wrap(aCx, this, aGivenProto);
 }
 
-already_AddRefed<nsIDocShell>
-ContainerBoxObject::GetDocShell()
-{
-  nsSubDocumentFrame *subDocFrame = do_QueryFrame(GetFrame(false));
+already_AddRefed<nsIDocShell> ContainerBoxObject::GetDocShell() {
+  nsSubDocumentFrame* subDocFrame = do_QueryFrame(GetFrame(false));
   if (subDocFrame) {
     // Ok, the frame for mContent is an nsSubDocumentFrame, it knows how
     // to reach the docshell, so ask it...
@@ -49,13 +42,13 @@ ContainerBoxObject::GetDocShell()
   // No nsSubDocumentFrame available for mContent, try if there's a mapping
   // between mContent's document to mContent's subdocument.
 
-  nsIDocument *doc = mContent->GetComposedDoc();
+  nsIDocument* doc = mContent->GetComposedDoc();
 
   if (!doc) {
     return nullptr;
   }
 
-  nsIDocument *sub_doc = doc->GetSubDocumentFor(mContent);
+  nsIDocument* sub_doc = doc->GetSubDocumentFor(mContent);
 
   if (!sub_doc) {
     return nullptr;
@@ -65,12 +58,10 @@ ContainerBoxObject::GetDocShell()
   return result.forget();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-nsresult
-NS_NewContainerBoxObject(nsIBoxObject** aResult)
-{
+nsresult NS_NewContainerBoxObject(nsIBoxObject** aResult) {
   NS_ADDREF(*aResult = new mozilla::dom::ContainerBoxObject());
   return NS_OK;
 }

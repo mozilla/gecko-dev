@@ -15,27 +15,21 @@ NS_DEFINE_NAMED_CID(NS_AUTOCONFIG_CID);
 NS_DEFINE_NAMED_CID(NS_READCONFIG_CID);
 
 static const mozilla::Module::CIDEntry kAutoConfigCIDs[] = {
-  { &kNS_AUTOCONFIG_CID, false, nullptr, nsAutoConfigConstructor },
-  { &kNS_READCONFIG_CID, false, nullptr, nsReadConfigConstructor },
-  { nullptr }
-};
+    {&kNS_AUTOCONFIG_CID, false, nullptr, nsAutoConfigConstructor},
+    {&kNS_READCONFIG_CID, false, nullptr, nsReadConfigConstructor},
+    {nullptr}};
 
 static const mozilla::Module::ContractIDEntry kAutoConfigContracts[] = {
-  { NS_AUTOCONFIG_CONTRACTID, &kNS_AUTOCONFIG_CID },
-  { NS_READCONFIG_CONTRACTID, &kNS_READCONFIG_CID },
-  { nullptr }
-};
+    {NS_AUTOCONFIG_CONTRACTID, &kNS_AUTOCONFIG_CID},
+    {NS_READCONFIG_CONTRACTID, &kNS_READCONFIG_CID},
+    {nullptr}};
 
 static const mozilla::Module::CategoryEntry kAutoConfigCategories[] = {
-  { "pref-config-startup", "ReadConfig Module", NS_READCONFIG_CONTRACTID },
-  { nullptr }
-};
+    {"pref-config-startup", "ReadConfig Module", NS_READCONFIG_CONTRACTID},
+    {nullptr}};
 
 static const mozilla::Module kAutoConfigModule = {
-  mozilla::Module::kVersion,
-  kAutoConfigCIDs,
-  kAutoConfigContracts,
-  kAutoConfigCategories
-};
+    mozilla::Module::kVersion, kAutoConfigCIDs, kAutoConfigContracts,
+    kAutoConfigCategories};
 
 NSMODULE_DEFN(nsAutoConfigModule) = &kAutoConfigModule;

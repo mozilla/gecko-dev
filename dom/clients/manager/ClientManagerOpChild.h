@@ -13,25 +13,23 @@
 namespace mozilla {
 namespace dom {
 
-class ClientManagerOpChild final : public PClientManagerOpChild
-{
+class ClientManagerOpChild final : public PClientManagerOpChild {
   RefPtr<ClientOpPromise::Private> mPromise;
 
   // PClientManagerOpChild interface
-  void
-  ActorDestroy(ActorDestroyReason aReason) override;
+  void ActorDestroy(ActorDestroyReason aReason) override;
 
-  mozilla::ipc::IPCResult
-  Recv__delete__(const ClientOpResult& aResult) override;
+  mozilla::ipc::IPCResult Recv__delete__(
+      const ClientOpResult& aResult) override;
 
-public:
+ public:
   ClientManagerOpChild(const ClientOpConstructorArgs& aArgs,
                        ClientOpPromise::Private* aPromise);
 
   ~ClientManagerOpChild();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // _mozilla_dom_ClientManagerOpChild_h
+#endif  // _mozilla_dom_ClientManagerOpChild_h

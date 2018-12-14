@@ -20,8 +20,9 @@ NS_INTERFACE_MAP_BEGIN(SlicedInputStream)
   NS_INTERFACE_MAP_ENTRY(nsIInputStream)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsICloneableInputStream,
                                      mWeakCloneableInputStream || !mInputStream)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIIPCSerializableInputStream,
-                                     mWeakIPCSerializableInputStream || !mInputStream)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(
+      nsIIPCSerializableInputStream,
+      mWeakIPCSerializableInputStream || !mInputStream)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsISeekableStream,
                                      mWeakSeekableInputStream || !mInputStream)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAsyncInputStream,
@@ -31,75 +32,69 @@ NS_INTERFACE_MAP_BEGIN(SlicedInputStream)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIInputStream)
 NS_INTERFACE_MAP_END
 
-SlicedInputStream::SlicedInputStream(already_AddRefed<nsIInputStream> aInputStream,
-                                     uint64_t aStart, uint64_t aLength)
-  : mWeakCloneableInputStream(nullptr)
-  , mWeakIPCSerializableInputStream(nullptr)
-  , mWeakSeekableInputStream(nullptr)
-  , mWeakAsyncInputStream(nullptr)
-  , mStart(aStart)
-  , mLength(aLength)
-  , mCurPos(0)
-  , mClosed(false)
-  , mAsyncWaitFlags(0)
-  , mAsyncWaitRequestedCount(0)
-{
+SlicedInputStream::SlicedInputStream(
+    already_AddRefed<nsIInputStream> aInputStream, uint64_t aStart,
+    uint64_t aLength)
+    : mWeakCloneableInputStream(nullptr),
+      mWeakIPCSerializableInputStream(nullptr),
+      mWeakSeekableInputStream(nullptr),
+      mWeakAsyncInputStream(nullptr),
+      mStart(aStart),
+      mLength(aLength),
+      mCurPos(0),
+      mClosed(false),
+      mAsyncWaitFlags(0),
+      mAsyncWaitRequestedCount(0) {
   nsCOMPtr<nsIInputStream> inputStream = mozilla::Move(aInputStream);
   SetSourceStream(inputStream.forget());
 }
 
 SlicedInputStream::SlicedInputStream()
-  : mWeakCloneableInputStream(nullptr)
-  , mWeakIPCSerializableInputStream(nullptr)
-  , mWeakSeekableInputStream(nullptr)
-  , mWeakAsyncInputStream(nullptr)
-  , mStart(0)
-  , mLength(0)
-  , mCurPos(0)
-  , mClosed(false)
-  , mAsyncWaitFlags(0)
-  , mAsyncWaitRequestedCount(0)
-{}
+    : mWeakCloneableInputStream(nullptr),
+      mWeakIPCSerializableInputStream(nullptr),
+      mWeakSeekableInputStream(nullptr),
+      mWeakAsyncInputStream(nullptr),
+      mStart(0),
+      mLength(0),
+      mCurPos(0),
+      mClosed(false),
+      mAsyncWaitFlags(0),
+      mAsyncWaitRequestedCount(0) {}
 
-SlicedInputStream::~SlicedInputStream()
-{}
+SlicedInputStream::~SlicedInputStream() {}
 
-void
-SlicedInputStream::SetSourceStream(already_AddRefed<nsIInputStream> aInputStream)
-{
+void SlicedInputStream::SetSourceStream(
+    already_AddRefed<nsIInputStream> aInputStream) {
   MOZ_ASSERT(!mInputStream);
 
   mInputStream = mozilla::Move(aInputStream);
 
   nsCOMPtr<nsICloneableInputStream> cloneableStream =
-    do_QueryInterface(mInputStream);
+      do_QueryInterface(mInputStream);
   if (cloneableStream && SameCOMIdentity(mInputStream, cloneableStream)) {
     mWeakCloneableInputStream = cloneableStream;
   }
 
   nsCOMPtr<nsIIPCSerializableInputStream> serializableStream =
-    do_QueryInterface(mInputStream);
-  if (serializableStream &&
-      SameCOMIdentity(mInputStream, serializableStream)) {
+      do_QueryInterface(mInputStream);
+  if (serializableStream && SameCOMIdentity(mInputStream, serializableStream)) {
     mWeakIPCSerializableInputStream = serializableStream;
   }
 
-  nsCOMPtr<nsISeekableStream> seekableStream =
-    do_QueryInterface(mInputStream);
+  nsCOMPtr<nsISeekableStream> seekableStream = do_QueryInterface(mInputStream);
   if (seekableStream && SameCOMIdentity(mInputStream, seekableStream)) {
     mWeakSeekableInputStream = seekableStream;
   }
 
   nsCOMPtr<nsIAsyncInputStream> asyncInputStream =
-    do_QueryInterface(mInputStream);
+      do_QueryInterface(mInputStream);
   if (asyncInputStream && SameCOMIdentity(mInputStream, asyncInputStream)) {
     mWeakAsyncInputStream = asyncInputStream;
   }
 }
 
 NS_IMETHODIMP
-SlicedInputStream::Close()
-{
+SlicedInputStream::Close() {
   NS_ENSURE_STATE(mInputStream);
 
   mClosed = true;
@@ -109,8 +104,7 @@ SlicedInputStream::Close()
 // nsIInputStream interface
 
 NS_IMETHODIMP
-SlicedInputStream::Available(uint64_t* aLength)
-{
+SlicedInputStream::Available(uint64_t* aLength) {
   NS_ENSURE_STATE(mInputStream);
 
   if (mClosed) {
@@ -141,8 +135,7 @@ SlicedInputStream::Available(uint64_t* aLength)
 }
 
 NS_IMETHODIMP
-SlicedInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
-{
+SlicedInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount) {
   *aReadCount = 0;
 
   if (mClosed) {
@@ -151,10 +144,10 @@ SlicedInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
 
   if (mCurPos < mStart) {
     nsCOMPtr<nsISeekableStream> seekableStream =
-      do_QueryInterface(mInputStream);
+        do_QueryInterface(mInputStream);
     if (seekableStream) {
-      nsresult rv = seekableStream->Seek(nsISeekableStream::NS_SEEK_SET,
-                                         mStart);
+      nsresult rv =
+          seekableStream->Seek(nsISeekableStream::NS_SEEK_SET, mStart);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -175,7 +168,7 @@ SlicedInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
           return rv;
         }
 
-         mCurPos += bytesRead;
+        mCurPos += bytesRead;
       }
     }
   }
@@ -206,14 +199,12 @@ SlicedInputStream::Read(char* aBuffer, uint32_t aCount, uint32_t* aReadCount)
 
 NS_IMETHODIMP
 SlicedInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
-                                uint32_t aCount, uint32_t *aResult)
-{
+                                uint32_t aCount, uint32_t* aResult) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-SlicedInputStream::IsNonBlocking(bool* aNonBlocking)
-{
+SlicedInputStream::IsNonBlocking(bool* aNonBlocking) {
   NS_ENSURE_STATE(mInputStream);
   return mInputStream->IsNonBlocking(aNonBlocking);
 }
@@ -221,8 +212,7 @@ SlicedInputStream::IsNonBlocking(bool* aNonBlocking)
 // nsICloneableInputStream interface
 
 NS_IMETHODIMP
-SlicedInputStream::GetCloneable(bool* aCloneable)
-{
+SlicedInputStream::GetCloneable(bool* aCloneable) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakCloneableInputStream);
 
@@ -231,8 +221,7 @@ SlicedInputStream::GetCloneable(bool* aCloneable)
 }
 
 NS_IMETHODIMP
-SlicedInputStream::Clone(nsIInputStream** aResult)
-{
+SlicedInputStream::Clone(nsIInputStream** aResult) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakCloneableInputStream);
 
@@ -243,7 +232,7 @@ SlicedInputStream::Clone(nsIInputStream** aResult)
   }
 
   nsCOMPtr<nsIInputStream> sis =
-    new SlicedInputStream(clonedStream.forget(), mStart, mLength);
+      new SlicedInputStream(clonedStream.forget(), mStart, mLength);
 
   sis.forget(aResult);
   return NS_OK;
@@ -252,8 +241,7 @@ SlicedInputStream::Clone(nsIInputStream** aResult)
 // nsIAsyncInputStream interface
 
 NS_IMETHODIMP
-SlicedInputStream::CloseWithStatus(nsresult aStatus)
-{
+SlicedInputStream::CloseWithStatus(nsresult aStatus) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakAsyncInputStream);
 
@@ -262,11 +250,9 @@ SlicedInputStream::CloseWithStatus(nsresult aStatus)
 }
 
 NS_IMETHODIMP
-SlicedInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
-                             uint32_t aFlags,
+SlicedInputStream::AsyncWait(nsIInputStreamCallback* aCallback, uint32_t aFlags,
                              uint32_t aRequestedCount,
-                             nsIEventTarget* aEventTarget)
-{
+                             nsIEventTarget* aEventTarget) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakAsyncInputStream);
 
@@ -284,7 +270,7 @@ SlicedInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
   // If we cannot seek, we will do consecutive reads.
   if (mCurPos < mStart && mWeakSeekableInputStream) {
     nsresult rv =
-      mWeakSeekableInputStream->Seek(nsISeekableStream::NS_SEEK_SET, mStart);
+        mWeakSeekableInputStream->Seek(nsISeekableStream::NS_SEEK_SET, mStart);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -309,8 +295,7 @@ SlicedInputStream::AsyncWait(nsIInputStreamCallback* aCallback,
 // nsIInputStreamCallback
 
 NS_IMETHODIMP
-SlicedInputStream::OnInputStreamReady(nsIAsyncInputStream* aStream)
-{
+SlicedInputStream::OnInputStreamReady(nsIAsyncInputStream* aStream) {
   MOZ_ASSERT(mInputStream);
   MOZ_ASSERT(mWeakAsyncInputStream);
   MOZ_ASSERT(mWeakAsyncInputStream == aStream);
@@ -344,17 +329,14 @@ SlicedInputStream::OnInputStreamReady(nsIAsyncInputStream* aStream)
     }
 
     // Now we are ready to do the 'real' asyncWait.
-    return mWeakAsyncInputStream->AsyncWait(this, mAsyncWaitFlags,
-                                            mAsyncWaitRequestedCount,
-                                            mAsyncWaitEventTarget);
+    return mWeakAsyncInputStream->AsyncWait(
+        this, mAsyncWaitFlags, mAsyncWaitRequestedCount, mAsyncWaitEventTarget);
   }
 
   return RunAsyncWaitCallback();
 }
 
-nsresult
-SlicedInputStream::RunAsyncWaitCallback()
-{
+nsresult SlicedInputStream::RunAsyncWaitCallback() {
   nsCOMPtr<nsIInputStreamCallback> callback = mAsyncWaitCallback;
 
   mAsyncWaitCallback = nullptr;
@@ -365,10 +347,8 @@ SlicedInputStream::RunAsyncWaitCallback()
 
 // nsIIPCSerializableInputStream
 
-void
-SlicedInputStream::Serialize(mozilla::ipc::InputStreamParams& aParams,
-                             FileDescriptorArray& aFileDescriptors)
-{
+void SlicedInputStream::Serialize(mozilla::ipc::InputStreamParams& aParams,
+                                  FileDescriptorArray& aFileDescriptors) {
   MOZ_ASSERT(mInputStream);
   MOZ_ASSERT(mWeakIPCSerializableInputStream);
 
@@ -383,25 +363,21 @@ SlicedInputStream::Serialize(mozilla::ipc::InputStreamParams& aParams,
   aParams = params;
 }
 
-bool
-SlicedInputStream::Deserialize(const mozilla::ipc::InputStreamParams& aParams,
-                               const FileDescriptorArray& aFileDescriptors)
-{
+bool SlicedInputStream::Deserialize(
+    const mozilla::ipc::InputStreamParams& aParams,
+    const FileDescriptorArray& aFileDescriptors) {
   MOZ_ASSERT(!mInputStream);
   MOZ_ASSERT(!mWeakIPCSerializableInputStream);
 
-  if (aParams.type() !=
-      InputStreamParams::TSlicedInputStreamParams) {
+  if (aParams.type() != InputStreamParams::TSlicedInputStreamParams) {
     NS_ERROR("Received unknown parameters from the other process!");
     return false;
   }
 
-  const SlicedInputStreamParams& params =
-    aParams.get_SlicedInputStreamParams();
+  const SlicedInputStreamParams& params = aParams.get_SlicedInputStreamParams();
 
-  nsCOMPtr<nsIInputStream> stream =
-    InputStreamHelper::DeserializeInputStream(params.stream(),
-                                              aFileDescriptors);
+  nsCOMPtr<nsIInputStream> stream = InputStreamHelper::DeserializeInputStream(
+      params.stream(), aFileDescriptors);
   if (!stream) {
     NS_WARNING("Deserialize failed!");
     return false;
@@ -417,9 +393,7 @@ SlicedInputStream::Deserialize(const mozilla::ipc::InputStreamParams& aParams,
   return true;
 }
 
-mozilla::Maybe<uint64_t>
-SlicedInputStream::ExpectedSerializedLength()
-{
+mozilla::Maybe<uint64_t> SlicedInputStream::ExpectedSerializedLength() {
   if (!mInputStream || !mWeakIPCSerializableInputStream) {
     return mozilla::Nothing();
   }
@@ -430,8 +404,7 @@ SlicedInputStream::ExpectedSerializedLength()
 // nsISeekableStream
 
 NS_IMETHODIMP
-SlicedInputStream::Seek(int32_t aWhence, int64_t aOffset)
-{
+SlicedInputStream::Seek(int32_t aWhence, int64_t aOffset) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakSeekableInputStream);
 
@@ -479,8 +452,7 @@ SlicedInputStream::Seek(int32_t aWhence, int64_t aOffset)
 }
 
 NS_IMETHODIMP
-SlicedInputStream::Tell(int64_t *aResult)
-{
+SlicedInputStream::Tell(int64_t* aResult) {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakSeekableInputStream);
 
@@ -505,8 +477,7 @@ SlicedInputStream::Tell(int64_t *aResult)
 }
 
 NS_IMETHODIMP
-SlicedInputStream::SetEOF()
-{
+SlicedInputStream::SetEOF() {
   NS_ENSURE_STATE(mInputStream);
   NS_ENSURE_STATE(mWeakSeekableInputStream);
 
@@ -514,4 +485,4 @@ SlicedInputStream::SetEOF()
   return mWeakSeekableInputStream->SetEOF();
 }
 
-} // namespace mozilla
+}  // namespace mozilla

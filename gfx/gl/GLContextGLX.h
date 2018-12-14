@@ -14,83 +14,73 @@
 namespace mozilla {
 namespace gl {
 
-class GLContextGLX : public GLContext
-{
-public:
-    MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextGLX, override)
-    static already_AddRefed<GLContextGLX>
-    CreateGLContext(CreateContextFlags flags,
-                    const SurfaceCaps& caps,
-                    bool isOffscreen,
-                    Display* display,
-                    GLXDrawable drawable,
-                    GLXFBConfig cfg,
-                    bool deleteDrawable,
-                    gfxXlibSurface* pixmap);
+class GLContextGLX : public GLContext {
+ public:
+  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextGLX, override)
+  static already_AddRefed<GLContextGLX> CreateGLContext(
+      CreateContextFlags flags, const SurfaceCaps& caps, bool isOffscreen,
+      Display* display, GLXDrawable drawable, GLXFBConfig cfg,
+      bool deleteDrawable, gfxXlibSurface* pixmap);
 
-    // Finds a GLXFBConfig compatible with the provided window.
-    static bool
-    FindFBConfigForWindow(Display* display, int screen, Window window,
-                          ScopedXFree<GLXFBConfig>* const out_scopedConfigArr,
-                          GLXFBConfig* const out_config, int* const out_visid,
-                          bool aWebRender);
+  // Finds a GLXFBConfig compatible with the provided window.
+  static bool FindFBConfigForWindow(
+      Display* display, int screen, Window window,
+      ScopedXFree<GLXFBConfig>* const out_scopedConfigArr,
+      GLXFBConfig* const out_config, int* const out_visid, bool aWebRender);
 
-    ~GLContextGLX();
+  ~GLContextGLX();
 
-    virtual GLContextType GetContextType() const override { return GLContextType::GLX; }
+  virtual GLContextType GetContextType() const override {
+    return GLContextType::GLX;
+  }
 
-    static GLContextGLX* Cast(GLContext* gl) {
-        MOZ_ASSERT(gl->GetContextType() == GLContextType::GLX);
-        return static_cast<GLContextGLX*>(gl);
-    }
+  static GLContextGLX* Cast(GLContext* gl) {
+    MOZ_ASSERT(gl->GetContextType() == GLContextType::GLX);
+    return static_cast<GLContextGLX*>(gl);
+  }
 
-    bool Init() override;
+  bool Init() override;
 
-    virtual bool MakeCurrentImpl() const override;
+  virtual bool MakeCurrentImpl() const override;
 
-    virtual bool IsCurrentImpl() const override;
+  virtual bool IsCurrentImpl() const override;
 
-    virtual bool SetupLookupFunction() override;
+  virtual bool SetupLookupFunction() override;
 
-    virtual bool IsDoubleBuffered() const override;
+  virtual bool IsDoubleBuffered() const override;
 
-    virtual bool SwapBuffers() override;
+  virtual bool SwapBuffers() override;
 
-    virtual void GetWSIInfo(nsCString* const out) const override;
+  virtual void GetWSIInfo(nsCString* const out) const override;
 
-    // Overrides the current GLXDrawable backing the context and makes the
-    // context current.
-    bool OverrideDrawable(GLXDrawable drawable);
+  // Overrides the current GLXDrawable backing the context and makes the
+  // context current.
+  bool OverrideDrawable(GLXDrawable drawable);
 
-    // Undoes the effect of a drawable override.
-    bool RestoreDrawable();
+  // Undoes the effect of a drawable override.
+  bool RestoreDrawable();
 
-private:
-    friend class GLContextProviderGLX;
+ private:
+  friend class GLContextProviderGLX;
 
-    GLContextGLX(CreateContextFlags flags,
-                 const SurfaceCaps& caps,
-                 bool isOffscreen,
-                 Display* aDisplay,
-                 GLXDrawable aDrawable,
-                 GLXContext aContext,
-                 bool aDeleteDrawable,
-                 bool aDoubleBuffered,
-                 gfxXlibSurface* aPixmap);
+  GLContextGLX(CreateContextFlags flags, const SurfaceCaps& caps,
+               bool isOffscreen, Display* aDisplay, GLXDrawable aDrawable,
+               GLXContext aContext, bool aDeleteDrawable, bool aDoubleBuffered,
+               gfxXlibSurface* aPixmap);
 
-    GLXContext mContext;
-    Display* mDisplay;
-    GLXDrawable mDrawable;
-    bool mDeleteDrawable;
-    bool mDoubleBuffered;
+  GLXContext mContext;
+  Display* mDisplay;
+  GLXDrawable mDrawable;
+  bool mDeleteDrawable;
+  bool mDoubleBuffered;
 
-    GLXLibrary* mGLX;
+  GLXLibrary* mGLX;
 
-    RefPtr<gfxXlibSurface> mPixmap;
-    bool mOwnsContext;
+  RefPtr<gfxXlibSurface> mPixmap;
+  bool mOwnsContext;
 };
 
-}
-}
+}  // namespace gl
+}  // namespace mozilla
 
-#endif // GLCONTEXTGLX_H_
+#endif  // GLCONTEXTGLX_H_

@@ -14,39 +14,29 @@
 namespace mozilla {
 namespace sandboxing {
 
-typedef BOOL(WINAPI* CloseHandle_func) (HANDLE hObject);
+typedef BOOL(WINAPI* CloseHandle_func)(HANDLE hObject);
 static CloseHandle_func stub_CloseHandle = nullptr;
 
-typedef BOOL(WINAPI* DuplicateHandle_func)(HANDLE hSourceProcessHandle,
-                                           HANDLE hSourceHandle,
-                                           HANDLE hTargetProcessHandle,
-                                           LPHANDLE lpTargetHandle,
-                                           DWORD dwDesiredAccess,
-                                           BOOL bInheritHandle,
-                                           DWORD dwOptions);
+typedef BOOL(WINAPI* DuplicateHandle_func)(
+    HANDLE hSourceProcessHandle, HANDLE hSourceHandle,
+    HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess,
+    BOOL bInheritHandle, DWORD dwOptions);
 static DuplicateHandle_func stub_DuplicateHandle = nullptr;
 
-static BOOL WINAPI
-patched_CloseHandle(HANDLE hObject)
-{
+static BOOL WINAPI patched_CloseHandle(HANDLE hObject) {
   // Check all handles being closed against the sandbox's tracked handles.
   base::win::OnHandleBeingClosed(hObject);
   return stub_CloseHandle(hObject);
 }
 
-static BOOL WINAPI
-patched_DuplicateHandle(HANDLE hSourceProcessHandle,
-                        HANDLE hSourceHandle,
-                        HANDLE hTargetProcessHandle,
-                        LPHANDLE lpTargetHandle,
-                        DWORD dwDesiredAccess,
-                        BOOL bInheritHandle,
-                        DWORD dwOptions)
-{
+static BOOL WINAPI patched_DuplicateHandle(
+    HANDLE hSourceProcessHandle, HANDLE hSourceHandle,
+    HANDLE hTargetProcessHandle, LPHANDLE lpTargetHandle, DWORD dwDesiredAccess,
+    BOOL bInheritHandle, DWORD dwOptions) {
   // If closing a source handle from our process check it against the sandbox's
   // tracked handles.
   if ((dwOptions & DUPLICATE_CLOSE_SOURCE) &&
-    (GetProcessId(hSourceProcessHandle) == ::GetCurrentProcessId())) {
+      (GetProcessId(hSourceProcessHandle) == ::GetCurrentProcessId())) {
     base::win::OnHandleBeingClosed(hSourceHandle);
   }
 
@@ -57,22 +47,18 @@ patched_DuplicateHandle(HANDLE hSourceProcessHandle,
 
 static WindowsDllInterceptor Kernel32Intercept;
 
-static bool
-EnableHandleCloseMonitoring()
-{
+static bool EnableHandleCloseMonitoring() {
   Kernel32Intercept.Init("kernel32.dll");
-  bool hooked =
-    Kernel32Intercept.AddHook("CloseHandle",
-                              reinterpret_cast<intptr_t>(patched_CloseHandle),
-                              (void**)&stub_CloseHandle);
+  bool hooked = Kernel32Intercept.AddHook(
+      "CloseHandle", reinterpret_cast<intptr_t>(patched_CloseHandle),
+      (void**)&stub_CloseHandle);
   if (!hooked) {
     return false;
   }
 
-  hooked =
-    Kernel32Intercept.AddHook("DuplicateHandle",
-                              reinterpret_cast<intptr_t>(patched_DuplicateHandle),
-                              (void**)&stub_DuplicateHandle);
+  hooked = Kernel32Intercept.AddHook(
+      "DuplicateHandle", reinterpret_cast<intptr_t>(patched_DuplicateHandle),
+      (void**)&stub_DuplicateHandle);
   if (!hooked) {
     return false;
   }
@@ -80,9 +66,7 @@ EnableHandleCloseMonitoring()
   return true;
 }
 
-static bool
-ShouldDisableHandleVerifier()
-{
+static bool ShouldDisableHandleVerifier() {
 #if defined(_X86_) && (defined(NIGHTLY_BUILD) || defined(DEBUG))
   // Chromium only has the verifier enabled for 32-bit and our close monitoring
   // hooks cause debug assertions for 64-bit anyway.
@@ -93,9 +77,7 @@ ShouldDisableHandleVerifier()
 #endif
 }
 
-static void
-InitializeHandleVerifier()
-{
+static void InitializeHandleVerifier() {
   // Disable the handle verifier if we don't want it or can't enable the close
   // monitoring hooks.
   if (ShouldDisableHandleVerifier() || !EnableHandleCloseMonitoring()) {
@@ -103,11 +85,9 @@ InitializeHandleVerifier()
   }
 }
 
-static sandbox::TargetServices*
-InitializeTargetServices()
-{
+static sandbox::TargetServices* InitializeTargetServices() {
   sandbox::TargetServices* targetServices =
-    sandbox::SandboxFactory::GetTargetServices();
+      sandbox::SandboxFactory::GetTargetServices();
   if (!targetServices) {
     return nullptr;
   }
@@ -121,26 +101,18 @@ InitializeTargetServices()
   return targetServices;
 }
 
-sandbox::TargetServices*
-GetInitializedTargetServices()
-{
+sandbox::TargetServices* GetInitializedTargetServices() {
   static sandbox::TargetServices* sInitializedTargetServices =
-    InitializeTargetServices();
+      InitializeTargetServices();
 
   return sInitializedTargetServices;
 }
 
-void
-LowerSandbox()
-{
-  GetInitializedTargetServices()->LowerToken();
-}
+void LowerSandbox() { GetInitializedTargetServices()->LowerToken(); }
 
-static sandbox::BrokerServices*
-InitializeBrokerServices()
-{
+static sandbox::BrokerServices* InitializeBrokerServices() {
   sandbox::BrokerServices* brokerServices =
-    sandbox::SandboxFactory::GetBrokerServices();
+      sandbox::SandboxFactory::GetBrokerServices();
   if (!brokerServices) {
     return nullptr;
   }
@@ -163,19 +135,16 @@ InitializeBrokerServices()
   return brokerServices;
 }
 
-sandbox::BrokerServices*
-GetInitializedBrokerServices()
-{
+sandbox::BrokerServices* GetInitializedBrokerServices() {
   static sandbox::BrokerServices* sInitializedBrokerServices =
-    InitializeBrokerServices();
+      InitializeBrokerServices();
 
   return sInitializedBrokerServices;
 }
 
-PermissionsService* GetPermissionsService()
-{
+PermissionsService* GetPermissionsService() {
   return PermissionsService::GetInstance();
 }
 
-} // sandboxing
-} // mozilla
+}  // namespace sandboxing
+}  // namespace mozilla

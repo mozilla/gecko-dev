@@ -16,52 +16,51 @@ class nsITextToSubURI;
 /* CID: {a0d6ad32-1dd1-11b2-aa55-a40187b54036} */
 
 class nsDirIndexParser : public nsIDirIndexParser {
+ private:
+  virtual ~nsDirIndexParser();
 
-private:
-    virtual ~nsDirIndexParser();
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSIDIRINDEXPARSER
 
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSIREQUESTOBSERVER
-    NS_DECL_NSIDIRINDEXPARSER
+  nsDirIndexParser();
+  nsresult Init();
 
-    nsDirIndexParser();
-    nsresult Init();
+  enum fieldType {
+    FIELD_UNKNOWN = 0,  // MUST be 0
+    FIELD_FILENAME,
+    FIELD_DESCRIPTION,
+    FIELD_CONTENTLENGTH,
+    FIELD_LASTMODIFIED,
+    FIELD_CONTENTTYPE,
+    FIELD_FILETYPE
+  };
 
-    enum fieldType {
-        FIELD_UNKNOWN = 0, // MUST be 0
-        FIELD_FILENAME,
-        FIELD_DESCRIPTION,
-        FIELD_CONTENTLENGTH,
-        FIELD_LASTMODIFIED,
-        FIELD_CONTENTTYPE,
-        FIELD_FILETYPE
-    };
+ protected:
+  nsCOMPtr<nsIDirIndexListener> mListener;
 
-protected:
-    nsCOMPtr<nsIDirIndexListener> mListener;
+  nsCString mEncoding;
+  nsCString mComment;
+  nsCString mBuf;
+  int32_t mLineStart;
+  bool mHasDescription;
+  int mFormat[8];
 
-    nsCString    mEncoding;
-    nsCString    mComment;
-    nsCString    mBuf;
-    int32_t      mLineStart;
-    bool         mHasDescription;
-    int          mFormat[8];
+  nsresult ProcessData(nsIRequest* aRequest, nsISupports* aCtxt);
+  nsresult ParseFormat(const char* buf);
+  nsresult ParseData(nsIDirIndex* aIdx, char* aDataStr, int32_t lineLen);
 
-    nsresult ProcessData(nsIRequest *aRequest, nsISupports *aCtxt);
-    nsresult ParseFormat(const char* buf);
-    nsresult ParseData(nsIDirIndex* aIdx, char* aDataStr, int32_t lineLen);
+  struct Field {
+    const char* mName;
+    fieldType mType;
+  };
 
-    struct Field {
-        const char *mName;
-        fieldType mType;
-    };
+  static Field gFieldTable[];
 
-    static Field gFieldTable[];
-
-    static nsrefcnt gRefCntParser;
-    static nsITextToSubURI* gTextToSubURI;
+  static nsrefcnt gRefCntParser;
+  static nsITextToSubURI* gTextToSubURI;
 };
 
 #endif

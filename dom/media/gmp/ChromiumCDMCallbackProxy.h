@@ -13,16 +13,12 @@
 namespace mozilla {
 
 class ChromiumCDMCallbackProxy : public ChromiumCDMCallback {
-public:
-
+ public:
   ChromiumCDMCallbackProxy(ChromiumCDMProxy* aProxy,
                            nsIEventTarget* aMainThread)
-    : mProxy(aProxy), mMainThread(aMainThread)
-  {
-  }
+      : mProxy(aProxy), mMainThread(aMainThread) {}
 
-  void SetSessionId(uint32_t aPromiseId,
-                    const nsCString& aSessionId) override;
+  void SetSessionId(uint32_t aPromiseId, const nsCString& aSessionId) override;
 
   void ResolveLoadSessionPromise(uint32_t aPromiseId,
                                  bool aSuccessful) override;
@@ -32,40 +28,36 @@ public:
 
   void ResolvePromise(uint32_t aPromiseId) override;
 
-  void RejectPromise(uint32_t aPromiseId,
-                     nsresult aError,
+  void RejectPromise(uint32_t aPromiseId, nsresult aError,
                      const nsCString& aErrorMessage) override;
 
-  void SessionMessage(const nsACString& aSessionId,
-                      uint32_t aMessageType,
+  void SessionMessage(const nsACString& aSessionId, uint32_t aMessageType,
                       nsTArray<uint8_t>&& aMessage) override;
 
-  void SessionKeysChange(const nsCString& aSessionId,
-                         nsTArray<mozilla::gmp::CDMKeyInformation>&& aKeysInfo) override;
+  void SessionKeysChange(
+      const nsCString& aSessionId,
+      nsTArray<mozilla::gmp::CDMKeyInformation>&& aKeysInfo) override;
 
   void ExpirationChange(const nsCString& aSessionId,
                         double aSecondsSinceEpoch) override;
 
   void SessionClosed(const nsCString& aSessionId) override;
 
-  void LegacySessionError(const nsCString& aSessionId,
-                          nsresult aError,
+  void LegacySessionError(const nsCString& aSessionId, nsresult aError,
                           uint32_t aSystemCode,
                           const nsCString& aMessage) override;
   void Terminated() override;
 
   void Shutdown() override;
 
-private:
-  template<class Func, class... Args>
-  void DispatchToMainThread(const char* const aLabel,
-                            Func aFunc,
+ private:
+  template <class Func, class... Args>
+  void DispatchToMainThread(const char* const aLabel, Func aFunc,
                             Args&&... aArgs);
   // Warning: Weak ref.
   ChromiumCDMProxy* mProxy;
   const nsCOMPtr<nsIEventTarget> mMainThread;
-
 };
 
-} //namespace mozilla
+}  // namespace mozilla
 #endif

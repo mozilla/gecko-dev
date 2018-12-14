@@ -7,9 +7,8 @@
 // Main header first:
 #include "nsSVGSymbolFrame.h"
 
-nsIFrame*
-NS_NewSVGSymbolFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewSVGSymbolFrame(nsIPresShell* aPresShell,
+                               nsStyleContext* aContext) {
   return new (aPresShell) nsSVGSymbolFrame(aContext);
 }
 
@@ -19,15 +18,12 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGSymbolFrame)
 // nsIFrame methods
 
 NS_QUERYFRAME_HEAD(nsSVGSymbolFrame)
-  NS_QUERYFRAME_ENTRY(nsSVGSymbolFrame)
+NS_QUERYFRAME_ENTRY(nsSVGSymbolFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsSVGViewportFrame)
 
 #ifdef DEBUG
-void
-nsSVGSymbolFrame::Init(nsIContent*       aContent,
-                       nsContainerFrame* aParent,
-                       nsIFrame*         aPrevInFlow)
-{
+void nsSVGSymbolFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
+                            nsIFrame* aPrevInFlow) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::symbol),
                "Content is not an SVG 'symbol' element!");
 

@@ -35,7 +35,8 @@ namespace mozilla {
 class AbstractThread;
 class ErrorResult;
 class MediaByteBuffer;
-template <typename T> class AsyncEventRunner;
+template <typename T>
+class AsyncEventRunner;
 
 DDLoggedTypeName(dom::SourceBuffer);
 
@@ -43,43 +44,34 @@ namespace dom {
 
 class TimeRanges;
 
-class SourceBuffer final
-  : public DOMEventTargetHelper
-  , public DecoderDoctorLifeLogger<SourceBuffer>
-{
-public:
+class SourceBuffer final : public DOMEventTargetHelper,
+                           public DecoderDoctorLifeLogger<SourceBuffer> {
+ public:
   /** WebIDL Methods. */
-  SourceBufferAppendMode Mode() const
-  {
+  SourceBufferAppendMode Mode() const {
     return mCurrentAttributes.GetAppendMode();
   }
 
   void SetMode(SourceBufferAppendMode aMode, ErrorResult& aRv);
 
-  bool Updating() const
-  {
-    return mUpdating;
-  }
+  bool Updating() const { return mUpdating; }
 
   TimeRanges* GetBuffered(ErrorResult& aRv);
   media::TimeIntervals GetTimeIntervals();
 
-  double TimestampOffset() const
-  {
+  double TimestampOffset() const {
     return mCurrentAttributes.GetApparentTimestampOffset();
   }
 
   void SetTimestampOffset(double aTimestampOffset, ErrorResult& aRv);
 
-  double AppendWindowStart() const
-  {
+  double AppendWindowStart() const {
     return mCurrentAttributes.GetAppendWindowStart();
   }
 
   void SetAppendWindowStart(double aAppendWindowStart, ErrorResult& aRv);
 
-  double AppendWindowEnd() const
-  {
+  double AppendWindowEnd() const {
     return mCurrentAttributes.GetAppendWindowEnd();
   }
 
@@ -108,15 +100,13 @@ public:
 
   MediaSource* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   // Notify the SourceBuffer that it has been detached from the
   // MediaSource's sourceBuffer list.
   void Detach();
-  bool IsAttached() const
-  {
-    return mMediaSource != nullptr;
-  }
+  bool IsAttached() const { return mMediaSource != nullptr; }
 
   void Ended();
 
@@ -128,12 +118,9 @@ public:
   // Runs the range removal algorithm as defined by the MSE spec.
   void RangeRemoval(double aStart, double aEnd);
 
-  bool IsActive() const
-  {
-    return mActive;
-  }
+  bool IsActive() const { return mActive; }
 
-private:
+ private:
   ~SourceBuffer();
 
   friend class AsyncEventRunner<SourceBuffer>;
@@ -168,7 +155,8 @@ private:
                                                   uint32_t aLength,
                                                   ErrorResult& aRv);
 
-  void AppendDataCompletedWithSuccess(const SourceBufferTask::AppendBufferResult& aResult);
+  void AppendDataCompletedWithSuccess(
+      const SourceBufferTask::AppendBufferResult& aResult);
   void AppendDataErrored(const MediaResult& aError);
 
   RefPtr<MediaSource> mMediaSource;
@@ -182,16 +170,18 @@ private:
   mozilla::Atomic<bool> mActive;
 
   MozPromiseRequestHolder<SourceBufferTask::AppendPromise> mPendingAppend;
-  MozPromiseRequestHolder<SourceBufferTask::RangeRemovalPromise> mPendingRemoval;
+  MozPromiseRequestHolder<SourceBufferTask::RangeRemovalPromise>
+      mPendingRemoval;
   const MediaContainerType mType;
 
   RefPtr<TimeRanges> mBuffered;
 
-  MozPromiseRequestHolder<MediaSource::ActiveCompletionPromise> mCompletionPromise;
+  MozPromiseRequestHolder<MediaSource::ActiveCompletionPromise>
+      mCompletionPromise;
 };
 
-} // namespace dom
+}  // namespace dom
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_dom_SourceBuffer_h_ */

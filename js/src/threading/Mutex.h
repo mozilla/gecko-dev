@@ -20,17 +20,15 @@ namespace js {
 // The mutex order defines the allowed order of mutex acqusition on a single
 // thread. Mutexes must be acquired in strictly increasing order. Mutexes with
 // the same order may not be held at the same time by that thread.
-struct MutexId
-{
+struct MutexId {
   const char* name;
   uint32_t order;
 };
 
 #ifndef DEBUG
 
-class Mutex : public mozilla::detail::MutexImpl
-{
-public:
+class Mutex : public mozilla::detail::MutexImpl {
+ public:
   static bool Init() { return true; }
   static void ShutDown() {}
 
@@ -47,23 +45,18 @@ public:
 //
 // The class maintains a per-thread stack of currently-held mutexes to enable it
 // to check this.
-class Mutex : public mozilla::detail::MutexImpl
-{
-public:
+class Mutex : public mozilla::detail::MutexImpl {
+ public:
   static bool Init();
   static void ShutDown();
 
-  explicit Mutex(const MutexId& id)
-   : id_(id)
-  {
-    MOZ_ASSERT(id_.order != 0);
-  }
+  explicit Mutex(const MutexId& id) : id_(id) { MOZ_ASSERT(id_.order != 0); }
 
   void lock();
   void unlock();
   bool ownedByCurrentThread() const;
 
-private:
+ private:
   const MutexId id_;
 
   using MutexVector = mozilla::Vector<const Mutex*>;
@@ -73,6 +66,6 @@ private:
 
 #endif
 
-} // namespace js
+}  // namespace js
 
-#endif // threading_Mutex_h
+#endif  // threading_Mutex_h

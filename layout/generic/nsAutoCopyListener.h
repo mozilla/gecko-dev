@@ -11,24 +11,20 @@
 #include "nsISelectionPrivate.h"
 #include "mozilla/Attributes.h"
 
-class nsAutoCopyListener final : public nsISelectionListener
-{
-public:
+class nsAutoCopyListener final : public nsISelectionListener {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISELECTIONLISTENER
 
   explicit nsAutoCopyListener(int16_t aClipboardID)
-    : mCachedClipboard(aClipboardID)
-  {}
+      : mCachedClipboard(aClipboardID) {}
 
-  void Listen(nsISelectionPrivate *aSelection)
-  {
-      NS_ASSERTION(aSelection, "Null selection passed to Listen()");
-      aSelection->AddSelectionListener(this);
+  void Listen(nsISelectionPrivate* aSelection) {
+    NS_ASSERTION(aSelection, "Null selection passed to Listen()");
+    aSelection->AddSelectionListener(this);
   }
 
-  static nsAutoCopyListener* GetInstance(int16_t aClipboardID)
-  {
+  static nsAutoCopyListener* GetInstance(int16_t aClipboardID) {
     if (!sInstance) {
       sInstance = new nsAutoCopyListener(aClipboardID);
 
@@ -38,12 +34,9 @@ public:
     return sInstance;
   }
 
-  static void Shutdown()
-  {
-    NS_IF_RELEASE(sInstance);
-  }
+  static void Shutdown() { NS_IF_RELEASE(sInstance); }
 
-private:
+ private:
   ~nsAutoCopyListener() {}
 
   static nsAutoCopyListener* sInstance;

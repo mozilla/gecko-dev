@@ -13,13 +13,12 @@
 namespace mozilla {
 namespace dom {
 
-class CSSKeyframesRule : public css::GroupRule
-{
-protected:
+class CSSKeyframesRule : public css::GroupRule {
+ protected:
   using css::GroupRule::GroupRule;
   virtual ~CSSKeyframesRule() {}
 
-public:
+ public:
   int32_t GetType() const final { return Rule::KEYFRAMES_RULE; }
 
   // WebIDL interface
@@ -41,7 +40,7 @@ public:
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSKeyframesRule_h
+#endif  // mozilla_dom_CSSKeyframesRule_h

@@ -12,15 +12,11 @@
 
 namespace mozilla {
 
-class ServoNamespaceRule : public dom::CSSNamespaceRule
-{
-public:
+class ServoNamespaceRule : public dom::CSSNamespaceRule {
+ public:
   ServoNamespaceRule(already_AddRefed<RawServoNamespaceRule> aRule,
                      uint32_t aLine, uint32_t aColumn)
-    : CSSNamespaceRule(aLine, aColumn)
-    , mRawRule(Move(aRule))
-  {
-  }
+      : CSSNamespaceRule(aLine, aColumn), mRawRule(Move(aRule)) {}
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(ServoNamespaceRule,
                                        dom::CSSNamespaceRule)
@@ -38,12 +34,12 @@ public:
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const final;
 
-private:
+ private:
   ~ServoNamespaceRule();
 
   RefPtr<RawServoNamespaceRule> mRawRule;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoNamespaceRule_h
+#endif  // mozilla_ServoNamespaceRule_h

@@ -17,11 +17,11 @@ namespace layers {
 
 /*
  * This class is a wrapper to walk through a WebRenderScrollData object, with
- * an exposed API that is template-compatible to LayerMetricsWrapper. This allows
- * APZ to walk through both layer trees and WebRender scroll metadata structures
- * without a lot of code duplication.
- * (Note that not all functions from LayerMetricsWrapper are implemented here,
- * only the ones we've needed in APZ code so far.)
+ * an exposed API that is template-compatible to LayerMetricsWrapper. This
+ * allows APZ to walk through both layer trees and WebRender scroll metadata
+ * structures without a lot of code duplication. (Note that not all functions
+ * from LayerMetricsWrapper are implemented here, only the ones we've needed in
+ * APZ code so far.)
  *
  * A WebRenderScrollData object is basically a flattened layer tree, with a
  * number of WebRenderLayerScrollData objects that have a 1:1 correspondence
@@ -41,16 +41,16 @@ namespace layers {
  * Refer to LayerMetricsWrapper.h for actual documentation on the exposed API.
  */
 class MOZ_STACK_CLASS WebRenderScrollDataWrapper {
-public:
+ public:
   // Basic constructor for external callers. Starts the walker at the root of
   // the tree.
-  explicit WebRenderScrollDataWrapper(const WebRenderScrollData* aData = nullptr)
-    : mData(aData)
-    , mLayerIndex(0)
-    , mContainingSubtreeLastIndex(0)
-    , mLayer(nullptr)
-    , mMetadataIndex(0)
-  {
+  explicit WebRenderScrollDataWrapper(
+      const WebRenderScrollData* aData = nullptr)
+      : mData(aData),
+        mLayerIndex(0),
+        mContainingSubtreeLastIndex(0),
+        mLayer(nullptr),
+        mMetadataIndex(0) {
     if (!mData) {
       return;
     }
@@ -60,7 +60,8 @@ public:
     }
 
     // sanity check on the data
-    MOZ_ASSERT(mData->GetLayerCount() == (size_t)(1 + mLayer->GetDescendantCount()));
+    MOZ_ASSERT(mData->GetLayerCount() ==
+               (size_t)(1 + mLayer->GetDescendantCount()));
     mContainingSubtreeLastIndex = mData->GetLayerCount();
 
     // See documentation in LayerMetricsWrapper.h about this. mMetadataIndex
@@ -71,19 +72,18 @@ public:
     }
   }
 
-private:
+ private:
   // Internal constructor for walking from one WebRenderLayerScrollData to
   // another. In this case we need to recompute the mMetadataIndex to be the
   // "topmost" scroll metadata on the new layer.
   WebRenderScrollDataWrapper(const WebRenderScrollData* aData,
                              size_t aLayerIndex,
                              size_t aContainingSubtreeLastIndex)
-    : mData(aData)
-    , mLayerIndex(aLayerIndex)
-    , mContainingSubtreeLastIndex(aContainingSubtreeLastIndex)
-    , mLayer(nullptr)
-    , mMetadataIndex(0)
-  {
+      : mData(aData),
+        mLayerIndex(aLayerIndex),
+        mContainingSubtreeLastIndex(aContainingSubtreeLastIndex),
+        mLayer(nullptr),
+        mMetadataIndex(0) {
     MOZ_ASSERT(mData);
     mLayer = mData->GetLayerData(mLayerIndex);
     MOZ_ASSERT(mLayer);
@@ -103,31 +103,24 @@ private:
                              size_t aContainingSubtreeLastIndex,
                              const WebRenderLayerScrollData* aLayer,
                              uint32_t aMetadataIndex)
-    : mData(aData)
-    , mLayerIndex(aLayerIndex)
-    , mContainingSubtreeLastIndex(aContainingSubtreeLastIndex)
-    , mLayer(aLayer)
-    , mMetadataIndex(aMetadataIndex)
-  {
+      : mData(aData),
+        mLayerIndex(aLayerIndex),
+        mContainingSubtreeLastIndex(aContainingSubtreeLastIndex),
+        mLayer(aLayer),
+        mMetadataIndex(aMetadataIndex) {
     MOZ_ASSERT(mData);
     MOZ_ASSERT(mLayer);
     MOZ_ASSERT(mLayer == mData->GetLayerData(mLayerIndex));
-    MOZ_ASSERT(mMetadataIndex == 0 || mMetadataIndex < mLayer->GetScrollMetadataCount());
+    MOZ_ASSERT(mMetadataIndex == 0 ||
+               mMetadataIndex < mLayer->GetScrollMetadataCount());
   }
 
-public:
-  bool IsValid() const
-  {
-    return mLayer != nullptr;
-  }
+ public:
+  bool IsValid() const { return mLayer != nullptr; }
 
-  explicit operator bool() const
-  {
-    return IsValid();
-  }
+  explicit operator bool() const { return IsValid(); }
 
-  WebRenderScrollDataWrapper GetLastChild() const
-  {
+  WebRenderScrollDataWrapper GetLastChild() const {
     MOZ_ASSERT(IsValid());
 
     if (!AtBottomLayer()) {
@@ -135,7 +128,8 @@ public:
       // by the ScrollMetadata array, we just need to update the metadata index
       // and that's it.
       return WebRenderScrollDataWrapper(mData, mLayerIndex,
-          mContainingSubtreeLastIndex, mLayer, mMetadataIndex - 1);
+                                        mContainingSubtreeLastIndex, mLayer,
+                                        mMetadataIndex - 1);
     }
 
     // Otherwise, we need to walk to a different WebRenderLayerScrollData in
@@ -149,8 +143,10 @@ public:
     // its mContainingSubtreeLastIndex.
     if (mLayer->GetDescendantCount() > 0) {
       size_t prevSiblingIndex = mLayerIndex + 1 + mLayer->GetDescendantCount();
-      size_t subtreeLastIndex = std::min(mContainingSubtreeLastIndex, prevSiblingIndex);
-      return WebRenderScrollDataWrapper(mData, mLayerIndex + 1, subtreeLastIndex);
+      size_t subtreeLastIndex =
+          std::min(mContainingSubtreeLastIndex, prevSiblingIndex);
+      return WebRenderScrollDataWrapper(mData, mLayerIndex + 1,
+                                        subtreeLastIndex);
     }
 
     // We've run out of descendants. But! If the original layer was a RefLayer,
@@ -159,7 +155,8 @@ public:
     // tree.
     if (mLayer->GetReferentId()) {
       CompositorBridgeParent::LayerTreeState* lts =
-          CompositorBridgeParent::GetIndirectShadowTree(mLayer->GetReferentId().value());
+          CompositorBridgeParent::GetIndirectShadowTree(
+              mLayer->GetReferentId().value());
       if (lts && lts->mWrBridge) {
         return WebRenderScrollDataWrapper(&(lts->mWrBridge->GetScrollData()));
       }
@@ -168,8 +165,7 @@ public:
     return WebRenderScrollDataWrapper();
   }
 
-  WebRenderScrollDataWrapper GetPrevSibling() const
-  {
+  WebRenderScrollDataWrapper GetPrevSibling() const {
     MOZ_ASSERT(IsValid());
 
     if (!AtTopLayer()) {
@@ -181,13 +177,13 @@ public:
     // might be at the last sibling already.
     size_t prevSiblingIndex = mLayerIndex + 1 + mLayer->GetDescendantCount();
     if (prevSiblingIndex < mContainingSubtreeLastIndex) {
-      return WebRenderScrollDataWrapper(mData, prevSiblingIndex, mContainingSubtreeLastIndex);
+      return WebRenderScrollDataWrapper(mData, prevSiblingIndex,
+                                        mContainingSubtreeLastIndex);
     }
     return WebRenderScrollDataWrapper();
   }
 
-  const ScrollMetadata& Metadata() const
-  {
+  const ScrollMetadata& Metadata() const {
     MOZ_ASSERT(IsValid());
 
     if (mMetadataIndex >= mLayer->GetScrollMetadataCount()) {
@@ -196,27 +192,15 @@ public:
     return mLayer->GetScrollMetadata(*mData, mMetadataIndex);
   }
 
-  const FrameMetrics& Metrics() const
-  {
-    return Metadata().GetMetrics();
-  }
+  const FrameMetrics& Metrics() const { return Metadata().GetMetrics(); }
 
-  AsyncPanZoomController* GetApzc() const
-  {
-    return nullptr;
-  }
+  AsyncPanZoomController* GetApzc() const { return nullptr; }
 
-  void SetApzc(AsyncPanZoomController* aApzc) const
-  {
-  }
+  void SetApzc(AsyncPanZoomController* aApzc) const {}
 
-  const char* Name() const
-  {
-    return "WebRenderScrollDataWrapper";
-  }
+  const char* Name() const { return "WebRenderScrollDataWrapper"; }
 
-  gfx::Matrix4x4 GetTransform() const
-  {
+  gfx::Matrix4x4 GetTransform() const {
     MOZ_ASSERT(IsValid());
 
     if (AtBottomLayer()) {
@@ -225,13 +209,11 @@ public:
     return gfx::Matrix4x4();
   }
 
-  CSSTransformMatrix GetTransformTyped() const
-  {
+  CSSTransformMatrix GetTransformTyped() const {
     return ViewAs<CSSTransformMatrix>(GetTransform());
   }
 
-  bool TransformIsPerspective() const
-  {
+  bool TransformIsPerspective() const {
     MOZ_ASSERT(IsValid());
 
     if (AtBottomLayer()) {
@@ -240,8 +222,7 @@ public:
     return false;
   }
 
-  EventRegions GetEventRegions() const
-  {
+  EventRegions GetEventRegions() const {
     MOZ_ASSERT(IsValid());
 
     if (AtBottomLayer()) {
@@ -250,8 +231,7 @@ public:
     return EventRegions();
   }
 
-  LayerIntRegion GetVisibleRegion() const
-  {
+  LayerIntRegion GetVisibleRegion() const {
     MOZ_ASSERT(IsValid());
 
     if (AtBottomLayer()) {
@@ -263,8 +243,7 @@ public:
         PixelCastJustification::MovingDownToChildren);
   }
 
-  Maybe<uint64_t> GetReferentId() const
-  {
+  Maybe<uint64_t> GetReferentId() const {
     MOZ_ASSERT(IsValid());
 
     if (AtBottomLayer()) {
@@ -273,73 +252,61 @@ public:
     return Nothing();
   }
 
-  Maybe<ParentLayerIntRect> GetClipRect() const
-  {
+  Maybe<ParentLayerIntRect> GetClipRect() const {
     // TODO
     return Nothing();
   }
 
-  EventRegionsOverride GetEventRegionsOverride() const
-  {
+  EventRegionsOverride GetEventRegionsOverride() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetEventRegionsOverride();
   }
 
-  const ScrollThumbData& GetScrollThumbData() const
-  {
+  const ScrollThumbData& GetScrollThumbData() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetScrollThumbData();
   }
 
-  uint64_t GetScrollbarAnimationId() const
-  {
+  uint64_t GetScrollbarAnimationId() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetScrollbarAnimationId();
   }
 
-  FrameMetrics::ViewID GetScrollbarTargetContainerId() const
-  {
+  FrameMetrics::ViewID GetScrollbarTargetContainerId() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetScrollbarTargetContainerId();
   }
 
-  Maybe<ScrollDirection> GetScrollbarContainerDirection() const
-  {
+  Maybe<ScrollDirection> GetScrollbarContainerDirection() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetScrollbarContainerDirection();
   }
 
-  FrameMetrics::ViewID GetFixedPositionScrollContainerId() const
-  {
+  FrameMetrics::ViewID GetFixedPositionScrollContainerId() const {
     MOZ_ASSERT(IsValid());
     return mLayer->GetFixedPositionScrollContainerId();
   }
 
-  bool IsBackfaceHidden() const
-  {
+  bool IsBackfaceHidden() const {
     // This is only used by APZCTM hit testing, and WR does its own
     // hit testing, so no need to implement this.
     return false;
   }
 
-  const void* GetLayer() const
-  {
+  const void* GetLayer() const {
     MOZ_ASSERT(IsValid());
     return mLayer;
   }
 
-private:
-  bool AtBottomLayer() const
-  {
-    return mMetadataIndex == 0;
+ private:
+  bool AtBottomLayer() const { return mMetadataIndex == 0; }
+
+  bool AtTopLayer() const {
+    return mLayer->GetScrollMetadataCount() == 0 ||
+           mMetadataIndex == mLayer->GetScrollMetadataCount() - 1;
   }
 
-  bool AtTopLayer() const
-  {
-    return mLayer->GetScrollMetadataCount() == 0 || mMetadataIndex == mLayer->GetScrollMetadataCount() - 1;
-  }
-
-private:
+ private:
   const WebRenderScrollData* mData;
   // The index (in mData->mLayerScrollData) of the WebRenderLayerScrollData this
   // wrapper is pointing to.
@@ -358,7 +325,7 @@ private:
   uint32_t mMetadataIndex;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* GFX_WEBRENDERSCROLLDATAWRAPPER_H */

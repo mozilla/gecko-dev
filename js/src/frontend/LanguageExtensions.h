@@ -21,25 +21,24 @@ namespace js {
  * initializer.  The *only* initializer whose value should ever change is
  * DeprecatedLanguageExtension::Count.
  */
-enum class DeprecatedLanguageExtension
-{
-    // NO LONGER USING 0
-    // NO LONGER USING 1
-    // NO LONGER USING 2
-    ExpressionClosure = 3, // Added in JS 1.8
-    // NO LONGER USING 4
-    // NO LONGER USING 5
-    // NO LONGER USING 6
-    // NO LONGER USING 7
-    // NO LONGER USING 8
-    // NO LONGER USING 9
-    // NO LONGER USING 10
+enum class DeprecatedLanguageExtension {
+  // NO LONGER USING 0
+  // NO LONGER USING 1
+  // NO LONGER USING 2
+  ExpressionClosure = 3,  // Added in JS 1.8
+                          // NO LONGER USING 4
+                          // NO LONGER USING 5
+                          // NO LONGER USING 6
+                          // NO LONGER USING 7
+                          // NO LONGER USING 8
+                          // NO LONGER USING 9
+                          // NO LONGER USING 10
 
-    // Sentinel value.  MAY change as extension initializers are added (only to
-    // the end) above.
-    Count
+  // Sentinel value.  MAY change as extension initializers are added (only to
+  // the end) above.
+  Count
 };
 
-} // namespace js
+}  // namespace js
 
 #endif /* frontend_LanguageExtensions_h */

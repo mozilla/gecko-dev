@@ -23,12 +23,12 @@
 #include "mozilla/Services.h"
 
 #if defined(XP_WIN)
-#   include "nsWindowsDllInterceptor.h"
-#   include <windows.h>
+#include "nsWindowsDllInterceptor.h"
+#include <windows.h>
 #endif
 
 #if defined(MOZ_MEMORY)
-#   include "mozmemory.h"
+#include "mozmemory.h"
 #endif  // MOZ_MEMORY
 
 using namespace mozilla;
@@ -73,30 +73,27 @@ volatile PRIntervalTime sLastLowMemoryNotificationTime;
 
 // These are function pointers to the functions we wrap in Init().
 
-void* (WINAPI* sVirtualAllocOrig)(LPVOID aAddress, SIZE_T aSize,
-                                  DWORD aAllocationType, DWORD aProtect);
+void*(WINAPI* sVirtualAllocOrig)(LPVOID aAddress, SIZE_T aSize,
+                                 DWORD aAllocationType, DWORD aProtect);
 
-void* (WINAPI* sMapViewOfFileOrig)(HANDLE aFileMappingObject,
-                                   DWORD aDesiredAccess, DWORD aFileOffsetHigh,
-                                   DWORD aFileOffsetLow, SIZE_T aNumBytesToMap);
+void*(WINAPI* sMapViewOfFileOrig)(HANDLE aFileMappingObject,
+                                  DWORD aDesiredAccess, DWORD aFileOffsetHigh,
+                                  DWORD aFileOffsetLow, SIZE_T aNumBytesToMap);
 
-HBITMAP(WINAPI* sCreateDIBSectionOrig)(HDC aDC, const BITMAPINFO* aBitmapInfo,
-                                       UINT aUsage, VOID** aBits,
-                                       HANDLE aSection, DWORD aOffset);
+HBITMAP(WINAPI* sCreateDIBSectionOrig)
+(HDC aDC, const BITMAPINFO* aBitmapInfo, UINT aUsage, VOID** aBits,
+ HANDLE aSection, DWORD aOffset);
 
 /**
  * Fire a memory pressure event if it's been long enough since the last one we
  * fired.
  */
-bool
-MaybeScheduleMemoryPressureEvent()
-{
+bool MaybeScheduleMemoryPressureEvent() {
   // If this interval rolls over, we may fire an extra memory pressure
   // event, but that's not a big deal.
   PRIntervalTime interval = PR_IntervalNow() - sLastLowMemoryNotificationTime;
   if (sHasScheduledOneLowMemoryNotification &&
       PR_IntervalToMilliseconds(interval) < kLowMemoryNotificationIntervalMS) {
-
     return false;
   }
 
@@ -113,9 +110,7 @@ MaybeScheduleMemoryPressureEvent()
   return true;
 }
 
-void
-CheckMemAvailable()
-{
+void CheckMemAvailable() {
   if (!sHooksActive) {
     return;
   }
@@ -132,11 +127,13 @@ CheckMemAvailable()
       // so don't worry about firing this notification too often.
       ++sNumLowVirtualMemEvents;
       NS_DispatchEventualMemoryPressure(MemPressure_New);
-    } else if (stat.ullAvailPageFile < kLowCommitSpaceThresholdMiB * 1024 * 1024) {
+    } else if (stat.ullAvailPageFile <
+               kLowCommitSpaceThresholdMiB * 1024 * 1024) {
       if (MaybeScheduleMemoryPressureEvent()) {
         ++sNumLowCommitSpaceEvents;
       }
-    } else if (stat.ullAvailPhys < kLowPhysicalMemoryThresholdMiB * 1024 * 1024) {
+    } else if (stat.ullAvailPhys <
+               kLowPhysicalMemoryThresholdMiB * 1024 * 1024) {
       if (MaybeScheduleMemoryPressureEvent()) {
         ++sNumLowPhysicalMemEvents;
       }
@@ -144,11 +141,8 @@ CheckMemAvailable()
   }
 }
 
-LPVOID WINAPI
-VirtualAllocHook(LPVOID aAddress, SIZE_T aSize,
-                 DWORD aAllocationType,
-                 DWORD aProtect)
-{
+LPVOID WINAPI VirtualAllocHook(LPVOID aAddress, SIZE_T aSize,
+                               DWORD aAllocationType, DWORD aProtect) {
   // It's tempting to see whether we have enough free virtual address space for
   // this allocation and, if we don't, synchronously fire a low-memory
   // notification to free some before we allocate.
@@ -174,28 +168,19 @@ VirtualAllocHook(LPVOID aAddress, SIZE_T aSize,
   return result;
 }
 
-LPVOID WINAPI
-MapViewOfFileHook(HANDLE aFileMappingObject,
-                  DWORD aDesiredAccess,
-                  DWORD aFileOffsetHigh,
-                  DWORD aFileOffsetLow,
-                  SIZE_T aNumBytesToMap)
-{
-  LPVOID result = sMapViewOfFileOrig(aFileMappingObject, aDesiredAccess,
-                                     aFileOffsetHigh, aFileOffsetLow,
-                                     aNumBytesToMap);
+LPVOID WINAPI MapViewOfFileHook(HANDLE aFileMappingObject, DWORD aDesiredAccess,
+                                DWORD aFileOffsetHigh, DWORD aFileOffsetLow,
+                                SIZE_T aNumBytesToMap) {
+  LPVOID result =
+      sMapViewOfFileOrig(aFileMappingObject, aDesiredAccess, aFileOffsetHigh,
+                         aFileOffsetLow, aNumBytesToMap);
   CheckMemAvailable();
   return result;
 }
 
-HBITMAP WINAPI
-CreateDIBSectionHook(HDC aDC,
-                     const BITMAPINFO* aBitmapInfo,
-                     UINT aUsage,
-                     VOID** aBits,
-                     HANDLE aSection,
-                     DWORD aOffset)
-{
+HBITMAP WINAPI CreateDIBSectionHook(HDC aDC, const BITMAPINFO* aBitmapInfo,
+                                    UINT aUsage, VOID** aBits, HANDLE aSection,
+                                    DWORD aOffset) {
   // There are a lot of calls to CreateDIBSection, so we make some effort not
   // to CheckMemAvailable() for calls to CreateDIBSection which allocate only
   // a small amount of memory.
@@ -215,7 +200,7 @@ CreateDIBSectionHook(HDC aDC,
     // negative (indicating the direction the DIB is drawn in), so we take the
     // absolute value.
     int64_t size = bitCount * aBitmapInfo->bmiHeader.biWidth *
-                              aBitmapInfo->bmiHeader.biHeight;
+                   aBitmapInfo->bmiHeader.biHeight;
     if (size < 0) {
       size *= -1;
     }
@@ -227,8 +212,8 @@ CreateDIBSectionHook(HDC aDC,
     }
   }
 
-  HBITMAP result = sCreateDIBSectionOrig(aDC, aBitmapInfo, aUsage, aBits,
-                                         aSection, aOffset);
+  HBITMAP result =
+      sCreateDIBSectionOrig(aDC, aBitmapInfo, aUsage, aBits, aSection, aOffset);
 
   if (doCheck) {
     CheckMemAvailable();
@@ -237,28 +222,22 @@ CreateDIBSectionHook(HDC aDC,
   return result;
 }
 
-static int64_t
-LowMemoryEventsVirtualDistinguishedAmount()
-{
+static int64_t LowMemoryEventsVirtualDistinguishedAmount() {
   return sNumLowVirtualMemEvents;
 }
 
-static int64_t
-LowMemoryEventsPhysicalDistinguishedAmount()
-{
+static int64_t LowMemoryEventsPhysicalDistinguishedAmount() {
   return sNumLowPhysicalMemEvents;
 }
 
-class LowEventsReporter final : public nsIMemoryReporter
-{
+class LowEventsReporter final : public nsIMemoryReporter {
   ~LowEventsReporter() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                            nsISupports* aData, bool aAnonymize) override
-  {
+                            nsISupports* aData, bool aAnonymize) override {
     // clang-format off
     MOZ_COLLECT_REPORT(
       "low-memory-events/virtual", KIND_OTHER, UNITS_COUNT_CUMULATIVE,
@@ -293,7 +272,7 @@ public:
 };
 NS_IMPL_ISUPPORTS(LowEventsReporter, nsIMemoryReporter)
 
-#endif // defined(_M_IX86) && defined(XP_WIN)
+#endif  // defined(_M_IX86) && defined(XP_WIN)
 
 /**
  * This runnable is executed in response to a memory-pressure event; we spin
@@ -301,11 +280,10 @@ NS_IMPL_ISUPPORTS(LowEventsReporter, nsIMemoryReporter)
  * other observers will synchronously free some memory that we'll be able to
  * purge here.
  */
-class nsJemallocFreeDirtyPagesRunnable final : public nsIRunnable
-{
+class nsJemallocFreeDirtyPagesRunnable final : public nsIRunnable {
   ~nsJemallocFreeDirtyPagesRunnable() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
 };
@@ -313,8 +291,7 @@ public:
 NS_IMPL_ISUPPORTS(nsJemallocFreeDirtyPagesRunnable, nsIRunnable)
 
 NS_IMETHODIMP
-nsJemallocFreeDirtyPagesRunnable::Run()
-{
+nsJemallocFreeDirtyPagesRunnable::Run() {
   MOZ_ASSERT(NS_IsMainThread());
 
 #if defined(MOZ_MEMORY)
@@ -329,11 +306,10 @@ nsJemallocFreeDirtyPagesRunnable::Run()
  * and reacting upon them. We use one instance per process currently only for
  * cleaning up dirty unused pages held by jemalloc.
  */
-class nsMemoryPressureWatcher final : public nsIObserver
-{
+class nsMemoryPressureWatcher final : public nsIObserver {
   ~nsMemoryPressureWatcher() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -347,9 +323,7 @@ NS_IMPL_ISUPPORTS(nsMemoryPressureWatcher, nsIObserver)
  * observer service in this method and not in the constructor because we need
  * to hold a strong reference to 'this' before calling the observer service.
  */
-void
-nsMemoryPressureWatcher::Init()
-{
+void nsMemoryPressureWatcher::Init() {
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
 
   if (os) {
@@ -363,8 +337,7 @@ nsMemoryPressureWatcher::Init()
  */
 NS_IMETHODIMP
 nsMemoryPressureWatcher::Observe(nsISupports* aSubject, const char* aTopic,
-                                 const char16_t* aData)
-{
+                                 const char16_t* aData) {
   MOZ_ASSERT(!strcmp(aTopic, "memory-pressure"), "Unknown topic");
 
   nsCOMPtr<nsIRunnable> runnable = new nsJemallocFreeDirtyPagesRunnable();
@@ -374,23 +347,21 @@ nsMemoryPressureWatcher::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-} // namespace
+}  // namespace
 
 namespace mozilla {
 namespace AvailableMemoryTracker {
 
-void
-Activate()
-{
+void Activate() {
 #if defined(_M_IX86) && defined(XP_WIN)
   MOZ_ASSERT(sInitialized);
   MOZ_ASSERT(!sHooksActive);
 
   RegisterStrongMemoryReporter(new LowEventsReporter());
   RegisterLowMemoryEventsVirtualDistinguishedAmount(
-    LowMemoryEventsVirtualDistinguishedAmount);
+      LowMemoryEventsVirtualDistinguishedAmount);
   RegisterLowMemoryEventsPhysicalDistinguishedAmount(
-    LowMemoryEventsPhysicalDistinguishedAmount);
+      LowMemoryEventsPhysicalDistinguishedAmount);
   sHooksActive = true;
 #endif
 
@@ -399,17 +370,15 @@ Activate()
   watcher->Init();
 }
 
-void
-Init()
-{
-  // Do nothing on x86-64, because nsWindowsDllInterceptor is not thread-safe
-  // on 64-bit.  (On 32-bit, it's probably thread-safe.)  Even if we run Init()
-  // before any other of our threads are running, another process may have
-  // started a remote thread which could call VirtualAlloc!
-  //
-  // Moreover, the benefit of this code is less clear when we're a 64-bit
-  // process, because we aren't going to run out of virtual memory, and the
-  // system is likely to have a fair bit of physical memory.
+void Init() {
+// Do nothing on x86-64, because nsWindowsDllInterceptor is not thread-safe
+// on 64-bit.  (On 32-bit, it's probably thread-safe.)  Even if we run Init()
+// before any other of our threads are running, another process may have
+// started a remote thread which could call VirtualAlloc!
+//
+// Moreover, the benefit of this code is less clear when we're a 64-bit
+// process, because we aren't going to run out of virtual memory, and the
+// system is likely to have a fair bit of physical memory.
 
 #if defined(_M_IX86) && defined(XP_WIN)
   // Don't register the hooks if we're a build instrumented for PGO: If we're
@@ -435,5 +404,5 @@ Init()
 #endif
 }
 
-} // namespace AvailableMemoryTracker
-} // namespace mozilla
+}  // namespace AvailableMemoryTracker
+}  // namespace mozilla

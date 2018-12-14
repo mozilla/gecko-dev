@@ -5,15 +5,9 @@
 namespace mozilla {
 namespace hal_impl {
 
-void
-StartDiskSpaceWatcher()
-{
-}
+void StartDiskSpaceWatcher() {}
 
-void
-StopDiskSpaceWatcher()
-{
-}
+void StopDiskSpaceWatcher() {}
 
-} // namespace hal_impl
-} // namespace mozilla
+}  // namespace hal_impl
+}  // namespace mozilla

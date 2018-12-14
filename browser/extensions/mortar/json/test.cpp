@@ -6,13 +6,16 @@ static int test_passed = 0;
 static int test_failed = 0;
 
 /* Terminate current test with error */
-#define fail()	return __LINE__
+#define fail() return __LINE__
 
 /* Successfull end of the test case */
 #define done() return 0
 
 /* Check single condition */
-#define check(cond) do { if (!(cond)) fail(); } while (0)
+#define check(cond)      \
+  do {                   \
+    if (!(cond)) fail(); \
+  } while (0)
 
 /* Test runner */
 static void test(int (*func)(void), const char *name) {
@@ -30,23 +33,23 @@ static void test(int (*func)(void), const char *name) {
 using namespace std;
 using namespace JSON;
 
-static bool TOKEN_STRING(const Token& t, const char *s) {
+static bool TOKEN_STRING(const Token &t, const char *s) {
   return !t.value().compare(string(s));
 }
 
-static bool isObject(const Token& t, int children) {
+static bool isObject(const Token &t, int children) {
   return t.isObject() && t.children() == children;
 }
 
-static bool isArray(const Token& t, int children) {
+static bool isArray(const Token &t, int children) {
   return t.isArray() && t.children() == children;
 }
 
-static bool isKey(const Token& t, const char* v) {
+static bool isKey(const Token &t, const char *v) {
   return t.isString() && t.children() == 1 && t.value() == v;
 }
 
-static bool isPrimitive(const Token& t, const char* v) {
+static bool isPrimitive(const Token &t, const char *v) {
   return t.isPrimitive() && t.children() == 0 && t.value() == v;
 }
 
@@ -159,22 +162,19 @@ int test_string() {
 
   js = "\"strVar\" : \"hello world\"";
   r = p.parse(string(js));
-  check(r >= 0 && p[0].isString()
-	&& p[1].isString());
+  check(r >= 0 && p[0].isString() && p[1].isString());
   check(TOKEN_STRING(p[0], "strVar"));
   check(TOKEN_STRING(p[1], "hello world"));
 
   js = "\"strVar\" : \"escapes: \\/\\r\\n\\t\\b\\f\\\"\\\\\"";
   r = p.parse(string(js));
-  check(r >= 0 && p[0].isString()
-	&& p[1].isString());
+  check(r >= 0 && p[0].isString() && p[1].isString());
   check(TOKEN_STRING(p[0], "strVar"));
   check(TOKEN_STRING(p[1], "escapes: \\/\\r\\n\\t\\b\\f\\\"\\\\"));
 
   js = "\"strVar\" : \"\"";
   r = p.parse(string(js));
-  check(r >= 0 && p[0].isString()
-	&& p[1].isString());
+  check(r >= 0 && p[0].isString() && p[1].isString());
   check(TOKEN_STRING(p[0], "strVar"));
   check(TOKEN_STRING(p[1], ""));
 
@@ -193,11 +193,11 @@ int test_partial_string() {
   check(p.size() == 1);
 
   char js_slash[] = "\"x\": \"va\\";
-  r = p.parse(string(js_slash)); // intentionally not sizeof(js_slash)
+  r = p.parse(string(js_slash));  // intentionally not sizeof(js_slash)
   check(r == ERROR_PART);
 
   char js_unicode[] = "\"x\": \"va\\u";
-  r = p.parse(string(js_unicode)); // intentionally not sizeof(js_unicode)
+  r = p.parse(string(js_unicode));  // intentionally not sizeof(js_unicode)
   check(r == ERROR_PART);
 
   js = "\"x\": \"valu";
@@ -208,19 +208,14 @@ int test_partial_string() {
 
   js = "\"x\": \"value\"";
   r = p.parse(string(js));
-  check(r >= 0 && p[0].isString()
-	&& p[1].isString());
+  check(r >= 0 && p[0].isString() && p[1].isString());
   check(TOKEN_STRING(p[0], "x"));
   check(TOKEN_STRING(p[1], "value"));
 
   js = "{\"x\": \"value\", \"y\": \"value y\"}";
   r = p.parse(string(js));
-  check(r >= 0
-	&& p[0].isObject()
-	&& p[1].isString()
-	&& p[2].isString()
-	&& p[3].isString()
-	&& p[4].isString());
+  check(r >= 0 && p[0].isObject() && p[1].isString() && p[2].isString() &&
+        p[3].isString() && p[4].isString());
   check(TOKEN_STRING(p[1], "x"));
   check(TOKEN_STRING(p[2], "value"));
   check(TOKEN_STRING(p[3], "y"));
@@ -236,30 +231,26 @@ int test_partial_array() {
 
   js = "  [ 1, true, ";
   r = p.parse(string(js));
-  check(r == ERROR_PART && p[0].isArray()
-	&& p[1].isPrimitive() && p[2].isPrimitive());
+  check(r == ERROR_PART && p[0].isArray() && p[1].isPrimitive() &&
+        p[2].isPrimitive());
 
   js = "  [ 1, true, [123, \"hello";
   r = p.parse(string(js));
-  check(r == ERROR_PART && p[0].isArray()
-	&& p[1].isPrimitive() && p[2].isPrimitive()
-	&& p[3].isArray() && p[4].isPrimitive());
+  check(r == ERROR_PART && p[0].isArray() && p[1].isPrimitive() &&
+        p[2].isPrimitive() && p[3].isArray() && p[4].isPrimitive());
 
   js = "  [ 1, true, [123, \"hello\"]";
   r = p.parse(string(js));
-  check(r == ERROR_PART && p[0].isArray()
-	&& p[1].isPrimitive() && p[2].isPrimitive()
-	&& p[3].isArray() && p[4].isPrimitive()
-	&& p[5].isString());
+  check(r == ERROR_PART && p[0].isArray() && p[1].isPrimitive() &&
+        p[2].isPrimitive() && p[3].isArray() && p[4].isPrimitive() &&
+        p[5].isString());
   /* check child nodes of the 2nd array */
   check(p[3].children() == 2);
 
   js = "  [ 1, true, [123, \"hello\"]]";
   r = p.parse(string(js));
-  check(r >= 0 && p[0].isArray()
-	&& p[1].isPrimitive() && p[2].isPrimitive()
-	&& p[3].isArray() && p[4].isPrimitive()
-	&& p[5].isString());
+  check(r >= 0 && p[0].isArray() && p[1].isPrimitive() && p[2].isPrimitive() &&
+        p[3].isArray() && p[4].isPrimitive() && p[5].isString());
   check(p[3].children() == 2);
   check(p[0].children() == 3);
   return 0;
@@ -294,14 +285,17 @@ int test_issue_22() {
   Parser p;
   const char *js;
 
-  js = "{ \"height\":10, \"layers\":[ { \"data\":[6,6], \"height\":10, "
-    "\"name\":\"Calque de Tile 1\", \"opacity\":1, \"type\":\"tilelayer\", "
-    "\"visible\":true, \"width\":10, \"x\":0, \"y\":0 }], "
-    "\"orientation\":\"orthogonal\", \"properties\": { }, \"tileheight\":32, "
-    "\"tilesets\":[ { \"firstgid\":1, \"image\":\"..\\/images\\/tiles.png\", "
-    "\"imageheight\":64, \"imagewidth\":160, \"margin\":0, \"name\":\"Tiles\", "
-    "\"properties\":{}, \"spacing\":0, \"tileheight\":32, \"tilewidth\":32 }], "
-    "\"tilewidth\":32, \"version\":1, \"width\":10 }";
+  js =
+      "{ \"height\":10, \"layers\":[ { \"data\":[6,6], \"height\":10, "
+      "\"name\":\"Calque de Tile 1\", \"opacity\":1, \"type\":\"tilelayer\", "
+      "\"visible\":true, \"width\":10, \"x\":0, \"y\":0 }], "
+      "\"orientation\":\"orthogonal\", \"properties\": { }, \"tileheight\":32, "
+      "\"tilesets\":[ { \"firstgid\":1, \"image\":\"..\\/images\\/tiles.png\", "
+      "\"imageheight\":64, \"imagewidth\":160, \"margin\":0, "
+      "\"name\":\"Tiles\", "
+      "\"properties\":{}, \"spacing\":0, \"tileheight\":32, \"tilewidth\":32 "
+      "}], "
+      "\"tilewidth\":32, \"version\":1, \"width\":10 }";
   r = p.parse(string(js));
   check(r >= 0);
   return 0;
@@ -390,9 +384,10 @@ int test_keyvalue() {
 
   r = p.parse(string(js));
   check(r == 5);
-  check(p[0].children() == 2); /* two keys */
+  check(p[0].children() == 2);                         /* two keys */
   check(p[1].children() == 1 && p[3].children() == 1); /* one value per key */
-  check(p[2].children() == 0 && p[4].children() == 0); /* values have zero size */
+  check(p[2].children() == 0 &&
+        p[4].children() == 0); /* values have zero size */
 
   js = "{\"a\"\n0}";
   r = p.parse(string(js));

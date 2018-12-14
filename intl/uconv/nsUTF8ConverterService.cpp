@@ -13,14 +13,9 @@ using namespace mozilla;
 
 NS_IMPL_ISUPPORTS(nsUTF8ConverterService, nsIUTF8ConverterService)
 
-static nsresult
-ToUTF8(const nsACString& aString,
-       const char* aCharset,
-       bool aAllowSubstitution,
-       nsACString& aResult)
-{
-  if (!aCharset || !*aCharset)
-    return NS_ERROR_INVALID_ARG;
+static nsresult ToUTF8(const nsACString& aString, const char* aCharset,
+                       bool aAllowSubstitution, nsACString& aResult) {
+  if (!aCharset || !*aCharset) return NS_ERROR_INVALID_ARG;
 
   auto encoding = Encoding::ForLabelNoReplacement(MakeStringSpan(aCharset));
   if (!encoding) {
@@ -38,13 +33,9 @@ ToUTF8(const nsACString& aString,
 }
 
 NS_IMETHODIMP
-nsUTF8ConverterService::ConvertStringToUTF8(const nsACString& aString,
-                                            const char* aCharset,
-                                            bool aSkipCheck,
-                                            bool aAllowSubstitution,
-                                            uint8_t aOptionalArgc,
-                                            nsACString& aUTF8String)
-{
+nsUTF8ConverterService::ConvertStringToUTF8(
+    const nsACString& aString, const char* aCharset, bool aSkipCheck,
+    bool aAllowSubstitution, uint8_t aOptionalArgc, nsACString& aUTF8String) {
   bool allowSubstitution = (aOptionalArgc == 1) ? aAllowSubstitution : true;
 
   // return if ASCII only or valid UTF-8 providing that the ASCII/UTF-8
@@ -75,8 +66,7 @@ nsUTF8ConverterService::ConvertStringToUTF8(const nsACString& aString,
 NS_IMETHODIMP
 nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString& aSpec,
                                              const char* aCharset,
-                                             nsACString& aUTF8Spec)
-{
+                                             nsACString& aUTF8Spec) {
   // assume UTF-8 if the spec contains unescaped non-ASCII characters.
   // No valid spec in Mozilla would break this assumption.
   if (!IsASCII(aSpec)) {
@@ -89,10 +79,8 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString& aSpec,
   nsAutoCString unescapedSpec;
   // NS_UnescapeURL does not fill up unescapedSpec unless there's at least
   // one character to unescape.
-  bool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(),
-                                aSpec.Length(),
-                                esc_OnlyNonASCII,
-                                unescapedSpec);
+  bool written = NS_UnescapeURL(PromiseFlatCString(aSpec).get(), aSpec.Length(),
+                                esc_OnlyNonASCII, unescapedSpec);
 
   if (!written) {
     aUTF8Spec = aSpec;
@@ -106,4 +94,3 @@ nsUTF8ConverterService::ConvertURISpecToUTF8(const nsACString& aSpec,
 
   return ToUTF8(unescapedSpec, aCharset, true, aUTF8Spec);
 }
-

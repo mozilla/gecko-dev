@@ -20,18 +20,15 @@
 namespace mozilla {
 namespace dom {
 
-struct SupportsParsingInfo
-{
+struct SupportsParsingInfo {
   nsIURI* mDocURI;
   nsIURI* mBaseURI;
   nsIPrincipal* mPrincipal;
   StyleBackendType mStyleBackendType;
 };
 
-static nsresult
-GetParsingInfo(const GlobalObject& aGlobal,
-               SupportsParsingInfo& aInfo)
-{
+static nsresult GetParsingInfo(const GlobalObject& aGlobal,
+                               SupportsParsingInfo& aInfo) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aGlobal.Get());
   if (!win) {
     return NS_ERROR_FAILURE;
@@ -49,12 +46,9 @@ GetParsingInfo(const GlobalObject& aGlobal,
   return NS_OK;
 }
 
-/* static */ bool
-CSS::Supports(const GlobalObject& aGlobal,
-              const nsAString& aProperty,
-              const nsAString& aValue,
-              ErrorResult& aRv)
-{
+/* static */ bool CSS::Supports(const GlobalObject& aGlobal,
+                                const nsAString& aProperty,
+                                const nsAString& aValue, ErrorResult& aRv) {
   SupportsParsingInfo info;
 
   nsresult rv = GetParsingInfo(aGlobal, info);
@@ -78,11 +72,8 @@ CSS::Supports(const GlobalObject& aGlobal,
 #endif
 }
 
-/* static */ bool
-CSS::Supports(const GlobalObject& aGlobal,
-              const nsAString& aCondition,
-              ErrorResult& aRv)
-{
+/* static */ bool CSS::Supports(const GlobalObject& aGlobal,
+                                const nsAString& aCondition, ErrorResult& aRv) {
   SupportsParsingInfo info;
 
   nsresult rv = GetParsingInfo(aGlobal, info);
@@ -98,22 +89,19 @@ CSS::Supports(const GlobalObject& aGlobal,
 
 #ifdef MOZ_OLD_STYLE
   nsCSSParser parser;
-  return parser.EvaluateSupportsCondition(aCondition, info.mDocURI,
-                                          info.mBaseURI, info.mPrincipal,
-                                          css::SupportsParsingSettings::ImpliedParentheses);
+  return parser.EvaluateSupportsCondition(
+      aCondition, info.mDocURI, info.mBaseURI, info.mPrincipal,
+      css::SupportsParsingSettings::ImpliedParentheses);
 #else
   MOZ_CRASH("old style system disabled");
   return false;
 #endif
 }
 
-/* static */ void
-CSS::Escape(const GlobalObject& aGlobal,
-            const nsAString& aIdent,
-            nsAString& aReturn)
-{
+/* static */ void CSS::Escape(const GlobalObject& aGlobal,
+                              const nsAString& aIdent, nsAString& aReturn) {
   nsStyleUtil::AppendEscapedCSSIdent(aIdent, aReturn);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -11,33 +11,27 @@
 #include "mozilla/layers/LayersTypes.h"
 
 namespace IPC {
-template <typename T> struct ParamTraits;
-} // namespace IPC
+template <typename T>
+struct ParamTraits;
+}  // namespace IPC
 
 namespace mozilla {
 namespace layers {
 
 // Data stored for scroll thumb container layers.
 struct ScrollThumbData {
-  ScrollThumbData()
-    : mThumbRatio(0.0f)
-    , mIsAsyncDraggable(false)
-  {}
-  ScrollThumbData(ScrollDirection aDirection,
-                  float aThumbRatio,
-                  CSSCoord aThumbStart,
-                  CSSCoord aThumbLength,
-                  bool aIsAsyncDraggable,
-                  CSSCoord aScrollTrackStart,
+  ScrollThumbData() : mThumbRatio(0.0f), mIsAsyncDraggable(false) {}
+  ScrollThumbData(ScrollDirection aDirection, float aThumbRatio,
+                  CSSCoord aThumbStart, CSSCoord aThumbLength,
+                  bool aIsAsyncDraggable, CSSCoord aScrollTrackStart,
                   CSSCoord aScrollTrackLength)
-    : mDirection(Some(aDirection))
-    , mThumbRatio(aThumbRatio)
-    , mThumbStart(aThumbStart)
-    , mThumbLength(aThumbLength)
-    , mIsAsyncDraggable(aIsAsyncDraggable)
-    , mScrollTrackStart(aScrollTrackStart)
-    , mScrollTrackLength(aScrollTrackLength)
-  {}
+      : mDirection(Some(aDirection)),
+        mThumbRatio(aThumbRatio),
+        mThumbStart(aThumbStart),
+        mThumbLength(aThumbLength),
+        mIsAsyncDraggable(aIsAsyncDraggable),
+        mScrollTrackStart(aScrollTrackStart),
+        mScrollTrackLength(aScrollTrackLength) {}
 
   Maybe<ScrollDirection> mDirection;
   // The scrollbar thumb ratio is the ratio of the thumb position (in the CSS
@@ -67,22 +61,20 @@ struct ScrollThumbData {
 
 // Infrequently changing layer attributes that require no special
 // serialization work.
-class SimpleLayerAttributes final
-{
+class SimpleLayerAttributes final {
   friend struct IPC::ParamTraits<mozilla::layers::SimpleLayerAttributes>;
-public:
+
+ public:
   SimpleLayerAttributes()
-   : mTransformIsPerspective(false),
-     mPostXScale(1.0f),
-     mPostYScale(1.0f),
-     mContentFlags(0),
-     mOpacity(1.0f),
-     mIsFixedPosition(false),
-     mScrollbarTargetContainerId(FrameMetrics::NULL_SCROLL_ID),
-     mMixBlendMode(gfx::CompositionOp::OP_OVER),
-     mForceIsolatedGroup(false)
-  {
-  }
+      : mTransformIsPerspective(false),
+        mPostXScale(1.0f),
+        mPostYScale(1.0f),
+        mContentFlags(0),
+        mOpacity(1.0f),
+        mIsFixedPosition(false),
+        mScrollbarTargetContainerId(FrameMetrics::NULL_SCROLL_ID),
+        mMixBlendMode(gfx::CompositionOp::OP_OVER),
+        mForceIsolatedGroup(false) {}
 
   //
   // Setters.
@@ -118,10 +110,9 @@ public:
     mIsFixedPosition = aFixedPosition;
     return true;
   }
-  bool SetScrollThumbData(FrameMetrics::ViewID aScrollId, const ScrollThumbData& aThumbData) {
-    if (mScrollbarTargetContainerId == aScrollId &&
-        mThumbData == aThumbData)
-    {
+  bool SetScrollThumbData(FrameMetrics::ViewID aScrollId,
+                          const ScrollThumbData& aThumbData) {
+    if (mScrollbarTargetContainerId == aScrollId && mThumbData == aThumbData) {
       return false;
     }
     mScrollbarTargetContainerId = aScrollId;
@@ -175,11 +166,8 @@ public:
     return true;
   }
   bool SetFixedPositionData(FrameMetrics::ViewID aScrollId,
-                            const LayerPoint& aAnchor,
-                            int32_t aSides)
-  {
-    if (mFixedPositionData &&
-        mFixedPositionData->mScrollId == aScrollId &&
+                            const LayerPoint& aAnchor, int32_t aSides) {
+    if (mFixedPositionData && mFixedPositionData->mScrollId == aScrollId &&
         mFixedPositionData->mAnchor == aAnchor &&
         mFixedPositionData->mSides == aSides) {
       return false;
@@ -193,8 +181,8 @@ public:
     return true;
   }
   bool SetStickyPositionData(FrameMetrics::ViewID aScrollId,
-                             LayerRectAbsolute aOuter, LayerRectAbsolute aInner)
-  {
+                             LayerRectAbsolute aOuter,
+                             LayerRectAbsolute aInner) {
     if (mStickyPositionData &&
         mStickyPositionData->mOuter.IsEqualEdges(aOuter) &&
         mStickyPositionData->mInner.IsEqualEdges(aInner)) {
@@ -221,7 +209,8 @@ public:
     if (mThumbData != aOther.mThumbData) {
       return false;
     }
-    if (FixedPositionScrollContainerId() != aOther.FixedPositionScrollContainerId()) {
+    if (FixedPositionScrollContainerId() !=
+        aOther.FixedPositionScrollContainerId()) {
       return false;
     }
     if (mTransform != aOther.mTransform) {
@@ -234,49 +223,26 @@ public:
   // Getters.
   //
 
-  float PostXScale() const {
-    return mPostXScale;
-  }
-  float PostYScale() const {
-    return mPostYScale;
-  }
-  uint32_t ContentFlags() const {
-    return mContentFlags;
-  }
-  float Opacity() const {
-    return mOpacity;
-  }
-  bool IsFixedPosition() const {
-    return mIsFixedPosition;
-  }
+  float PostXScale() const { return mPostXScale; }
+  float PostYScale() const { return mPostYScale; }
+  uint32_t ContentFlags() const { return mContentFlags; }
+  float Opacity() const { return mOpacity; }
+  bool IsFixedPosition() const { return mIsFixedPosition; }
   FrameMetrics::ViewID ScrollbarTargetContainerId() const {
     return mScrollbarTargetContainerId;
   }
-  const ScrollThumbData& ThumbData() const {
-    return mThumbData;
-  }
+  const ScrollThumbData& ThumbData() const { return mThumbData; }
   Maybe<ScrollDirection> GetScrollbarContainerDirection() const {
     return mScrollbarContainerDirection;
   }
-  gfx::CompositionOp MixBlendMode() const {
-    return mMixBlendMode;
-  }
-  bool ForceIsolatedGroup() const {
-    return mForceIsolatedGroup;
-  }
-  const gfx::Matrix4x4& Transform() const {
-    return mTransform;
-  }
-  bool TransformIsPerspective() const {
-    return mTransformIsPerspective;
-  }
-  const Maybe<LayerClip>& ScrolledClip() const {
-    return mScrolledClip;
-  }
+  gfx::CompositionOp MixBlendMode() const { return mMixBlendMode; }
+  bool ForceIsolatedGroup() const { return mForceIsolatedGroup; }
+  const gfx::Matrix4x4& Transform() const { return mTransform; }
+  bool TransformIsPerspective() const { return mTransformIsPerspective; }
+  const Maybe<LayerClip>& ScrolledClip() const { return mScrolledClip; }
   FrameMetrics::ViewID FixedPositionScrollContainerId() const {
-    return mFixedPositionData
-           ? mFixedPositionData->mScrollId
-           : FrameMetrics::NULL_SCROLL_ID;
+    return mFixedPositionData ? mFixedPositionData->mScrollId
+                              : FrameMetrics::NULL_SCROLL_ID;
   }
   LayerPoint FixedPositionAnchor() const {
     return mFixedPositionData ? mFixedPositionData->mAnchor : LayerPoint();
@@ -284,9 +250,7 @@ public:
   int32_t FixedPositionSides() const {
     return mFixedPositionData ? mFixedPositionData->mSides : eSideBitsNone;
   }
-  bool IsStickyPosition() const {
-    return !!mStickyPositionData;
-  }
+  bool IsStickyPosition() const { return !!mStickyPositionData; }
   FrameMetrics::ViewID StickyScrollContainerId() const {
     return mStickyPositionData->mScrollId;
   }
@@ -297,7 +261,7 @@ public:
     return mStickyPositionData->mInner;
   }
 
-  bool operator ==(const SimpleLayerAttributes& aOther) const {
+  bool operator==(const SimpleLayerAttributes& aOther) const {
     return mTransform == aOther.mTransform &&
            mTransformIsPerspective == aOther.mTransformIsPerspective &&
            mScrolledClip == aOther.mScrolledClip &&
@@ -308,12 +272,13 @@ public:
            mIsFixedPosition == aOther.mIsFixedPosition &&
            mScrollbarTargetContainerId == aOther.mScrollbarTargetContainerId &&
            mThumbData == aOther.mThumbData &&
-           mScrollbarContainerDirection == aOther.mScrollbarContainerDirection &&
+           mScrollbarContainerDirection ==
+               aOther.mScrollbarContainerDirection &&
            mMixBlendMode == aOther.mMixBlendMode &&
            mForceIsolatedGroup == aOther.mForceIsolatedGroup;
   }
 
-private:
+ private:
   gfx::Matrix4x4 mTransform;
   bool mTransformIsPerspective;
   Maybe<LayerClip> mScrolledClip;
@@ -346,7 +311,7 @@ private:
   // copied over IPC. Make sure to add new members to operator ==.
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_gfx_layers_LayerAttributes_h
+#endif  // mozilla_gfx_layers_LayerAttributes_h

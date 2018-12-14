@@ -25,13 +25,13 @@
 #include "mozilla/layers/Compositor.h"  // for SurfaceInitMode, Compositor, etc
 #include "mozilla/layers/CompositorTypes.h"  // for MaskType::MaskType::NumMaskTypes, etc
 #include "mozilla/layers/LayersTypes.h"
-#include "nsCOMPtr.h"                   // for already_AddRefed
-#include "nsDebug.h"                    // for NS_ASSERTION, NS_WARNING
-#include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-#include "nsTArray.h"                   // for AutoTArray, nsTArray, etc
-#include "nsThreadUtils.h"              // for nsRunnable
-#include "nsXULAppAPI.h"                // for XRE_GetProcessType
-#include "nscore.h"                     // for NS_IMETHOD
+#include "nsCOMPtr.h"         // for already_AddRefed
+#include "nsDebug.h"          // for NS_ASSERTION, NS_WARNING
+#include "nsISupportsImpl.h"  // for MOZ_COUNT_CTOR, etc
+#include "nsTArray.h"         // for AutoTArray, nsTArray, etc
+#include "nsThreadUtils.h"    // for nsRunnable
+#include "nsXULAppAPI.h"      // for XRE_GetProcessType
+#include "nscore.h"           // for NS_IMETHOD
 
 class nsIWidget;
 
@@ -57,12 +57,11 @@ class GLBlitTextureImageHelper;
  * This is primarily intended for direct texturing APIs that need to attach
  * shared objects (such as an EGLImage) to a gl texture.
  */
-class CompositorTexturePoolOGL
-{
-protected:
+class CompositorTexturePoolOGL {
+ protected:
   virtual ~CompositorTexturePoolOGL() {}
 
-public:
+ public:
   NS_INLINE_DECL_REFCOUNTING(CompositorTexturePoolOGL)
 
   virtual void Clear() = 0;
@@ -76,29 +75,22 @@ public:
  * Agressively reuses textures. One gl texture per texture unit in total.
  * So far this hasn't shown the best results on b2g.
  */
-class PerUnitTexturePoolOGL : public CompositorTexturePoolOGL
-{
-public:
+class PerUnitTexturePoolOGL : public CompositorTexturePoolOGL {
+ public:
   explicit PerUnitTexturePoolOGL(gl::GLContext* aGL)
-  : mTextureTarget(0) // zero is never a valid texture target
-  , mGL(aGL)
-  {}
+      : mTextureTarget(0)  // zero is never a valid texture target
+        ,
+        mGL(aGL) {}
 
-  virtual ~PerUnitTexturePoolOGL()
-  {
-    DestroyTextures();
-  }
+  virtual ~PerUnitTexturePoolOGL() { DestroyTextures(); }
 
-  virtual void Clear() override
-  {
-    DestroyTextures();
-  }
+  virtual void Clear() override { DestroyTextures(); }
 
   virtual GLuint GetTexture(GLenum aTarget, GLenum aUnit) override;
 
   virtual void EndFrame() override {}
 
-protected:
+ protected:
   void DestroyTextures();
 
   GLenum mTextureTarget;
@@ -108,60 +100,54 @@ protected:
 
 // If you want to make this class not final, first remove calls to virtual
 // methods (Destroy) that are made in the destructor.
-class CompositorOGL final : public Compositor
-{
+class CompositorOGL final : public Compositor {
   typedef mozilla::gl::GLContext GLContext;
 
   friend class GLManagerCompositor;
   friend class CompositingRenderTargetOGL;
 
   std::map<ShaderConfigOGL, ShaderProgramOGL*> mPrograms;
-public:
+
+ public:
   explicit CompositorOGL(CompositorBridgeParent* aParent,
                          widget::CompositorWidget* aWidget,
                          int aSurfaceWidth = -1, int aSurfaceHeight = -1,
                          bool aUseExternalSurfaceSize = false);
 
-protected:
+ protected:
   virtual ~CompositorOGL();
 
-public:
+ public:
   virtual CompositorOGL* AsCompositorOGL() override { return this; }
 
-  virtual already_AddRefed<DataTextureSource>
-  CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
+  virtual already_AddRefed<DataTextureSource> CreateDataTextureSource(
+      TextureFlags aFlags = TextureFlags::NO_FLAGS) override;
 
   virtual bool Initialize(nsCString* const out_failureReason) override;
 
   virtual void Destroy() override;
 
-  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() override
-  {
-    TextureFactoryIdentifier result =
-      TextureFactoryIdentifier(LayersBackend::LAYERS_OPENGL,
-                               XRE_GetProcessType(),
-                               GetMaxTextureSize(),
-                               false,
-                               mFBOTextureTarget == LOCAL_GL_TEXTURE_2D,
-                               SupportsPartialTextureUpdate());
+  virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() override {
+    TextureFactoryIdentifier result = TextureFactoryIdentifier(
+        LayersBackend::LAYERS_OPENGL, XRE_GetProcessType(), GetMaxTextureSize(),
+        false, mFBOTextureTarget == LOCAL_GL_TEXTURE_2D,
+        SupportsPartialTextureUpdate());
     return result;
   }
 
-  virtual already_AddRefed<CompositingRenderTarget>
-  CreateRenderTarget(const gfx::IntRect &aRect, SurfaceInitMode aInit) override;
+  virtual already_AddRefed<CompositingRenderTarget> CreateRenderTarget(
+      const gfx::IntRect& aRect, SurfaceInitMode aInit) override;
 
   virtual already_AddRefed<CompositingRenderTarget>
-  CreateRenderTargetFromSource(const gfx::IntRect &aRect,
-                               const CompositingRenderTarget *aSource,
-                               const gfx::IntPoint &aSourcePoint) override;
+  CreateRenderTargetFromSource(const gfx::IntRect& aRect,
+                               const CompositingRenderTarget* aSource,
+                               const gfx::IntPoint& aSourcePoint) override;
 
-  virtual void SetRenderTarget(CompositingRenderTarget *aSurface) override;
+  virtual void SetRenderTarget(CompositingRenderTarget* aSurface) override;
   virtual CompositingRenderTarget* GetCurrentRenderTarget() const override;
 
-  virtual void DrawQuad(const gfx::Rect& aRect,
-                        const gfx::IntRect& aClipRect,
-                        const EffectChain &aEffectChain,
-                        gfx::Float aOpacity,
+  virtual void DrawQuad(const gfx::Rect& aRect, const gfx::IntRect& aClipRect,
+                        const EffectChain& aEffectChain, gfx::Float aOpacity,
                         const gfx::Matrix4x4& aTransform,
                         const gfx::Rect& aVisibleRect) override;
 
@@ -179,10 +165,8 @@ public:
 
   virtual bool SupportsPartialTextureUpdate() override;
 
-  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize &aSize) override
-  {
-    if (!mGLContext)
-      return false;
+  virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) override {
+    if (!mGLContext) return false;
     int32_t maxSize = GetMaxTextureSize();
     return aSize <= gfx::IntSize(maxSize, maxSize);
   }
@@ -203,7 +187,7 @@ public:
 
 #ifdef MOZ_DUMP_PAINTING
   virtual const char* Name() const override { return "OGL"; }
-#endif // MOZ_DUMP_PAINTING
+#endif  // MOZ_DUMP_PAINTING
 
   virtual LayersBackend GetBackendType() const override {
     return LayersBackend::LAYERS_OPENGL;
@@ -232,33 +216,27 @@ public:
    */
   GLuint GetTemporaryTexture(GLenum aTarget, GLenum aUnit);
 
-  const gfx::Matrix4x4& GetProjMatrix() const {
-    return mProjMatrix;
-  }
+  const gfx::Matrix4x4& GetProjMatrix() const { return mProjMatrix; }
 
   void SetProjMatrix(const gfx::Matrix4x4& aProjMatrix) {
     mProjMatrix = aProjMatrix;
   }
 
   const gfx::IntSize GetDestinationSurfaceSize() const {
-    return gfx::IntSize (mSurfaceSize.width, mSurfaceSize.height);
+    return gfx::IntSize(mSurfaceSize.width, mSurfaceSize.height);
   }
 
-  const ScreenPoint& GetScreenRenderOffset() const {
-    return mRenderOffset;
-  }
+  const ScreenPoint& GetScreenRenderOffset() const { return mRenderOffset; }
 
-private:
-  template<typename Geometry>
-  void DrawGeometry(const Geometry& aGeometry,
-                    const gfx::Rect& aRect,
+ private:
+  template <typename Geometry>
+  void DrawGeometry(const Geometry& aGeometry, const gfx::Rect& aRect,
                     const gfx::IntRect& aClipRect,
-                    const EffectChain& aEffectChain,
-                    gfx::Float aOpacity,
+                    const EffectChain& aEffectChain, gfx::Float aOpacity,
                     const gfx::Matrix4x4& aTransform,
                     const gfx::Rect& aVisibleRect);
 
-  void PrepareViewport(CompositingRenderTargetOGL *aRenderTarget);
+  void PrepareViewport(CompositingRenderTargetOGL* aRenderTarget);
 
   /** Widget associated with this compositor */
   LayoutDeviceIntSize mWidgetSize;
@@ -288,18 +266,17 @@ private:
    */
   GLuint mQuadVBO;
 
-
   /**
-  * VBO that stores dynamic triangle geometry.
-  */
+   * VBO that stores dynamic triangle geometry.
+   */
   GLuint mTriangleVBO;
 
   bool mHasBGRA;
 
   /**
-   * When rendering to some EGL surfaces (e.g. on Android), we rely on being told
-   * about size changes (via SetSurfaceSize) rather than pulling this information
-   * from the widget.
+   * When rendering to some EGL surfaces (e.g. on Android), we rely on being
+   * told about size changes (via SetSurfaceSize) rather than pulling this
+   * information from the widget.
    */
   bool mUseExternalSurfaceSize;
 
@@ -317,29 +294,25 @@ private:
    * sets *aClipRectOut to the screen dimensions.
    */
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
-                          const gfx::IntRect *aClipRectIn,
+                          const gfx::IntRect* aClipRectIn,
                           const gfx::IntRect& aRenderBounds,
                           const nsIntRegion& aOpaqueRegion,
-                          gfx::IntRect *aClipRectOut = nullptr,
-                          gfx::IntRect *aRenderBoundsOut = nullptr) override;
+                          gfx::IntRect* aClipRectOut = nullptr,
+                          gfx::IntRect* aRenderBoundsOut = nullptr) override;
 
-  ShaderConfigOGL GetShaderConfigFor(Effect *aEffect,
-                                     MaskType aMask = MaskType::MaskNone,
-                                     gfx::CompositionOp aOp = gfx::CompositionOp::OP_OVER,
-                                     bool aColorMatrix = false,
-                                     bool aDEAAEnabled = false) const;
+  ShaderConfigOGL GetShaderConfigFor(
+      Effect* aEffect, MaskType aMask = MaskType::MaskNone,
+      gfx::CompositionOp aOp = gfx::CompositionOp::OP_OVER,
+      bool aColorMatrix = false, bool aDEAAEnabled = false) const;
 
-  ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL &aConfig);
+  ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL& aConfig);
 
-  void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig,
-                            const gfx::Rect&)
-  {
+  void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig, const gfx::Rect&) {
     aConfig.SetDynamicGeometry(false);
   }
 
   void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig,
-                            const nsTArray<gfx::TexturedTriangle>&)
-  {
+                            const nsTArray<gfx::TexturedTriangle>&) {
     aConfig.SetDynamicGeometry(true);
   }
 
@@ -351,8 +324,8 @@ private:
    * texture types.
    */
   void CreateFBOWithTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
-                            GLuint aSourceFrameBuffer,
-                            GLuint *aFBO, GLuint *aTexture,
+                            GLuint aSourceFrameBuffer, GLuint* aFBO,
+                            GLuint* aTexture,
                             gfx::IntSize* aAllocSize = nullptr);
 
   GLuint CreateTexture(const gfx::IntRect& aRect, bool aCopyFromSource,
@@ -362,20 +335,17 @@ private:
   gfx::Point3D GetLineCoefficients(const gfx::Point& aPoint1,
                                    const gfx::Point& aPoint2);
 
-  void ActivateProgram(ShaderProgramOGL *aProg);
+  void ActivateProgram(ShaderProgramOGL* aProg);
 
   void CleanupResources();
 
-  void BindAndDrawQuads(ShaderProgramOGL *aProg,
-                        int aQuads,
+  void BindAndDrawQuads(ShaderProgramOGL* aProg, int aQuads,
                         const gfx::Rect* aLayerRect,
                         const gfx::Rect* aTextureRect);
 
-  void BindAndDrawQuad(ShaderProgramOGL *aProg,
-                       const gfx::Rect& aLayerRect,
-                       const gfx::Rect& aTextureRect =
-                         gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f))
-  {
+  void BindAndDrawQuad(ShaderProgramOGL* aProg, const gfx::Rect& aLayerRect,
+                       const gfx::Rect& aTextureRect = gfx::Rect(0.0f, 0.0f,
+                                                                 1.0f, 1.0f)) {
     gfx::Rect layerRects[4];
     gfx::Rect textureRects[4];
     layerRects[0] = aLayerRect;
@@ -383,21 +353,20 @@ private:
     BindAndDrawQuads(aProg, 1, layerRects, textureRects);
   }
 
-  void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
-                           const gfx::Rect& aRect);
+  void BindAndDrawGeometry(ShaderProgramOGL* aProgram, const gfx::Rect& aRect);
 
   void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
                            const nsTArray<gfx::TexturedTriangle>& aTriangles);
 
-  void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
+  void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL* aProg,
                                           const gfx::Rect& aRect,
                                           const gfx::Rect& aTexCoordRect,
-                                          TextureSource *aTexture);
+                                          TextureSource* aTexture);
 
-  void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
-                                          const nsTArray<gfx::TexturedTriangle>& aTriangles,
-                                          const gfx::Rect& aTexCoordRect,
-                                          TextureSource *aTexture);
+  void BindAndDrawGeometryWithTextureRect(
+      ShaderProgramOGL* aProg,
+      const nsTArray<gfx::TexturedTriangle>& aTriangles,
+      const gfx::Rect& aTexCoordRect, TextureSource* aTexture);
 
   void InitializeVAO(const GLuint aAttribIndex, const GLint aComponents,
                      const GLsizei aStride, const size_t aOffset);
@@ -409,13 +378,15 @@ private:
    * Bind the texture behind the current render target as the backdrop for a
    * mix-blend shader.
    */
-  void BindBackdrop(ShaderProgramOGL* aProgram, GLuint aBackdrop, GLenum aTexUnit);
+  void BindBackdrop(ShaderProgramOGL* aProgram, GLuint aBackdrop,
+                    GLenum aTexUnit);
 
   /**
    * Copies the content of our backbuffer to the set transaction target.
    * Does not restore the target FBO, so only call from EndFrame.
    */
-  void CopyToTarget(gfx::DrawTarget* aTarget, const nsIntPoint& aTopLeft, const gfx::Matrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const nsIntPoint& aTopLeft,
+                    const gfx::Matrix& aWorldMatrix);
 
   /**
    * Implements the flipping of the y-axis to convert from layers/compositor
@@ -438,10 +409,10 @@ private:
    */
   gfx::IntSize mViewportSize;
 
-  ShaderProgramOGL *mCurrentProgram;
+  ShaderProgramOGL* mCurrentProgram;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_COMPOSITOROGL_H */

@@ -30,9 +30,8 @@ struct FrameMetrics;
 class StackingContextHelper;
 class WebRenderLayerManager;
 
-class ScrollingLayersHelper
-{
-public:
+class ScrollingLayersHelper {
+ public:
   ScrollingLayersHelper();
 
   void BeginBuild(WebRenderLayerManager* aManager,
@@ -46,34 +45,29 @@ public:
                  const StackingContextHelper& aStackingContext);
   ~ScrollingLayersHelper();
 
-private:
+ private:
   typedef std::pair<wr::WrScrollId, Maybe<wr::WrClipId>> ClipAndScroll;
 
-  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>>
-  DefineClipChain(nsDisplayItem* aItem,
-                  const ActiveScrolledRoot* aAsr,
-                  const DisplayItemClipChain* aChain,
-                  int32_t aAppUnitsPerDevPixel,
-                  const StackingContextHelper& aStackingContext);
+  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>> DefineClipChain(
+      nsDisplayItem* aItem, const ActiveScrolledRoot* aAsr,
+      const DisplayItemClipChain* aChain, int32_t aAppUnitsPerDevPixel,
+      const StackingContextHelper& aStackingContext);
 
-  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>>
-  RecurseAndDefineClip(nsDisplayItem* aItem,
-                       const ActiveScrolledRoot* aAsr,
-                       const DisplayItemClipChain* aChain,
-                       int32_t aAppUnitsPerDevPixel,
-                       const StackingContextHelper& aSc);
+  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>> RecurseAndDefineClip(
+      nsDisplayItem* aItem, const ActiveScrolledRoot* aAsr,
+      const DisplayItemClipChain* aChain, int32_t aAppUnitsPerDevPixel,
+      const StackingContextHelper& aSc);
 
-  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>>
-  RecurseAndDefineAsr(nsDisplayItem* aItem,
-                      const ActiveScrolledRoot* aAsr,
-                      const DisplayItemClipChain* aChain,
-                      int32_t aAppUnitsPerDevPixel,
-                      const StackingContextHelper& aSc);
+  std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>> RecurseAndDefineAsr(
+      nsDisplayItem* aItem, const ActiveScrolledRoot* aAsr,
+      const DisplayItemClipChain* aChain, int32_t aAppUnitsPerDevPixel,
+      const StackingContextHelper& aSc);
 
   const DisplayItemClipChain* ExtendChain(const DisplayItemClipChain* aClip);
   Maybe<ClipAndScroll> EnclosingClipAndScroll() const;
 
-  typedef std::unordered_map<const DisplayItemClipChain*, wr::WrClipId> ClipIdMap;
+  typedef std::unordered_map<const DisplayItemClipChain*, wr::WrClipId>
+      ClipIdMap;
 
   WebRenderLayerManager* MOZ_NON_OWNING_REF mManager;
   wr::DisplayListBuilder* mBuilder;
@@ -107,7 +101,7 @@ private:
   std::vector<ItemClips> mItemClipStack;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

@@ -12,17 +12,15 @@
 namespace mozilla {
 namespace dom {
 
-bool
-CallbackInterface::GetCallableProperty(JSContext* cx, JS::Handle<jsid> aPropId,
-                                       JS::MutableHandle<JS::Value> aCallable)
-{
+bool CallbackInterface::GetCallableProperty(
+    JSContext* cx, JS::Handle<jsid> aPropId,
+    JS::MutableHandle<JS::Value> aCallable) {
   if (!JS_GetPropertyById(cx, CallbackKnownNotGray(), aPropId, aCallable)) {
     return false;
   }
-  if (!aCallable.isObject() ||
-      !JS::IsCallable(&aCallable.toObject())) {
-    char* propName =
-      JS_EncodeString(cx, JS_FORGET_STRING_FLATNESS(JSID_TO_FLAT_STRING(aPropId)));
+  if (!aCallable.isObject() || !JS::IsCallable(&aCallable.toObject())) {
+    char* propName = JS_EncodeString(
+        cx, JS_FORGET_STRING_FLATNESS(JSID_TO_FLAT_STRING(aPropId)));
     nsPrintfCString description("Property '%s'", propName);
     JS_free(cx, propName);
     ThrowErrorMessage(cx, MSG_NOT_CALLABLE, description.get());
@@ -32,5 +30,5 @@ CallbackInterface::GetCallableProperty(JSContext* cx, JS::Handle<jsid> aPropId,
   return true;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

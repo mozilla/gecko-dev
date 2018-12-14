@@ -42,8 +42,7 @@ static const nsLiteralCString tempDirPrefix("/tmp");
 // This constructor signals failure by setting mFileDesc and aClientFd to -1.
 SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
                              int& aClientFd)
-  : mChildPid(aChildPid), mPolicy(Move(aPolicy))
-{
+    : mChildPid(aChildPid), mPolicy(Move(aPolicy)) {
   int fds[2];
   if (0 != socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, fds)) {
     SANDBOX_LOG_ERROR("SandboxBroker: socketpair failed: %s", strerror(errno));
@@ -64,14 +63,13 @@ SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
   }
 }
 
-UniquePtr<SandboxBroker>
-SandboxBroker::Create(UniquePtr<const Policy> aPolicy, int aChildPid,
-                      ipc::FileDescriptor& aClientFdOut)
-{
+UniquePtr<SandboxBroker> SandboxBroker::Create(
+    UniquePtr<const Policy> aPolicy, int aChildPid,
+    ipc::FileDescriptor& aClientFdOut) {
   int clientFd;
   // Can't use MakeUnique here because the constructor is private.
-  UniquePtr<SandboxBroker> rv(new SandboxBroker(Move(aPolicy), aChildPid,
-                                                clientFd));
+  UniquePtr<SandboxBroker> rv(
+      new SandboxBroker(Move(aPolicy), aChildPid, clientFd));
   if (clientFd < 0) {
     rv = nullptr;
   } else {
@@ -107,24 +105,18 @@ SandboxBroker::Policy::Policy(const Policy& aOther) {
 // Chromium
 // sandbox/linux/syscall_broker/broker_file_permission.cc
 // Async signal safe
-bool
-SandboxBroker::Policy::ValidatePath(const char* path) const {
-  if (!path)
-    return false;
+bool SandboxBroker::Policy::ValidatePath(const char* path) const {
+  if (!path) return false;
 
   const size_t len = strlen(path);
   // No empty paths
-  if (len == 0)
-    return false;
+  if (len == 0) return false;
   // Paths must be absolute and not relative
-  if (path[0] != '/')
-    return false;
+  if (path[0] != '/') return false;
   // No trailing / (but "/" is valid)
-  if (len > 1 && path[len - 1] == '/')
-    return false;
+  if (len > 1 && path[len - 1] == '/') return false;
   // No trailing /.
-  if (len >= 2 && path[len - 2] == '/' && path[len - 1] == '.')
-    return false;
+  if (len >= 2 && path[len - 2] == '/' && path[len - 1] == '.') return false;
   // No trailing /..
   if (len >= 3 && path[len - 3] == '/' && path[len - 2] == '.' &&
       path[len - 1] == '.')
@@ -140,10 +132,8 @@ SandboxBroker::Policy::ValidatePath(const char* path) const {
   return true;
 }
 
-void
-SandboxBroker::Policy::AddPath(int aPerms, const char* aPath,
-                               AddCondition aCond)
-{
+void SandboxBroker::Policy::AddPath(int aPerms, const char* aPath,
+                                    AddCondition aCond) {
   nsDependentCString path(aPath);
   MOZ_ASSERT(path.Length() <= kMaxPathLen);
   int perms;
@@ -165,9 +155,7 @@ SandboxBroker::Policy::AddPath(int aPerms, const char* aPath,
   mMap.Put(path, perms);
 }
 
-void
-SandboxBroker::Policy::AddTree(int aPerms, const char* aPath)
-{
+void SandboxBroker::Policy::AddTree(int aPerms, const char* aPath) {
   struct stat statBuf;
 
   if (stat(aPath, &statBuf) != 0) {
@@ -195,9 +183,7 @@ SandboxBroker::Policy::AddTree(int aPerms, const char* aPath)
   }
 }
 
-void
-SandboxBroker::Policy::AddDir(int aPerms, const char* aPath)
-{
+void SandboxBroker::Policy::AddDir(int aPerms, const char* aPath) {
   struct stat statBuf;
 
   if (stat(aPath, &statBuf) != 0) {
@@ -226,15 +212,12 @@ SandboxBroker::Policy::AddDir(int aPerms, const char* aPath)
   }
 }
 
-void
-SandboxBroker::Policy::AddPrefix(int aPerms, const char* aPath)
-{
+void SandboxBroker::Policy::AddPrefix(int aPerms, const char* aPath) {
   Policy::AddPrefixInternal(aPerms, nsDependentCString(aPath));
 }
 
-void
-SandboxBroker::Policy::AddPrefixInternal(int aPerms, const nsACString& aPath)
-{
+void SandboxBroker::Policy::AddPrefixInternal(int aPerms,
+                                              const nsACString& aPath) {
   int origPerms;
   if (!mMap.Get(aPath, &origPerms)) {
     origPerms = MAY_ACCESS;
@@ -243,16 +226,14 @@ SandboxBroker::Policy::AddPrefixInternal(int aPerms, const nsACString& aPath)
   }
   int newPerms = origPerms | aPerms | RECURSIVE;
   if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-    SANDBOX_LOG_ERROR("policy for %s: %d -> %d", PromiseFlatCString(aPath).get(),
-                      origPerms, newPerms);
+    SANDBOX_LOG_ERROR("policy for %s: %d -> %d",
+                      PromiseFlatCString(aPath).get(), origPerms, newPerms);
   }
   mMap.Put(aPath, newPerms);
 }
 
-void
-SandboxBroker::Policy::AddFilePrefix(int aPerms, const char* aDir,
-                                     const char* aPrefix)
-{
+void SandboxBroker::Policy::AddFilePrefix(int aPerms, const char* aDir,
+                                          const char* aPrefix) {
   size_t prefixLen = strlen(aPrefix);
   DIR* dirp = opendir(aDir);
   struct dirent* de;
@@ -271,9 +252,7 @@ SandboxBroker::Policy::AddFilePrefix(int aPerms, const char* aDir,
   closedir(dirp);
 }
 
-void
-SandboxBroker::Policy::AddDynamic(int aPerms, const char* aPath)
-{
+void SandboxBroker::Policy::AddDynamic(int aPerms, const char* aPath) {
   struct stat statBuf;
   bool exists = (stat(aPath, &statBuf) == 0);
 
@@ -290,9 +269,7 @@ SandboxBroker::Policy::AddDynamic(int aPerms, const char* aPath)
   }
 }
 
-void
-SandboxBroker::Policy::AddAncestors(const char* aPath, int aPerms)
-{
+void SandboxBroker::Policy::AddAncestors(const char* aPath, int aPerms) {
   nsAutoCString path(aPath);
 
   while (true) {
@@ -306,9 +283,7 @@ SandboxBroker::Policy::AddAncestors(const char* aPath, int aPerms)
   }
 }
 
-void
-SandboxBroker::Policy::FixRecursivePermissions()
-{
+void SandboxBroker::Policy::FixRecursivePermissions() {
   // This builds an entirely new hashtable in order to avoid iterator
   // invalidation problems.
   PathPermissionMap oldMap;
@@ -349,23 +324,21 @@ SandboxBroker::Policy::FixRecursivePermissions()
     const int newPerms = localPerms | inheritedPerms;
     if ((newPerms & ~RECURSIVE) == inheritedPerms) {
       if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-        SANDBOX_LOG_ERROR("removing redundant %s: %d -> %d", PromiseFlatCString(path).get(),
-                          localPerms, newPerms);
+        SANDBOX_LOG_ERROR("removing redundant %s: %d -> %d",
+                          PromiseFlatCString(path).get(), localPerms, newPerms);
       }
       // Skip adding this entry to the new map.
       continue;
     }
     if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-      SANDBOX_LOG_ERROR("new policy for %s: %d -> %d", PromiseFlatCString(path).get(),
-                        localPerms, newPerms);
+      SANDBOX_LOG_ERROR("new policy for %s: %d -> %d",
+                        PromiseFlatCString(path).get(), localPerms, newPerms);
     }
     mMap.Put(path, newPerms);
   }
 }
 
-int
-SandboxBroker::Policy::Lookup(const nsACString& aPath) const
-{
+int SandboxBroker::Policy::Lookup(const nsACString& aPath) const {
   // Early exit for paths explicitly found in the
   // whitelist.
   // This means they will not gain extra permissions
@@ -376,8 +349,7 @@ SandboxBroker::Policy::Lookup(const nsACString& aPath) const
   }
 
   // Not a legally constructed path
-  if (!ValidatePath(PromiseFlatCString(aPath).get()))
-    return 0;
+  if (!ValidatePath(PromiseFlatCString(aPath).get())) return 0;
 
   // Now it's either an illegal access, or a recursive
   // directory permission. We'll have to check the entire
@@ -387,8 +359,7 @@ SandboxBroker::Policy::Lookup(const nsACString& aPath) const
     const nsACString& whiteListPath = iter.Key();
     const int& perms = iter.Data();
 
-    if (!(perms & RECURSIVE))
-      continue;
+    if (!(perms & RECURSIVE)) continue;
 
     // passed part starts with something on the whitelist
     if (StringBeginsWith(aPath, whiteListPath)) {
@@ -401,9 +372,7 @@ SandboxBroker::Policy::Lookup(const nsACString& aPath) const
   return allPerms & ~RECURSIVE;
 }
 
-static bool
-AllowOperation(int aReqFlags, int aPerms)
-{
+static bool AllowOperation(int aReqFlags, int aPerms) {
   int needed = 0;
   if (aReqFlags & R_OK) {
     needed |= SandboxBroker::MAY_READ;
@@ -420,10 +389,8 @@ AllowOperation(int aReqFlags, int aPerms)
   return (aPerms & needed) == needed;
 }
 
-static bool
-AllowAccess(int aReqFlags, int aPerms)
-{
-  if (aReqFlags & ~(R_OK|W_OK|X_OK|F_OK)) {
+static bool AllowAccess(int aReqFlags, int aPerms) {
+  if (aReqFlags & ~(R_OK | W_OK | X_OK | F_OK)) {
     return false;
   }
   int needed = 0;
@@ -449,30 +416,28 @@ static const int kRequiredOpenFlags = O_CLOEXEC | O_NOCTTY;
 // for outdated kernel headers like Android's.
 #define O_SYNC_NEW 04010000
 static const int kAllowedOpenFlags =
-  O_APPEND | O_ASYNC | O_DIRECT | O_DIRECTORY | O_EXCL | O_LARGEFILE
-  | O_NOATIME | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK | O_NDELAY | O_SYNC_NEW
-  | O_TRUNC | O_CLOEXEC | O_CREAT;
+    O_APPEND | O_ASYNC | O_DIRECT | O_DIRECTORY | O_EXCL | O_LARGEFILE |
+    O_NOATIME | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK | O_NDELAY | O_SYNC_NEW |
+    O_TRUNC | O_CLOEXEC | O_CREAT;
 #undef O_SYNC_NEW
 
-static bool
-AllowOpen(int aReqFlags, int aPerms)
-{
+static bool AllowOpen(int aReqFlags, int aPerms) {
   if (aReqFlags & ~O_ACCMODE & ~kAllowedOpenFlags) {
     return false;
   }
   int needed;
-  switch(aReqFlags & O_ACCMODE) {
-  case O_RDONLY:
-    needed = SandboxBroker::MAY_READ;
-    break;
-  case O_WRONLY:
-    needed = SandboxBroker::MAY_WRITE;
-    break;
-  case O_RDWR:
-    needed = SandboxBroker::MAY_READ | SandboxBroker::MAY_WRITE;
-    break;
-  default:
-    return false;
+  switch (aReqFlags & O_ACCMODE) {
+    case O_RDONLY:
+      needed = SandboxBroker::MAY_READ;
+      break;
+    case O_WRONLY:
+      needed = SandboxBroker::MAY_WRITE;
+      break;
+    case O_RDWR:
+      needed = SandboxBroker::MAY_READ | SandboxBroker::MAY_WRITE;
+      break;
+    default:
+      return false;
   }
   if (aReqFlags & O_CREAT) {
     needed |= SandboxBroker::MAY_CREATE;
@@ -484,19 +449,15 @@ AllowOpen(int aReqFlags, int aPerms)
   return (aPerms & needed) == needed;
 }
 
-static int
-DoStat(const char* aPath, void* aBuff, int aFlags)
-{
- if (aFlags & O_NOFOLLOW) {
+static int DoStat(const char* aPath, void* aBuff, int aFlags) {
+  if (aFlags & O_NOFOLLOW) {
     return lstatsyscall(aPath, (statstruct*)aBuff);
   }
   return statsyscall(aPath, (statstruct*)aBuff);
 }
 
-static int
-DoLink(const char* aPath, const char* aPath2,
-       SandboxBrokerCommon::Operation aOper)
-{
+static int DoLink(const char* aPath, const char* aPath2,
+                  SandboxBrokerCommon::Operation aOper) {
   if (aOper == SandboxBrokerCommon::Operation::SANDBOX_FILE_LINK) {
     return link(aPath, aPath2);
   }
@@ -506,9 +467,7 @@ DoLink(const char* aPath, const char* aPath2,
   MOZ_CRASH("SandboxBroker: Unknown link operation");
 }
 
-static int
-DoConnect(const char* aPath, size_t aLen, int aType)
-{
+static int DoConnect(const char* aPath, size_t aLen, int aType) {
   // Deny SOCK_DGRAM for the same reason it's denied for socketpair.
   if (aType != SOCK_STREAM && aType != SOCK_SEQPACKET) {
     errno = EACCES;
@@ -545,9 +504,7 @@ DoConnect(const char* aPath, size_t aLen, int aType)
   return fd;
 }
 
-size_t
-SandboxBroker::RealPath(char* aPath, size_t aBufSize, size_t aPathLen)
-{
+size_t SandboxBroker::RealPath(char* aPath, size_t aBufSize, size_t aPathLen) {
   char* result = realpath(aPath, nullptr);
   if (result != nullptr) {
     base::strlcpy(aPath, result, aBufSize);
@@ -558,18 +515,16 @@ SandboxBroker::RealPath(char* aPath, size_t aBufSize, size_t aPathLen)
   return aPathLen;
 }
 
-size_t
-SandboxBroker::ConvertRelativePath(char* aPath, size_t aBufSize, size_t aPathLen)
-{
+size_t SandboxBroker::ConvertRelativePath(char* aPath, size_t aBufSize,
+                                          size_t aPathLen) {
   if (strstr(aPath, "..") != nullptr) {
     return RealPath(aPath, aBufSize, aPathLen);
   }
   return aPathLen;
 }
 
-size_t
-SandboxBroker::RemapTempDirs(char* aPath, size_t aBufSize, size_t aPathLen)
-{
+size_t SandboxBroker::RemapTempDirs(char* aPath, size_t aBufSize,
+                                    size_t aPathLen) {
   nsAutoCString path(aPath);
 
   size_t prefixLen = 0;
@@ -581,12 +536,12 @@ SandboxBroker::RemapTempDirs(char* aPath, size_t aBufSize, size_t aPathLen)
 
   if (prefixLen) {
     const nsDependentCSubstring cutPath =
-      Substring(path, prefixLen, path.Length() - prefixLen);
+        Substring(path, prefixLen, path.Length() - prefixLen);
 
     // Only now try to get the content process temp dir
     nsCOMPtr<nsIFile> tmpDir;
     nsresult rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
-                                          getter_AddRefs(tmpDir));
+                                         getter_AddRefs(tmpDir));
     if (NS_SUCCEEDED(rv)) {
       nsAutoCString tmpPath;
       rv = tmpDir->GetNativePath(tmpPath);
@@ -601,9 +556,7 @@ SandboxBroker::RemapTempDirs(char* aPath, size_t aBufSize, size_t aPathLen)
   return aPathLen;
 }
 
-nsCString
-SandboxBroker::ReverseSymlinks(const nsACString& aPath)
-{
+nsCString SandboxBroker::ReverseSymlinks(const nsACString& aPath) {
   // Revert any symlinks we previously resolved.
   int32_t cutLength = aPath.Length();
   nsCString cutPath(Substring(aPath, 0, cutLength));
@@ -628,16 +581,16 @@ SandboxBroker::ReverseSymlinks(const nsACString& aPath)
   }
 }
 
-int
-SandboxBroker::SymlinkPermissions(const char* aPath, const size_t aPathLen)
-{
+int SandboxBroker::SymlinkPermissions(const char* aPath,
+                                      const size_t aPathLen) {
   // Work on a temporary copy, so we can reverse it.
   // Because we bail on a writable dir, SymlinkPath
   // might not restore the callers' path exactly.
   char pathBufSymlink[kMaxPathLen + 1];
   strcpy(pathBufSymlink, aPath);
 
-  nsCString orig = ReverseSymlinks(nsDependentCString(pathBufSymlink, aPathLen));
+  nsCString orig =
+      ReverseSymlinks(nsDependentCString(pathBufSymlink, aPathLen));
   if (!orig.IsEmpty()) {
     if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
       SANDBOX_LOG_ERROR("Reversing %s -> %s", aPath, orig.get());
@@ -648,7 +601,8 @@ SandboxBroker::SymlinkPermissions(const char* aPath, const size_t aPathLen)
   int perms = 0;
   // Resolve relative paths, propagate permissions and
   // fail if a symlink is in a writable path. The output is in perms.
-  char* result = SandboxBroker::SymlinkPath(mPolicy.get(), pathBufSymlink, NULL, &perms);
+  char* result =
+      SandboxBroker::SymlinkPath(mPolicy.get(), pathBufSymlink, NULL, &perms);
   if (result != NULL) {
     free(result);
     // We finished the translation, so we have a usable return in "perms".
@@ -660,9 +614,7 @@ SandboxBroker::SymlinkPermissions(const char* aPath, const size_t aPathLen)
   }
 }
 
-void
-SandboxBroker::ThreadMain(void)
-{
+void SandboxBroker::ThreadMain(void) {
   char threadName[16];
   SprintfLiteral(threadName, "FS Broker %d", mChildPid);
   PlatformThread::SetName(threadName);
@@ -674,8 +626,8 @@ SandboxBroker::ThreadMain(void)
 
   // Find the current temporary directory
   nsCOMPtr<nsIFile> tmpDir;
-  nsresult rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
-                                          getter_AddRefs(tmpDir));
+  nsresult rv =
+      GetSpecialSystemDirectory(OS_TemporaryDirectory, getter_AddRefs(tmpDir));
   if (NS_SUCCEEDED(rv)) {
     rv = tmpDir->GetNativePath(mTempPath);
     if (NS_SUCCEEDED(rv)) {
@@ -710,7 +662,7 @@ SandboxBroker::ThreadMain(void)
     char pathBuf2[kMaxPathLen + 1];
     size_t pathLen = 0;
     size_t pathLen2 = 0;
-    char respBuf[kMaxPathLen + 1]; // Also serves as struct stat
+    char respBuf[kMaxPathLen + 1];  // Also serves as struct stat
     Request req;
     Response resp;
     int respfd;
@@ -737,14 +689,13 @@ SandboxBroker::ThreadMain(void)
     // at least in some cases, but protocol violation indicates a
     // hostile client, so terminate the broker instead.
     if (recvd < 0) {
-      SANDBOX_LOG_ERROR("bad read from pid %d: %s",
-                        mChildPid, strerror(errno));
+      SANDBOX_LOG_ERROR("bad read from pid %d: %s", mChildPid, strerror(errno));
       shutdown(mFileDesc, SHUT_RD);
       break;
     }
     if (recvd < static_cast<ssize_t>(sizeof(req))) {
-      SANDBOX_LOG_ERROR("bad read from pid %d (%d < %d)",
-                        mChildPid, recvd, sizeof(req));
+      SANDBOX_LOG_ERROR("bad read from pid %d (%d < %d)", mChildPid, recvd,
+                        sizeof(req));
       shutdown(mFileDesc, SHUT_RD);
       break;
     }
@@ -847,181 +798,183 @@ SandboxBroker::ThreadMain(void)
         AuditPermissive(req.mOp, req.mFlags, perms, pathBuf);
       }
 
-      switch(req.mOp) {
-      case SANDBOX_FILE_OPEN:
-        if (permissive || AllowOpen(req.mFlags, perms)) {
-          // Permissions for O_CREAT hardwired to 0600; if that's
-          // ever a problem we can change the protocol (but really we
-          // should be trying to remove uses of MAY_CREATE, not add
-          // new ones).
-          openedFd = open(pathBuf, req.mFlags | kRequiredOpenFlags, 0600);
-          if (openedFd >= 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_ACCESS:
-        if (permissive || AllowAccess(req.mFlags, perms)) {
-          if (access(pathBuf, req.mFlags) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_STAT:
-        if (DoStat(pathBuf, (struct stat*)&respBuf, req.mFlags) == 0) {
-          resp.mError = 0;
-          ios[1].iov_base = &respBuf;
-          ios[1].iov_len = req.mBufSize;
-        } else {
-          resp.mError = -errno;
-        }
-        break;
-
-      case SANDBOX_FILE_CHMOD:
-        if (permissive || AllowOperation(W_OK, perms)) {
-          if (chmod(pathBuf, req.mFlags) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_LINK:
-      case SANDBOX_FILE_SYMLINK:
-        if (permissive || AllowOperation(W_OK, perms)) {
-          if (DoLink(pathBuf, pathBuf2, req.mOp) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_RENAME:
-        if (permissive || AllowOperation(W_OK, perms)) {
-          if (rename(pathBuf, pathBuf2) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_MKDIR:
-        if (permissive || AllowOperation(W_OK | X_OK, perms)) {
-          if (mkdir(pathBuf, req.mFlags) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          struct stat sb;
-          // This doesn't need an additional policy check because
-          // MAY_ACCESS is required to even enter this switch statement.
-          if (lstat(pathBuf, &sb) == 0) {
-            resp.mError = -EEXIST;
+      switch (req.mOp) {
+        case SANDBOX_FILE_OPEN:
+          if (permissive || AllowOpen(req.mFlags, perms)) {
+            // Permissions for O_CREAT hardwired to 0600; if that's
+            // ever a problem we can change the protocol (but really we
+            // should be trying to remove uses of MAY_CREATE, not add
+            // new ones).
+            openedFd = open(pathBuf, req.mFlags | kRequiredOpenFlags, 0600);
+            if (openedFd >= 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
           } else {
             AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
           }
-        }
-        break;
+          break;
 
-      case SANDBOX_FILE_UNLINK:
-        if (permissive || AllowOperation(W_OK, perms)) {
-          if (unlink(pathBuf) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_RMDIR:
-        if (permissive || AllowOperation(W_OK | X_OK, perms)) {
-          if (rmdir(pathBuf) == 0) {
-            resp.mError = 0;
-          } else {
-            resp.mError = -errno;
-          }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
-
-      case SANDBOX_FILE_READLINK:
-        if (permissive || AllowOperation(R_OK, perms)) {
-          ssize_t respSize = readlink(pathBuf, (char*)&respBuf, sizeof(respBuf));
-          if (respSize >= 0) {
-              if (respSize > 0) {
-              // Record the mapping so we can invert the file to the original
-              // symlink.
-              nsDependentCString orig(pathBuf, pathLen);
-              nsDependentCString xlat(respBuf, respSize);
-              if (!orig.Equals(xlat) && xlat[0] == '/') {
-                if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-                  SANDBOX_LOG_ERROR("Recording mapping %s -> %s",
-                                    xlat.get(), orig.get());
-                }
-                mSymlinkMap.Put(xlat, orig);
-              }
-              // Make sure we can invert a fully resolved mapping too. If our
-              // caller is realpath, and there's a relative path involved, the
-              // client side will try to open this one.
-              char *resolvedBuf = realpath(pathBuf, nullptr);
-              if (resolvedBuf) {
-                nsDependentCString resolvedXlat(resolvedBuf);
-                if (!orig.Equals(resolvedXlat) && !xlat.Equals(resolvedXlat)) {
-                  if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-                    SANDBOX_LOG_ERROR("Recording mapping %s -> %s",
-                                      resolvedXlat.get(), orig.get());
-                  }
-                  mSymlinkMap.Put(resolvedXlat, orig);
-                }
-                free(resolvedBuf);
-              }
+        case SANDBOX_FILE_ACCESS:
+          if (permissive || AllowAccess(req.mFlags, perms)) {
+            if (access(pathBuf, req.mFlags) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
             }
-            resp.mError = respSize;
-            ios[1].iov_base = &respBuf;
-            ios[1].iov_len = respSize;
           } else {
-            resp.mError = -errno;
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
           }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
+          break;
 
-      case SANDBOX_SOCKET_CONNECT:
-        if (permissive || (perms & MAY_CONNECT) != 0) {
-          openedFd = DoConnect(pathBuf, pathLen, req.mFlags);
-          if (openedFd >= 0) {
+        case SANDBOX_FILE_STAT:
+          if (DoStat(pathBuf, (struct stat*)&respBuf, req.mFlags) == 0) {
             resp.mError = 0;
+            ios[1].iov_base = &respBuf;
+            ios[1].iov_len = req.mBufSize;
           } else {
             resp.mError = -errno;
           }
-        } else {
-          AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
-        }
-        break;
+          break;
+
+        case SANDBOX_FILE_CHMOD:
+          if (permissive || AllowOperation(W_OK, perms)) {
+            if (chmod(pathBuf, req.mFlags) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_FILE_LINK:
+        case SANDBOX_FILE_SYMLINK:
+          if (permissive || AllowOperation(W_OK, perms)) {
+            if (DoLink(pathBuf, pathBuf2, req.mOp) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_FILE_RENAME:
+          if (permissive || AllowOperation(W_OK, perms)) {
+            if (rename(pathBuf, pathBuf2) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_FILE_MKDIR:
+          if (permissive || AllowOperation(W_OK | X_OK, perms)) {
+            if (mkdir(pathBuf, req.mFlags) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            struct stat sb;
+            // This doesn't need an additional policy check because
+            // MAY_ACCESS is required to even enter this switch statement.
+            if (lstat(pathBuf, &sb) == 0) {
+              resp.mError = -EEXIST;
+            } else {
+              AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+            }
+          }
+          break;
+
+        case SANDBOX_FILE_UNLINK:
+          if (permissive || AllowOperation(W_OK, perms)) {
+            if (unlink(pathBuf) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_FILE_RMDIR:
+          if (permissive || AllowOperation(W_OK | X_OK, perms)) {
+            if (rmdir(pathBuf) == 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_FILE_READLINK:
+          if (permissive || AllowOperation(R_OK, perms)) {
+            ssize_t respSize =
+                readlink(pathBuf, (char*)&respBuf, sizeof(respBuf));
+            if (respSize >= 0) {
+              if (respSize > 0) {
+                // Record the mapping so we can invert the file to the original
+                // symlink.
+                nsDependentCString orig(pathBuf, pathLen);
+                nsDependentCString xlat(respBuf, respSize);
+                if (!orig.Equals(xlat) && xlat[0] == '/') {
+                  if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
+                    SANDBOX_LOG_ERROR("Recording mapping %s -> %s", xlat.get(),
+                                      orig.get());
+                  }
+                  mSymlinkMap.Put(xlat, orig);
+                }
+                // Make sure we can invert a fully resolved mapping too. If our
+                // caller is realpath, and there's a relative path involved, the
+                // client side will try to open this one.
+                char* resolvedBuf = realpath(pathBuf, nullptr);
+                if (resolvedBuf) {
+                  nsDependentCString resolvedXlat(resolvedBuf);
+                  if (!orig.Equals(resolvedXlat) &&
+                      !xlat.Equals(resolvedXlat)) {
+                    if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
+                      SANDBOX_LOG_ERROR("Recording mapping %s -> %s",
+                                        resolvedXlat.get(), orig.get());
+                    }
+                    mSymlinkMap.Put(resolvedXlat, orig);
+                  }
+                  free(resolvedBuf);
+                }
+              }
+              resp.mError = respSize;
+              ios[1].iov_base = &respBuf;
+              ios[1].iov_len = respSize;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
+
+        case SANDBOX_SOCKET_CONNECT:
+          if (permissive || (perms & MAY_CONNECT) != 0) {
+            openedFd = DoConnect(pathBuf, pathLen, req.mFlags);
+            if (openedFd >= 0) {
+              resp.mError = 0;
+            } else {
+              resp.mError = -errno;
+            }
+          } else {
+            AuditDenial(req.mOp, req.mFlags, perms, pathBuf);
+          }
+          break;
       }
     } else {
       MOZ_ASSERT(perms == 0);
@@ -1031,8 +984,8 @@ SandboxBroker::ThreadMain(void)
     const size_t numIO = ios[1].iov_len > 0 ? 2 : 1;
     const ssize_t sent = SendWithFd(respfd, ios, numIO, openedFd);
     if (sent < 0) {
-      SANDBOX_LOG_ERROR("failed to send broker response to pid %d: %s", mChildPid,
-                        strerror(errno));
+      SANDBOX_LOG_ERROR("failed to send broker response to pid %d: %s",
+                        mChildPid, strerror(errno));
     }
     close(respfd);
     MOZ_ASSERT(sent < 0 ||
@@ -1044,9 +997,8 @@ SandboxBroker::ThreadMain(void)
   }
 }
 
-void
-SandboxBroker::AuditPermissive(int aOp, int aFlags, int aPerms, const char* aPath)
-{
+void SandboxBroker::AuditPermissive(int aOp, int aFlags, int aPerms,
+                                    const char* aPath) {
   MOZ_RELEASE_ASSERT(SandboxInfo::Get().Test(SandboxInfo::kPermissive));
 
   struct stat statBuf;
@@ -1056,21 +1008,21 @@ SandboxBroker::AuditPermissive(int aOp, int aFlags, int aPerms, const char* aPat
     errno = 0;
   }
 
-  SANDBOX_LOG_ERROR("SandboxBroker: would have denied op=%s rflags=%o perms=%d path=%s for pid=%d" \
-                    " permissive=1 error=\"%s\"", OperationDescription[aOp],
-                    aFlags, aPerms,
-                    aPath, mChildPid, strerror(errno));
+  SANDBOX_LOG_ERROR(
+      "SandboxBroker: would have denied op=%s rflags=%o perms=%d path=%s for "
+      "pid=%d"
+      " permissive=1 error=\"%s\"",
+      OperationDescription[aOp], aFlags, aPerms, aPath, mChildPid,
+      strerror(errno));
 }
 
-void
-SandboxBroker::AuditDenial(int aOp, int aFlags, int aPerms, const char* aPath)
-{
+void SandboxBroker::AuditDenial(int aOp, int aFlags, int aPerms,
+                                const char* aPath) {
   if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-    SANDBOX_LOG_ERROR("SandboxBroker: denied op=%s rflags=%o perms=%d path=%s for pid=%d",
-                      OperationDescription[aOp], aFlags,
-                      aPerms, aPath, mChildPid);
+    SANDBOX_LOG_ERROR(
+        "SandboxBroker: denied op=%s rflags=%o perms=%d path=%s for pid=%d",
+        OperationDescription[aOp], aFlags, aPerms, aPath, mChildPid);
   }
 }
 
-
-} // namespace mozilla
+}  // namespace mozilla

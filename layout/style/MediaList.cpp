@@ -30,24 +30,19 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(MediaList)
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(MediaList)
 
-JSObject*
-MediaList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* MediaList::WrapObject(JSContext* aCx,
+                                JS::Handle<JSObject*> aGivenProto) {
   return MediaListBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-MediaList::SetStyleSheet(StyleSheet* aSheet)
-{
+void MediaList::SetStyleSheet(StyleSheet* aSheet) {
   MOZ_ASSERT(aSheet == mStyleSheet || !aSheet || !mStyleSheet,
              "Multiple style sheets competing for one media list");
   mStyleSheet = aSheet;
 }
 
-template<typename Func>
-nsresult
-MediaList::DoMediaChange(Func aCallback)
-{
+template <typename Func>
+nsresult MediaList::DoMediaChange(Func aCallback) {
   nsCOMPtr<nsIDocument> doc;
   if (mStyleSheet) {
     doc = mStyleSheet->GetAssociatedDocument();
@@ -72,12 +67,9 @@ MediaList::DoMediaChange(Func aCallback)
   return rv;
 }
 
-/* static */ already_AddRefed<MediaList>
-MediaList::Create(
-    StyleBackendType aBackendType,
-    const nsAString& aMedia,
-    CallerType aCallerType)
-{
+/* static */ already_AddRefed<MediaList> MediaList::Create(
+    StyleBackendType aBackendType, const nsAString& aMedia,
+    CallerType aCallerType) {
   if (aBackendType == StyleBackendType::Servo) {
     RefPtr<ServoMediaList> mediaList = new ServoMediaList(aMedia, aCallerType);
     return mediaList.forget();
@@ -93,39 +85,27 @@ MediaList::Create(
 #endif
 }
 
-void
-MediaList::GetMediaText(nsAString& aMediaText)
-{
-  GetText(aMediaText);
-}
+void MediaList::GetMediaText(nsAString& aMediaText) { GetText(aMediaText); }
 
-void
-MediaList::SetMediaText(const nsAString& aMediaText)
-{
+void MediaList::SetMediaText(const nsAString& aMediaText) {
   DoMediaChange([&]() {
     SetText(aMediaText);
     return NS_OK;
   });
 }
 
-void
-MediaList::Item(uint32_t aIndex, nsAString& aReturn)
-{
+void MediaList::Item(uint32_t aIndex, nsAString& aReturn) {
   bool dummy;
   IndexedGetter(aIndex, dummy, aReturn);
 }
 
-void
-MediaList::DeleteMedium(const nsAString& aOldMedium, ErrorResult& aRv)
-{
+void MediaList::DeleteMedium(const nsAString& aOldMedium, ErrorResult& aRv) {
   aRv = DoMediaChange([&]() { return Delete(aOldMedium); });
 }
 
-void
-MediaList::AppendMedium(const nsAString& aNewMedium, ErrorResult& aRv)
-{
+void MediaList::AppendMedium(const nsAString& aNewMedium, ErrorResult& aRv) {
   aRv = DoMediaChange([&]() { return Append(aNewMedium); });
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

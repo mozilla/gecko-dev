@@ -12,13 +12,12 @@
 namespace mozilla {
 namespace dom {
 
-class CSSMediaRule : public css::ConditionRule
-{
-protected:
+class CSSMediaRule : public css::ConditionRule {
+ protected:
   using ConditionRule::ConditionRule;
   virtual ~CSSMediaRule() {}
 
-public:
+ public:
   int32_t GetType() const override { return css::Rule::MEDIA_RULE; }
 
   // WebIDL interface
@@ -29,7 +28,7 @@ public:
                        JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSMediaRule_h
+#endif  // mozilla_dom_CSSMediaRule_h

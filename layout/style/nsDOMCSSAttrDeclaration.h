@@ -13,31 +13,31 @@
 #include "mozilla/dom/DocGroup.h"
 #include "nsDOMCSSDeclaration.h"
 
-
 namespace mozilla {
 namespace dom {
 class DomGroup;
 class Element;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-class nsDOMCSSAttributeDeclaration final : public nsDOMCSSDeclaration
-{
-public:
+class nsDOMCSSAttributeDeclaration final : public nsDOMCSSDeclaration {
+ public:
   typedef mozilla::dom::Element Element;
   nsDOMCSSAttributeDeclaration(Element* aContent, bool aIsSMILOverride);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMCSSAttributeDeclaration,
-                                                                   nsICSSDeclaration)
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(
+      nsDOMCSSAttributeDeclaration, nsICSSDeclaration)
 
   // If GetCSSDeclaration returns non-null, then the decl it returns
   // is owned by our current style rule.
-  virtual mozilla::DeclarationBlock* GetCSSDeclaration(Operation aOperation) override;
-  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv,
-                                        nsIPrincipal* aSubjectPrincipal) override;
-  nsDOMCSSDeclaration::ServoCSSParsingEnvironment
-  GetServoCSSParsingEnvironment(nsIPrincipal* aSubjectPrincipal) const final;
+  virtual mozilla::DeclarationBlock* GetCSSDeclaration(
+      Operation aOperation) override;
+  virtual void GetCSSParsingEnvironment(
+      CSSParsingEnvironment& aCSSParseEnv,
+      nsIPrincipal* aSubjectPrincipal) override;
+  nsDOMCSSDeclaration::ServoCSSParsingEnvironment GetServoCSSParsingEnvironment(
+      nsIPrincipal* aSubjectPrincipal) const final;
   mozilla::css::Rule* GetParentRule() override;
 
   virtual nsINode* GetParentObject() override;
@@ -46,7 +46,7 @@ public:
                             const nsAString& aValue,
                             nsIPrincipal* aSubjectPrincipal) override;
 
-protected:
+ protected:
   ~nsDOMCSSAttributeDeclaration();
 
   virtual nsresult SetCSSDeclaration(mozilla::DeclarationBlock* aDecl) override;

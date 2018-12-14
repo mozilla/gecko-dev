@@ -16,18 +16,15 @@ class nsIFrame;
 
 namespace mozilla {
 
-class PendingAnimationTracker final
-{
-public:
+class PendingAnimationTracker final {
+ public:
   explicit PendingAnimationTracker(nsIDocument* aDocument)
-    : mDocument(aDocument)
-  { }
+      : mDocument(aDocument) {}
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(PendingAnimationTracker)
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(PendingAnimationTracker)
 
-  void AddPlayPending(dom::Animation& aAnimation)
-  {
+  void AddPlayPending(dom::Animation& aAnimation) {
     // We'd like to assert here that IsWaitingToPause(aAnimation) is false but
     // if |aAnimation| was tracked here as a pause-pending animation when it was
     // removed from |mDocument|, then re-attached to |mDocument|, and then
@@ -39,30 +36,25 @@ public:
     AddPending(aAnimation, mPlayPendingSet);
     mHasPlayPendingGeometricAnimations = CheckState::Indeterminate;
   }
-  void RemovePlayPending(dom::Animation& aAnimation)
-  {
+  void RemovePlayPending(dom::Animation& aAnimation) {
     RemovePending(aAnimation, mPlayPendingSet);
     mHasPlayPendingGeometricAnimations = CheckState::Indeterminate;
   }
-  bool IsWaitingToPlay(const dom::Animation& aAnimation) const
-  {
+  bool IsWaitingToPlay(const dom::Animation& aAnimation) const {
     return IsWaiting(aAnimation, mPlayPendingSet);
   }
 
-  void AddPausePending(dom::Animation& aAnimation)
-  {
+  void AddPausePending(dom::Animation& aAnimation) {
     // As with AddPausePending, we'd like to assert that
     // IsWaitingToPlay(aAnimation) is false but there are some circumstances
     // where this can be true. Fortunately adding the animation to both pending
     // sets should be harmless.
     AddPending(aAnimation, mPausePendingSet);
   }
-  void RemovePausePending(dom::Animation& aAnimation)
-  {
+  void RemovePausePending(dom::Animation& aAnimation) {
     RemovePending(aAnimation, mPausePendingSet);
   }
-  bool IsWaitingToPause(const dom::Animation& aAnimation) const
-  {
+  bool IsWaitingToPause(const dom::Animation& aAnimation) const {
     return IsWaiting(aAnimation, mPausePendingSet);
   }
 
@@ -79,8 +71,8 @@ public:
    */
   void MarkAnimationsThatMightNeedSynchronization();
 
-private:
-  ~PendingAnimationTracker() { }
+ private:
+  ~PendingAnimationTracker() {}
 
   bool HasPlayPendingGeometricAnimations();
   void EnsurePaintIsScheduled();
@@ -96,14 +88,10 @@ private:
   AnimationSet mPausePendingSet;
   nsCOMPtr<nsIDocument> mDocument;
 
-  enum class CheckState {
-    Indeterminate,
-    Absent,
-    Present
-  };
+  enum class CheckState { Indeterminate, Absent, Present };
   CheckState mHasPlayPendingGeometricAnimations = CheckState::Indeterminate;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_dom_PendingAnimationTracker_h
+#endif  // mozilla_dom_PendingAnimationTracker_h

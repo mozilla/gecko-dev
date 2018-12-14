@@ -9,11 +9,12 @@
 
 #include "mozilla/Vector.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 typedef Vector<uint8_t> Buffer;
-
-} } // namespace mozilla::ct
+}
+}  // namespace mozilla
 
 namespace mozilla {
 
@@ -22,7 +23,6 @@ namespace mozilla {
 bool operator==(const ct::Buffer& a, const ct::Buffer& b);
 bool operator!=(const ct::Buffer& a, const ct::Buffer& b);
 
-} // namespace mozilla
+}  // namespace mozilla
 
-
-#endif // Buffer_h
+#endif  // Buffer_h

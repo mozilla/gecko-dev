@@ -13,16 +13,15 @@
 namespace mozilla {
 namespace dom {
 
-class ListBoxObject final : public BoxObject,
-                            public nsPIListBoxObject
-{
-public:
+class ListBoxObject final : public BoxObject, public nsPIListBoxObject {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSILISTBOXOBJECT
 
   ListBoxObject();
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   // nsPIListBoxObject
   virtual nsListBoxBodyFrame* GetListBoxBody(bool aFlush) override;
@@ -42,14 +41,14 @@ public:
   already_AddRefed<Element> GetItemAtIndex(int32_t index);
   int32_t GetIndexOfItem(Element& item);
 
-protected:
-  nsListBoxBodyFrame *mListBoxBody;
+ protected:
+  nsListBoxBodyFrame* mListBoxBody;
 
-private:
+ private:
   ~ListBoxObject();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_ListBoxObject_h
+#endif  // mozilla_dom_ListBoxObject_h

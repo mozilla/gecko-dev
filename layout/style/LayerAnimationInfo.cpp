@@ -6,22 +6,18 @@
 
 #include "LayerAnimationInfo.h"
 
-#include "nsCSSProps.h" // For nsCSSProps::PropHasFlags
+#include "nsCSSProps.h"  // For nsCSSProps::PropHasFlags
 
 namespace mozilla {
 
-/* static */ const LayerAnimationInfo::Record LayerAnimationInfo::sRecords[] =
-  { { eCSSProperty_transform,
-      DisplayItemType::TYPE_TRANSFORM,
-      nsChangeHint_UpdateTransformLayer },
-    { eCSSProperty_opacity,
-      DisplayItemType::TYPE_OPACITY,
-      nsChangeHint_UpdateOpacityLayer } };
+/* static */ const LayerAnimationInfo::Record LayerAnimationInfo::sRecords[] = {
+    {eCSSProperty_transform, DisplayItemType::TYPE_TRANSFORM,
+     nsChangeHint_UpdateTransformLayer},
+    {eCSSProperty_opacity, DisplayItemType::TYPE_OPACITY,
+     nsChangeHint_UpdateOpacityLayer}};
 
 #ifdef DEBUG
-/* static */ void
-LayerAnimationInfo::Initialize()
-{
+/* static */ void LayerAnimationInfo::Initialize() {
   for (const Record& record : sRecords) {
     MOZ_ASSERT(nsCSSProps::PropHasFlags(record.mProperty,
                                         CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR),
@@ -31,8 +27,7 @@ LayerAnimationInfo::Initialize()
 
   // Check that every property with the flag for animating on the
   // compositor has an entry in LayerAnimationInfo::sRecords.
-  for (nsCSSPropertyID prop = nsCSSPropertyID(0);
-       prop < eCSSProperty_COUNT;
+  for (nsCSSPropertyID prop = nsCSSPropertyID(0); prop < eCSSProperty_COUNT;
        prop = nsCSSPropertyID(prop + 1)) {
     if (nsCSSProps::PropHasFlags(prop,
                                  CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR)) {
@@ -51,4 +46,4 @@ LayerAnimationInfo::Initialize()
 }
 #endif
 
-} // namespace mozilla
+}  // namespace mozilla

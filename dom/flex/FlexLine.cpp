@@ -21,12 +21,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FlexLine)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-FlexLine::FlexLine(Flex* aParent,
-                   const ComputedFlexLineInfo* aLine)
-  : mParent(aParent)
-{
+FlexLine::FlexLine(Flex* aParent, const ComputedFlexLineInfo* aLine)
+    : mParent(aParent) {
   MOZ_ASSERT(aLine,
-    "Should never be instantiated with a null ComputedFlexLineInfo.");
+             "Should never be instantiated with a null ComputedFlexLineInfo.");
 
   // Eagerly copy values from aLine, because we're not
   // going to keep it around.
@@ -44,14 +42,12 @@ FlexLine::FlexLine(Flex* aParent,
   };
 
   // Convert all the app unit values into css pixels.
-  mCrossStart = nsPresContext::AppUnitsToDoubleCSSPixels(
-    aLine->mCrossStart);
-  mCrossSize = nsPresContext::AppUnitsToDoubleCSSPixels(
-    aLine->mCrossSize);
-  mFirstBaselineOffset = nsPresContext::AppUnitsToDoubleCSSPixels(
-    aLine->mFirstBaselineOffset);
-  mLastBaselineOffset = nsPresContext::AppUnitsToDoubleCSSPixels(
-    aLine->mLastBaselineOffset);
+  mCrossStart = nsPresContext::AppUnitsToDoubleCSSPixels(aLine->mCrossStart);
+  mCrossSize = nsPresContext::AppUnitsToDoubleCSSPixels(aLine->mCrossSize);
+  mFirstBaselineOffset =
+      nsPresContext::AppUnitsToDoubleCSSPixels(aLine->mFirstBaselineOffset);
+  mLastBaselineOffset =
+      nsPresContext::AppUnitsToDoubleCSSPixels(aLine->mLastBaselineOffset);
 
   mItems.SetLength(aLine->mItems.Length());
   uint32_t index = 0;
@@ -62,47 +58,24 @@ FlexLine::FlexLine(Flex* aParent,
   }
 }
 
-JSObject*
-FlexLine::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* FlexLine::WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) {
   return FlexLineBinding::Wrap(aCx, this, aGivenProto);
 }
 
-FlexLineGrowthState
-FlexLine::GrowthState() const
-{
-  return mGrowthState;
-}
+FlexLineGrowthState FlexLine::GrowthState() const { return mGrowthState; }
 
-double
-FlexLine::CrossStart() const
-{
-  return mCrossStart;
-}
+double FlexLine::CrossStart() const { return mCrossStart; }
 
-double
-FlexLine::CrossSize() const
-{
-  return mCrossSize;
-}
+double FlexLine::CrossSize() const { return mCrossSize; }
 
-double
-FlexLine::FirstBaselineOffset() const
-{
-  return mFirstBaselineOffset;
-}
+double FlexLine::FirstBaselineOffset() const { return mFirstBaselineOffset; }
 
-double
-FlexLine::LastBaselineOffset() const
-{
-  return mLastBaselineOffset;
-}
+double FlexLine::LastBaselineOffset() const { return mLastBaselineOffset; }
 
-void
-FlexLine::GetItems(nsTArray<RefPtr<FlexItem>>& aResult)
-{
+void FlexLine::GetItems(nsTArray<RefPtr<FlexItem>>& aResult) {
   aResult.AppendElements(mItems);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -25,7 +25,7 @@ namespace detail {
  * A helper class that allows passing around multiple variadic argument lists
  * by grouping them.
  */
-template<typename... Ts>
+template <typename... Ts>
 struct Group;
 
 /*
@@ -44,24 +44,27 @@ struct Group;
  * immediate context of the caller).
  */
 
-template<typename Source, typename Target, bool SameSize>
+template <typename Source, typename Target, bool SameSize>
 struct CheckConvertibilityImpl;
 
-template<typename Source, typename Target>
-struct CheckConvertibilityImpl<Source, Target, false>
-  : FalseType {};
+template <typename Source, typename Target>
+struct CheckConvertibilityImpl<Source, Target, false> : FalseType {};
 
-template<typename... SourceTypes, typename... TargetTypes>
-struct CheckConvertibilityImpl<Group<SourceTypes...>, Group<TargetTypes...>, true>
-  : IntegralConstant<bool, tl::And<IsConvertible<SourceTypes, TargetTypes>::value...>::value> { };
+template <typename... SourceTypes, typename... TargetTypes>
+struct CheckConvertibilityImpl<Group<SourceTypes...>, Group<TargetTypes...>,
+                               true>
+    : IntegralConstant<
+          bool,
+          tl::And<IsConvertible<SourceTypes, TargetTypes>::value...>::value> {};
 
-template<typename Source, typename Target>
+template <typename Source, typename Target>
 struct CheckConvertibility;
 
-template<typename... SourceTypes, typename... TargetTypes>
+template <typename... SourceTypes, typename... TargetTypes>
 struct CheckConvertibility<Group<SourceTypes...>, Group<TargetTypes...>>
-  : CheckConvertibilityImpl<Group<SourceTypes...>, Group<TargetTypes...>,
-        sizeof...(SourceTypes) == sizeof...(TargetTypes)> { };
+    : CheckConvertibilityImpl<Group<SourceTypes...>, Group<TargetTypes...>,
+                              sizeof...(SourceTypes) ==
+                                  sizeof...(TargetTypes)> {};
 
 /*
  * TupleImpl is a helper class used to implement mozilla::Tuple.
@@ -87,19 +90,16 @@ struct CheckConvertibility<Group<SourceTypes...>, Group<TargetTypes...>>
  * This implementation strategy is borrowed from libstdc++'s std::tuple
  * implementation.
  */
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 struct TupleImpl;
 
 /*
  * The base case of the inheritance recursion (and also the implementation
  * of an empty tuple).
  */
-template<std::size_t Index>
+template <std::size_t Index>
 struct TupleImpl<Index> {
-  bool operator==(const TupleImpl<Index>& aOther) const
-  {
-    return true;
-  }
+  bool operator==(const TupleImpl<Index>& aOther) const { return true; }
 };
 
 /*
@@ -107,10 +107,9 @@ struct TupleImpl<Index> {
  * index 'Index' of a tuple, of type 'HeadT', and inherits from the nodes
  * that store the remaining elements, of types 'TailT...'.
  */
-template<std::size_t Index, typename HeadT, typename... TailT>
+template <std::size_t Index, typename HeadT, typename... TailT>
 struct TupleImpl<Index, HeadT, TailT...>
-  : public TupleImpl<Index + 1, TailT...>
-{
+    : public TupleImpl<Index + 1, TailT...> {
   typedef TupleImpl<Index + 1, TailT...> Base;
 
   // Accessors for the head and the tail.
@@ -123,11 +122,11 @@ struct TupleImpl<Index, HeadT, TailT...>
   static Base& Tail(TupleImpl& aTuple) { return aTuple; }
   static const Base& Tail(const TupleImpl& aTuple) { return aTuple; }
 
-  TupleImpl() : Base(), mHead() { }
+  TupleImpl() : Base(), mHead() {}
 
   // Construct from const references to the elements.
   explicit TupleImpl(const HeadT& aHead, const TailT&... aTail)
-    : Base(aTail...), mHead(aHead) { }
+      : Base(aTail...), mHead(aHead) {}
 
   // Construct from objects that are convertible to the elements.
   // This constructor is enabled only when the argument types are actually
@@ -135,39 +134,35 @@ struct TupleImpl<Index, HeadT, TailT...>
   // match for certain invocations than the copy constructor.
   template <typename OtherHeadT, typename... OtherTailT,
             typename = typename EnableIf<
-                CheckConvertibility<
-                    Group<OtherHeadT, OtherTailT...>,
-                    Group<HeadT, TailT...>>::value>::Type>
+                CheckConvertibility<Group<OtherHeadT, OtherTailT...>,
+                                    Group<HeadT, TailT...>>::value>::Type>
   explicit TupleImpl(OtherHeadT&& aHead, OtherTailT&&... aTail)
-    : Base(Forward<OtherTailT>(aTail)...), mHead(Forward<OtherHeadT>(aHead)) { }
+      : Base(Forward<OtherTailT>(aTail)...),
+        mHead(Forward<OtherHeadT>(aHead)) {}
 
   // Copy and move constructors.
   // We'd like to use '= default' to implement these, but MSVC 2013's support
   // for '= default' is incomplete and this doesn't work.
   TupleImpl(const TupleImpl& aOther)
-    : Base(Tail(aOther))
-    , mHead(Head(aOther)) {}
+      : Base(Tail(aOther)), mHead(Head(aOther)) {}
   TupleImpl(TupleImpl&& aOther)
-    : Base(Move(Tail(aOther)))
-    , mHead(Forward<HeadT>(Head(aOther))) {}
+      : Base(Move(Tail(aOther))), mHead(Forward<HeadT>(Head(aOther))) {}
 
   // Assign from a tuple whose elements are convertible to the elements
   // of this tuple.
   template <typename... OtherElements,
-            typename = typename EnableIf<
-                sizeof...(OtherElements) == sizeof...(TailT) + 1>::Type>
-  TupleImpl& operator=(const TupleImpl<Index, OtherElements...>& aOther)
-  {
+            typename = typename EnableIf<sizeof...(OtherElements) ==
+                                         sizeof...(TailT) + 1>::Type>
+  TupleImpl& operator=(const TupleImpl<Index, OtherElements...>& aOther) {
     typedef TupleImpl<Index, OtherElements...> OtherT;
     Head(*this) = OtherT::Head(aOther);
     Tail(*this) = OtherT::Tail(aOther);
     return *this;
   }
   template <typename... OtherElements,
-            typename = typename EnableIf<
-                sizeof...(OtherElements) == sizeof...(TailT) + 1>::Type>
-  TupleImpl& operator=(TupleImpl<Index, OtherElements...>&& aOther)
-  {
+            typename = typename EnableIf<sizeof...(OtherElements) ==
+                                         sizeof...(TailT) + 1>::Type>
+  TupleImpl& operator=(TupleImpl<Index, OtherElements...>&& aOther) {
     typedef TupleImpl<Index, OtherElements...> OtherT;
     Head(*this) = Move(OtherT::Head(aOther));
     Tail(*this) = Move(OtherT::Tail(aOther));
@@ -175,27 +170,25 @@ struct TupleImpl<Index, HeadT, TailT...>
   }
 
   // Copy and move assignment operators.
-  TupleImpl& operator=(const TupleImpl& aOther)
-  {
+  TupleImpl& operator=(const TupleImpl& aOther) {
     Head(*this) = Head(aOther);
     Tail(*this) = Tail(aOther);
     return *this;
   }
-  TupleImpl& operator=(TupleImpl&& aOther)
-  {
+  TupleImpl& operator=(TupleImpl&& aOther) {
     Head(*this) = Move(Head(aOther));
     Tail(*this) = Move(Tail(aOther));
     return *this;
   }
-  bool operator==(const TupleImpl& aOther) const
-  {
+  bool operator==(const TupleImpl& aOther) const {
     return Head(*this) == Head(aOther) && Tail(*this) == Tail(aOther);
   }
-private:
+
+ private:
   HeadT mHead;  // The element stored at this index in the tuple.
 };
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Tuple is a class that stores zero or more objects, whose types are specified
@@ -205,141 +198,125 @@ private:
  * Tuple allows index-based access to its elements (with the index having to be
  * known at compile time) via the non-member function 'Get<N>(tuple)'.
  */
-template<typename... Elements>
-class Tuple : public detail::TupleImpl<0, Elements...>
-{
+template <typename... Elements>
+class Tuple : public detail::TupleImpl<0, Elements...> {
   typedef detail::TupleImpl<0, Elements...> Impl;
-public:
+
+ public:
   // The constructors and assignment operators here are simple wrappers
   // around those in TupleImpl.
 
-  Tuple() : Impl() { }
-  explicit Tuple(const Elements&... aElements) : Impl(aElements...) { }
+  Tuple() : Impl() {}
+  explicit Tuple(const Elements&... aElements) : Impl(aElements...) {}
   // Here, we can't just use 'typename... OtherElements' because MSVC will give
   // a warning "C4520: multiple default constructors specified" (even if no one
   // actually instantiates the constructor with an empty parameter pack -
   // that's probably a bug) and we compile with warnings-as-errors.
   template <typename OtherHead, typename... OtherTail,
-            typename = typename EnableIf<
-                detail::CheckConvertibility<
-                    detail::Group<OtherHead, OtherTail...>,
-                    detail::Group<Elements...>>::value>::Type>
+            typename = typename EnableIf<detail::CheckConvertibility<
+                detail::Group<OtherHead, OtherTail...>,
+                detail::Group<Elements...>>::value>::Type>
   explicit Tuple(OtherHead&& aHead, OtherTail&&... aTail)
-    : Impl(Forward<OtherHead>(aHead), Forward<OtherTail>(aTail)...) { }
-  Tuple(const Tuple& aOther) : Impl(aOther) { }
-  Tuple(Tuple&& aOther) : Impl(Move(aOther)) { }
+      : Impl(Forward<OtherHead>(aHead), Forward<OtherTail>(aTail)...) {}
+  Tuple(const Tuple& aOther) : Impl(aOther) {}
+  Tuple(Tuple&& aOther) : Impl(Move(aOther)) {}
 
   template <typename... OtherElements,
-            typename = typename EnableIf<
-                sizeof...(OtherElements) == sizeof...(Elements)>::Type>
-  Tuple& operator=(const Tuple<OtherElements...>& aOther)
-  {
+            typename = typename EnableIf<sizeof...(OtherElements) ==
+                                         sizeof...(Elements)>::Type>
+  Tuple& operator=(const Tuple<OtherElements...>& aOther) {
     static_cast<Impl&>(*this) = aOther;
     return *this;
   }
   template <typename... OtherElements,
-            typename = typename EnableIf<
-                sizeof...(OtherElements) == sizeof...(Elements)>::Type>
-  Tuple& operator=(Tuple<OtherElements...>&& aOther)
-  {
+            typename = typename EnableIf<sizeof...(OtherElements) ==
+                                         sizeof...(Elements)>::Type>
+  Tuple& operator=(Tuple<OtherElements...>&& aOther) {
     static_cast<Impl&>(*this) = Move(aOther);
     return *this;
   }
-  Tuple& operator=(const Tuple& aOther)
-  {
+  Tuple& operator=(const Tuple& aOther) {
     static_cast<Impl&>(*this) = aOther;
     return *this;
   }
-  Tuple& operator=(Tuple&& aOther)
-  {
+  Tuple& operator=(Tuple&& aOther) {
     static_cast<Impl&>(*this) = Move(aOther);
     return *this;
   }
-  bool operator==(const Tuple& aOther) const
-  {
+  bool operator==(const Tuple& aOther) const {
     return static_cast<const Impl&>(*this) == static_cast<const Impl&>(aOther);
   }
 };
 
 /**
  * Specialization of Tuple for two elements.
- * This is created to support construction and assignment from a Pair or std::pair.
+ * This is created to support construction and assignment from a Pair or
+ * std::pair.
  */
 template <typename A, typename B>
-class Tuple<A, B> : public detail::TupleImpl<0, A, B>
-{
+class Tuple<A, B> : public detail::TupleImpl<0, A, B> {
   typedef detail::TupleImpl<0, A, B> Impl;
 
-public:
+ public:
   // The constructors and assignment operators here are simple wrappers
   // around those in TupleImpl.
 
-  Tuple() : Impl() { }
-  explicit Tuple(const A& aA, const B& aB) : Impl(aA, aB) { }
+  Tuple() : Impl() {}
+  explicit Tuple(const A& aA, const B& aB) : Impl(aA, aB) {}
   template <typename AArg, typename BArg,
-            typename = typename EnableIf<
-                detail::CheckConvertibility<
-                    detail::Group<AArg, BArg>,
-                    detail::Group<A, B>>::value>::Type>
+            typename = typename EnableIf<detail::CheckConvertibility<
+                detail::Group<AArg, BArg>, detail::Group<A, B>>::value>::Type>
   explicit Tuple(AArg&& aA, BArg&& aB)
-    : Impl(Forward<AArg>(aA), Forward<BArg>(aB)) { }
-  Tuple(const Tuple& aOther) : Impl(aOther) { }
-  Tuple(Tuple&& aOther) : Impl(Move(aOther)) { }
+      : Impl(Forward<AArg>(aA), Forward<BArg>(aB)) {}
+  Tuple(const Tuple& aOther) : Impl(aOther) {}
+  Tuple(Tuple&& aOther) : Impl(Move(aOther)) {}
   explicit Tuple(const Pair<A, B>& aOther)
-    : Impl(aOther.first(), aOther.second()) { }
-  explicit Tuple(Pair<A, B>&& aOther) : Impl(Forward<A>(aOther.first()),
-                                    Forward<B>(aOther.second())) { }
+      : Impl(aOther.first(), aOther.second()) {}
+  explicit Tuple(Pair<A, B>&& aOther)
+      : Impl(Forward<A>(aOther.first()), Forward<B>(aOther.second())) {}
   explicit Tuple(const std::pair<A, B>& aOther)
-    : Impl(aOther.first, aOther.second) { }
-  explicit Tuple(std::pair<A, B>&& aOther) : Impl(Forward<A>(aOther.first),
-                                    Forward<B>(aOther.second)) { }
+      : Impl(aOther.first, aOther.second) {}
+  explicit Tuple(std::pair<A, B>&& aOther)
+      : Impl(Forward<A>(aOther.first), Forward<B>(aOther.second)) {}
 
   template <typename AArg, typename BArg>
-  Tuple& operator=(const Tuple<AArg, BArg>& aOther)
-  {
+  Tuple& operator=(const Tuple<AArg, BArg>& aOther) {
     static_cast<Impl&>(*this) = aOther;
     return *this;
   }
   template <typename AArg, typename BArg>
-  Tuple& operator=(Tuple<AArg, BArg>&& aOther)
-  {
+  Tuple& operator=(Tuple<AArg, BArg>&& aOther) {
     static_cast<Impl&>(*this) = Move(aOther);
     return *this;
   }
-  Tuple& operator=(const Tuple& aOther)
-  {
+  Tuple& operator=(const Tuple& aOther) {
     static_cast<Impl&>(*this) = aOther;
     return *this;
   }
-  Tuple& operator=(Tuple&& aOther)
-  {
+  Tuple& operator=(Tuple&& aOther) {
     static_cast<Impl&>(*this) = Move(aOther);
     return *this;
   }
   template <typename AArg, typename BArg>
-  Tuple& operator=(const Pair<AArg, BArg>& aOther)
-  {
+  Tuple& operator=(const Pair<AArg, BArg>& aOther) {
     Impl::Head(*this) = aOther.first();
     Impl::Tail(*this).Head(*this) = aOther.second();
     return *this;
   }
   template <typename AArg, typename BArg>
-  Tuple& operator=(Pair<AArg, BArg>&& aOther)
-  {
+  Tuple& operator=(Pair<AArg, BArg>&& aOther) {
     Impl::Head(*this) = Forward<AArg>(aOther.first());
     Impl::Tail(*this).Head(*this) = Forward<BArg>(aOther.second());
     return *this;
   }
   template <typename AArg, typename BArg>
-  Tuple& operator=(const std::pair<AArg, BArg>& aOther)
-  {
+  Tuple& operator=(const std::pair<AArg, BArg>& aOther) {
     Impl::Head(*this) = aOther.first;
     Impl::Tail(*this).Head(*this) = aOther.second;
     return *this;
   }
   template <typename AArg, typename BArg>
-  Tuple& operator=(std::pair<AArg, BArg>&& aOther)
-  {
+  Tuple& operator=(std::pair<AArg, BArg>&& aOther) {
     Impl::Head(*this) = Forward<AArg>(aOther.first);
     Impl::Tail(*this).Head(*this) = Forward<BArg>(aOther.second);
     return *this;
@@ -366,22 +343,20 @@ namespace detail {
  */
 
 // Const reference version.
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 auto TupleGetHelper(TupleImpl<Index, Elements...>& aTuple)
-    -> decltype(TupleImpl<Index, Elements...>::Head(aTuple))
-{
+    -> decltype(TupleImpl<Index, Elements...>::Head(aTuple)) {
   return TupleImpl<Index, Elements...>::Head(aTuple);
 }
 
 // Non-const reference version.
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 auto TupleGetHelper(const TupleImpl<Index, Elements...>& aTuple)
-    -> decltype(TupleImpl<Index, Elements...>::Head(aTuple))
-{
+    -> decltype(TupleImpl<Index, Elements...>::Head(aTuple)) {
   return TupleImpl<Index, Elements...>::Head(aTuple);
 }
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Index-based access to an element of a tuple.
@@ -395,26 +370,23 @@ auto TupleGetHelper(const TupleImpl<Index, Elements...>& aTuple)
  */
 
 // Non-const reference version.
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 auto Get(Tuple<Elements...>& aTuple)
-    -> decltype(detail::TupleGetHelper<Index>(aTuple))
-{
+    -> decltype(detail::TupleGetHelper<Index>(aTuple)) {
   return detail::TupleGetHelper<Index>(aTuple);
 }
 
 // Const reference version.
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 auto Get(const Tuple<Elements...>& aTuple)
-    -> decltype(detail::TupleGetHelper<Index>(aTuple))
-{
+    -> decltype(detail::TupleGetHelper<Index>(aTuple)) {
   return detail::TupleGetHelper<Index>(aTuple);
 }
 
 // Rvalue reference version.
-template<std::size_t Index, typename... Elements>
+template <std::size_t Index, typename... Elements>
 auto Get(Tuple<Elements...>&& aTuple)
-    -> decltype(Move(mozilla::Get<Index>(aTuple)))
-{
+    -> decltype(Move(mozilla::Get<Index>(aTuple))) {
   // We need a 'mozilla::' qualification here to avoid
   // name lookup only finding the current function.
   return Move(mozilla::Get<Index>(aTuple));
@@ -429,11 +401,11 @@ auto Get(Tuple<Elements...>&& aTuple)
  *
  * auto tuple = MakeTuple(42, 0.5f, 'c');  // has type Tuple<int, float, char>
  */
-template<typename... Elements>
-inline Tuple<typename Decay<Elements>::Type...>
-MakeTuple(Elements&&... aElements)
-{
-  return Tuple<typename Decay<Elements>::Type...>(Forward<Elements>(aElements)...);
+template <typename... Elements>
+inline Tuple<typename Decay<Elements>::Type...> MakeTuple(
+    Elements&&... aElements) {
+  return Tuple<typename Decay<Elements>::Type...>(
+      Forward<Elements>(aElements)...);
 }
 
 /**
@@ -449,13 +421,11 @@ MakeTuple(Elements&&... aElements)
  * char c;
  * Tie(i, f, c) = FunctionThatReturnsATuple();
  */
-template<typename... Elements>
-inline Tuple<Elements&...>
-Tie(Elements&... aVariables)
-{
+template <typename... Elements>
+inline Tuple<Elements&...> Tie(Elements&... aVariables) {
   return Tuple<Elements&...>(aVariables...);
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_Tuple_h */

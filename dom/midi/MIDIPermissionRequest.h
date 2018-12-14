@@ -17,13 +17,10 @@ struct MIDIOptions;
 /**
  * Handles permission dialog management when requesting MIDI permissions.
  */
-class MIDIPermissionRequest final
-  : public nsIContentPermissionRequest,
-    public nsIRunnable
-{
-public:
-  MIDIPermissionRequest(nsPIDOMWindowInner* aWindow,
-                        Promise* aPromise,
+class MIDIPermissionRequest final : public nsIContentPermissionRequest,
+                                    public nsIRunnable {
+ public:
+  MIDIPermissionRequest(nsPIDOMWindowInner* aWindow, Promise* aPromise,
                         const MIDIOptions& aOptions);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -32,7 +29,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(MIDIPermissionRequest,
                                            nsIContentPermissionRequest)
 
-private:
+ private:
   ~MIDIPermissionRequest();
 
   // Owning window for the permissions requests
@@ -47,7 +44,7 @@ private:
   nsCOMPtr<nsIContentPermissionRequester> mRequester;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif //mozilla_dom_MIDIPermissionRequest_h
+#endif  // mozilla_dom_MIDIPermissionRequest_h

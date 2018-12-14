@@ -21,37 +21,30 @@
 namespace mozilla {
 namespace dom {
 
-class CallbackInterface : public CallbackObject
-{
-public:
+class CallbackInterface : public CallbackObject {
+ public:
   // See CallbackObject for an explanation of the arguments.
   explicit CallbackInterface(JSContext* aCx, JS::Handle<JSObject*> aCallback,
                              nsIGlobalObject* aIncumbentGlobal)
-    : CallbackObject(aCx, aCallback, aIncumbentGlobal)
-  {
-  }
+      : CallbackObject(aCx, aCallback, aIncumbentGlobal) {}
 
   // See CallbackObject for an explanation of the arguments.
   explicit CallbackInterface(JS::Handle<JSObject*> aCallback,
                              JS::Handle<JSObject*> aAsyncStack,
                              nsIGlobalObject* aIncumbentGlobal)
-    : CallbackObject(aCallback, aAsyncStack, aIncumbentGlobal)
-  {
-  }
+      : CallbackObject(aCallback, aAsyncStack, aIncumbentGlobal) {}
 
-protected:
+ protected:
   bool GetCallableProperty(JSContext* cx, JS::Handle<jsid> aPropId,
                            JS::MutableHandle<JS::Value> aCallable);
 
   // See CallbackObject for an explanation of the arguments.
   CallbackInterface(JS::Handle<JSObject*> aCallable,
                     const FastCallbackConstructor&)
-    : CallbackObject(aCallable, FastCallbackConstructor())
-  {
-  }
+      : CallbackObject(aCallable, FastCallbackConstructor()) {}
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CallbackFunction_h
+#endif  // mozilla_dom_CallbackFunction_h

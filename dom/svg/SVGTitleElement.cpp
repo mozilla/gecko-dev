@@ -12,68 +12,53 @@ NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Title)
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGTitleElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGTitleElement::WrapNode(JSContext* aCx,
+                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGTitleElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
 //----------------------------------------------------------------------
 // nsISupports methods
 
-NS_IMPL_ISUPPORTS_INHERITED(SVGTitleElement, SVGTitleElementBase,
-                            nsIDOMNode, nsIDOMElement,
-                            nsIMutationObserver)
+NS_IMPL_ISUPPORTS_INHERITED(SVGTitleElement, SVGTitleElementBase, nsIDOMNode,
+                            nsIDOMElement, nsIMutationObserver)
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGTitleElement::SVGTitleElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGTitleElementBase(aNodeInfo)
-{
+SVGTitleElement::SVGTitleElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : SVGTitleElementBase(aNodeInfo) {
   AddMutationObserver(this);
 }
 
-SVGTitleElement::~SVGTitleElement()
-{
-}
+SVGTitleElement::~SVGTitleElement() {}
 
-void
-SVGTitleElement::CharacterDataChanged(nsIContent* aContent,
-                                      const CharacterDataChangeInfo&)
-{
+void SVGTitleElement::CharacterDataChanged(nsIContent* aContent,
+                                           const CharacterDataChangeInfo&) {
   SendTitleChangeEvent(false);
 }
 
-void
-SVGTitleElement::ContentAppended(nsIContent* aFirstNewContent)
-{
+void SVGTitleElement::ContentAppended(nsIContent* aFirstNewContent) {
   SendTitleChangeEvent(false);
 }
 
-void
-SVGTitleElement::ContentInserted(nsIContent* aChild)
-{
+void SVGTitleElement::ContentInserted(nsIContent* aChild) {
   SendTitleChangeEvent(false);
 }
 
-void
-SVGTitleElement::ContentRemoved(nsIContent* aChild,
-                                nsIContent* aPreviousSibling)
-{
+void SVGTitleElement::ContentRemoved(nsIContent* aChild,
+                                     nsIContent* aPreviousSibling) {
   SendTitleChangeEvent(false);
 }
 
-nsresult
-SVGTitleElement::BindToTree(nsIDocument *aDocument,
-                             nsIContent *aParent,
-                             nsIContent *aBindingParent,
-                             bool aCompileEventHandlers)
-{
+nsresult SVGTitleElement::BindToTree(nsIDocument* aDocument,
+                                     nsIContent* aParent,
+                                     nsIContent* aBindingParent,
+                                     bool aCompileEventHandlers) {
   // Let this fall through.
-  nsresult rv = SVGTitleElementBase::BindToTree(aDocument, aParent,
-                                                aBindingParent,
-                                                aCompileEventHandlers);
+  nsresult rv = SVGTitleElementBase::BindToTree(
+      aDocument, aParent, aBindingParent, aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   SendTitleChangeEvent(true);
@@ -81,26 +66,20 @@ SVGTitleElement::BindToTree(nsIDocument *aDocument,
   return NS_OK;
 }
 
-void
-SVGTitleElement::UnbindFromTree(bool aDeep, bool aNullParent)
-{
+void SVGTitleElement::UnbindFromTree(bool aDeep, bool aNullParent) {
   SendTitleChangeEvent(false);
 
   // Let this fall through.
   SVGTitleElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
-void
-SVGTitleElement::DoneAddingChildren(bool aHaveNotified)
-{
+void SVGTitleElement::DoneAddingChildren(bool aHaveNotified) {
   if (!aHaveNotified) {
     SendTitleChangeEvent(false);
   }
 }
 
-void
-SVGTitleElement::SendTitleChangeEvent(bool aBound)
-{
+void SVGTitleElement::SendTitleChangeEvent(bool aBound) {
   nsIDocument* doc = GetUncomposedDoc();
   if (doc) {
     doc->NotifyPossibleTitleChange(aBound);
@@ -112,6 +91,5 @@ SVGTitleElement::SendTitleChangeEvent(bool aBound)
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGTitleElement)
 
-} // namespace dom
-} // namespace mozilla
-
+}  // namespace dom
+}  // namespace mozilla

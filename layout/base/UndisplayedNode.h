@@ -18,12 +18,9 @@ namespace mozilla {
  * Node in a linked list, containing the style for an element that
  * does not have a frame but whose parent does have a frame.
  */
-struct UndisplayedNode : public LinkedListElement<UndisplayedNode>
-{
+struct UndisplayedNode : public LinkedListElement<UndisplayedNode> {
   UndisplayedNode(nsIContent* aContent, nsStyleContext* aStyle)
-    : mContent(aContent)
-    , mStyle(aStyle)
-  {
+      : mContent(aContent), mStyle(aStyle) {
     MOZ_COUNT_CTOR(mozilla::UndisplayedNode);
   }
 
@@ -33,6 +30,6 @@ struct UndisplayedNode : public LinkedListElement<UndisplayedNode>
   RefPtr<nsStyleContext> mStyle;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_UndisplayedNode_h
+#endif  // mozilla_UndisplayedNode_h

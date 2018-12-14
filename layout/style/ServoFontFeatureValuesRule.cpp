@@ -15,20 +15,13 @@ using namespace mozilla::dom;
 namespace mozilla {
 
 ServoFontFeatureValuesRule::ServoFontFeatureValuesRule(
-  RefPtr<RawServoFontFeatureValuesRule> aRawRule,
-  uint32_t aLine, uint32_t aColumn)
-  : CSSFontFeatureValuesRule(aLine, aColumn)
-  , mRawRule(Move(aRawRule))
-{
-}
+    RefPtr<RawServoFontFeatureValuesRule> aRawRule, uint32_t aLine,
+    uint32_t aColumn)
+    : CSSFontFeatureValuesRule(aLine, aColumn), mRawRule(Move(aRawRule)) {}
 
-ServoFontFeatureValuesRule::~ServoFontFeatureValuesRule()
-{
-}
+ServoFontFeatureValuesRule::~ServoFontFeatureValuesRule() {}
 
-already_AddRefed<css::Rule>
-ServoFontFeatureValuesRule::Clone() const
-{
+already_AddRefed<css::Rule> ServoFontFeatureValuesRule::Clone() const {
   // Rule::Clone is only used when CSSStyleSheetInner is cloned in
   // preparation of being mutated. However, ServoStyleSheet never clones
   // anything, so this method should never be called.
@@ -36,17 +29,14 @@ ServoFontFeatureValuesRule::Clone() const
   return nullptr;
 }
 
-size_t
-ServoFontFeatureValuesRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
+size_t ServoFontFeatureValuesRule::SizeOfIncludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   // TODO Implement this!
   return aMallocSizeOf(this);
 }
 
 #ifdef DEBUG
-void
-ServoFontFeatureValuesRule::List(FILE* out, int32_t aIndent) const
-{
+void ServoFontFeatureValuesRule::List(FILE* out, int32_t aIndent) const {
   nsAutoCString str;
   for (int32_t i = 0; i < aIndent; i++) {
     str.AppendLiteral("  ");
@@ -58,38 +48,28 @@ ServoFontFeatureValuesRule::List(FILE* out, int32_t aIndent) const
 
 /* CSSRule implementation */
 
-void
-ServoFontFeatureValuesRule::GetCssText(nsAString& aCssText) const
-{
+void ServoFontFeatureValuesRule::GetCssText(nsAString& aCssText) const {
   Servo_FontFeatureValuesRule_GetCssText(mRawRule, &aCssText);
 }
 
 /* CSSFontFeatureValuesRule implementation */
 
-void
-ServoFontFeatureValuesRule::GetFontFamily(nsAString& aFamilyListStr)
-{
+void ServoFontFeatureValuesRule::GetFontFamily(nsAString& aFamilyListStr) {
   Servo_FontFeatureValuesRule_GetFontFamily(mRawRule, &aFamilyListStr);
 }
 
-void
-ServoFontFeatureValuesRule::GetValueText(nsAString& aValueText)
-{
+void ServoFontFeatureValuesRule::GetValueText(nsAString& aValueText) {
   Servo_FontFeatureValuesRule_GetValueText(mRawRule, &aValueText);
 }
 
-void
-ServoFontFeatureValuesRule::SetFontFamily(const nsAString& aFontFamily,
-                                          ErrorResult& aRv)
-{
+void ServoFontFeatureValuesRule::SetFontFamily(const nsAString& aFontFamily,
+                                               ErrorResult& aRv) {
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
 
-void
-ServoFontFeatureValuesRule::SetValueText(const nsAString& aValueText,
-                                         ErrorResult& aRv)
-{
+void ServoFontFeatureValuesRule::SetValueText(const nsAString& aValueText,
+                                              ErrorResult& aRv) {
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

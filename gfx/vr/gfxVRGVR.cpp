@@ -38,21 +38,24 @@
 #if defined(MOZ_CHECK_GVR_ERRORS)
 #define GVR_LOGTAG "GeckoWebVR"
 #include <android/log.h>
-#define GVR_CHECK(X) X; \
-{ \
-  gvr_context* context = (mPresentingContext ? mPresentingContext : GetNonPresentingContext()); \
-  if (context && (gvr_get_error(context) != GVR_ERROR_NONE)) { \
-     __android_log_print(ANDROID_LOG_ERROR, GVR_LOGTAG, \
-                         "GVR ERROR: %s at:%s:%s:%d", \
-                         gvr_get_error_string(gvr_get_error(context)), \
-                         __FILE__, __FUNCTION__, __LINE__); \
-    gvr_clear_error(context); \
-  } else if (!context) { \
-    __android_log_print(ANDROID_LOG_ERROR, GVR_LOGTAG, \
-                        "UNABLE TO CHECK GVR ERROR: NO CONTEXT"); \
-  } \
-}
-#define GVR_LOG(format, ...) __android_log_print(ANDROID_LOG_INFO, GVR_LOGTAG, format, ##__VA_ARGS__);
+#define GVR_CHECK(X)                                                           \
+  X;                                                                           \
+  {                                                                            \
+    gvr_context* context =                                                     \
+        (mPresentingContext ? mPresentingContext : GetNonPresentingContext()); \
+    if (context && (gvr_get_error(context) != GVR_ERROR_NONE)) {               \
+      __android_log_print(ANDROID_LOG_ERROR, GVR_LOGTAG,                       \
+                          "GVR ERROR: %s at:%s:%s:%d",                         \
+                          gvr_get_error_string(gvr_get_error(context)),        \
+                          __FILE__, __FUNCTION__, __LINE__);                   \
+      gvr_clear_error(context);                                                \
+    } else if (!context) {                                                     \
+      __android_log_print(ANDROID_LOG_ERROR, GVR_LOGTAG,                       \
+                          "UNABLE TO CHECK GVR ERROR: NO CONTEXT");            \
+    }                                                                          \
+  }
+#define GVR_LOG(format, ...) \
+  __android_log_print(ANDROID_LOG_INFO, GVR_LOGTAG, format, ##__VA_ARGS__);
 #else
 #define GVR_CHECK(X) X
 #define GVR_LOG(...)
@@ -70,32 +73,25 @@ static VRDisplayGVR* sContextObserver;
 static RefPtr<GLContextEGL> sGLContextEGL;
 static gvr_context* sNonPresentingContext;
 
-gvr_context*
-GetNonPresentingContext() {
+gvr_context* GetNonPresentingContext() {
   if (!sNonPresentingContext) {
     // Try and restore if it has been lost
-    sNonPresentingContext = (gvr_context*)GeckoVRManager::CreateGVRNonPresentingContext();
+    sNonPresentingContext =
+        (gvr_context*)GeckoVRManager::CreateGVRNonPresentingContext();
   }
   return sNonPresentingContext;
 }
 
 class SynchronousRunnable : public nsIRunnable {
-public:
-  enum class Type {
-    PresentingContext,
-    NonPresentingContext,
-    Pause,
-    Resume
-  };
+ public:
+  enum class Type { PresentingContext, NonPresentingContext, Pause, Resume };
   SynchronousRunnable(const Type aType, void* aContext)
-  : mType(aType)
-  , mContext(aContext)
-  , mUpdateMonitor(new Monitor("SynchronousRunnable_for_Android"))
-  , mUpdated(false)
-  {}
+      : mType(aType),
+        mContext(aContext),
+        mUpdateMonitor(new Monitor("SynchronousRunnable_for_Android")),
+        mUpdated(false) {}
   NS_DECL_THREADSAFE_ISUPPORTS
-  nsresult Run() override
-  {
+  nsresult Run() override {
     MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
     MonitorAutoLock lock(*mUpdateMonitor);
     if (mType == Type::PresentingContext) {
@@ -113,18 +109,17 @@ public:
     lock.NotifyAll();
     return NS_OK;
   }
-  void Wait()
-  {
+  void Wait() {
     MonitorAutoLock lock(*mUpdateMonitor);
-    while(!mUpdated) {
+    while (!mUpdated) {
       lock.Wait();
     }
   }
 
-  static bool Dispatch(const Type aType, void* aContext)
-  {
+  static bool Dispatch(const Type aType, void* aContext) {
     if (!CompositorThreadHolder::IsInCompositorThread()) {
-      RefPtr<SynchronousRunnable> runnable = new SynchronousRunnable(aType, aContext);
+      RefPtr<SynchronousRunnable> runnable =
+          new SynchronousRunnable(aType, aContext);
       CompositorThreadHolder::Loop()->PostTask(do_AddRef(runnable));
       runnable->Wait();
       return true;
@@ -133,11 +128,8 @@ public:
     return false;
   }
 
-protected:
-  virtual ~SynchronousRunnable()
-  {
-    delete mUpdateMonitor;
-  }
+ protected:
+  virtual ~SynchronousRunnable() { delete mUpdateMonitor; }
 
   Type mType;
   void* mContext;
@@ -145,14 +137,14 @@ protected:
   bool mUpdated;
 };
 
-}
+}  // namespace
 
 NS_IMPL_ISUPPORTS(SynchronousRunnable, nsIRunnable)
 
-void
-mozilla::gfx::SetGVRPresentingContext(void* aGVRPresentingContext)
-{
-  if (SynchronousRunnable::Dispatch(SynchronousRunnable::Type::PresentingContext, aGVRPresentingContext)) {
+void mozilla::gfx::SetGVRPresentingContext(void* aGVRPresentingContext) {
+  if (SynchronousRunnable::Dispatch(
+          SynchronousRunnable::Type::PresentingContext,
+          aGVRPresentingContext)) {
     GVR_LOG("Done waiting for compositor thread to set presenting context.");
     return;
   }
@@ -162,7 +154,8 @@ mozilla::gfx::SetGVRPresentingContext(void* aGVRPresentingContext)
     CreateContextFlags flags = CreateContextFlags::NONE;
     SurfaceCaps caps = SurfaceCaps::ForRGBA();
     nsCString str;
-    sGLContextEGL = GLContextEGL::CreateEGLPBufferOffscreenContext(flags, IntSize(4, 4), caps, &str);
+    sGLContextEGL = GLContextEGL::CreateEGLPBufferOffscreenContext(
+        flags, IntSize(4, 4), caps, &str);
     if (!sGLContextEGL->MakeCurrent()) {
       GVR_LOG("Failed to make GL context current");
     }
@@ -170,11 +163,11 @@ mozilla::gfx::SetGVRPresentingContext(void* aGVRPresentingContext)
   sContextObserver->SetPresentingContext(aGVRPresentingContext);
 }
 
-void
-mozilla::gfx::CleanupGVRNonPresentingContext()
-{
-  if (SynchronousRunnable::Dispatch(SynchronousRunnable::Type::NonPresentingContext, nullptr)) {
-    GVR_LOG("Done waiting for compositor thread to set non presenting context.");
+void mozilla::gfx::CleanupGVRNonPresentingContext() {
+  if (SynchronousRunnable::Dispatch(
+          SynchronousRunnable::Type::NonPresentingContext, nullptr)) {
+    GVR_LOG(
+        "Done waiting for compositor thread to set non presenting context.");
     return;
   }
 
@@ -184,11 +177,13 @@ mozilla::gfx::CleanupGVRNonPresentingContext()
   }
 }
 
-void
-mozilla::gfx::SetGVRPaused(const bool aPaused)
-{
-  if (SynchronousRunnable::Dispatch((aPaused ? SynchronousRunnable::Type::Pause : SynchronousRunnable::Type::Resume), nullptr)) {
-    GVR_LOG("Done waiting for GVR in compositor to: %s",(aPaused ? "Pause" : "Resume"));
+void mozilla::gfx::SetGVRPaused(const bool aPaused) {
+  if (SynchronousRunnable::Dispatch(
+          (aPaused ? SynchronousRunnable::Type::Pause
+                   : SynchronousRunnable::Type::Resume),
+          nullptr)) {
+    GVR_LOG("Done waiting for GVR in compositor to: %s",
+            (aPaused ? "Pause" : "Resume"));
     return;
   }
   MOZ_ASSERT(sContextObserver);
@@ -196,59 +191,60 @@ mozilla::gfx::SetGVRPaused(const bool aPaused)
 }
 
 VRDisplayGVR::VRDisplayGVR()
-  : VRDisplayHost(VRDeviceType::GVR)
-  , mIsPresenting(false)
-  , mControllerAdded(false)
-  , mPresentingContext(nullptr)
-  , mControllerContext(nullptr)
-  , mControllerState(nullptr)
-  , mViewportList(nullptr)
-  , mLeftViewport(nullptr)
-  , mRightViewport(nullptr)
-  , mSwapChain(nullptr)
-  , mFrameBufferSize{0, 0}
-{
+    : VRDisplayHost(VRDeviceType::GVR),
+      mIsPresenting(false),
+      mControllerAdded(false),
+      mPresentingContext(nullptr),
+      mControllerContext(nullptr),
+      mControllerState(nullptr),
+      mViewportList(nullptr),
+      mLeftViewport(nullptr),
+      mRightViewport(nullptr),
+      mSwapChain(nullptr),
+      mFrameBufferSize{0, 0} {
   MOZ_COUNT_CTOR_INHERITED(VRDisplayGVR, VRDisplayHost);
   MOZ_ASSERT(GetNonPresentingContext());
-  MOZ_ASSERT(!sContextObserver); // There can be only one GVR display at a time.
+  MOZ_ASSERT(
+      !sContextObserver);  // There can be only one GVR display at a time.
   sContextObserver = this;
 
   mDisplayInfo.mDisplayName.AssignLiteral("GVR HMD");
   mDisplayInfo.mIsConnected = true;
   mDisplayInfo.mIsMounted = true;
-  mDisplayInfo.mCapabilityFlags = VRDisplayCapabilityFlags::Cap_None |
-                                  VRDisplayCapabilityFlags::Cap_Orientation |
-                                  VRDisplayCapabilityFlags::Cap_Position | // Not yet...
-                                  VRDisplayCapabilityFlags::Cap_Present;
+  mDisplayInfo.mCapabilityFlags =
+      VRDisplayCapabilityFlags::Cap_None |
+      VRDisplayCapabilityFlags::Cap_Orientation |
+      VRDisplayCapabilityFlags::Cap_Position |  // Not yet...
+      VRDisplayCapabilityFlags::Cap_Present;
 
   GVR_CHECK(gvr_refresh_viewer_profile(GetNonPresentingContext()));
-  mViewportList = GVR_CHECK(gvr_buffer_viewport_list_create(GetNonPresentingContext()));
-  mLeftViewport = GVR_CHECK(gvr_buffer_viewport_create(GetNonPresentingContext()));
-  mRightViewport = GVR_CHECK(gvr_buffer_viewport_create(GetNonPresentingContext()));
+  mViewportList =
+      GVR_CHECK(gvr_buffer_viewport_list_create(GetNonPresentingContext()));
+  mLeftViewport =
+      GVR_CHECK(gvr_buffer_viewport_create(GetNonPresentingContext()));
+  mRightViewport =
+      GVR_CHECK(gvr_buffer_viewport_create(GetNonPresentingContext()));
   UpdateViewport();
 
   dom::GamepadHand hand = dom::GamepadHand::Right;
-  const gvr_user_prefs* prefs = GVR_CHECK(gvr_get_user_prefs(GetNonPresentingContext()));
+  const gvr_user_prefs* prefs =
+      GVR_CHECK(gvr_get_user_prefs(GetNonPresentingContext()));
   if (prefs) {
-    hand = ((gvr_user_prefs_get_controller_handedness(prefs) == GVR_CONTROLLER_RIGHT_HANDED) ?
-             dom::GamepadHand::Right : dom::GamepadHand::Left);
+    hand = ((gvr_user_prefs_get_controller_handedness(prefs) ==
+             GVR_CONTROLLER_RIGHT_HANDED)
+                ? dom::GamepadHand::Right
+                : dom::GamepadHand::Left);
   }
   mController = new VRControllerGVR(hand, mDisplayInfo.mDisplayID);
 }
 
-VRDisplayGVR::~VRDisplayGVR()
-{
+VRDisplayGVR::~VRDisplayGVR() {
   MOZ_COUNT_DTOR_INHERITED(VRDisplayGVR, VRDisplayHost);
 }
 
-void
-VRDisplayGVR::ZeroSensor()
-{
-}
+void VRDisplayGVR::ZeroSensor() {}
 
-void
-VRDisplayGVR::StartPresentation()
-{
+void VRDisplayGVR::StartPresentation() {
   if (mIsPresenting) {
     return;
   }
@@ -257,9 +253,7 @@ VRDisplayGVR::StartPresentation()
   GeckoVRManager::EnableVRMode();
 }
 
-void
-VRDisplayGVR::StopPresentation()
-{
+void VRDisplayGVR::StopPresentation() {
   if (!mIsPresenting) {
     return;
   }
@@ -268,11 +262,9 @@ VRDisplayGVR::StopPresentation()
   GeckoVRManager::DisableVRMode();
 }
 
-bool
-VRDisplayGVR::SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor,
-                          const gfx::Rect& aLeftEyeRect,
-                          const gfx::Rect& aRightEyeRect)
-{
+bool VRDisplayGVR::SubmitFrame(
+    const mozilla::layers::EGLImageDescriptor* aDescriptor,
+    const gfx::Rect& aLeftEyeRect, const gfx::Rect& aRightEyeRect) {
   if (!mPresentingContext) {
     GVR_LOG("Unable to submit frame. No presenting context")
     return false;
@@ -292,12 +284,15 @@ VRDisplayGVR::SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor
   EGLSync sync = (EGLSync)aDescriptor->fence();
   gfx::IntSize size = aDescriptor->size();
   MOZ_ASSERT(mSwapChain);
-  GVR_CHECK(gvr_get_recommended_buffer_viewports(mPresentingContext, mViewportList));
-  if ((size.width != mFrameBufferSize.width) || (size.height != mFrameBufferSize.height)) {
+  GVR_CHECK(
+      gvr_get_recommended_buffer_viewports(mPresentingContext, mViewportList));
+  if ((size.width != mFrameBufferSize.width) ||
+      (size.height != mFrameBufferSize.height)) {
     mFrameBufferSize.width = size.width;
     mFrameBufferSize.height = size.height;
     GVR_CHECK(gvr_swap_chain_resize_buffer(mSwapChain, 0, mFrameBufferSize));
-    GVR_LOG("Resize Swap Chain %d,%d", mFrameBufferSize.width, mFrameBufferSize.height);
+    GVR_LOG("Resize Swap Chain %d,%d", mFrameBufferSize.width,
+            mFrameBufferSize.height);
   }
   gvr_frame* frame = GVR_CHECK(gvr_swap_chain_acquire_frame(mSwapChain));
   if (!frame) {
@@ -314,12 +309,14 @@ VRDisplayGVR::SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor
 
   if (sync) {
     MOZ_ASSERT(sEGLLibrary.IsExtensionSupported(GLLibraryEGL::KHR_fence_sync));
-    status = sEGLLibrary.fClientWaitSync(EGL_DISPLAY(), sync, 0, LOCAL_EGL_FOREVER);
+    status =
+        sEGLLibrary.fClientWaitSync(EGL_DISPLAY(), sync, 0, LOCAL_EGL_FOREVER);
   }
 
   if (status != LOCAL_EGL_CONDITION_SATISFIED) {
-    MOZ_ASSERT(status != 0,
-               "ClientWaitSync generated an error. Has sync already been destroyed?");
+    MOZ_ASSERT(
+        status != 0,
+        "ClientWaitSync generated an error. Has sync already been destroyed?");
     return false;
   }
 
@@ -331,7 +328,9 @@ VRDisplayGVR::SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor
     sGLContextEGL->fBindTexture(LOCAL_GL_TEXTURE_2D, tex);
     sGLContextEGL->TexParams_SetClampNoMips();
     sGLContextEGL->fEGLImageTargetTexture2D(LOCAL_GL_TEXTURE_2D, image);
-    sGLContextEGL->BlitHelper()->DrawBlitTextureToFramebuffer(tex, gfx::IntSize(size.width, size.height), gfx::IntSize(mFrameBufferSize.width,  mFrameBufferSize.height));
+    sGLContextEGL->BlitHelper()->DrawBlitTextureToFramebuffer(
+        tex, gfx::IntSize(size.width, size.height),
+        gfx::IntSize(mFrameBufferSize.width, mFrameBufferSize.height));
     sGLContextEGL->fDeleteTextures(1, &tex);
   } else {
     GVR_LOG("Unable to submit frame. Unable to extract EGLImage");
@@ -342,9 +341,7 @@ VRDisplayGVR::SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor
   return true;
 }
 
-static void
-FillMatrix(gfx::Matrix4x4 &target, const gvr_mat4f& source)
-{
+static void FillMatrix(gfx::Matrix4x4& target, const gvr_mat4f& source) {
   target._11 = source.m[0][0];
   target._12 = source.m[0][1];
   target._13 = source.m[0][2];
@@ -363,12 +360,11 @@ FillMatrix(gfx::Matrix4x4 &target, const gvr_mat4f& source)
   target._44 = source.m[3][3];
 }
 
-VRHMDSensorState
-VRDisplayGVR::GetSensorState()
-{
+VRHMDSensorState VRDisplayGVR::GetSensorState() {
   VRHMDSensorState result{};
 
-  gvr_context* context = (mPresentingContext ? mPresentingContext : GetNonPresentingContext());
+  gvr_context* context =
+      (mPresentingContext ? mPresentingContext : GetNonPresentingContext());
 
   if (!context) {
     GVR_LOG("Unable to get sensor state. Context is null");
@@ -381,8 +377,10 @@ VRDisplayGVR::GetSensorState()
     // prediction.
     when.monotonic_system_time_nanos += 50000000;
   }
-  mHeadMatrix = GVR_CHECK(gvr_get_head_space_from_start_space_rotation(context, when));
-  gvr_mat4f neck = GVR_CHECK(gvr_apply_neck_model(context, mHeadMatrix, 1.0));;
+  mHeadMatrix =
+      GVR_CHECK(gvr_get_head_space_from_start_space_rotation(context, when));
+  gvr_mat4f neck = GVR_CHECK(gvr_apply_neck_model(context, mHeadMatrix, 1.0));
+  ;
 
   gfx::Matrix4x4 m;
 
@@ -414,9 +412,7 @@ VRDisplayGVR::GetSensorState()
   return result;
 }
 
-void
-VRDisplayGVR::SetPaused(const bool aPaused)
-{
+void VRDisplayGVR::SetPaused(const bool aPaused) {
   if (aPaused) {
     if (mPresentingContext) {
       GVR_CHECK(gvr_pause_tracking(mPresentingContext));
@@ -441,9 +437,7 @@ VRDisplayGVR::SetPaused(const bool aPaused)
   }
 }
 
-void
-VRDisplayGVR::SetPresentingContext(void* aGVRPresentingContext)
-{
+void VRDisplayGVR::SetPresentingContext(void* aGVRPresentingContext) {
   MOZ_ASSERT(sGLContextEGL);
   sGLContextEGL->MakeCurrent();
   mPresentingContext = (gvr_context*)aGVRPresentingContext;
@@ -451,24 +445,22 @@ VRDisplayGVR::SetPresentingContext(void* aGVRPresentingContext)
     GVR_CHECK(gvr_initialize_gl(mPresentingContext));
     RecreateSwapChain();
   } else {
-
     if (mSwapChain) {
       // gvr_swap_chain_destroy will set the pointer to null
       GVR_CHECK(gvr_swap_chain_destroy(&mSwapChain));
       MOZ_ASSERT(!mSwapChain);
     }
 
-    // The presentation context has been destroy, probably by the user so increment the presenting
-    // generation if we are presenting so that the DOM knows to end the current presentation.
+    // The presentation context has been destroy, probably by the user so
+    // increment the presenting generation if we are presenting so that the DOM
+    // knows to end the current presentation.
     if (mIsPresenting) {
       mDisplayInfo.mPresentingGeneration++;
     }
   }
 }
 
-void
-VRDisplayGVR::UpdateHeadToEye(gvr_context* aContext)
-{
+void VRDisplayGVR::UpdateHeadToEye(gvr_context* aContext) {
   if (!aContext) {
     return;
   }
@@ -483,10 +475,9 @@ VRDisplayGVR::UpdateHeadToEye(gvr_context* aContext)
   }
 }
 
-void
-VRDisplayGVR::UpdateViewport()
-{
-  gvr_context* context = (mPresentingContext ? mPresentingContext : GetNonPresentingContext());
+void VRDisplayGVR::UpdateViewport() {
+  gvr_context* context =
+      (mPresentingContext ? mPresentingContext : GetNonPresentingContext());
 
   if (!context) {
     return;
@@ -494,26 +485,31 @@ VRDisplayGVR::UpdateViewport()
 
   GVR_CHECK(gvr_get_recommended_buffer_viewports(context, mViewportList));
   GVR_CHECK(gvr_buffer_viewport_list_get_item(mViewportList, 0, mLeftViewport));
-  GVR_CHECK(gvr_buffer_viewport_list_get_item(mViewportList, 1, mRightViewport));
+  GVR_CHECK(
+      gvr_buffer_viewport_list_get_item(mViewportList, 1, mRightViewport));
 
   gvr_rectf fov = GVR_CHECK(gvr_buffer_viewport_get_source_fov(mLeftViewport));
-  mDisplayInfo.mEyeFOV[VRDisplayInfo::Eye_Left] = VRFieldOfView(fov.top, fov.right, fov.bottom, fov.left);
-  GVR_LOG("FOV:L top:%f right:%f bottom:%f left:%f",(float)fov.top, (float)fov.left, (float)fov.bottom, (float)fov.right);
+  mDisplayInfo.mEyeFOV[VRDisplayInfo::Eye_Left] =
+      VRFieldOfView(fov.top, fov.right, fov.bottom, fov.left);
+  GVR_LOG("FOV:L top:%f right:%f bottom:%f left:%f", (float)fov.top,
+          (float)fov.left, (float)fov.bottom, (float)fov.right);
 
   fov = GVR_CHECK(gvr_buffer_viewport_get_source_fov(mRightViewport));
-  mDisplayInfo.mEyeFOV[VRDisplayInfo::Eye_Right] = VRFieldOfView(fov.top, fov.right, fov.bottom, fov.left);
-  GVR_LOG("FOV:R top:%f right:%f bottom:%f left:%f",(float)fov.top, (float)fov.left, (float)fov.bottom, (float)fov.right);
+  mDisplayInfo.mEyeFOV[VRDisplayInfo::Eye_Right] =
+      VRFieldOfView(fov.top, fov.right, fov.bottom, fov.left);
+  GVR_LOG("FOV:R top:%f right:%f bottom:%f left:%f", (float)fov.top,
+          (float)fov.left, (float)fov.bottom, (float)fov.right);
 
-  gvr_sizei size = GVR_CHECK(gvr_get_maximum_effective_render_target_size(context));
+  gvr_sizei size =
+      GVR_CHECK(gvr_get_maximum_effective_render_target_size(context));
   mDisplayInfo.mEyeResolution = IntSize(size.width / 2, size.height);
-  GVR_LOG("Eye Resolution: %dx%d",mDisplayInfo.mEyeResolution.width,mDisplayInfo.mEyeResolution.height);
+  GVR_LOG("Eye Resolution: %dx%d", mDisplayInfo.mEyeResolution.width,
+          mDisplayInfo.mEyeResolution.height);
 
   UpdateHeadToEye(context);
 }
 
-void
-VRDisplayGVR::RecreateSwapChain()
-{
+void VRDisplayGVR::RecreateSwapChain() {
   MOZ_ASSERT(sGLContextEGL);
   sGLContextEGL->MakeCurrent();
   if (mSwapChain) {
@@ -522,20 +518,23 @@ VRDisplayGVR::RecreateSwapChain()
     MOZ_ASSERT(!mSwapChain);
   }
   gvr_buffer_spec* spec = GVR_CHECK(gvr_buffer_spec_create(mPresentingContext));
-  mFrameBufferSize = GVR_CHECK(gvr_get_maximum_effective_render_target_size(mPresentingContext));
+  mFrameBufferSize = GVR_CHECK(
+      gvr_get_maximum_effective_render_target_size(mPresentingContext));
   GVR_CHECK(gvr_buffer_spec_set_size(spec, mFrameBufferSize));
   GVR_CHECK(gvr_buffer_spec_set_samples(spec, 0));
   GVR_CHECK(gvr_buffer_spec_set_color_format(spec, GVR_COLOR_FORMAT_RGBA_8888));
-  GVR_CHECK(gvr_buffer_spec_set_depth_stencil_format(spec, GVR_DEPTH_STENCIL_FORMAT_NONE));
-  mSwapChain = GVR_CHECK(gvr_swap_chain_create(mPresentingContext, (const gvr_buffer_spec**)&spec, 1));
+  GVR_CHECK(gvr_buffer_spec_set_depth_stencil_format(
+      spec, GVR_DEPTH_STENCIL_FORMAT_NONE));
+  mSwapChain = GVR_CHECK(gvr_swap_chain_create(
+      mPresentingContext, (const gvr_buffer_spec**)&spec, 1));
   GVR_CHECK(gvr_buffer_spec_destroy(&spec));
 }
 
-void
-VRDisplayGVR::EnableControllers(const bool aEnable, VRSystemManager* aManager)
-{
+void VRDisplayGVR::EnableControllers(const bool aEnable,
+                                     VRSystemManager* aManager) {
   if (aEnable && !mControllerAdded) {
-    // Sometimes the gamepad doesn't get removed cleanly so just try to remove it before adding it.
+    // Sometimes the gamepad doesn't get removed cleanly so just try to remove
+    // it before adding it.
     aManager->RemoveGamepad(mController->GetControllerInfo().mControllerID);
     aManager->AddGamepad(mController->GetControllerInfo());
     mControllerAdded = true;
@@ -560,8 +559,10 @@ VRDisplayGVR::EnableControllers(const bool aEnable, VRSystemManager* aManager)
   if (aEnable) {
     if (!mControllerContext) {
       int32_t options = GVR_CHECK(gvr_controller_get_default_options());
-      options |= GVR_CONTROLLER_ENABLE_GYRO | GVR_CONTROLLER_ENABLE_ACCEL | GVR_CONTROLLER_ENABLE_ARM_MODEL;
-      mControllerContext = GVR_CHECK(gvr_controller_create_and_init(options, context));
+      options |= GVR_CONTROLLER_ENABLE_GYRO | GVR_CONTROLLER_ENABLE_ACCEL |
+                 GVR_CONTROLLER_ENABLE_ARM_MODEL;
+      mControllerContext =
+          GVR_CHECK(gvr_controller_create_and_init(options, context));
       GVR_CHECK(gvr_controller_resume(mControllerContext));
     }
     if (!mControllerState) {
@@ -573,48 +574,50 @@ VRDisplayGVR::EnableControllers(const bool aEnable, VRSystemManager* aManager)
   }
 }
 
-void
-VRDisplayGVR::UpdateControllers(VRSystemManager* aManager)
-{
+void VRDisplayGVR::UpdateControllers(VRSystemManager* aManager) {
   if (!mControllerContext) {
     return;
   }
 
-  GVR_CHECK(gvr_controller_apply_arm_model(mControllerContext, 0, mController->GetHand() == dom::GamepadHand::Right ? GVR_CONTROLLER_RIGHT_HANDED : GVR_CONTROLLER_LEFT_HANDED, GVR_ARM_MODEL_FOLLOW_GAZE, mHeadMatrix));
-  GVR_CHECK(gvr_controller_state_update(mControllerContext, 0, mControllerState));
+  GVR_CHECK(gvr_controller_apply_arm_model(
+      mControllerContext, 0,
+      mController->GetHand() == dom::GamepadHand::Right
+          ? GVR_CONTROLLER_RIGHT_HANDED
+          : GVR_CONTROLLER_LEFT_HANDED,
+      GVR_ARM_MODEL_FOLLOW_GAZE, mHeadMatrix));
+  GVR_CHECK(
+      gvr_controller_state_update(mControllerContext, 0, mControllerState));
   mController->Update(mControllerState, aManager);
 }
 
-
-void
-VRDisplayGVR::GetControllers(nsTArray<RefPtr<VRControllerHost> >& aControllerResult)
-{
+void VRDisplayGVR::GetControllers(
+    nsTArray<RefPtr<VRControllerHost>>& aControllerResult) {
   aControllerResult.AppendElement(mController.get());
 }
 
 VRControllerGVR::VRControllerGVR(dom::GamepadHand aHand, uint32_t aDisplayID)
-  : VRControllerHost(VRDeviceType::GVR, aHand, aDisplayID)
-{
+    : VRControllerHost(VRDeviceType::GVR, aHand, aDisplayID) {
   MOZ_COUNT_CTOR_INHERITED(VRControllerGVR, VRControllerHost);
   mControllerInfo.mControllerName.AssignLiteral("Daydream Controller");
-  // The gvr_controller_button enum starts with GVR_CONTROLLER_BUTTON_NONE at index zero
-  // so the GVR controller has one less button than GVR_CONTROLLER_BUTTON_COUNT specifies.
-  mControllerInfo.mNumButtons = GVR_CONTROLLER_BUTTON_COUNT - 1; // Skip dummy none button
+  // The gvr_controller_button enum starts with GVR_CONTROLLER_BUTTON_NONE at
+  // index zero so the GVR controller has one less button than
+  // GVR_CONTROLLER_BUTTON_COUNT specifies.
+  mControllerInfo.mNumButtons =
+      GVR_CONTROLLER_BUTTON_COUNT - 1;  // Skip dummy none button
   mControllerInfo.mNumAxes = 2;
   mControllerInfo.mNumHaptics = 0;
 }
 
-VRControllerGVR::~VRControllerGVR()
-{
+VRControllerGVR::~VRControllerGVR() {
   MOZ_COUNT_DTOR_INHERITED(VRControllerGVR, VRControllerHost);
 }
 
-void
-VRControllerGVR::Update(gvr_controller_state* aState, VRSystemManager* aManager)
-{
+void VRControllerGVR::Update(gvr_controller_state* aState,
+                             VRSystemManager* aManager) {
   mPose.Clear();
 
-  if (gvr_controller_state_get_connection_state(aState) != GVR_CONTROLLER_CONNECTED) {
+  if (gvr_controller_state_get_connection_state(aState) !=
+      GVR_CONTROLLER_CONNECTED) {
     return;
   }
   const uint64_t previousPressMask = GetButtonPressed();
@@ -627,16 +630,16 @@ VRControllerGVR::Update(gvr_controller_state* aState, VRSystemManager* aManager)
     bool pressed = gvr_controller_state_get_button_state(aState, ix);
     bool touched = pressed;
     if (ix == GVR_CONTROLLER_BUTTON_CLICK) {
-       touched = gvr_controller_state_is_touching(aState);
-       double xAxis = 0.0;
-       double yAxis = 0.0;
-       if (touched) {
-         gvr_vec2f axes = gvr_controller_state_get_touch_pos(aState);
-         xAxis = (axes.x * 2.0) - 1.0;
-         yAxis = (axes.y * 2.0) - 1.0;
-       }
-       aManager->NewAxisMove(0, 0, xAxis);
-       aManager->NewAxisMove(0, 1, yAxis);
+      touched = gvr_controller_state_is_touching(aState);
+      double xAxis = 0.0;
+      double yAxis = 0.0;
+      if (touched) {
+        gvr_vec2f axes = gvr_controller_state_get_touch_pos(aState);
+        xAxis = (axes.x * 2.0) - 1.0;
+        yAxis = (axes.y * 2.0) - 1.0;
+      }
+      aManager->NewAxisMove(0, 0, xAxis);
+      aManager->NewAxisMove(0, 1, yAxis);
     }
     if (pressed) {
       currentPressMask |= buttonMask;
@@ -646,13 +649,16 @@ VRControllerGVR::Update(gvr_controller_state* aState, VRSystemManager* aManager)
     }
     if (((currentPressMask & buttonMask) ^ (previousPressMask & buttonMask)) ||
         ((currentTouchMask & buttonMask) ^ (previousTouchMask & buttonMask))) {
-      aManager->NewButtonEvent(0, ix - 1, pressed, touched, pressed ? 1.0 : 0.0);
+      aManager->NewButtonEvent(0, ix - 1, pressed, touched,
+                               pressed ? 1.0 : 0.0);
     }
   }
   SetButtonPressed(currentPressMask);
   SetButtonTouched(currentTouchMask);
 
-  mPose.flags = dom::GamepadCapabilityFlags::Cap_Orientation | dom::GamepadCapabilityFlags::Cap_Position | dom::GamepadCapabilityFlags::Cap_LinearAcceleration;
+  mPose.flags = dom::GamepadCapabilityFlags::Cap_Orientation |
+                dom::GamepadCapabilityFlags::Cap_Position |
+                dom::GamepadCapabilityFlags::Cap_LinearAcceleration;
 
   gvr_quatf ori = gvr_controller_state_get_orientation(aState);
   mPose.orientation[0] = ori.qx;
@@ -671,7 +677,7 @@ VRControllerGVR::Update(gvr_controller_state* aState, VRSystemManager* aManager)
   mPose.angularVelocity[1] = vel.y;
   mPose.angularVelocity[2] = vel.z;
 
-  gvr_vec3f pos =  gvr_controller_state_get_position(aState);
+  gvr_vec3f pos = gvr_controller_state_get_position(aState);
   mPose.position[0] = pos.x;
   mPose.position[1] = pos.y;
   mPose.position[2] = pos.z;
@@ -679,9 +685,7 @@ VRControllerGVR::Update(gvr_controller_state* aState, VRSystemManager* aManager)
   aManager->NewPoseState(0, mPose);
 }
 
-/*static*/ already_AddRefed<VRSystemManagerGVR>
-VRSystemManagerGVR::Create()
-{
+/*static*/ already_AddRefed<VRSystemManagerGVR> VRSystemManagerGVR::Create() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!gfxPrefs::VREnabled()) {
@@ -692,21 +696,11 @@ VRSystemManagerGVR::Create()
   return manager.forget();
 }
 
-void
-VRSystemManagerGVR::Destroy()
-{
+void VRSystemManagerGVR::Destroy() {}
 
-}
+void VRSystemManagerGVR::Shutdown() {}
 
-void
-VRSystemManagerGVR::Shutdown()
-{
-
-}
-
-void
-VRSystemManagerGVR::Enumerate()
-{
+void VRSystemManagerGVR::Enumerate() {
   if (!GeckoVRManager::IsGVRPresent()) {
     return;
   }
@@ -716,9 +710,7 @@ VRSystemManagerGVR::Enumerate()
   }
 }
 
-bool
-VRSystemManagerGVR::ShouldInhibitEnumeration()
-{
+bool VRSystemManagerGVR::ShouldInhibitEnumeration() {
   if (VRSystemManager::ShouldInhibitEnumeration()) {
     return true;
   }
@@ -732,17 +724,13 @@ VRSystemManagerGVR::ShouldInhibitEnumeration()
   return false;
 }
 
-void
-VRSystemManagerGVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult)
-{
+void VRSystemManagerGVR::GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult) {
   if (mGVRHMD) {
     aHMDResult.AppendElement(mGVRHMD);
   }
 }
 
-bool
-VRSystemManagerGVR::GetIsPresenting()
-{
+bool VRSystemManagerGVR::GetIsPresenting() {
   if (!mGVRHMD) {
     return false;
   }
@@ -751,62 +739,38 @@ VRSystemManagerGVR::GetIsPresenting()
   return displayInfo.GetPresentingGroups() != kVRGroupNone;
 }
 
-void
-VRSystemManagerGVR::HandleInput()
-{
+void VRSystemManagerGVR::HandleInput() {
   if (mGVRHMD) {
     mGVRHMD->UpdateControllers(this);
   }
 }
 
-void
-VRSystemManagerGVR::GetControllers(nsTArray<RefPtr<VRControllerHost>>& aControllerResult)
-{
+void VRSystemManagerGVR::GetControllers(
+    nsTArray<RefPtr<VRControllerHost>>& aControllerResult) {
   if (mGVRHMD) {
     mGVRHMD->GetControllers(aControllerResult);
   }
 }
 
-void
-VRSystemManagerGVR::ScanForControllers()
-{
+void VRSystemManagerGVR::ScanForControllers() {
   if (mGVRHMD) {
     mGVRHMD->EnableControllers(true, this);
   }
 }
 
-void
-VRSystemManagerGVR::RemoveControllers()
-{
+void VRSystemManagerGVR::RemoveControllers() {
   if (mGVRHMD) {
     mGVRHMD->EnableControllers(false, this);
   }
 }
 
-void
-VRSystemManagerGVR::VibrateHaptic(uint32_t aControllerIdx,
-                                  uint32_t aHapticIndex,
-                                  double aIntensity,
-                                  double aDuration,
-                                  const VRManagerPromise& aPromise)
-{
+void VRSystemManagerGVR::VibrateHaptic(uint32_t aControllerIdx,
+                                       uint32_t aHapticIndex, double aIntensity,
+                                       double aDuration,
+                                       const VRManagerPromise& aPromise) {}
 
-}
+void VRSystemManagerGVR::StopVibrateHaptic(uint32_t aControllerIdx) {}
 
-void
-VRSystemManagerGVR::StopVibrateHaptic(uint32_t aControllerIdx)
-{
+VRSystemManagerGVR::VRSystemManagerGVR() : mGVRHMD(nullptr) {}
 
-}
-
-VRSystemManagerGVR::VRSystemManagerGVR()
-  : mGVRHMD(nullptr)
-{
-
-}
-
-VRSystemManagerGVR::~VRSystemManagerGVR()
-{
-
-}
-
+VRSystemManagerGVR::~VRSystemManagerGVR() {}

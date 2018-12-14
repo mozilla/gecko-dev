@@ -48,29 +48,29 @@ enum class CommandType : int8_t {
   BLUR
 };
 
-class DrawingCommand
-{
-public:
+class DrawingCommand {
+ public:
   virtual ~DrawingCommand() {}
 
-  virtual void ExecuteOnDT(DrawTarget* aDT, const Matrix* aTransform = nullptr) const = 0;
-  virtual bool GetAffectedRect(Rect& aDeviceRect, const Matrix& aTransform) const { return false; }
+  virtual void ExecuteOnDT(DrawTarget* aDT,
+                           const Matrix* aTransform = nullptr) const = 0;
+  virtual bool GetAffectedRect(Rect& aDeviceRect,
+                               const Matrix& aTransform) const {
+    return false;
+  }
   virtual void CloneInto(CaptureCommandList* aList) = 0;
   virtual void Log(TreeLog& aLog) const = 0;
 
   CommandType GetType() { return mType; }
 
-protected:
-  explicit DrawingCommand(CommandType aType)
-    : mType(aType)
-  {
-  }
+ protected:
+  explicit DrawingCommand(CommandType aType) : mType(aType) {}
 
-private:
+ private:
   CommandType mType;
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_DRAWCOMMAND_H_ */

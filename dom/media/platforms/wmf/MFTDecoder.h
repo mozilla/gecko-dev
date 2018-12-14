@@ -14,11 +14,10 @@
 
 namespace mozilla {
 
-class MFTDecoder final
-{
+class MFTDecoder final {
   ~MFTDecoder();
 
-public:
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MFTDecoder)
 
   MFTDecoder();
@@ -40,8 +39,7 @@ public:
   //    of all the available output types of the MFT.
   typedef HRESULT (*ConfigureOutputCallback)(IMFMediaType* aOutputType,
                                              void* aData);
-  HRESULT SetMediaTypes(IMFMediaType* aInputType,
-                        IMFMediaType* aOutputType,
+  HRESULT SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType,
                         ConfigureOutputCallback aCallback = nullptr,
                         void* aData = nullptr);
 
@@ -57,13 +55,11 @@ public:
   // Returns:
   //  - MF_E_NOTACCEPTING if the decoder can't accept input. The data
   //    must be resubmitted after Output() stops producing output.
-  HRESULT Input(const uint8_t* aData,
-                uint32_t aDataSize,
+  HRESULT Input(const uint8_t* aData, uint32_t aDataSize,
                 int64_t aTimestampUsecs);
   HRESULT Input(IMFSample* aSample);
 
-  HRESULT CreateInputSample(const uint8_t* aData,
-                            uint32_t aDataSize,
+  HRESULT CreateInputSample(const uint8_t* aData, uint32_t aDataSize,
                             int64_t aTimestampUsecs,
                             RefPtr<IMFSample>* aOutSample);
 
@@ -89,9 +85,9 @@ public:
   HRESULT SendMFTMessage(MFT_MESSAGE_TYPE aMsg, ULONG_PTR aData);
 
   HRESULT SetDecoderOutputType(bool aMatchAllAttributes,
-                               ConfigureOutputCallback aCallback,
-                               void* aData);
-private:
+                               ConfigureOutputCallback aCallback, void* aData);
+
+ private:
   HRESULT CreateOutputSample(RefPtr<IMFSample>* aOutSample);
 
   MFT_INPUT_STREAM_INFO mInputStreamInfo;
@@ -108,6 +104,6 @@ private:
   bool mDiscontinuity = true;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

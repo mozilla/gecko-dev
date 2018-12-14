@@ -15,14 +15,9 @@ namespace lsb {
 
 static const char* gLsbReleasePath = "/usr/bin/lsb_release";
 
-bool
-GetLSBRelease(nsACString& aDistributor,
-              nsACString& aDescription,
-              nsACString& aRelease,
-              nsACString& aCodename)
-{
-  if (access(gLsbReleasePath, R_OK) != 0)
-    return false;
+bool GetLSBRelease(nsACString& aDistributor, nsACString& aDescription,
+                   nsACString& aRelease, nsACString& aCodename) {
+  if (access(gLsbReleasePath, R_OK) != 0) return false;
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {
@@ -30,12 +25,10 @@ GetLSBRelease(nsACString& aDistributor,
     return false;
   }
 
-  std::vector<std::string> argv = {
-    gLsbReleasePath, "-idrc"
-  };
+  std::vector<std::string> argv = {gLsbReleasePath, "-idrc"};
 
   base::LaunchOptions options;
-  options.fds_to_remap.push_back({ pipefd[1], STDOUT_FILENO });
+  options.fds_to_remap.push_back({pipefd[1], STDOUT_FILENO});
   options.wait = true;
 
   base::ProcessHandle process;
@@ -55,12 +48,12 @@ GetLSBRelease(nsACString& aDistributor,
   }
 
   char dist[256], desc[256], release[256], codename[256];
-  if (fscanf(stream, "Distributor ID:\t%255[^\n]\n"
-                     "Description:\t%255[^\n]\n"
-                     "Release:\t%255[^\n]\n"
-                     "Codename:\t%255[^\n]\n",
-             dist, desc, release, codename) != 4)
-  {
+  if (fscanf(stream,
+             "Distributor ID:\t%255[^\n]\n"
+             "Description:\t%255[^\n]\n"
+             "Release:\t%255[^\n]\n"
+             "Codename:\t%255[^\n]\n",
+             dist, desc, release, codename) != 4) {
     NS_WARNING("Failed to parse lsb_release!");
     fclose(stream);
     close(pipefd[0]);

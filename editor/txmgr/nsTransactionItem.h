@@ -16,15 +16,13 @@ class nsITransaction;
 class nsTransactionManager;
 class nsTransactionStack;
 
-class nsTransactionItem final
-{
-  nsCOMArray<nsISupports>  mData;
+class nsTransactionItem final {
+  nsCOMArray<nsISupports> mData;
   nsCOMPtr<nsITransaction> mTransaction;
-  nsTransactionStack      *mUndoStack;
-  nsTransactionStack      *mRedoStack;
+  nsTransactionStack *mUndoStack;
+  nsTransactionStack *mRedoStack;
 
-public:
-
+ public:
   explicit nsTransactionItem(nsITransaction *aTransaction);
   NS_METHOD_(MozExternalRefCountType) AddRef();
   NS_METHOD_(MozExternalRefCountType) Release();
@@ -41,13 +39,9 @@ public:
   virtual nsresult UndoTransaction(nsTransactionManager *aTxMgr);
   virtual nsresult RedoTransaction(nsTransactionManager *aTxMgr);
 
-  nsCOMArray<nsISupports>& GetData()
-  {
-    return mData;
-  }
+  nsCOMArray<nsISupports> &GetData() { return mData; }
 
-private:
-
+ private:
   virtual nsresult UndoChildren(nsTransactionManager *aTxMgr);
   virtual nsresult RedoChildren(nsTransactionManager *aTxMgr);
 
@@ -58,11 +52,12 @@ private:
   virtual nsresult GetNumberOfRedoItems(int32_t *aNumItems);
 
   void CleanUp();
-protected:
+
+ protected:
   virtual ~nsTransactionItem();
 
   nsCycleCollectingAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 };
 
-#endif // nsTransactionItem_h__
+#endif  // nsTransactionItem_h__

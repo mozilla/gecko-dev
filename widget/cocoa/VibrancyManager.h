@@ -45,7 +45,7 @@ enum class VibrancyType {
  * the window is declared as opaque.
  */
 class VibrancyManager {
-public:
+ public:
   /**
    * Create a new VibrancyManager instance and provide it with an NSView
    * to attach NSVisualEffectViews to.
@@ -58,9 +58,8 @@ public:
    */
   VibrancyManager(const nsChildView& aCoordinateConverter,
                   NSView* aContainerView)
-    : mCoordinateConverter(aCoordinateConverter)
-    , mContainerView(aContainerView)
-  {
+      : mCoordinateConverter(aCoordinateConverter),
+        mContainerView(aContainerView) {
     MOZ_ASSERT(SystemSupportsVibrancy(),
                "Don't instantiate this if !SystemSupportsVibrancy()");
   }
@@ -112,7 +111,7 @@ public:
    */
   static NSView* CreateEffectView(VibrancyType aType, BOOL aIsContainer = NO);
 
-protected:
+ protected:
   void ClearVibrantRegion(const LayoutDeviceIntRegion& aVibrantRegion) const;
 
   const nsChildView& mCoordinateConverter;
@@ -120,6 +119,6 @@ protected:
   nsClassHashtable<nsUint32HashKey, ViewRegion> mVibrantRegions;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // VibrancyManager_h
+#endif  // VibrancyManager_h

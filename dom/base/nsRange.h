@@ -35,15 +35,14 @@ class DOMRect;
 class DOMRectList;
 class InspectorFontFace;
 class Selection;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 class nsRange final : public nsIDOMRange,
                       public nsStubMutationObserver,
                       public nsWrapperCache,
                       // For linking together selection-associated ranges.
-                      public mozilla::LinkedListElement<nsRange>
-{
+                      public mozilla::LinkedListElement<nsRange> {
   typedef mozilla::ErrorResult ErrorResult;
   typedef mozilla::dom::DocGroup DocGroup;
   typedef mozilla::dom::DOMRect DOMRect;
@@ -53,91 +52,54 @@ class nsRange final : public nsIDOMRange,
 
   virtual ~nsRange();
 
-public:
+ public:
   explicit nsRange(nsINode* aNode);
 
   static nsresult CreateRange(nsIDOMNode* aStartContainer,
-                              uint32_t aStartOffset,
-                              nsIDOMNode* aEndContainer,
-                              uint32_t aEndOffset,
-                              nsRange** aRange);
+                              uint32_t aStartOffset, nsIDOMNode* aEndContainer,
+                              uint32_t aEndOffset, nsRange** aRange);
   static nsresult CreateRange(nsIDOMNode* aStartContainer,
-                              uint32_t aStartOffset,
-                              nsIDOMNode* aEndContainer,
-                              uint32_t aEndOffset,
-                              nsIDOMRange** aRange);
-  static nsresult CreateRange(nsINode* aStartContainer,
-                              uint32_t aStartOffset,
-                              nsINode* aEndContainer,
-                              uint32_t aEndOffset,
+                              uint32_t aStartOffset, nsIDOMNode* aEndContainer,
+                              uint32_t aEndOffset, nsIDOMRange** aRange);
+  static nsresult CreateRange(nsINode* aStartContainer, uint32_t aStartOffset,
+                              nsINode* aEndContainer, uint32_t aEndOffset,
                               nsRange** aRange);
   static nsresult CreateRange(const RawRangeBoundary& aStart,
-                              const RawRangeBoundary& aEnd,
-                              nsRange** aRange);
+                              const RawRangeBoundary& aEnd, nsRange** aRange);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsRange, nsIDOMRange)
 
-  nsrefcnt GetRefCount() const
-  {
-    return mRefCnt;
-  }
+  nsrefcnt GetRefCount() const { return mRefCnt; }
 
   // nsIDOMRange interface
   NS_DECL_NSIDOMRANGE
 
-  nsINode* GetRoot() const
-  {
-    return mRoot;
-  }
+  nsINode* GetRoot() const { return mRoot; }
 
-  const RangeBoundary& StartRef() const
-  {
-    return mStart;
-  }
+  const RangeBoundary& StartRef() const { return mStart; }
 
-  nsINode* GetStartContainer() const
-  {
-    return mStart.Container();
-  }
+  nsINode* GetStartContainer() const { return mStart.Container(); }
 
-  const RangeBoundary& EndRef() const
-  {
-    return mEnd;
-  }
+  const RangeBoundary& EndRef() const { return mEnd; }
 
-  nsINode* GetEndContainer() const
-  {
-    return mEnd.Container();
-  }
+  nsINode* GetEndContainer() const { return mEnd.Container(); }
 
-  uint32_t StartOffset() const
-  {
+  uint32_t StartOffset() const {
     return static_cast<uint32_t>(mStart.Offset());
   }
 
-  uint32_t EndOffset() const
-  {
-    return static_cast<uint32_t>(mEnd.Offset());
-  }
+  uint32_t EndOffset() const { return static_cast<uint32_t>(mEnd.Offset()); }
 
-  nsIContent* GetChildAtStartOffset() const
-  {
+  nsIContent* GetChildAtStartOffset() const {
     return mStart.GetChildAtOffset();
   }
 
-  nsIContent* GetChildAtEndOffset() const
-  {
-    return mEnd.GetChildAtOffset();
-  }
+  nsIContent* GetChildAtEndOffset() const { return mEnd.GetChildAtOffset(); }
 
-  bool IsPositioned() const
-  {
-    return mIsPositioned;
-  }
+  bool IsPositioned() const { return mIsPositioned; }
 
-  void SetMaySpanAnonymousSubtrees(bool aMaySpanAnonymousSubtrees)
-  {
+  void SetMaySpanAnonymousSubtrees(bool aMaySpanAnonymousSubtrees) {
     mMaySpanAnonymousSubtrees = aMaySpanAnonymousSubtrees;
   }
 
@@ -145,10 +107,7 @@ public:
    * Return true iff this range is part of a Selection object
    * and isn't detached.
    */
-  bool IsInSelection() const
-  {
-    return !!mSelection;
-  }
+  bool IsInSelection() const { return !!mSelection; }
 
   /**
    * Called when the range is added/removed from a Selection.
@@ -159,10 +118,7 @@ public:
    * Return true if this range was generated.
    * @see SetIsGenerated
    */
-  bool IsGenerated() const
-  {
-    return mIsGenerated;
-  }
+  bool IsGenerated() const { return mIsGenerated; }
 
   /**
    * Mark this range as being generated or not.
@@ -171,10 +127,7 @@ public:
    * @see Selection::AddItem
    * @see ExcludeNonSelectableNodes
    */
-  void SetIsGenerated(bool aIsGenerated)
-  {
-    mIsGenerated = aIsGenerated;
-  }
+  void SetIsGenerated(bool aIsGenerated) { mIsGenerated = aIsGenerated; }
 
   nsINode* GetCommonAncestor() const;
   void Reset();
@@ -185,14 +138,12 @@ public:
    * When you set both start and end of a range, you should use
    * SetStartAndEnd() instead.
    */
-  nsresult SetStart(nsINode* aContainer, uint32_t aOffset)
-  {
+  nsresult SetStart(nsINode* aContainer, uint32_t aOffset) {
     ErrorResult error;
     SetStart(RawRangeBoundary(aContainer, aOffset), error);
     return error.StealNSResult();
   }
-  nsresult SetEnd(nsINode* aContainer, uint32_t aOffset)
-  {
+  nsresult SetEnd(nsINode* aContainer, uint32_t aOffset) {
     ErrorResult error;
     SetEnd(RawRangeBoundary(aContainer, aOffset), error);
     return error.StealNSResult();
@@ -209,8 +160,7 @@ public:
    * the range will be collapsed at the end point.
    */
   nsresult SetStartAndEnd(nsINode* aStartContainer, uint32_t aStartOffset,
-                          nsINode* aEndContainer, uint32_t aEndOffset)
-  {
+                          nsINode* aEndContainer, uint32_t aEndOffset) {
     return SetStartAndEnd(RawRangeBoundary(aStartContainer, aStartOffset),
                           RawRangeBoundary(aEndContainer, aEndOffset));
   }
@@ -225,22 +175,18 @@ public:
    * Caller must guarantee both nodes are non null and
    * children of |aContainer| and that |aEndContent| is after |aStartContent|.
    */
-  void
-  SelectNodesInContainer(nsINode* aContainer,
-                         nsIContent* aStartContent,
-                         nsIContent* aEndContent);
+  void SelectNodesInContainer(nsINode* aContainer, nsIContent* aStartContent,
+                              nsIContent* aEndContent);
 
   /**
    * CollapseTo() works similar to call both SetStart() and SetEnd() with
    * same node and offset.  This just calls SetStartAndParent() to set
    * collapsed range at aContainer and aOffset.
    */
-  nsresult CollapseTo(nsINode* aContainer, uint32_t aOffset)
-  {
+  nsresult CollapseTo(nsINode* aContainer, uint32_t aOffset) {
     return CollapseTo(RawRangeBoundary(aContainer, aOffset));
   }
-  nsresult CollapseTo(const RawRangeBoundary& aPoint)
-  {
+  nsresult CollapseTo(const RawRangeBoundary& aPoint) {
     return SetStartAndEnd(aPoint, aPoint);
   }
 
@@ -248,8 +194,8 @@ public:
    * Retrieves node and offset for setting start or end of a range to
    * before or after aNode.
    */
-  static nsINode* GetContainerAndOffsetAfter(nsINode* aNode, uint32_t* aOffset)
-  {
+  static nsINode* GetContainerAndOffsetAfter(nsINode* aNode,
+                                             uint32_t* aOffset) {
     MOZ_ASSERT(aNode);
     MOZ_ASSERT(aOffset);
     *aOffset = 0;
@@ -264,8 +210,8 @@ public:
     *aOffset = static_cast<uint32_t>(indexInParent) + 1;
     return parentNode;
   }
-  static nsINode* GetContainerAndOffsetBefore(nsINode* aNode, uint32_t* aOffset)
-  {
+  static nsINode* GetContainerAndOffsetBefore(nsINode* aNode,
+                                              uint32_t* aOffset) {
     MOZ_ASSERT(aNode);
     MOZ_ASSERT(aOffset);
     *aOffset = 0;
@@ -296,30 +242,27 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
 
   // WebIDL
-  static already_AddRefed<nsRange>
-  Constructor(const mozilla::dom::GlobalObject& global,
-              mozilla::ErrorResult& aRv);
+  static already_AddRefed<nsRange> Constructor(
+      const mozilla::dom::GlobalObject& global, mozilla::ErrorResult& aRv);
 
-  bool Collapsed() const
-  {
+  bool Collapsed() const {
     return mIsPositioned && mStart.Container() == mEnd.Container() &&
            mStart.Offset() == mEnd.Offset();
   }
-  already_AddRefed<mozilla::dom::DocumentFragment>
-  CreateContextualFragment(const nsAString& aString, ErrorResult& aError);
-  already_AddRefed<mozilla::dom::DocumentFragment>
-  CloneContents(ErrorResult& aErr);
+  already_AddRefed<mozilla::dom::DocumentFragment> CreateContextualFragment(
+      const nsAString& aString, ErrorResult& aError);
+  already_AddRefed<mozilla::dom::DocumentFragment> CloneContents(
+      ErrorResult& aErr);
   int16_t CompareBoundaryPoints(uint16_t aHow, nsRange& aOther,
                                 ErrorResult& aErr);
   int16_t ComparePoint(nsINode& aContainer, uint32_t aOffset,
-                       ErrorResult& aErr)
-  {
+                       ErrorResult& aErr) {
     return ComparePoint(RawRangeBoundary(&aContainer, aOffset), aErr);
   }
   int16_t ComparePoint(const RawRangeBoundary& aPoint, ErrorResult& aErr);
   void DeleteContents(ErrorResult& aRv);
-  already_AddRefed<mozilla::dom::DocumentFragment>
-    ExtractContents(ErrorResult& aErr);
+  already_AddRefed<mozilla::dom::DocumentFragment> ExtractContents(
+      ErrorResult& aErr);
   nsINode* GetCommonAncestorContainer(ErrorResult& aRv) const;
   nsINode* GetStartContainer(ErrorResult& aRv) const;
   uint32_t GetStartOffset(ErrorResult& aRv) const;
@@ -327,8 +270,8 @@ public:
   uint32_t GetEndOffset(ErrorResult& aRv) const;
   void InsertNode(nsINode& aNode, ErrorResult& aErr);
   bool IntersectsNode(nsINode& aNode, ErrorResult& aRv);
-  bool IsPointInRange(nsINode& aContainer, uint32_t aOffset, ErrorResult& aErr)
-  {
+  bool IsPointInRange(nsINode& aContainer, uint32_t aOffset,
+                      ErrorResult& aErr) {
     return IsPointInRange(RawRangeBoundary(&aContainer, aOffset), aErr);
   }
   bool IsPointInRange(const RawRangeBoundary& aPoint, ErrorResult& aErr);
@@ -351,9 +294,8 @@ public:
                                                   bool aFlushLayout = true);
   already_AddRefed<DOMRectList> GetClientRects(bool aClampToEdge = true,
                                                bool aFlushLayout = true);
-  void GetClientRectsAndTexts(
-    mozilla::dom::ClientRectsAndTexts& aResult,
-    ErrorResult& aErr);
+  void GetClientRectsAndTexts(mozilla::dom::ClientRectsAndTexts& aResult,
+                              ErrorResult& aErr);
 
   // Following methods should be used for internal use instead of *JS().
   void SelectNode(nsINode& aNode, ErrorResult& aErr);
@@ -375,7 +317,7 @@ public:
   JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) final;
   DocGroup* GetDocGroup() const;
 
-private:
+ private:
   // no copy's or assigns
   nsRange(const nsRange&);
   nsRange& operator=(const nsRange&);
@@ -384,16 +326,16 @@ private:
    * Cut or delete the range's contents.
    *
    * @param aFragment nsIDOMDocumentFragment containing the nodes.
-   *                  May be null to indicate the caller doesn't want a fragment.
+   *                  May be null to indicate the caller doesn't want a
+   * fragment.
    */
   nsresult CutContents(mozilla::dom::DocumentFragment** frag);
 
-  static nsresult CloneParentsBetween(nsINode* aAncestor,
-                                      nsINode* aNode,
+  static nsresult CloneParentsBetween(nsINode* aAncestor, nsINode* aNode,
                                       nsINode** aClosestAncestor,
                                       nsINode** aFarthestAncestor);
 
-public:
+ public:
   /**
    * Compute the root node of aNode for initializing range classes.
    * When aNode is in an anonymous subtree, this returns the shadow root or
@@ -401,8 +343,7 @@ public:
    * fragment.  If this returns nullptr, that means aNode can be neither the
    * start container nor end container of any range.
    */
-  static nsINode* ComputeRootNode(nsINode* aNode)
-  {
+  static nsINode* ComputeRootNode(nsINode* aNode) {
     return ComputeRootNode(aNode, false);
   }
 
@@ -413,16 +354,15 @@ public:
   static bool IsValidPoints(nsINode* aStartContainer, uint32_t aStartOffset,
                             nsINode* aEndContainer, uint32_t aEndOffset);
 
-/******************************************************************************
- *  Utility routine to detect if a content node starts before a range and/or
- *  ends after a range.  If neither it is contained inside the range.
- *
- *  XXX - callers responsibility to ensure node in same doc as range!
- *
- *****************************************************************************/
+  /******************************************************************************
+   *  Utility routine to detect if a content node starts before a range and/or
+   *  ends after a range.  If neither it is contained inside the range.
+   *
+   *  XXX - callers responsibility to ensure node in same doc as range!
+   *
+   *****************************************************************************/
   static nsresult CompareNodeToRange(nsINode* aNode, nsRange* aRange,
-                                     bool *outNodeBefore,
-                                     bool *outNodeAfter);
+                                     bool* outNodeBefore, bool* outNodeAfter);
 
   /**
    * Return true if any part of (aNode, aStartOffset) .. (aNode, aEndOffset)
@@ -439,14 +379,11 @@ public:
    * This helper function gets rects and correlated text for the given range.
    * @param aTextList optional where nullptr = don't retrieve text
    */
-  static void CollectClientRectsAndText(nsLayoutUtils::RectCallback* aCollector,
-                                        mozilla::dom::Sequence<nsString>* aTextList,
-                                        nsRange* aRange,
-                                        nsINode* aStartContainer,
-                                        uint32_t aStartOffset,
-                                        nsINode* aEndContainer,
-                                        uint32_t aEndOffset,
-                                        bool aClampToEdge, bool aFlushLayout);
+  static void CollectClientRectsAndText(
+      nsLayoutUtils::RectCallback* aCollector,
+      mozilla::dom::Sequence<nsString>* aTextList, nsRange* aRange,
+      nsINode* aStartContainer, uint32_t aStartOffset, nsINode* aEndContainer,
+      uint32_t aEndOffset, bool aClampToEdge, bool aFlushLayout);
 
   /**
    * Scan this range for -moz-user-select:none nodes and split it up into
@@ -466,13 +403,12 @@ public:
    */
   void NotifySelectionListenersAfterRangeSet();
 
-  typedef nsTHashtable<nsPtrHashKey<nsRange> > RangeHashTable;
-protected:
+  typedef nsTHashtable<nsPtrHashKey<nsRange>> RangeHashTable;
 
+ protected:
   void RegisterCommonAncestor(nsINode* aNode);
   void UnregisterCommonAncestor(nsINode* aNode, bool aIsUnlinking);
-  nsINode* IsValidBoundary(nsINode* aNode) const
-  {
+  nsINode* IsValidBoundary(nsINode* aNode) const {
     return ComputeRootNode(aNode, mMaySpanAnonymousSubtrees);
   }
 
@@ -482,10 +418,7 @@ protected:
    *     APIs like nsINode::ComputeIndexOf() use int32_t.  Therefore,
    *     nsRange should accept only 0 - INT32_MAX as valid offset for now.
    */
-  static bool IsValidOffset(uint32_t aOffset)
-  {
-    return aOffset <= INT32_MAX;
-  }
+  static bool IsValidOffset(uint32_t aOffset) { return aOffset <= INT32_MAX; }
   static bool IsValidOffset(nsINode* aNode, uint32_t aOffset);
 
   static nsINode* ComputeRootNode(nsINode* aNode,
@@ -496,8 +429,8 @@ protected:
   // the new text node of a splitText hasn't been inserted yet.
   // CharacterDataChanged does the re-registering when needed.
   void DoSetRange(const RawRangeBoundary& lowerBound,
-                  const RawRangeBoundary& upperBound,
-                  nsINode* aRoot, bool aNotInsertedYet = false);
+                  const RawRangeBoundary& upperBound, nsINode* aRoot,
+                  bool aNotInsertedYet = false);
 
   /**
    * For a range for which IsInSelection() is true, return the common ancestor
@@ -510,42 +443,32 @@ protected:
   nsINode* GetRegisteredCommonAncestor();
 
   // Helper to IsNodeSelected.
-  static bool IsNodeInSortedRanges(nsINode* aNode,
-                                   uint32_t aStartOffset,
+  static bool IsNodeInSortedRanges(nsINode* aNode, uint32_t aStartOffset,
                                    uint32_t aEndOffset,
                                    const nsTArray<const nsRange*>& aRanges,
-                                   size_t aRangeStart,
-                                   size_t aRangeEnd);
+                                   size_t aRangeStart, size_t aRangeEnd);
 
   // Assume that this is guaranteed that this is held by the caller when
   // this is used.  (Note that we cannot use AutoRestore for mCalledByJS
   // due to a bit field.)
-  class MOZ_RAII AutoCalledByJSRestore final
-  {
-  private:
+  class MOZ_RAII AutoCalledByJSRestore final {
+   private:
     nsRange& mRange;
     bool mOldValue;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
-  public:
-    explicit AutoCalledByJSRestore(nsRange& aRange
-                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : mRange(aRange)
-      , mOldValue(aRange.mCalledByJS)
-    {
+   public:
+    explicit AutoCalledByJSRestore(
+        nsRange& aRange MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+        : mRange(aRange), mOldValue(aRange.mCalledByJS) {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    ~AutoCalledByJSRestore()
-    {
-      mRange.mCalledByJS = mOldValue;
-    }
+    ~AutoCalledByJSRestore() { mRange.mCalledByJS = mOldValue; }
     bool SavedValue() const { return mOldValue; }
   };
 
-  struct MOZ_STACK_CLASS AutoInvalidateSelection
-  {
-    explicit AutoInvalidateSelection(nsRange* aRange) : mRange(aRange)
-    {
+  struct MOZ_STACK_CLASS AutoInvalidateSelection {
+    explicit AutoInvalidateSelection(nsRange* aRange) : mRange(aRange) {
       if (!mRange->IsInSelection() || sIsNested) {
         return;
       }
@@ -583,15 +506,11 @@ protected:
   bool mCalledByJS : 1;
 };
 
-inline nsISupports*
-ToCanonicalSupports(nsRange* aRange)
-{
+inline nsISupports* ToCanonicalSupports(nsRange* aRange) {
   return static_cast<nsIDOMRange*>(aRange);
 }
 
-inline nsISupports*
-ToSupports(nsRange* aRange)
-{
+inline nsISupports* ToSupports(nsRange* aRange) {
   return static_cast<nsIDOMRange*>(aRange);
 }
 

@@ -22,12 +22,10 @@ using namespace mozilla::ipc;
 
 namespace {
 
-class StreamWrapper final
-  : public nsIAsyncInputStream
-  , public nsIInputStreamCallback
-  , public nsICloneableInputStream
-  , public nsIIPCSerializableInputStream
-{
+class StreamWrapper final : public nsIAsyncInputStream,
+                            public nsIInputStreamCallback,
+                            public nsICloneableInputStream,
+                            public nsIIPCSerializableInputStream {
   class CloseRunnable;
 
   nsCOMPtr<nsIEventTarget> mOwningThread;
@@ -38,14 +36,12 @@ class StreamWrapper final
   // This is needed to call OnInputStreamReady() with the correct inputStream.
   nsCOMPtr<nsIInputStreamCallback> mAsyncWaitCallback;
 
-public:
-  StreamWrapper(nsIInputStream* aInputStream,
-                IDBFileHandle* aFileHandle)
-    : mOwningThread(aFileHandle->GetMutableFile()->Database()->EventTarget())
-    , mInputStream(aInputStream)
-    , mFileHandle(aFileHandle)
-    , mFinished(false)
-  {
+ public:
+  StreamWrapper(nsIInputStream* aInputStream, IDBFileHandle* aFileHandle)
+      : mOwningThread(aFileHandle->GetMutableFile()->Database()->EventTarget()),
+        mInputStream(aInputStream),
+        mFileHandle(aFileHandle),
+        mFinished(false) {
     AssertIsOnOwningThread();
     MOZ_ASSERT(aInputStream);
     MOZ_ASSERT(aFileHandle);
@@ -54,28 +50,19 @@ public:
     mFileHandle->OnNewRequest();
   }
 
-private:
+ private:
   virtual ~StreamWrapper();
 
-  bool
-  IsOnOwningThread() const
-  {
+  bool IsOnOwningThread() const {
     MOZ_ASSERT(mOwningThread);
 
     bool current;
-    return NS_SUCCEEDED(mOwningThread->
-                        IsOnCurrentThread(&current)) && current;
+    return NS_SUCCEEDED(mOwningThread->IsOnCurrentThread(&current)) && current;
   }
 
-  void
-  AssertIsOnOwningThread() const
-  {
-    MOZ_ASSERT(IsOnOwningThread());
-  }
+  void AssertIsOnOwningThread() const { MOZ_ASSERT(IsOnOwningThread()); }
 
-  void
-  Finish()
-  {
+  void Finish() {
     AssertIsOnOwningThread();
 
     if (mFinished) {
@@ -87,42 +74,31 @@ private:
     mFileHandle->OnRequestFinished(/* aActorDestroyedNormally */ true);
   }
 
-  void
-  Destroy()
-  {
+  void Destroy() {
     if (IsOnOwningThread()) {
       delete this;
       return;
     }
 
-    RefPtr<Runnable> destroyRunnable =
-      NewNonOwningRunnableMethod("StreamWrapper::Destroy",
-                                 this,
-                                 &StreamWrapper::Destroy);
+    RefPtr<Runnable> destroyRunnable = NewNonOwningRunnableMethod(
+        "StreamWrapper::Destroy", this, &StreamWrapper::Destroy);
 
-    MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(destroyRunnable,
-                                                NS_DISPATCH_NORMAL));
+    MOZ_ALWAYS_SUCCEEDS(
+        mOwningThread->Dispatch(destroyRunnable, NS_DISPATCH_NORMAL));
   }
 
-  bool
-  IsCloneableInputStream() const
-  {
-    nsCOMPtr<nsICloneableInputStream> stream =
-      do_QueryInterface(mInputStream);
+  bool IsCloneableInputStream() const {
+    nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mInputStream);
     return !!stream;
   }
 
-  bool
-  IsIPCSerializableInputStream() const
-  {
+  bool IsIPCSerializableInputStream() const {
     nsCOMPtr<nsIIPCSerializableInputStream> stream =
-      do_QueryInterface(mInputStream);
+        do_QueryInterface(mInputStream);
     return !!stream;
   }
 
-  bool
-  IsAsyncInputStream() const
-  {
+  bool IsAsyncInputStream() const {
     nsCOMPtr<nsIAsyncInputStream> stream = do_QueryInterface(mInputStream);
     return !!stream;
   }
@@ -135,66 +111,53 @@ private:
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
 };
 
-class StreamWrapper::CloseRunnable final
-  : public Runnable
-{
+class StreamWrapper::CloseRunnable final : public Runnable {
   friend class StreamWrapper;
 
   RefPtr<StreamWrapper> mStreamWrapper;
 
-public:
+ public:
   NS_INLINE_DECL_REFCOUNTING_INHERITED(CloseRunnable, Runnable)
 
-private:
-  explicit
-  CloseRunnable(StreamWrapper* aStreamWrapper)
-    : Runnable("StreamWrapper::CloseRunnable")
-    , mStreamWrapper(aStreamWrapper)
-  { }
+ private:
+  explicit CloseRunnable(StreamWrapper* aStreamWrapper)
+      : Runnable("StreamWrapper::CloseRunnable"),
+        mStreamWrapper(aStreamWrapper) {}
 
-  ~CloseRunnable()
-  { }
+  ~CloseRunnable() {}
 
   NS_IMETHOD
   Run() override;
 };
 
-} // anonymous namespace
+}  // anonymous namespace
 
 BlobImplSnapshot::BlobImplSnapshot(BlobImpl* aFileImpl,
                                    IDBFileHandle* aFileHandle)
-  : mBlobImpl(aFileImpl)
-{
+    : mBlobImpl(aFileImpl) {
   MOZ_ASSERT(aFileImpl);
   MOZ_ASSERT(aFileHandle);
 
   mFileHandle =
-    do_GetWeakReference(NS_ISUPPORTS_CAST(EventTarget*, aFileHandle));
+      do_GetWeakReference(NS_ISUPPORTS_CAST(EventTarget*, aFileHandle));
 }
 
 BlobImplSnapshot::BlobImplSnapshot(BlobImpl* aFileImpl,
                                    nsIWeakReference* aFileHandle)
-  : mBlobImpl(aFileImpl)
-  , mFileHandle(aFileHandle)
-{
+    : mBlobImpl(aFileImpl), mFileHandle(aFileHandle) {
   MOZ_ASSERT(aFileImpl);
   MOZ_ASSERT(aFileHandle);
 }
 
-BlobImplSnapshot::~BlobImplSnapshot()
-{
-}
+BlobImplSnapshot::~BlobImplSnapshot() {}
 
 NS_IMPL_ISUPPORTS_INHERITED(BlobImplSnapshot, BlobImpl, PIBlobImplSnapshot)
 
-already_AddRefed<BlobImpl>
-BlobImplSnapshot::CreateSlice(uint64_t aStart,
-                              uint64_t aLength,
-                              const nsAString& aContentType,
-                              ErrorResult& aRv)
-{
+already_AddRefed<BlobImpl> BlobImplSnapshot::CreateSlice(
+    uint64_t aStart, uint64_t aLength, const nsAString& aContentType,
+    ErrorResult& aRv) {
   RefPtr<BlobImpl> blobImpl =
-    mBlobImpl->CreateSlice(aStart, aLength, aContentType, aRv);
+      mBlobImpl->CreateSlice(aStart, aLength, aContentType, aRv);
 
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -204,9 +167,8 @@ BlobImplSnapshot::CreateSlice(uint64_t aStart,
   return blobImpl.forget();
 }
 
-void
-BlobImplSnapshot::CreateInputStream(nsIInputStream** aStream, ErrorResult& aRv)
-{
+void BlobImplSnapshot::CreateInputStream(nsIInputStream** aStream,
+                                         ErrorResult& aRv) {
   nsCOMPtr<EventTarget> et = do_QueryReferent(mFileHandle);
   RefPtr<IDBFileHandle> fileHandle = static_cast<IDBFileHandle*>(et.get());
   if (!fileHandle || !fileHandle->IsOpen()) {
@@ -225,9 +187,7 @@ BlobImplSnapshot::CreateInputStream(nsIInputStream** aStream, ErrorResult& aRv)
   wrapper.forget(aStream);
 }
 
-BlobImpl*
-BlobImplSnapshot::GetBlobImpl() const
-{
+BlobImpl* BlobImplSnapshot::GetBlobImpl() const {
   nsCOMPtr<EventTarget> et = do_QueryReferent(mFileHandle);
   RefPtr<IDBFileHandle> fileHandle = static_cast<IDBFileHandle*>(et.get());
   if (!fileHandle || !fileHandle->IsOpen()) {
@@ -237,8 +197,7 @@ BlobImplSnapshot::GetBlobImpl() const
   return mBlobImpl;
 }
 
-StreamWrapper::~StreamWrapper()
-{
+StreamWrapper::~StreamWrapper() {
   AssertIsOnOwningThread();
 
   Finish();
@@ -249,8 +208,7 @@ NS_IMPL_RELEASE_WITH_DESTROY(StreamWrapper, Destroy())
 
 NS_INTERFACE_MAP_BEGIN(StreamWrapper)
   NS_INTERFACE_MAP_ENTRY(nsIInputStream)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAsyncInputStream,
-                                     IsAsyncInputStream())
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAsyncInputStream, IsAsyncInputStream())
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIInputStreamCallback,
                                      IsAsyncInputStream())
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsICloneableInputStream,
@@ -261,66 +219,55 @@ NS_INTERFACE_MAP_BEGIN(StreamWrapper)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
-StreamWrapper::Close()
-{
+StreamWrapper::Close() {
   RefPtr<CloseRunnable> closeRunnable = new CloseRunnable(this);
 
-  MOZ_ALWAYS_SUCCEEDS(mOwningThread->Dispatch(closeRunnable,
-                                              NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(
+      mOwningThread->Dispatch(closeRunnable, NS_DISPATCH_NORMAL));
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-StreamWrapper::Available(uint64_t* _retval)
-{
+StreamWrapper::Available(uint64_t* _retval) {
   return mInputStream->Available(_retval);
 }
 
 NS_IMETHODIMP
-StreamWrapper::Read(char* aBuf, uint32_t aCount, uint32_t* _retval)
-{
+StreamWrapper::Read(char* aBuf, uint32_t aCount, uint32_t* _retval) {
   return mInputStream->Read(aBuf, aCount, _retval);
 }
 
 NS_IMETHODIMP
 StreamWrapper::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
-                            uint32_t aCount, uint32_t* _retval)
-{
+                            uint32_t aCount, uint32_t* _retval) {
   return mInputStream->ReadSegments(aWriter, aClosure, aCount, _retval);
 }
 
 NS_IMETHODIMP
-StreamWrapper::IsNonBlocking(bool* _retval)
-{
+StreamWrapper::IsNonBlocking(bool* _retval) {
   return mInputStream->IsNonBlocking(_retval);
 }
 
-void
-StreamWrapper::Serialize(InputStreamParams& aParams,
-                         FileDescriptorArray& aFileDescriptors)
-{
+void StreamWrapper::Serialize(InputStreamParams& aParams,
+                              FileDescriptorArray& aFileDescriptors) {
   nsCOMPtr<nsIIPCSerializableInputStream> stream =
-    do_QueryInterface(mInputStream);
+      do_QueryInterface(mInputStream);
 
   if (stream) {
     stream->Serialize(aParams, aFileDescriptors);
   }
 }
 
-bool
-StreamWrapper::Deserialize(const InputStreamParams& aParams,
-                           const FileDescriptorArray& aFileDescriptors)
-{
+bool StreamWrapper::Deserialize(const InputStreamParams& aParams,
+                                const FileDescriptorArray& aFileDescriptors) {
   MOZ_CRASH("This method should never be called");
   return false;
 }
 
-Maybe<uint64_t>
-StreamWrapper::ExpectedSerializedLength()
-{
+Maybe<uint64_t> StreamWrapper::ExpectedSerializedLength() {
   nsCOMPtr<nsIIPCSerializableInputStream> stream =
-    do_QueryInterface(mInputStream);
+      do_QueryInterface(mInputStream);
 
   if (stream) {
     return stream->ExpectedSerializedLength();
@@ -329,8 +276,7 @@ StreamWrapper::ExpectedSerializedLength()
 }
 
 NS_IMETHODIMP
-StreamWrapper::CloseWithStatus(nsresult aStatus)
-{
+StreamWrapper::CloseWithStatus(nsresult aStatus) {
   nsCOMPtr<nsIAsyncInputStream> stream = do_QueryInterface(mInputStream);
   if (!stream) {
     return NS_ERROR_NO_INTERFACE;
@@ -345,11 +291,9 @@ StreamWrapper::CloseWithStatus(nsresult aStatus)
 }
 
 NS_IMETHODIMP
-StreamWrapper::AsyncWait(nsIInputStreamCallback* aCallback,
-                         uint32_t aFlags,
+StreamWrapper::AsyncWait(nsIInputStreamCallback* aCallback, uint32_t aFlags,
                          uint32_t aRequestedCount,
-                         nsIEventTarget* aEventTarget)
-{
+                         nsIEventTarget* aEventTarget) {
   nsCOMPtr<nsIAsyncInputStream> stream = do_QueryInterface(mInputStream);
   if (!stream) {
     return NS_ERROR_NO_INTERFACE;
@@ -371,8 +315,7 @@ StreamWrapper::AsyncWait(nsIInputStreamCallback* aCallback,
 // nsIInputStreamCallback
 
 NS_IMETHODIMP
-StreamWrapper::OnInputStreamReady(nsIAsyncInputStream* aStream)
-{
+StreamWrapper::OnInputStreamReady(nsIAsyncInputStream* aStream) {
   nsCOMPtr<nsIAsyncInputStream> stream = do_QueryInterface(mInputStream);
   if (!stream) {
     return NS_ERROR_NO_INTERFACE;
@@ -392,8 +335,7 @@ StreamWrapper::OnInputStreamReady(nsIAsyncInputStream* aStream)
 // nsICloneableInputStream
 
 NS_IMETHODIMP
-StreamWrapper::GetCloneable(bool* aCloneable)
-{
+StreamWrapper::GetCloneable(bool* aCloneable) {
   nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mInputStream);
   if (!stream) {
     *aCloneable = false;
@@ -404,8 +346,7 @@ StreamWrapper::GetCloneable(bool* aCloneable)
 }
 
 NS_IMETHODIMP
-StreamWrapper::Clone(nsIInputStream** aResult)
-{
+StreamWrapper::Clone(nsIInputStream** aResult) {
   nsCOMPtr<nsICloneableInputStream> stream = do_QueryInterface(mInputStream);
   if (!stream) {
     return NS_ERROR_NO_INTERFACE;
@@ -415,14 +356,12 @@ StreamWrapper::Clone(nsIInputStream** aResult)
 }
 
 NS_IMETHODIMP
-StreamWrapper::
-CloseRunnable::Run()
-{
+StreamWrapper::CloseRunnable::Run() {
   mStreamWrapper->Finish();
 
   return NS_OK;
 }
 
-} // namespace indexedDB
-} // namespace dom
-} // namespace mozilla
+}  // namespace indexedDB
+}  // namespace dom
+}  // namespace mozilla

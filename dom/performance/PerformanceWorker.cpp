@@ -12,19 +12,15 @@ namespace mozilla {
 namespace dom {
 
 PerformanceWorker::PerformanceWorker(WorkerPrivate* aWorkerPrivate)
-  : mWorkerPrivate(aWorkerPrivate)
-{
+    : mWorkerPrivate(aWorkerPrivate) {
   mWorkerPrivate->AssertIsOnWorkerThread();
 }
 
-PerformanceWorker::~PerformanceWorker()
-{
+PerformanceWorker::~PerformanceWorker() {
   mWorkerPrivate->AssertIsOnWorkerThread();
 }
 
-void
-PerformanceWorker::InsertUserEntry(PerformanceEntry* aEntry)
-{
+void PerformanceWorker::InsertUserEntry(PerformanceEntry* aEntry) {
   if (DOMPrefs::PerformanceLoggingEnabled()) {
     nsAutoCString uri;
     nsCOMPtr<nsIURI> scriptURI = mWorkerPrivate->GetResolvedScriptURI();
@@ -37,23 +33,17 @@ PerformanceWorker::InsertUserEntry(PerformanceEntry* aEntry)
   Performance::InsertUserEntry(aEntry);
 }
 
-TimeStamp
-PerformanceWorker::CreationTimeStamp() const
-{
+TimeStamp PerformanceWorker::CreationTimeStamp() const {
   return mWorkerPrivate->CreationTimeStamp();
 }
 
-DOMHighResTimeStamp
-PerformanceWorker::CreationTime() const
-{
+DOMHighResTimeStamp PerformanceWorker::CreationTime() const {
   return mWorkerPrivate->CreationTime();
 }
 
-uint64_t
-PerformanceWorker::GetRandomTimelineSeed()
-{
+uint64_t PerformanceWorker::GetRandomTimelineSeed() {
   return mWorkerPrivate->GetRandomTimelineSeed();
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

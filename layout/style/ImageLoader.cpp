@@ -23,9 +23,7 @@
 namespace mozilla {
 namespace css {
 
-void
-ImageLoader::DropDocumentReference()
-{
+void ImageLoader::DropDocumentReference() {
   // It's okay if GetPresContext returns null here (due to the presshell pointer
   // on the document being null) as that means the presshell has already
   // been destroyed, and it also calls ClearFrames when it is destroyed.
@@ -44,10 +42,8 @@ ImageLoader::DropDocumentReference()
   mDocument = nullptr;
 }
 
-void
-ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
-                                     nsIFrame* aFrame)
-{
+void ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
+                                          nsIFrame* aFrame) {
   nsCOMPtr<imgINotificationObserver> observer;
   aRequest->GetNotificationObserver(getter_AddRefs(observer));
   if (!observer) {
@@ -59,36 +55,33 @@ ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
   MOZ_ASSERT(observer == this);
 
   FrameSet* frameSet =
-    mRequestToFrameMap.LookupForAdd(aRequest).OrInsert([=]() {
-      nsPresContext* presContext = GetPresContext();
-      if (presContext) {
-        nsLayoutUtils::RegisterImageRequestIfAnimated(presContext,
-                                                      aRequest,
-                                                      nullptr);
-      }
-      return new FrameSet();
-    });
+      mRequestToFrameMap.LookupForAdd(aRequest).OrInsert([=]() {
+        nsPresContext* presContext = GetPresContext();
+        if (presContext) {
+          nsLayoutUtils::RegisterImageRequestIfAnimated(presContext, aRequest,
+                                                        nullptr);
+        }
+        return new FrameSet();
+      });
 
   RequestSet* requestSet =
-    mFrameToRequestMap.LookupForAdd(aFrame).OrInsert([=]() {
-      aFrame->SetHasImageRequest(true);
-      return new RequestSet();
-    });
+      mFrameToRequestMap.LookupForAdd(aFrame).OrInsert([=]() {
+        aFrame->SetHasImageRequest(true);
+        return new RequestSet();
+      });
 
   // Add these to the sets, but only if they're not already there.
   uint32_t i = frameSet->IndexOfFirstElementGt(aFrame);
-  if (i == 0 || aFrame != frameSet->ElementAt(i-1)) {
+  if (i == 0 || aFrame != frameSet->ElementAt(i - 1)) {
     frameSet->InsertElementAt(i, aFrame);
   }
   i = requestSet->IndexOfFirstElementGt(aRequest);
-  if (i == 0 || aRequest != requestSet->ElementAt(i-1)) {
+  if (i == 0 || aRequest != requestSet->ElementAt(i - 1)) {
     requestSet->InsertElementAt(i, aRequest);
   }
 }
 
-void
-ImageLoader::MaybeRegisterCSSImage(ImageLoader::Image* aImage)
-{
+void ImageLoader::MaybeRegisterCSSImage(ImageLoader::Image* aImage) {
   NS_ASSERTION(aImage, "This should never be null!");
 
   bool found = false;
@@ -117,16 +110,12 @@ ImageLoader::MaybeRegisterCSSImage(ImageLoader::Image* aImage)
   AddImage(aImage);
 }
 
-void
-ImageLoader::DeregisterCSSImage(ImageLoader::Image* aImage)
-{
+void ImageLoader::DeregisterCSSImage(ImageLoader::Image* aImage) {
   RemoveImage(aImage);
 }
 
-void
-ImageLoader::RemoveRequestToFrameMapping(imgIRequest* aRequest,
-                                         nsIFrame*    aFrame)
-{
+void ImageLoader::RemoveRequestToFrameMapping(imgIRequest* aRequest,
+                                              nsIFrame* aFrame) {
 #ifdef DEBUG
   {
     nsCOMPtr<imgINotificationObserver> observer;
@@ -149,10 +138,8 @@ ImageLoader::RemoveRequestToFrameMapping(imgIRequest* aRequest,
   }
 }
 
-void
-ImageLoader::RemoveFrameToRequestMapping(imgIRequest* aRequest,
-                                         nsIFrame*    aFrame)
-{
+void ImageLoader::RemoveFrameToRequestMapping(imgIRequest* aRequest,
+                                              nsIFrame* aFrame) {
   if (auto entry = mFrameToRequestMap.Lookup(aFrame)) {
     RequestSet* requestSet = entry.Data();
     MOZ_ASSERT(requestSet, "This should never be null");
@@ -164,18 +151,14 @@ ImageLoader::RemoveFrameToRequestMapping(imgIRequest* aRequest,
   }
 }
 
-void
-ImageLoader::DisassociateRequestFromFrame(imgIRequest* aRequest,
-                                          nsIFrame*    aFrame)
-{
+void ImageLoader::DisassociateRequestFromFrame(imgIRequest* aRequest,
+                                               nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame->HasImageRequest(), "why call me?");
   RemoveRequestToFrameMapping(aRequest, aFrame);
   RemoveFrameToRequestMapping(aRequest, aFrame);
 }
 
-void
-ImageLoader::DropRequestsForFrame(nsIFrame* aFrame)
-{
+void ImageLoader::DropRequestsForFrame(nsIFrame* aFrame) {
   MOZ_ASSERT(aFrame->HasImageRequest(), "why call me?");
   nsAutoPtr<RequestSet> requestSet;
   mFrameToRequestMap.Remove(aFrame, &requestSet);
@@ -189,12 +172,10 @@ ImageLoader::DropRequestsForFrame(nsIFrame* aFrame)
   }
 }
 
-void
-ImageLoader::SetAnimationMode(uint16_t aMode)
-{
+void ImageLoader::SetAnimationMode(uint16_t aMode) {
   NS_ASSERTION(aMode == imgIContainer::kNormalAnimMode ||
-               aMode == imgIContainer::kDontAnimMode ||
-               aMode == imgIContainer::kLoopOnceAnimMode,
+                   aMode == imgIContainer::kDontAnimMode ||
+                   aMode == imgIContainer::kLoopOnceAnimMode,
                "Wrong Animation Mode is being set!");
 
   for (auto iter = mRequestToFrameMap.ConstIter(); !iter.Done(); iter.Next()) {
@@ -218,9 +199,7 @@ ImageLoader::SetAnimationMode(uint16_t aMode)
   }
 }
 
-void
-ImageLoader::ClearFrames(nsPresContext* aPresContext)
-{
+void ImageLoader::ClearFrames(nsPresContext* aPresContext) {
   for (auto iter = mRequestToFrameMap.ConstIter(); !iter.Done(); iter.Next()) {
     auto request = static_cast<imgIRequest*>(iter.Key());
 
@@ -232,9 +211,7 @@ ImageLoader::ClearFrames(nsPresContext* aPresContext)
 #endif
 
     if (aPresContext) {
-      nsLayoutUtils::DeregisterImageRequest(aPresContext,
-                                            request,
-                                            nullptr);
+      nsLayoutUtils::DeregisterImageRequest(aPresContext, request, nullptr);
     }
   }
 
@@ -242,11 +219,9 @@ ImageLoader::ClearFrames(nsPresContext* aPresContext)
   mFrameToRequestMap.Clear();
 }
 
-void
-ImageLoader::LoadImage(nsIURI* aURI, nsIPrincipal* aOriginPrincipal,
-                       nsIURI* aReferrer, ImageLoader::Image* aImage,
-                       CORSMode aCorsMode)
-{
+void ImageLoader::LoadImage(nsIURI* aURI, nsIPrincipal* aOriginPrincipal,
+                            nsIURI* aReferrer, ImageLoader::Image* aImage,
+                            CORSMode aCorsMode) {
   NS_ASSERTION(aImage->mRequests.Count() == 0, "Huh?");
 
   aImage->mRequests.Put(nullptr, nullptr);
@@ -259,12 +234,10 @@ ImageLoader::LoadImage(nsIURI* aURI, nsIPrincipal* aOriginPrincipal,
                       nsContentUtils::CORSModeToLoadImageFlags(aCorsMode);
 
   RefPtr<imgRequestProxy> request;
-  nsresult rv = nsContentUtils::LoadImage(aURI, mDocument, mDocument,
-                                          aOriginPrincipal, 0, aReferrer,
-                                          mDocument->GetReferrerPolicy(),
-                                          nullptr, loadFlags,
-                                          NS_LITERAL_STRING("css"),
-                                          getter_AddRefs(request));
+  nsresult rv = nsContentUtils::LoadImage(
+      aURI, mDocument, mDocument, aOriginPrincipal, 0, aReferrer,
+      mDocument->GetReferrerPolicy(), nullptr, loadFlags,
+      NS_LITERAL_STRING("css"), getter_AddRefs(request));
 
   if (NS_FAILED(rv) || !request) {
     return;
@@ -285,23 +258,17 @@ ImageLoader::LoadImage(nsIURI* aURI, nsIPrincipal* aOriginPrincipal,
   AddImage(aImage);
 }
 
-void
-ImageLoader::AddImage(ImageLoader::Image* aImage)
-{
+void ImageLoader::AddImage(ImageLoader::Image* aImage) {
   NS_ASSERTION(!mImages.Contains(aImage), "Huh?");
   mImages.PutEntry(aImage);
 }
 
-void
-ImageLoader::RemoveImage(ImageLoader::Image* aImage)
-{
+void ImageLoader::RemoveImage(ImageLoader::Image* aImage) {
   NS_ASSERTION(mImages.Contains(aImage), "Huh?");
   mImages.RemoveEntry(aImage);
 }
 
-nsPresContext*
-ImageLoader::GetPresContext()
-{
+nsPresContext* ImageLoader::GetPresContext() {
   if (!mDocument) {
     return nullptr;
   }
@@ -309,28 +276,26 @@ ImageLoader::GetPresContext()
   return mDocument->GetPresContext();
 }
 
-static bool
-IsRenderNoImages(uint32_t aDisplayItemKey)
-{
+static bool IsRenderNoImages(uint32_t aDisplayItemKey) {
   DisplayItemType type = GetDisplayItemTypeFromKey(aDisplayItemKey);
   uint8_t flags = GetDisplayItemFlagsForType(type);
   return flags & TYPE_RENDERS_NO_IMAGES;
 }
 
-static void
-InvalidateImages(nsIFrame* aFrame)
-{
+static void InvalidateImages(nsIFrame* aFrame) {
   bool invalidateFrame = false;
   const SmallPointerArray<DisplayItemData>& array = aFrame->DisplayItemData();
   for (uint32_t i = 0; i < array.Length(); i++) {
-    DisplayItemData* data = DisplayItemData::AssertDisplayItemData(array.ElementAt(i));
+    DisplayItemData* data =
+        DisplayItemData::AssertDisplayItemData(array.ElementAt(i));
     uint32_t displayItemKey = data->GetDisplayItemKey();
     if (displayItemKey != 0 && !IsRenderNoImages(displayItemKey)) {
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
         DisplayItemType type = GetDisplayItemTypeFromKey(displayItemKey);
-        printf_stderr("Invalidating display item(type=%d) based on frame %p \
+        printf_stderr(
+            "Invalidating display item(type=%d) based on frame %p \
                        because it might contain an invalidated image\n",
-                       static_cast<uint32_t>(type), aFrame);
+            static_cast<uint32_t>(type), aFrame);
       }
 
       data->Invalidate();
@@ -338,12 +303,14 @@ InvalidateImages(nsIFrame* aFrame)
     }
   }
   if (auto userDataTable =
-       aFrame->GetProperty(nsIFrame::WebRenderUserDataProperty())) {
+          aFrame->GetProperty(nsIFrame::WebRenderUserDataProperty())) {
     for (auto iter = userDataTable->Iter(); !iter.Done(); iter.Next()) {
       RefPtr<layers::WebRenderUserData> data = iter.UserData();
-      if (data->GetType() == layers::WebRenderAnimationData::UserDataType::eFallback &&
+      if (data->GetType() ==
+              layers::WebRenderAnimationData::UserDataType::eFallback &&
           !IsRenderNoImages(data->GetDisplayItemKey())) {
-        static_cast<layers::WebRenderFallbackData*>(data.get())->SetInvalid(true);
+        static_cast<layers::WebRenderFallbackData*>(data.get())
+            ->SetInvalid(true);
       }
       invalidateFrame = true;
     }
@@ -354,9 +321,7 @@ InvalidateImages(nsIFrame* aFrame)
   }
 }
 
-void
-ImageLoader::DoRedraw(FrameSet* aFrameSet, bool aForcePaint)
-{
+void ImageLoader::DoRedraw(FrameSet* aFrameSet, bool aForcePaint) {
   NS_ASSERTION(aFrameSet, "Must have a frame set");
   NS_ASSERTION(mDocument, "Should have returned earlier!");
 
@@ -371,7 +336,7 @@ ImageLoader::DoRedraw(FrameSet* aFrameSet, bool aForcePaint)
         InvalidateImages(frame);
 
         // Update ancestor rendering observers (-moz-element etc)
-        nsIFrame *f = frame;
+        nsIFrame* f = frame;
         while (f && !f->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
           SVGObserverUtils::InvalidateDirectRenderingObservers(f);
           f = nsLayoutUtils::GetCrossDocParentFrame(f);
@@ -393,8 +358,8 @@ NS_INTERFACE_MAP_BEGIN(ImageLoader)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
-ImageLoader::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData)
-{
+ImageLoader::Notify(imgIRequest* aRequest, int32_t aType,
+                    const nsIntRect* aData) {
 #ifdef MOZ_GECKO_PROFILER
   nsCString uriString;
   if (profiler_is_active()) {
@@ -405,7 +370,8 @@ ImageLoader::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData
     }
   }
 
-  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("ImageLoader::Notify", OTHER, uriString);
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("ImageLoader::Notify", OTHER,
+                                        uriString);
 #endif
 
   if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
@@ -437,9 +403,8 @@ ImageLoader::Notify(imgIRequest* aRequest, int32_t aType, const nsIntRect* aData
   return NS_OK;
 }
 
-nsresult
-ImageLoader::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
-{
+nsresult ImageLoader::OnSizeAvailable(imgIRequest* aRequest,
+                                      imgIContainer* aImage) {
   nsPresContext* presContext = GetPresContext();
   if (!presContext) {
     return NS_OK;
@@ -461,9 +426,7 @@ ImageLoader::OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage)
   return NS_OK;
 }
 
-nsresult
-ImageLoader::OnImageIsAnimated(imgIRequest* aRequest)
-{
+nsresult ImageLoader::OnImageIsAnimated(imgIRequest* aRequest) {
   if (!mDocument) {
     return NS_OK;
   }
@@ -477,17 +440,13 @@ ImageLoader::OnImageIsAnimated(imgIRequest* aRequest)
   // we are animated.
   nsPresContext* presContext = GetPresContext();
   if (presContext) {
-    nsLayoutUtils::RegisterImageRequest(presContext,
-                                        aRequest,
-                                        nullptr);
+    nsLayoutUtils::RegisterImageRequest(presContext, aRequest, nullptr);
   }
 
   return NS_OK;
 }
 
-nsresult
-ImageLoader::OnFrameComplete(imgIRequest* aRequest)
-{
+nsresult ImageLoader::OnFrameComplete(imgIRequest* aRequest) {
   if (!mDocument || mInClone) {
     return NS_OK;
   }
@@ -505,9 +464,7 @@ ImageLoader::OnFrameComplete(imgIRequest* aRequest)
   return NS_OK;
 }
 
-nsresult
-ImageLoader::OnFrameUpdate(imgIRequest* aRequest)
-{
+nsresult ImageLoader::OnFrameUpdate(imgIRequest* aRequest) {
   if (!mDocument || mInClone) {
     return NS_OK;
   }
@@ -522,9 +479,7 @@ ImageLoader::OnFrameUpdate(imgIRequest* aRequest)
   return NS_OK;
 }
 
-void
-ImageLoader::FlushUseCounters()
-{
+void ImageLoader::FlushUseCounters() {
   for (auto iter = mImages.Iter(); !iter.Done(); iter.Next()) {
     nsPtrHashKey<Image>* key = iter.Get();
     ImageLoader::Image* image = key->GetKey();
@@ -539,5 +494,5 @@ ImageLoader::FlushUseCounters()
   }
 }
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla

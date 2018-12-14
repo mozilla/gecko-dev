@@ -25,27 +25,22 @@ namespace mozilla {
  * the wrong time, in order to avoid resulting instability.
  */
 
-class AsyncEventDispatcher : public CancelableRunnable
-{
-public:
+class AsyncEventDispatcher : public CancelableRunnable {
+ public:
   /**
    * If aOnlyChromeDispatch is true, the event is dispatched to only
    * chrome node. In that case, if aTarget is already a chrome node,
    * the event is dispatched to it, otherwise the dispatch path starts
    * at the first chrome ancestor of that target.
    */
-  AsyncEventDispatcher(nsINode* aTarget,
-                       const nsAString& aEventType,
-                       bool aBubbles,
-                       bool aOnlyChromeDispatch)
-    : CancelableRunnable("AsyncEventDispatcher")
-    , mTarget(aTarget)
-    , mEventType(aEventType)
-    , mEventMessage(eUnidentifiedEvent)
-    , mBubbles(aBubbles)
-    , mOnlyChromeDispatch(aOnlyChromeDispatch)
-  {
-  }
+  AsyncEventDispatcher(nsINode* aTarget, const nsAString& aEventType,
+                       bool aBubbles, bool aOnlyChromeDispatch)
+      : CancelableRunnable("AsyncEventDispatcher"),
+        mTarget(aTarget),
+        mEventType(aEventType),
+        mEventMessage(eUnidentifiedEvent),
+        mBubbles(aBubbles),
+        mOnlyChromeDispatch(aOnlyChromeDispatch) {}
 
   /**
    * If aOnlyChromeDispatch is true, the event is dispatched to only
@@ -53,48 +48,40 @@ public:
    * the event is dispatched to it, otherwise the dispatch path starts
    * at the first chrome ancestor of that target.
    */
-  AsyncEventDispatcher(nsINode* aTarget,
-                       mozilla::EventMessage aEventMessage,
+  AsyncEventDispatcher(nsINode* aTarget, mozilla::EventMessage aEventMessage,
                        bool aBubbles, bool aOnlyChromeDispatch)
-    : CancelableRunnable("AsyncEventDispatcher")
-    , mTarget(aTarget)
-    , mEventMessage(aEventMessage)
-    , mBubbles(aBubbles)
-    , mOnlyChromeDispatch(aOnlyChromeDispatch)
-  {
+      : CancelableRunnable("AsyncEventDispatcher"),
+        mTarget(aTarget),
+        mEventMessage(aEventMessage),
+        mBubbles(aBubbles),
+        mOnlyChromeDispatch(aOnlyChromeDispatch) {
     mEventType.SetIsVoid(true);
     MOZ_ASSERT(mEventMessage != eUnidentifiedEvent);
   }
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, const nsAString& aEventType,
                        bool aBubbles)
-    : CancelableRunnable("AsyncEventDispatcher")
-    , mTarget(aTarget)
-    , mEventType(aEventType)
-    , mEventMessage(eUnidentifiedEvent)
-    , mBubbles(aBubbles)
-  {
-  }
+      : CancelableRunnable("AsyncEventDispatcher"),
+        mTarget(aTarget),
+        mEventType(aEventType),
+        mEventMessage(eUnidentifiedEvent),
+        mBubbles(aBubbles) {}
 
   AsyncEventDispatcher(dom::EventTarget* aTarget,
-                       mozilla::EventMessage aEventMessage,
-                       bool aBubbles)
-    : CancelableRunnable("AsyncEventDispatcher")
-    , mTarget(aTarget)
-    , mEventMessage(aEventMessage)
-    , mBubbles(aBubbles)
-  {
+                       mozilla::EventMessage aEventMessage, bool aBubbles)
+      : CancelableRunnable("AsyncEventDispatcher"),
+        mTarget(aTarget),
+        mEventMessage(aEventMessage),
+        mBubbles(aBubbles) {
     mEventType.SetIsVoid(true);
     MOZ_ASSERT(mEventMessage != eUnidentifiedEvent);
   }
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, nsIDOMEvent* aEvent)
-    : CancelableRunnable("AsyncEventDispatcher")
-    , mTarget(aTarget)
-    , mEvent(aEvent)
-    , mEventMessage(eUnidentifiedEvent)
-  {
-  }
+      : CancelableRunnable("AsyncEventDispatcher"),
+        mTarget(aTarget),
+        mEvent(aEvent),
+        mEventMessage(eUnidentifiedEvent) {}
 
   AsyncEventDispatcher(dom::EventTarget* aTarget, WidgetEvent& aEvent);
 
@@ -113,33 +100,30 @@ public:
   // If mEventType is set, mEventMessage will be eUnidentifiedEvent.
   // If mEventMessage is set, mEventType will be void.
   // They can never both be set at the same time.
-  nsString              mEventType;
+  nsString mEventType;
   mozilla::EventMessage mEventMessage;
-  bool                  mBubbles = false;
-  bool                  mOnlyChromeDispatch = false;
-  bool                  mCanceled = false;
-  bool                  mCheckStillInDoc = false;
+  bool mBubbles = false;
+  bool mOnlyChromeDispatch = false;
+  bool mCanceled = false;
+  bool mCheckStillInDoc = false;
 };
 
-class LoadBlockingAsyncEventDispatcher final : public AsyncEventDispatcher
-{
-public:
+class LoadBlockingAsyncEventDispatcher final : public AsyncEventDispatcher {
+ public:
   LoadBlockingAsyncEventDispatcher(nsINode* aEventNode,
-                                   const nsAString& aEventType,
-                                   bool aBubbles, bool aDispatchChromeOnly)
-    : AsyncEventDispatcher(aEventNode, aEventType,
-                           aBubbles, aDispatchChromeOnly)
-    , mBlockedDoc(aEventNode->OwnerDoc())
-  {
+                                   const nsAString& aEventType, bool aBubbles,
+                                   bool aDispatchChromeOnly)
+      : AsyncEventDispatcher(aEventNode, aEventType, aBubbles,
+                             aDispatchChromeOnly),
+        mBlockedDoc(aEventNode->OwnerDoc()) {
     if (mBlockedDoc) {
       mBlockedDoc->BlockOnload();
     }
   }
 
   LoadBlockingAsyncEventDispatcher(nsINode* aEventNode, nsIDOMEvent* aEvent)
-    : AsyncEventDispatcher(aEventNode, aEvent)
-    , mBlockedDoc(aEventNode->OwnerDoc())
-  {
+      : AsyncEventDispatcher(aEventNode, aEvent),
+        mBlockedDoc(aEventNode->OwnerDoc()) {
     if (mBlockedDoc) {
       mBlockedDoc->BlockOnload();
     }
@@ -147,10 +131,10 @@ public:
 
   ~LoadBlockingAsyncEventDispatcher();
 
-private:
+ private:
   nsCOMPtr<nsIDocument> mBlockedDoc;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_AsyncEventDispatcher_h_
+#endif  // mozilla_AsyncEventDispatcher_h_

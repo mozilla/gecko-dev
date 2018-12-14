@@ -13,9 +13,12 @@
 #include "nsIGlobalObject.h"
 #include "nsWrapperCache.h"
 
-#define WORKLET_IID \
-  { 0x1b3f62e7, 0xe357, 0x44be, \
-    { 0xbf, 0xe0, 0xdf, 0x85, 0xe6, 0x56, 0x85, 0xac } }
+#define WORKLET_IID                                  \
+  {                                                  \
+    0x1b3f62e7, 0xe357, 0x44be, {                    \
+      0xbf, 0xe0, 0xdf, 0x85, 0xe6, 0x56, 0x85, 0xac \
+    }                                                \
+  }
 
 class nsIPrincipal;
 class nsPIDOMWindowInner;
@@ -25,10 +28,8 @@ namespace dom {
 
 class Console;
 
-class WorkletGlobalScope : public nsIGlobalObject
-                         , public nsWrapperCache
-{
-public:
+class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(WORKLET_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -36,41 +37,31 @@ public:
 
   explicit WorkletGlobalScope(nsPIDOMWindowInner* aWindow);
 
-  nsIGlobalObject* GetParentObject() const
-  {
-    return nullptr;
-  }
+  nsIGlobalObject* GetParentObject() const { return nullptr; }
 
-  virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual bool
-  WrapGlobalObject(JSContext* aCx, nsIPrincipal* aPrincipal,
-                   JS::MutableHandle<JSObject*> aReflector) = 0;
+  virtual bool WrapGlobalObject(JSContext* aCx, nsIPrincipal* aPrincipal,
+                                JS::MutableHandle<JSObject*> aReflector) = 0;
 
-  virtual JSObject*
-  GetGlobalJSObject() override
-  {
-    return GetWrapper();
-  }
+  virtual JSObject* GetGlobalJSObject() override { return GetWrapper(); }
 
-  already_AddRefed<Console>
-  GetConsole(JSContext* aCx, ErrorResult& aRv);
+  already_AddRefed<Console> GetConsole(JSContext* aCx, ErrorResult& aRv);
 
-  void
-  Dump(const Optional<nsAString>& aString) const;
+  void Dump(const Optional<nsAString>& aString) const;
 
-protected:
+ protected:
   ~WorkletGlobalScope();
 
-private:
+ private:
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   RefPtr<Console> mConsole;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WorkletGlobalScope, WORKLET_IID)
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_WorkletGlobalScope_h
+#endif  // mozilla_dom_WorkletGlobalScope_h

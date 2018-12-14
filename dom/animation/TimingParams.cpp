@@ -11,7 +11,7 @@
 #include "mozilla/dom/KeyframeAnimationOptionsBinding.h"
 #include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/ServoCSSParser.h"
-#include "nsCSSParser.h" // For nsCSSParser
+#include "nsCSSParser.h"  // For nsCSSParser
 #include "nsIDocument.h"
 #ifdef MOZ_OLD_STYLE
 #include "nsRuleNode.h"
@@ -20,49 +20,42 @@
 namespace mozilla {
 
 template <class OptionsType>
-static const dom::AnimationEffectTimingProperties&
-GetTimingProperties(const OptionsType& aOptions);
+static const dom::AnimationEffectTimingProperties& GetTimingProperties(
+    const OptionsType& aOptions);
 
 template <>
-/* static */ const dom::AnimationEffectTimingProperties&
-GetTimingProperties(
-  const dom::UnrestrictedDoubleOrKeyframeEffectOptions& aOptions)
-{
+/* static */ const dom::AnimationEffectTimingProperties& GetTimingProperties(
+    const dom::UnrestrictedDoubleOrKeyframeEffectOptions& aOptions) {
   MOZ_ASSERT(aOptions.IsKeyframeEffectOptions());
   return aOptions.GetAsKeyframeEffectOptions();
 }
 
 template <>
-/* static */ const dom::AnimationEffectTimingProperties&
-GetTimingProperties(
-  const dom::UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions)
-{
+/* static */ const dom::AnimationEffectTimingProperties& GetTimingProperties(
+    const dom::UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions) {
   MOZ_ASSERT(aOptions.IsKeyframeAnimationOptions());
   return aOptions.GetAsKeyframeAnimationOptions();
 }
 
 template <class OptionsType>
-/* static */ TimingParams
-TimingParams::FromOptionsType(const OptionsType& aOptions,
-                              nsIDocument* aDocument,
-                              ErrorResult& aRv)
-{
+/* static */ TimingParams TimingParams::FromOptionsType(
+    const OptionsType& aOptions, nsIDocument* aDocument, ErrorResult& aRv) {
   TimingParams result;
   if (aOptions.IsUnrestrictedDouble()) {
     double durationInMs = aOptions.GetAsUnrestrictedDouble();
     if (durationInMs >= 0) {
       result.mDuration.emplace(
-        StickyTimeDuration::FromMilliseconds(durationInMs));
+          StickyTimeDuration::FromMilliseconds(durationInMs));
     } else {
       aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
       return result;
     }
   } else {
     const dom::AnimationEffectTimingProperties& timing =
-      GetTimingProperties(aOptions);
+        GetTimingProperties(aOptions);
 
     Maybe<StickyTimeDuration> duration =
-      TimingParams::ParseDuration(timing.mDuration, aRv);
+        TimingParams::ParseDuration(timing.mDuration, aRv);
     if (aRv.Failed()) {
       return result;
     }
@@ -75,7 +68,7 @@ TimingParams::FromOptionsType(const OptionsType& aOptions,
       return result;
     }
     Maybe<ComputedTimingFunction> easing =
-      TimingParams::ParseEasing(timing.mEasing, aDocument, aRv);
+        TimingParams::ParseEasing(timing.mEasing, aDocument, aRv);
     if (aRv.Failed()) {
       return result;
     }
@@ -94,29 +87,20 @@ TimingParams::FromOptionsType(const OptionsType& aOptions,
   return result;
 }
 
-/* static */ TimingParams
-TimingParams::FromOptionsUnion(
-  const dom::UnrestrictedDoubleOrKeyframeEffectOptions& aOptions,
-  nsIDocument* aDocument,
-  ErrorResult& aRv)
-{
+/* static */ TimingParams TimingParams::FromOptionsUnion(
+    const dom::UnrestrictedDoubleOrKeyframeEffectOptions& aOptions,
+    nsIDocument* aDocument, ErrorResult& aRv) {
   return FromOptionsType(aOptions, aDocument, aRv);
 }
 
-/* static */ TimingParams
-TimingParams::FromOptionsUnion(
-  const dom::UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
-  nsIDocument* aDocument,
-  ErrorResult& aRv)
-{
+/* static */ TimingParams TimingParams::FromOptionsUnion(
+    const dom::UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
+    nsIDocument* aDocument, ErrorResult& aRv) {
   return FromOptionsType(aOptions, aDocument, aRv);
 }
 
-/* static */ Maybe<ComputedTimingFunction>
-TimingParams::ParseEasing(const nsAString& aEasing,
-                          nsIDocument* aDocument,
-                          ErrorResult& aRv)
-{
+/* static */ Maybe<ComputedTimingFunction> TimingParams::ParseEasing(
+    const nsAString& aEasing, nsIDocument* aDocument, ErrorResult& aRv) {
   MOZ_ASSERT(aDocument);
 
   if (aDocument->IsStyledByServo()) {
@@ -137,12 +121,10 @@ TimingParams::ParseEasing(const nsAString& aEasing,
 #ifdef MOZ_OLD_STYLE
   nsCSSValue value;
   nsCSSParser parser;
-  parser.ParseLonghandProperty(eCSSProperty_animation_timing_function,
-                               aEasing,
+  parser.ParseLonghandProperty(eCSSProperty_animation_timing_function, aEasing,
                                aDocument->GetDocumentURI(),
                                aDocument->GetDocumentURI(),
-                               aDocument->NodePrincipal(),
-                               value);
+                               aDocument->NodePrincipal(), value);
 
   switch (value.GetUnit()) {
     case eCSSUnit_List: {
@@ -167,9 +149,10 @@ TimingParams::ParseEasing(const nsAString& aEasing,
           return Some(ComputedTimingFunction(timingFunction));
         }
         default:
-          MOZ_ASSERT_UNREACHABLE("unexpected animation-timing-function list "
-                                 "item unit");
-        break;
+          MOZ_ASSERT_UNREACHABLE(
+              "unexpected animation-timing-function list "
+              "item unit");
+          break;
       }
       break;
     }
@@ -192,18 +175,14 @@ TimingParams::ParseEasing(const nsAString& aEasing,
   return Nothing();
 }
 
-bool
-TimingParams::operator==(const TimingParams& aOther) const
-{
+bool TimingParams::operator==(const TimingParams& aOther) const {
   // We don't compare mActiveDuration and mEndTime because they are calculated
   // from other timing parameters.
-  return mDuration == aOther.mDuration &&
-         mDelay == aOther.mDelay &&
+  return mDuration == aOther.mDuration && mDelay == aOther.mDelay &&
          mIterations == aOther.mIterations &&
          mIterationStart == aOther.mIterationStart &&
-         mDirection == aOther.mDirection &&
-         mFill == aOther.mFill &&
+         mDirection == aOther.mDirection && mFill == aOther.mFill &&
          mFunction == aOther.mFunction;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

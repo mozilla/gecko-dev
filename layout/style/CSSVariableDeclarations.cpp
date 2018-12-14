@@ -17,31 +17,28 @@
 // variable values.)
 #define INITIAL_VALUE "!"
 #define INHERIT_VALUE ";"
-#define UNSET_VALUE   ")"
+#define UNSET_VALUE ")"
 
 namespace mozilla {
 
-CSSVariableDeclarations::CSSVariableDeclarations()
-{
+CSSVariableDeclarations::CSSVariableDeclarations() {
   MOZ_COUNT_CTOR(CSSVariableDeclarations);
 }
 
-CSSVariableDeclarations::CSSVariableDeclarations(const CSSVariableDeclarations& aOther)
-{
+CSSVariableDeclarations::CSSVariableDeclarations(
+    const CSSVariableDeclarations& aOther) {
   MOZ_COUNT_CTOR(CSSVariableDeclarations);
   CopyVariablesFrom(aOther);
 }
 
 #ifdef DEBUG
-CSSVariableDeclarations::~CSSVariableDeclarations()
-{
+CSSVariableDeclarations::~CSSVariableDeclarations() {
   MOZ_COUNT_DTOR(CSSVariableDeclarations);
 }
 #endif
 
-CSSVariableDeclarations&
-CSSVariableDeclarations::operator=(const CSSVariableDeclarations& aOther)
-{
+CSSVariableDeclarations& CSSVariableDeclarations::operator=(
+    const CSSVariableDeclarations& aOther) {
   if (this == &aOther) {
     return *this;
   }
@@ -51,26 +48,20 @@ CSSVariableDeclarations::operator=(const CSSVariableDeclarations& aOther)
   return *this;
 }
 
-void
-CSSVariableDeclarations::CopyVariablesFrom(const CSSVariableDeclarations& aOther)
-{
+void CSSVariableDeclarations::CopyVariablesFrom(
+    const CSSVariableDeclarations& aOther) {
   for (auto iter = aOther.mVariables.ConstIter(); !iter.Done(); iter.Next()) {
     mVariables.Put(iter.Key(), iter.UserData());
   }
 }
 
-bool
-CSSVariableDeclarations::Has(const nsAString& aName) const
-{
+bool CSSVariableDeclarations::Has(const nsAString& aName) const {
   nsString value;
   return mVariables.Get(aName, &value);
 }
 
-bool
-CSSVariableDeclarations::Get(const nsAString& aName,
-                             Type& aType,
-                             nsString& aTokenStream) const
-{
+bool CSSVariableDeclarations::Get(const nsAString& aName, Type& aType,
+                                  nsString& aTokenStream) const {
   nsString value;
   if (!mVariables.Get(aName, &value)) {
     return false;
@@ -91,43 +82,31 @@ CSSVariableDeclarations::Get(const nsAString& aName,
   return true;
 }
 
-void
-CSSVariableDeclarations::PutTokenStream(const nsAString& aName,
-                                        const nsString& aTokenStream)
-{
+void CSSVariableDeclarations::PutTokenStream(const nsAString& aName,
+                                             const nsString& aTokenStream) {
   MOZ_ASSERT(!aTokenStream.EqualsLiteral(INITIAL_VALUE) &&
              !aTokenStream.EqualsLiteral(INHERIT_VALUE) &&
              !aTokenStream.EqualsLiteral(UNSET_VALUE));
   mVariables.Put(aName, aTokenStream);
 }
 
-void
-CSSVariableDeclarations::PutInitial(const nsAString& aName)
-{
+void CSSVariableDeclarations::PutInitial(const nsAString& aName) {
   mVariables.Put(aName, NS_LITERAL_STRING(INITIAL_VALUE));
 }
 
-void
-CSSVariableDeclarations::PutInherit(const nsAString& aName)
-{
+void CSSVariableDeclarations::PutInherit(const nsAString& aName) {
   mVariables.Put(aName, NS_LITERAL_STRING(INHERIT_VALUE));
 }
 
-void
-CSSVariableDeclarations::PutUnset(const nsAString& aName)
-{
+void CSSVariableDeclarations::PutUnset(const nsAString& aName) {
   mVariables.Put(aName, NS_LITERAL_STRING(UNSET_VALUE));
 }
 
-void
-CSSVariableDeclarations::Remove(const nsAString& aName)
-{
+void CSSVariableDeclarations::Remove(const nsAString& aName) {
   mVariables.Remove(aName);
 }
 
-void
-CSSVariableDeclarations::MapRuleInfoInto(nsRuleData* aRuleData)
-{
+void CSSVariableDeclarations::MapRuleInfoInto(nsRuleData* aRuleData) {
   if (!(aRuleData->mSIDs & NS_STYLE_INHERIT_BIT(Variables))) {
     return;
   }
@@ -137,28 +116,24 @@ CSSVariableDeclarations::MapRuleInfoInto(nsRuleData* aRuleData)
   } else {
     for (auto iter = mVariables.Iter(); !iter.Done(); iter.Next()) {
       nsDataHashtable<nsStringHashKey, nsString>& variables =
-        aRuleData->mVariables->mVariables;
+          aRuleData->mVariables->mVariables;
       const nsAString& aName = iter.Key();
       variables.LookupForAdd(aName).OrInsert(
-        [&iter] () { return iter.UserData(); });
+          [&iter]() { return iter.UserData(); });
     }
   }
 }
 
-void
-CSSVariableDeclarations::AddVariablesToResolver(
-                                           CSSVariableResolver* aResolver) const
-{
+void CSSVariableDeclarations::AddVariablesToResolver(
+    CSSVariableResolver* aResolver) const {
   for (auto iter = mVariables.ConstIter(); !iter.Done(); iter.Next()) {
     const nsAString& name = iter.Key();
     nsString value = iter.UserData();
     if (value.EqualsLiteral(INITIAL_VALUE)) {
       // Values of 'initial' are treated the same as an invalid value in the
       // variable resolver.
-      aResolver->Put(name, EmptyString(),
-                     eCSSTokenSerialization_Nothing,
-                     eCSSTokenSerialization_Nothing,
-                     false);
+      aResolver->Put(name, EmptyString(), eCSSTokenSerialization_Nothing,
+                     eCSSTokenSerialization_Nothing, false);
     } else if (value.EqualsLiteral(INHERIT_VALUE) ||
                value.EqualsLiteral(UNSET_VALUE)) {
       // Values of 'inherit' and 'unset' don't need any handling, since it means
@@ -170,18 +145,14 @@ CSSVariableDeclarations::AddVariablesToResolver(
       // At this point, we don't know what token types are at the start and end
       // of the specified variable value.  These will be determined later during
       // the resolving process.
-      aResolver->Put(name, value,
-                     eCSSTokenSerialization_Nothing,
-                     eCSSTokenSerialization_Nothing,
-                     false);
+      aResolver->Put(name, value, eCSSTokenSerialization_Nothing,
+                     eCSSTokenSerialization_Nothing, false);
     }
   }
 }
 
-size_t
-CSSVariableDeclarations::SizeOfIncludingThis(
-                                      mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t CSSVariableDeclarations::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = aMallocSizeOf(this);
   n += mVariables.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (auto iter = mVariables.ConstIter(); !iter.Done(); iter.Next()) {
@@ -191,4 +162,4 @@ CSSVariableDeclarations::SizeOfIncludingThis(
   return n;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

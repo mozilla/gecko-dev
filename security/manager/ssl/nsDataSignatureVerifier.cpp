@@ -17,24 +17,26 @@ SEC_ASN1_MKSUB(SECOID_AlgorithmIDTemplate)
 
 NS_IMPL_ISUPPORTS(nsDataSignatureVerifier, nsIDataSignatureVerifier)
 
-const SEC_ASN1Template CERT_SignatureDataTemplate[] =
-{
-    { SEC_ASN1_SEQUENCE,
-        0, nullptr, sizeof(CERTSignedData) },
-    { SEC_ASN1_INLINE | SEC_ASN1_XTRN,
-        offsetof(CERTSignedData,signatureAlgorithm),
-        SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate), },
-    { SEC_ASN1_BIT_STRING,
-        offsetof(CERTSignedData,signature), },
-    { 0, }
-};
+const SEC_ASN1Template CERT_SignatureDataTemplate[] = {
+    {SEC_ASN1_SEQUENCE, 0, nullptr, sizeof(CERTSignedData)},
+    {
+        SEC_ASN1_INLINE | SEC_ASN1_XTRN,
+        offsetof(CERTSignedData, signatureAlgorithm),
+        SEC_ASN1_SUB(SECOID_AlgorithmIDTemplate),
+    },
+    {
+        SEC_ASN1_BIT_STRING,
+        offsetof(CERTSignedData, signature),
+    },
+    {
+        0,
+    }};
 
 NS_IMETHODIMP
 nsDataSignatureVerifier::VerifyData(const nsACString& aData,
                                     const nsACString& aSignature,
                                     const nsACString& aPublicKey,
-                                    bool* _retval)
-{
+                                    bool* _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
 
   // Allocate an arena to handle the majority of the allocations
@@ -56,12 +58,12 @@ nsDataSignatureVerifier::VerifyData(const nsACString& aData,
 
   // Extract the public key from the data
   SECItem keyItem = {
-    siBuffer,
-    BitwiseCast<unsigned char*, const char*>(key.get()),
-    key.Length(),
+      siBuffer,
+      BitwiseCast<unsigned char*, const char*>(key.get()),
+      key.Length(),
   };
   UniqueCERTSubjectPublicKeyInfo pki(
-    SECKEY_DecodeDERSubjectPublicKeyInfo(&keyItem));
+      SECKEY_DecodeDERSubjectPublicKeyInfo(&keyItem));
   if (!pki) {
     return NS_ERROR_FAILURE;
   }
@@ -86,13 +88,12 @@ nsDataSignatureVerifier::VerifyData(const nsACString& aData,
   CERTSignedData sigData;
   PORT_Memset(&sigData, 0, sizeof(CERTSignedData));
   SECItem signatureItem = {
-    siBuffer,
-    BitwiseCast<unsigned char*, const char*>(signature.get()),
-    signature.Length(),
+      siBuffer,
+      BitwiseCast<unsigned char*, const char*>(signature.get()),
+      signature.Length(),
   };
-  SECStatus srv = SEC_QuickDERDecodeItem(arena.get(), &sigData,
-                                         CERT_SignatureDataTemplate,
-                                         &signatureItem);
+  SECStatus srv = SEC_QuickDERDecodeItem(
+      arena.get(), &sigData, CERT_SignatureDataTemplate, &signatureItem);
   if (srv != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
@@ -100,10 +101,10 @@ nsDataSignatureVerifier::VerifyData(const nsACString& aData,
   // Perform the final verification
   DER_ConvertBitString(&(sigData.signature));
   srv = VFY_VerifyDataWithAlgorithmID(
-    BitwiseCast<const unsigned char*, const char*>(
-      PromiseFlatCString(aData).get()),
-    aData.Length(), publicKey.get(), &(sigData.signature),
-    &(sigData.signatureAlgorithm), nullptr, nullptr);
+      BitwiseCast<const unsigned char*, const char*>(
+          PromiseFlatCString(aData).get()),
+      aData.Length(), publicKey.get(), &(sigData.signature),
+      &(sigData.signatureAlgorithm), nullptr, nullptr);
 
   *_retval = (srv == SECSuccess);
 

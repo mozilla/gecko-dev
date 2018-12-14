@@ -9,8 +9,7 @@
 
 using namespace mozilla::dom;
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(PerformanceResourceTiming,
-                                   PerformanceEntry,
+NS_IMPL_CYCLE_COLLECTION_INHERITED(PerformanceResourceTiming, PerformanceEntry,
                                    mPerformance)
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(PerformanceResourceTiming,
@@ -23,23 +22,19 @@ NS_INTERFACE_MAP_END_INHERITING(PerformanceEntry)
 NS_IMPL_ADDREF_INHERITED(PerformanceResourceTiming, PerformanceEntry)
 NS_IMPL_RELEASE_INHERITED(PerformanceResourceTiming, PerformanceEntry)
 
-PerformanceResourceTiming::PerformanceResourceTiming(UniquePtr<PerformanceTimingData>&& aPerformanceTiming,
-                                                     Performance* aPerformance,
-                                                     const nsAString& aName)
-  : PerformanceEntry(aPerformance->GetParentObject(), aName, NS_LITERAL_STRING("resource"))
-  , mTimingData(Move(aPerformanceTiming))
-  , mPerformance(aPerformance)
-{
+PerformanceResourceTiming::PerformanceResourceTiming(
+    UniquePtr<PerformanceTimingData>&& aPerformanceTiming,
+    Performance* aPerformance, const nsAString& aName)
+    : PerformanceEntry(aPerformance->GetParentObject(), aName,
+                       NS_LITERAL_STRING("resource")),
+      mTimingData(Move(aPerformanceTiming)),
+      mPerformance(aPerformance) {
   MOZ_ASSERT(aPerformance, "Parent performance object should be provided");
 }
 
-PerformanceResourceTiming::~PerformanceResourceTiming()
-{
-}
+PerformanceResourceTiming::~PerformanceResourceTiming() {}
 
-DOMHighResTimeStamp
-PerformanceResourceTiming::StartTime() const
-{
+DOMHighResTimeStamp PerformanceResourceTiming::StartTime() const {
   // Force the start time to be the earliest of:
   //  - RedirectStart
   //  - WorkerStart
@@ -48,7 +43,7 @@ PerformanceResourceTiming::StartTime() const
   // can come from earlier redirected channels prior to the AsyncOpen
   // time being recorded.
   DOMHighResTimeStamp redirect =
-    mTimingData->RedirectStartHighRes(mPerformance);
+      mTimingData->RedirectStartHighRes(mPerformance);
   redirect = redirect ? redirect : DBL_MAX;
 
   DOMHighResTimeStamp worker = mTimingData->WorkerStartHighRes(mPerformance);
@@ -59,24 +54,22 @@ PerformanceResourceTiming::StartTime() const
   return std::min(asyncOpen, std::min(redirect, worker));
 }
 
-JSObject*
-PerformanceResourceTiming::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* PerformanceResourceTiming::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PerformanceResourceTimingBinding::Wrap(aCx, this, aGivenProto);
 }
 
-size_t
-PerformanceResourceTiming::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t PerformanceResourceTiming::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-size_t
-PerformanceResourceTiming::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t PerformanceResourceTiming::SizeOfExcludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   return PerformanceEntry::SizeOfExcludingThis(aMallocSizeOf) +
          mInitiatorType.SizeOfExcludingThisIfUnshared(aMallocSizeOf) +
          (mTimingData
-            ? mTimingData->NextHopProtocol().SizeOfExcludingThisIfUnshared(aMallocSizeOf)
-            : 0);
+              ? mTimingData->NextHopProtocol().SizeOfExcludingThisIfUnshared(
+                    aMallocSizeOf)
+              : 0);
 }

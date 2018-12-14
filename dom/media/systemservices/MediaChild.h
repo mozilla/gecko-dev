@@ -32,35 +32,31 @@ namespace media {
 // pledges (promise-like objects) with the future value. Use pledge.Then(func)
 // to access.
 
-already_AddRefed<Pledge<nsCString>>
-GetPrincipalKey(const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-                bool aPersist);
+already_AddRefed<Pledge<nsCString>> GetPrincipalKey(
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo, bool aPersist);
 
-void
-SanitizeOriginKeys(const uint64_t& aSinceWhen, bool aOnlyPrivateBrowsing);
+void SanitizeOriginKeys(const uint64_t& aSinceWhen, bool aOnlyPrivateBrowsing);
 
-class Child : public PMediaChild
-{
-public:
+class Child : public PMediaChild {
+ public:
   static Child* Get();
 
   Child();
 
-  mozilla::ipc::IPCResult
-  RecvGetPrincipalKeyResponse(const uint32_t& aRequestId,
-                              const nsCString& aKey) override;
+  mozilla::ipc::IPCResult RecvGetPrincipalKeyResponse(
+      const uint32_t& aRequestId, const nsCString& aKey) override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
   virtual ~Child();
-private:
 
+ private:
   bool mActorDestroyed;
 };
 
 PMediaChild* AllocPMediaChild();
-bool DeallocPMediaChild(PMediaChild *aActor);
+bool DeallocPMediaChild(PMediaChild* aActor);
 
-} // namespace media
-} // namespace mozilla
+}  // namespace media
+}  // namespace mozilla
 
 #endif  // mozilla_MediaChild_h

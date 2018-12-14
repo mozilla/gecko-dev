@@ -15,17 +15,13 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGFEDistantLightElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGFEDistantLightElement::WrapNode(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGFEDistantLightElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::NumberInfo SVGFEDistantLightElement::sNumberInfo[2] =
-{
-  { &nsGkAtoms::azimuth,   0, false },
-  { &nsGkAtoms::elevation, 0, false }
-};
+nsSVGElement::NumberInfo SVGFEDistantLightElement::sNumberInfo[2] = {
+    {&nsGkAtoms::azimuth, 0, false}, {&nsGkAtoms::elevation, 0, false}};
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -35,18 +31,15 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEDistantLightElement)
 
 // nsFEUnstyledElement methods
 
-bool
-SVGFEDistantLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                    nsAtom* aAttribute) const
-{
+bool SVGFEDistantLightElement::AttributeAffectsRendering(
+    int32_t aNameSpaceID, nsAtom* aAttribute) const {
   return aNameSpaceID == kNameSpaceID_None &&
          (aAttribute == nsGkAtoms::azimuth ||
           aAttribute == nsGkAtoms::elevation);
 }
 
-AttributeMap
-SVGFEDistantLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
-{
+AttributeMap SVGFEDistantLightElement::ComputeLightAttributes(
+    nsSVGFilterInstance* aInstance) {
   float azimuth, elevation;
   GetAnimatedNumberValues(&azimuth, &elevation, nullptr);
 
@@ -57,27 +50,21 @@ SVGFEDistantLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
   return map;
 }
 
-already_AddRefed<SVGAnimatedNumber>
-SVGFEDistantLightElement::Azimuth()
-{
+already_AddRefed<SVGAnimatedNumber> SVGFEDistantLightElement::Azimuth() {
   return mNumberAttributes[AZIMUTH].ToDOMAnimatedNumber(this);
 }
 
-already_AddRefed<SVGAnimatedNumber>
-SVGFEDistantLightElement::Elevation()
-{
+already_AddRefed<SVGAnimatedNumber> SVGFEDistantLightElement::Elevation() {
   return mNumberAttributes[ELEVATION].ToDOMAnimatedNumber(this);
 }
 
 //----------------------------------------------------------------------
 // nsSVGElement methods
 
-nsSVGElement::NumberAttributesInfo
-SVGFEDistantLightElement::GetNumberInfo()
-{
+nsSVGElement::NumberAttributesInfo SVGFEDistantLightElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
                               ArrayLength(sNumberInfo));
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

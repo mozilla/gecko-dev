@@ -59,7 +59,7 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIOService, nsIOService::GetInstance)
 
 #include "nsDNSService2.h"
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIDNSService,
-  nsDNSService::GetXPCOMSingleton)
+                                         nsDNSService::GetXPCOMSingleton)
 
 #include "nsProtocolProxyService.h"
 typedef mozilla::net::nsProtocolProxyService nsProtocolProxyService;
@@ -108,8 +108,8 @@ namespace mozilla {
 namespace net {
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(BackgroundFileSaverOutputStream, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(BackgroundFileSaverStreamListener, Init)
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 #include "nsSyncStreamListener.h"
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsSyncStreamListener, Init)
@@ -149,9 +149,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(LoadContextInfoFactory)
 #include "mozilla/net/CaptivePortalService.h"
 namespace mozilla {
 namespace net {
-  NS_GENERIC_FACTORY_CONSTRUCTOR(CaptivePortalService)
-} // namespace net
-} // namespace mozilla
+NS_GENERIC_FACTORY_CONSTRUCTOR(CaptivePortalService)
+}  // namespace net
+}  // namespace mozilla
 
 #include "RequestContextService.h"
 typedef mozilla::net::RequestContextService RequestContextService;
@@ -159,16 +159,14 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(RequestContextService, Init)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-extern nsresult
-net_NewIncrementalDownload(nsISupports *, const nsIID &, void **);
+extern nsresult net_NewIncrementalDownload(nsISupports*, const nsIID&, void**);
 
-#define NS_INCREMENTALDOWNLOAD_CID \
-{ /* a62af1ba-79b3-4896-8aaf-b148bfce4280 */         \
-    0xa62af1ba,                                      \
-    0x79b3,                                          \
-    0x4896,                                          \
-    {0x8a, 0xaf, 0xb1, 0x48, 0xbf, 0xce, 0x42, 0x80} \
-}
+#define NS_INCREMENTALDOWNLOAD_CID                   \
+  { /* a62af1ba-79b3-4896-8aaf-b148bfce4280 */       \
+    0xa62af1ba, 0x79b3, 0x4896, {                    \
+      0x8a, 0xaf, 0xb1, 0x48, 0xbf, 0xce, 0x42, 0x80 \
+    }                                                \
+  }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -200,7 +198,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsStreamListenerTee)
 #ifdef NECKO_COOKIES
 #include "nsCookieService.h"
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsICookieService,
-  nsCookieService::GetXPCOMSingleton)
+                                         nsCookieService::GetXPCOMSingleton)
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -262,7 +260,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsFtpProtocolHandler, Init)
 namespace mozilla {
 namespace net {
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpNTLMAuth)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsHttpHandler, nsHttpHandler::GetInstance)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsHttpHandler,
+                                         nsHttpHandler::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsHttpsHandler, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsHttpAuthManager, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpChannelAuthProvider)
@@ -271,23 +270,23 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpBasicAuth)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsHttpDigestAuth)
 NS_GENERIC_FACTORY_CONSTRUCTOR(ThrottleQueue)
 NS_GENERIC_FACTORY_CONSTRUCTOR(BackgroundChannelRegistrar)
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 #include "mozilla/net/Dashboard.h"
 namespace mozilla {
 namespace net {
-  NS_GENERIC_FACTORY_CONSTRUCTOR(Dashboard)
-} // namespace net
-} // namespace mozilla
+NS_GENERIC_FACTORY_CONSTRUCTOR(Dashboard)
+}  // namespace net
+}  // namespace mozilla
 
 #ifdef XP_WIN
 #include "../socket/nsNamedPipeService.h"
 namespace mozilla {
 namespace net {
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(NamedPipeService, Init)
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 #endif
 
 // resource
@@ -298,9 +297,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsResProtocolHandler, Init)
 
 namespace mozilla {
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(ExtensionProtocolHandler,
-    ExtensionProtocolHandler::GetSingleton)
+                                         ExtensionProtocolHandler::GetSingleton)
 NS_GENERIC_FACTORY_CONSTRUCTOR(SubstitutingURL)
-} // namespace mozilla
+}  // namespace mozilla
 
 #include "nsViewSourceHandler.h"
 typedef mozilla::net::nsViewSourceHandler nsViewSourceHandler;
@@ -315,9 +314,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsWyciwygProtocolHandler)
 #include "WebSocketChannelChild.h"
 namespace mozilla {
 namespace net {
-static BaseWebSocketChannel*
-WebSocketChannelConstructor(bool aSecure)
-{
+static BaseWebSocketChannel* WebSocketChannelConstructor(bool aSecure) {
   if (IsNeckoChild()) {
     return new WebSocketChannelChild(aSecure);
   }
@@ -328,32 +325,30 @@ WebSocketChannelConstructor(bool aSecure)
   return new WebSocketChannel;
 }
 
-#define WEB_SOCKET_HANDLER_CONSTRUCTOR(type, secure)  \
-static nsresult                                       \
-type##Constructor(nsISupports *aOuter, REFNSIID aIID, \
-                  void **aResult)                     \
-{                                                     \
-  nsresult rv;                                        \
-                                                      \
-  BaseWebSocketChannel * inst;                        \
-                                                      \
-  *aResult = nullptr;                                 \
-  if (nullptr != aOuter) {                            \
-    rv = NS_ERROR_NO_AGGREGATION;                     \
-    return rv;                                        \
-  }                                                   \
-  inst = WebSocketChannelConstructor(secure);         \
-  NS_ADDREF(inst);                                    \
-  rv = inst->QueryInterface(aIID, aResult);           \
-  NS_RELEASE(inst);                                   \
-  return rv;                                          \
-}
+#define WEB_SOCKET_HANDLER_CONSTRUCTOR(type, secure)                    \
+  static nsresult type##Constructor(nsISupports* aOuter, REFNSIID aIID, \
+                                    void** aResult) {                   \
+    nsresult rv;                                                        \
+                                                                        \
+    BaseWebSocketChannel* inst;                                         \
+                                                                        \
+    *aResult = nullptr;                                                 \
+    if (nullptr != aOuter) {                                            \
+      rv = NS_ERROR_NO_AGGREGATION;                                     \
+      return rv;                                                        \
+    }                                                                   \
+    inst = WebSocketChannelConstructor(secure);                         \
+    NS_ADDREF(inst);                                                    \
+    rv = inst->QueryInterface(aIID, aResult);                           \
+    NS_RELEASE(inst);                                                   \
+    return rv;                                                          \
+  }
 
 WEB_SOCKET_HANDLER_CONSTRUCTOR(WebSocketChannel, false)
 WEB_SOCKET_HANDLER_CONSTRUCTOR(WebSocketSSLChannel, true)
 #undef WEB_SOCKET_HANDLER_CONSTRUCTOR
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -410,8 +405,8 @@ nsresult NS_NewFTPDirListingConv(nsFTPDirListingConv** result);
 namespace mozilla {
 namespace net {
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsTXTToHTMLConv, Init)
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -419,171 +414,165 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsTXTToHTMLConv, Init)
 #include "nsNetworkInfoService.h"
 typedef mozilla::net::nsNetworkInfoService nsNetworkInfoService;
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsNetworkInfoService, Init)
-#endif // BUILD_NETWORK_INFO_SERVICE
-
+#endif  // BUILD_NETWORK_INFO_SERVICE
 
 #include "nsIndexedToHTML.h"
 
-nsresult NS_NewMultiMixedConv (nsMultiMixedConv** result);
-nsresult MOZ_NewTXTToHTMLConv (mozTXTToHTMLConv** result);
-nsresult NS_NewHTTPCompressConv  (mozilla::net::nsHTTPCompressConv ** result);
-nsresult NS_NewStreamConv(nsStreamConverterService **aStreamConv);
+nsresult NS_NewMultiMixedConv(nsMultiMixedConv** result);
+nsresult MOZ_NewTXTToHTMLConv(mozTXTToHTMLConv** result);
+nsresult NS_NewHTTPCompressConv(mozilla::net::nsHTTPCompressConv** result);
+nsresult NS_NewStreamConv(nsStreamConverterService** aStreamConv);
 
-#define FTP_TO_INDEX                 "?from=text/ftp-dir&to=application/http-index-format"
-#define INDEX_TO_HTML                "?from=application/http-index-format&to=text/html"
-#define MULTI_MIXED_X                "?from=multipart/x-mixed-replace&to=*/*"
-#define MULTI_MIXED                  "?from=multipart/mixed&to=*/*"
-#define MULTI_BYTERANGES             "?from=multipart/byteranges&to=*/*"
-#define UNKNOWN_CONTENT              "?from=" UNKNOWN_CONTENT_TYPE "&to=*/*"
-#define GZIP_TO_UNCOMPRESSED         "?from=gzip&to=uncompressed"
-#define XGZIP_TO_UNCOMPRESSED        "?from=x-gzip&to=uncompressed"
-#define BROTLI_TO_UNCOMPRESSED       "?from=br&to=uncompressed"
-#define COMPRESS_TO_UNCOMPRESSED     "?from=compress&to=uncompressed"
-#define XCOMPRESS_TO_UNCOMPRESSED    "?from=x-compress&to=uncompressed"
-#define DEFLATE_TO_UNCOMPRESSED      "?from=deflate&to=uncompressed"
-#define PLAIN_TO_HTML                "?from=text/plain&to=text/html"
+#define FTP_TO_INDEX "?from=text/ftp-dir&to=application/http-index-format"
+#define INDEX_TO_HTML "?from=application/http-index-format&to=text/html"
+#define MULTI_MIXED_X "?from=multipart/x-mixed-replace&to=*/*"
+#define MULTI_MIXED "?from=multipart/mixed&to=*/*"
+#define MULTI_BYTERANGES "?from=multipart/byteranges&to=*/*"
+#define UNKNOWN_CONTENT "?from=" UNKNOWN_CONTENT_TYPE "&to=*/*"
+#define GZIP_TO_UNCOMPRESSED "?from=gzip&to=uncompressed"
+#define XGZIP_TO_UNCOMPRESSED "?from=x-gzip&to=uncompressed"
+#define BROTLI_TO_UNCOMPRESSED "?from=br&to=uncompressed"
+#define COMPRESS_TO_UNCOMPRESSED "?from=compress&to=uncompressed"
+#define XCOMPRESS_TO_UNCOMPRESSED "?from=x-compress&to=uncompressed"
+#define DEFLATE_TO_UNCOMPRESSED "?from=deflate&to=uncompressed"
+#define PLAIN_TO_HTML "?from=text/plain&to=text/html"
 
 static const mozilla::Module::CategoryEntry kNeckoCategories[] = {
-    { NS_ISTREAMCONVERTER_KEY, FTP_TO_INDEX, "" },
-    { NS_ISTREAMCONVERTER_KEY, INDEX_TO_HTML, "" },
-    { NS_ISTREAMCONVERTER_KEY, MULTI_MIXED_X, "" },
-    { NS_ISTREAMCONVERTER_KEY, MULTI_MIXED, "" },
-    { NS_ISTREAMCONVERTER_KEY, MULTI_BYTERANGES, "" },
-    { NS_ISTREAMCONVERTER_KEY, UNKNOWN_CONTENT, "" },
-    { NS_ISTREAMCONVERTER_KEY, GZIP_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, XGZIP_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, BROTLI_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, COMPRESS_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, XCOMPRESS_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, DEFLATE_TO_UNCOMPRESSED, "" },
-    { NS_ISTREAMCONVERTER_KEY, PLAIN_TO_HTML, "" },
+    {NS_ISTREAMCONVERTER_KEY, FTP_TO_INDEX, ""},
+    {NS_ISTREAMCONVERTER_KEY, INDEX_TO_HTML, ""},
+    {NS_ISTREAMCONVERTER_KEY, MULTI_MIXED_X, ""},
+    {NS_ISTREAMCONVERTER_KEY, MULTI_MIXED, ""},
+    {NS_ISTREAMCONVERTER_KEY, MULTI_BYTERANGES, ""},
+    {NS_ISTREAMCONVERTER_KEY, UNKNOWN_CONTENT, ""},
+    {NS_ISTREAMCONVERTER_KEY, GZIP_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, XGZIP_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, BROTLI_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, COMPRESS_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, XCOMPRESS_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, DEFLATE_TO_UNCOMPRESSED, ""},
+    {NS_ISTREAMCONVERTER_KEY, PLAIN_TO_HTML, ""},
     NS_BINARYDETECTOR_CATEGORYENTRY,
-    { nullptr }
-};
+    {nullptr}};
 
-static nsresult
-CreateNewStreamConvServiceFactory(nsISupports* aOuter, REFNSIID aIID, void **aResult)
-{
-    if (!aResult) {
-        return NS_ERROR_INVALID_POINTER;
-    }
-    if (aOuter) {
-        *aResult = nullptr;
-        return NS_ERROR_NO_AGGREGATION;
-    }
-    nsStreamConverterService* inst = nullptr;
-    nsresult rv = NS_NewStreamConv(&inst);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-        return rv;
-    }
-    rv = inst->QueryInterface(aIID, aResult);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-    }
-    NS_RELEASE(inst);             /* get rid of extra refcnt */
+static nsresult CreateNewStreamConvServiceFactory(nsISupports* aOuter,
+                                                  REFNSIID aIID,
+                                                  void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  nsStreamConverterService* inst = nullptr;
+  nsresult rv = NS_NewStreamConv(&inst);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
     return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  NS_RELEASE(inst); /* get rid of extra refcnt */
+  return rv;
 }
 
-static nsresult
-CreateNewFTPDirListingConv(nsISupports* aOuter, REFNSIID aIID, void **aResult)
-{
-    if (!aResult) {
-        return NS_ERROR_INVALID_POINTER;
-    }
-    if (aOuter) {
-        *aResult = nullptr;
-        return NS_ERROR_NO_AGGREGATION;
-    }
-    nsFTPDirListingConv* inst = nullptr;
-    nsresult rv = NS_NewFTPDirListingConv(&inst);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-        return rv;
-    }
-    rv = inst->QueryInterface(aIID, aResult);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-    }
-    NS_RELEASE(inst);             /* get rid of extra refcnt */
+static nsresult CreateNewFTPDirListingConv(nsISupports* aOuter, REFNSIID aIID,
+                                           void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  nsFTPDirListingConv* inst = nullptr;
+  nsresult rv = NS_NewFTPDirListingConv(&inst);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
     return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  NS_RELEASE(inst); /* get rid of extra refcnt */
+  return rv;
 }
 
-static nsresult
-CreateNewMultiMixedConvFactory(nsISupports* aOuter, REFNSIID aIID, void **aResult)
-{
-    if (!aResult) {
-        return NS_ERROR_INVALID_POINTER;
-    }
-    if (aOuter) {
-        *aResult = nullptr;
-        return NS_ERROR_NO_AGGREGATION;
-    }
-    nsMultiMixedConv* inst = nullptr;
-    nsresult rv = NS_NewMultiMixedConv(&inst);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-        return rv;
-    }
-    rv = inst->QueryInterface(aIID, aResult);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-    }
-    NS_RELEASE(inst);             /* get rid of extra refcnt */
+static nsresult CreateNewMultiMixedConvFactory(nsISupports* aOuter,
+                                               REFNSIID aIID, void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  nsMultiMixedConv* inst = nullptr;
+  nsresult rv = NS_NewMultiMixedConv(&inst);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
     return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  NS_RELEASE(inst); /* get rid of extra refcnt */
+  return rv;
 }
 
-static nsresult
-CreateNewTXTToHTMLConvFactory(nsISupports* aOuter, REFNSIID aIID, void **aResult)
-{
-    if (!aResult) {
-        return NS_ERROR_INVALID_POINTER;
-    }
-    if (aOuter) {
-        *aResult = nullptr;
-        return NS_ERROR_NO_AGGREGATION;
-    }
-    mozTXTToHTMLConv* inst = nullptr;
-    nsresult rv = MOZ_NewTXTToHTMLConv(&inst);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-        return rv;
-    }
-    rv = inst->QueryInterface(aIID, aResult);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-    }
-    NS_RELEASE(inst);             /* get rid of extra refcnt */
+static nsresult CreateNewTXTToHTMLConvFactory(nsISupports* aOuter,
+                                              REFNSIID aIID, void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  mozTXTToHTMLConv* inst = nullptr;
+  nsresult rv = MOZ_NewTXTToHTMLConv(&inst);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
     return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  NS_RELEASE(inst); /* get rid of extra refcnt */
+  return rv;
 }
 
-static nsresult
-CreateNewHTTPCompressConvFactory (nsISupports* aOuter, REFNSIID aIID, void **aResult)
-{
-    if (!aResult) {
-        return NS_ERROR_INVALID_POINTER;
-    }
-    if (aOuter) {
-        *aResult = nullptr;
-        return NS_ERROR_NO_AGGREGATION;
-    }
-    mozilla::net::nsHTTPCompressConv* inst = nullptr;
-    nsresult rv = NS_NewHTTPCompressConv (&inst);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-        return rv;
-    }
-    rv = inst->QueryInterface(aIID, aResult);
-    if (NS_FAILED(rv)) {
-        *aResult = nullptr;
-    }
-    NS_RELEASE(inst);             /* get rid of extra refcnt */
+static nsresult CreateNewHTTPCompressConvFactory(nsISupports* aOuter,
+                                                 REFNSIID aIID,
+                                                 void** aResult) {
+  if (!aResult) {
+    return NS_ERROR_INVALID_POINTER;
+  }
+  if (aOuter) {
+    *aResult = nullptr;
+    return NS_ERROR_NO_AGGREGATION;
+  }
+  mozilla::net::nsHTTPCompressConv* inst = nullptr;
+  nsresult rv = NS_NewHTTPCompressConv(&inst);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
     return rv;
+  }
+  rv = inst->QueryInterface(aIID, aResult);
+  if (NS_FAILED(rv)) {
+    *aResult = nullptr;
+  }
+  NS_RELEASE(inst); /* get rid of extra refcnt */
+  return rv;
 }
 
-static nsresult
-CreateNewUnknownDecoderFactory(nsISupports *aOuter, REFNSIID aIID, void **aResult)
-{
+static nsresult CreateNewUnknownDecoderFactory(nsISupports* aOuter,
+                                               REFNSIID aIID, void** aResult) {
   nsresult rv;
 
   if (!aResult) {
@@ -595,7 +584,7 @@ CreateNewUnknownDecoderFactory(nsISupports *aOuter, REFNSIID aIID, void **aResul
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  nsUnknownDecoder *inst;
+  nsUnknownDecoder* inst;
 
   inst = new nsUnknownDecoder();
   if (!inst) {
@@ -608,9 +597,8 @@ CreateNewUnknownDecoderFactory(nsISupports *aOuter, REFNSIID aIID, void **aResul
   return rv;
 }
 
-static nsresult
-CreateNewBinaryDetectorFactory(nsISupports *aOuter, REFNSIID aIID, void **aResult)
-{
+static nsresult CreateNewBinaryDetectorFactory(nsISupports* aOuter,
+                                               REFNSIID aIID, void** aResult) {
   nsresult rv;
 
   if (!aResult) {
@@ -637,35 +625,31 @@ CreateNewBinaryDetectorFactory(nsISupports *aOuter, REFNSIID aIID, void **aResul
 // Module implementation for the net library
 
 // Net module startup hook
-static nsresult nsNetStartup()
-{
-    return NS_OK;
-}
+static nsresult nsNetStartup() { return NS_OK; }
 
 // Net module shutdown hook
-static void nsNetShutdown()
-{
-    // Release the url parser that the stdurl is holding.
-    nsStandardURL::ShutdownGlobalObjects();
+static void nsNetShutdown() {
+  // Release the url parser that the stdurl is holding.
+  nsStandardURL::ShutdownGlobalObjects();
 
-    // Release global state used by the URL helper module.
-    net_ShutdownURLHelper();
+  // Release global state used by the URL helper module.
+  net_ShutdownURLHelper();
 #ifdef XP_MACOSX
-    net_ShutdownURLHelperOSX();
+  net_ShutdownURLHelperOSX();
 #endif
 
-    // Release DNS service reference.
-    nsDNSPrefetch::Shutdown();
+  // Release DNS service reference.
+  nsDNSPrefetch::Shutdown();
 
-    // Release the Websocket Admission Manager
-    mozilla::net::WebSocketChannel::Shutdown();
+  // Release the Websocket Admission Manager
+  mozilla::net::WebSocketChannel::Shutdown();
 
-    mozilla::net::Http2CompressionCleanup();
+  mozilla::net::Http2CompressionCleanup();
 
-    delete gNetSniffers;
-    gNetSniffers = nullptr;
-    delete gDataSniffers;
-    gDataSniffers = nullptr;
+  delete gNetSniffers;
+  gNetSniffers = nullptr;
+  delete gDataSniffers;
+  gDataSniffers = nullptr;
 }
 
 NS_DEFINE_NAMED_CID(NS_IOSERVICE_CID);
@@ -785,7 +769,7 @@ NS_DEFINE_NAMED_CID(NS_CAPTIVEPORTAL_CID);
 NS_DEFINE_NAMED_CID(NS_REQUESTCONTEXTSERVICE_CID);
 #ifdef BUILD_NETWORK_INFO_SERVICE
 NS_DEFINE_NAMED_CID(NETWORKINFOSERVICE_CID);
-#endif // BUILD_NETWORK_INFO_SERVICE
+#endif  // BUILD_NETWORK_INFO_SERVICE
 
 static const mozilla::Module::CIDEntry kNeckoCIDs[] = {
     // clang-format off
@@ -1046,14 +1030,12 @@ static const mozilla::Module::ContractIDEntry kNeckoContracts[] = {
     // clang-format on
 };
 
-static const mozilla::Module kNeckoModule = {
-    mozilla::Module::kVersion,
-    kNeckoCIDs,
-    kNeckoContracts,
-    kNeckoCategories,
-    nullptr,
-    nsNetStartup,
-    nsNetShutdown
-};
+static const mozilla::Module kNeckoModule = {mozilla::Module::kVersion,
+                                             kNeckoCIDs,
+                                             kNeckoContracts,
+                                             kNeckoCategories,
+                                             nullptr,
+                                             nsNetStartup,
+                                             nsNetShutdown};
 
 NSMODULE_DEFN(necko) = &kNeckoModule;

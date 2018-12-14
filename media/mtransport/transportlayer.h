@@ -24,11 +24,9 @@ class TransportFlow;
 
 typedef int TransportResult;
 
-enum {
-  TE_WOULDBLOCK = -1, TE_ERROR = -2, TE_INTERNAL = -3
-};
+enum { TE_WOULDBLOCK = -1, TE_ERROR = -2, TE_INTERNAL = -3 };
 
-#define TRANSPORT_LAYER_ID(name) \
+#define TRANSPORT_LAYER_ID(name)                         \
   const std::string id() const override { return name; } \
   static std::string ID() { return name; }
 
@@ -40,16 +38,13 @@ class TransportLayer : public sigslot::has_slots<> {
   enum State { TS_NONE, TS_INIT, TS_CONNECTING, TS_OPEN, TS_CLOSED, TS_ERROR };
 
   // Is this a stream or datagram flow
-  TransportLayer() :
-    state_(TS_NONE),
-    flow_id_(),
-    downward_(nullptr) {}
+  TransportLayer() : state_(TS_NONE), flow_id_(), downward_(nullptr) {}
 
   virtual ~TransportLayer() {}
 
   // Called to initialize
   nsresult Init();  // Called by Insert() to set up -- do not override
-  virtual nsresult InitInternal() { return NS_OK; } // Called by Init
+  virtual nsresult InitInternal() { return NS_OK; }  // Called by Init
 
   // Called when inserted into a flow
   virtual void Inserted(TransportFlow *flow, TransportLayer *downward);
@@ -63,36 +58,30 @@ class TransportLayer : public sigslot::has_slots<> {
   virtual TransportResult SendPacket(const unsigned char *data, size_t len) = 0;
 
   // Get the thread.
-  const nsCOMPtr<nsIEventTarget> GetThread() const {
-    return target_;
-  }
+  const nsCOMPtr<nsIEventTarget> GetThread() const { return target_; }
 
   // Event definitions that one can register for
   // State has changed
-  sigslot::signal2<TransportLayer*, State> SignalStateChange;
+  sigslot::signal2<TransportLayer *, State> SignalStateChange;
   // Data received on the flow
-  sigslot::signal3<TransportLayer*, const unsigned char *, size_t>
-                         SignalPacketReceived;
+  sigslot::signal3<TransportLayer *, const unsigned char *, size_t>
+      SignalPacketReceived;
 
   // Return the layer id for this layer
   virtual const std::string id() const = 0;
 
   // The id of the flow
-  const std::string& flow_id() const {
-    return flow_id_;
-  }
+  const std::string &flow_id() const { return flow_id_; }
 
  protected:
   virtual void WasInserted() {}
   virtual void SetState(State state, const char *file, unsigned line);
   // Check if we are on the right thread
-  void CheckThread() const {
-    MOZ_ASSERT(CheckThreadInt(), "Wrong thread");
-  }
+  void CheckThread() const { MOZ_ASSERT(CheckThreadInt(), "Wrong thread"); }
 
   State state_;
   std::string flow_id_;
-  TransportLayer *downward_; // The next layer in the stack
+  TransportLayer *downward_;  // The next layer in the stack
   nsCOMPtr<nsIEventTarget> target_;
 
  private:
@@ -111,8 +100,10 @@ class TransportLayer : public sigslot::has_slots<> {
   }
 };
 
-#define LAYER_INFO "Flow[" << flow_id() << "(none)" << "]; Layer[" << id() << "]: "
+#define LAYER_INFO                 \
+  "Flow[" << flow_id() << "(none)" \
+          << "]; Layer[" << id() << "]: "
 #define TL_SET_STATE(x) SetState((x), __FILE__, __LINE__)
 
-}  // close namespace
+}  // namespace mozilla
 #endif

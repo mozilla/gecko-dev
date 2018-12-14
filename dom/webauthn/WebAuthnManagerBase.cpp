@@ -17,24 +17,18 @@ NS_NAMED_LITERAL_STRING(kDeactivateEvent, "deactivate");
 NS_NAMED_LITERAL_STRING(kVisibilityChange, "visibilitychange");
 
 WebAuthnManagerBase::WebAuthnManagerBase(nsPIDOMWindowInner* aParent)
-  : mParent(aParent)
-{
+    : mParent(aParent) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aParent);
 }
 
-WebAuthnManagerBase::~WebAuthnManagerBase()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-}
+WebAuthnManagerBase::~WebAuthnManagerBase() { MOZ_ASSERT(NS_IsMainThread()); }
 
 /***********************************************************************
  * IPC Protocol Implementation
  **********************************************************************/
 
-bool
-WebAuthnManagerBase::MaybeCreateBackgroundActor()
-{
+bool WebAuthnManagerBase::MaybeCreateBackgroundActor() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mChild) {
@@ -48,7 +42,7 @@ WebAuthnManagerBase::MaybeCreateBackgroundActor()
 
   RefPtr<WebAuthnTransactionChild> mgr(new WebAuthnTransactionChild(this));
   PWebAuthnTransactionChild* constructedMgr =
-    actorChild->SendPWebAuthnTransactionConstructor(mgr);
+      actorChild->SendPWebAuthnTransactionConstructor(mgr);
 
   if (NS_WARN_IF(!constructedMgr)) {
     return false;
@@ -60,9 +54,7 @@ WebAuthnManagerBase::MaybeCreateBackgroundActor()
   return true;
 }
 
-void
-WebAuthnManagerBase::ActorDestroyed()
-{
+void WebAuthnManagerBase::ActorDestroyed() {
   MOZ_ASSERT(NS_IsMainThread());
   mChild = nullptr;
 }
@@ -71,9 +63,7 @@ WebAuthnManagerBase::ActorDestroyed()
  * Event Handling
  **********************************************************************/
 
-void
-WebAuthnManagerBase::ListenForVisibilityEvents()
-{
+void WebAuthnManagerBase::ListenForVisibilityEvents() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsPIDOMWindowOuter> outer = mParent->GetOuterWindow();
@@ -97,9 +87,7 @@ WebAuthnManagerBase::ListenForVisibilityEvents()
   Unused << NS_WARN_IF(NS_FAILED(rv));
 }
 
-void
-WebAuthnManagerBase::StopListeningForVisibilityEvents()
-{
+void WebAuthnManagerBase::StopListeningForVisibilityEvents() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsPIDOMWindowOuter> outer = mParent->GetOuterWindow();
@@ -122,8 +110,7 @@ WebAuthnManagerBase::StopListeningForVisibilityEvents()
 }
 
 NS_IMETHODIMP
-WebAuthnManagerBase::HandleEvent(nsIDOMEvent* aEvent)
-{
+WebAuthnManagerBase::HandleEvent(nsIDOMEvent* aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aEvent);
 
@@ -137,7 +124,7 @@ WebAuthnManagerBase::HandleEvent(nsIDOMEvent* aEvent)
   // "current inner window" and thus GetTarget() is always null.
   if (type.Equals(kVisibilityChange)) {
     nsCOMPtr<nsIDocument> doc =
-      do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
+        do_QueryInterface(aEvent->InternalDOMEvent()->GetTarget());
     if (NS_WARN_IF(!doc) || !doc->Hidden()) {
       return NS_OK;
     }
@@ -152,5 +139,5 @@ WebAuthnManagerBase::HandleEvent(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla

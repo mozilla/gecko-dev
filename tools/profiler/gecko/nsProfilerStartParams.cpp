@@ -7,47 +7,37 @@
 
 NS_IMPL_ISUPPORTS(nsProfilerStartParams, nsIProfilerStartParams)
 
-nsProfilerStartParams::nsProfilerStartParams(uint32_t aEntries,
-                                             double aInterval,
-                                             uint32_t aFeatures,
-                                             const nsTArray<nsCString>& aFilters) :
-  mEntries(aEntries),
-  mInterval(aInterval),
-  mFeatures(aFeatures),
-  mFilters(aFilters)
-{
-}
+nsProfilerStartParams::nsProfilerStartParams(
+    uint32_t aEntries, double aInterval, uint32_t aFeatures,
+    const nsTArray<nsCString>& aFilters)
+    : mEntries(aEntries),
+      mInterval(aInterval),
+      mFeatures(aFeatures),
+      mFilters(aFilters) {}
 
-nsProfilerStartParams::~nsProfilerStartParams()
-{
-}
+nsProfilerStartParams::~nsProfilerStartParams() {}
 
 NS_IMETHODIMP
-nsProfilerStartParams::GetEntries(uint32_t* aEntries)
-{
+nsProfilerStartParams::GetEntries(uint32_t* aEntries) {
   NS_ENSURE_ARG_POINTER(aEntries);
   *aEntries = mEntries;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsProfilerStartParams::GetInterval(double* aInterval)
-{
+nsProfilerStartParams::GetInterval(double* aInterval) {
   NS_ENSURE_ARG_POINTER(aInterval);
   *aInterval = mInterval;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsProfilerStartParams::GetFeatures(uint32_t* aFeatures)
-{
+nsProfilerStartParams::GetFeatures(uint32_t* aFeatures) {
   NS_ENSURE_ARG_POINTER(aFeatures);
   *aFeatures = mFeatures;
   return NS_OK;
 }
 
-const nsTArray<nsCString>&
-nsProfilerStartParams::GetFilters()
-{
+const nsTArray<nsCString>& nsProfilerStartParams::GetFilters() {
   return mFilters;
 }

@@ -18,9 +18,8 @@ namespace mozilla {
 class AbstractThread;
 class TrackEncoder;
 
-class TrackEncoderListener
-{
-public:
+class TrackEncoderListener {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackEncoderListener)
 
   /**
@@ -40,7 +39,8 @@ public:
    * abort operation.
    */
   virtual void Error(TrackEncoder* aEncoder) = 0;
-protected:
+
+ protected:
   virtual ~TrackEncoderListener() {}
 };
 
@@ -54,11 +54,10 @@ protected:
  * periodically to swap out mIncomingBuffer, feed it to the encoder, and return
  * the encoded data.
  */
-class TrackEncoder
-{
+class TrackEncoder {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackEncoder);
 
-public:
+ public:
   explicit TrackEncoder(TrackRate aTrackRate);
 
   virtual void Suspend(TimeStamp aTime) = 0;
@@ -159,11 +158,8 @@ public:
    */
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) = 0;
 
-protected:
-  virtual ~TrackEncoder()
-  {
-    MOZ_ASSERT(mListeners.IsEmpty());
-  }
+ protected:
+  virtual ~TrackEncoder() { MOZ_ASSERT(mListeners.IsEmpty()); }
 
   /**
    * True if the track encoder has encoded all source data.
@@ -215,15 +211,13 @@ protected:
   nsTArray<RefPtr<TrackEncoderListener>> mListeners;
 };
 
-class AudioTrackEncoder : public TrackEncoder
-{
-public:
+class AudioTrackEncoder : public TrackEncoder {
+ public:
   explicit AudioTrackEncoder(TrackRate aTrackRate)
-    : TrackEncoder(aTrackRate)
-    , mChannels(0)
-    , mSamplingRate(0)
-    , mAudioBitrate(0)
-  {}
+      : TrackEncoder(aTrackRate),
+        mChannels(0),
+        mSamplingRate(0),
+        mAudioBitrate(0) {}
 
   /**
    * Suspends encoding from mCurrentTime, i.e., all audio data until the next
@@ -247,22 +241,19 @@ public:
    */
   void TakeTrackData(AudioSegment& aSegment);
 
-  template<typename T>
-  static
-  void InterleaveTrackData(nsTArray<const T*>& aInput,
-                           int32_t aDuration,
-                           uint32_t aOutputChannels,
-                           AudioDataValue* aOutput,
-                           float aVolume)
-  {
+  template <typename T>
+  static void InterleaveTrackData(nsTArray<const T*>& aInput, int32_t aDuration,
+                                  uint32_t aOutputChannels,
+                                  AudioDataValue* aOutput, float aVolume) {
     if (aInput.Length() < aOutputChannels) {
       // Up-mix. This might make the mChannelData have more than aChannels.
-      AudioChannelsUpMix(&aInput, aOutputChannels, SilentChannel::ZeroChannel<T>());
+      AudioChannelsUpMix(&aInput, aOutputChannels,
+                         SilentChannel::ZeroChannel<T>());
     }
 
     if (aInput.Length() > aOutputChannels) {
-      DownmixAndInterleave(aInput, aDuration,
-                           aVolume, aOutputChannels, aOutput);
+      DownmixAndInterleave(aInput, aDuration, aVolume, aOutputChannels,
+                           aOutput);
     } else {
       InterleaveAndConvertBuffer(aInput.Elements(), aDuration, aVolume,
                                  aOutputChannels, aOutput);
@@ -291,8 +282,7 @@ public:
    */
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) override;
 
-  void SetBitrate(const uint32_t aBitrate) override
-  {
+  void SetBitrate(const uint32_t aBitrate) override {
     mAudioBitrate = aBitrate;
   }
 
@@ -302,7 +292,9 @@ public:
    * initiated. mInitiated will only be set if there was enough data in
    * aSegment to infer metadata. If mInitiated gets set, listeners are notified.
    *
-   * Not having enough data in aSegment to initiate the encoder for an accumulated aDuration of one second will make us initiate with a default number of channels.
+   * Not having enough data in aSegment to initiate the encoder for an
+   * accumulated aDuration of one second will make us initiate with a default
+   * number of channels.
    *
    * If we attempt to initiate the underlying encoder but fail, we Cancel() and
    * notify listeners.
@@ -335,7 +327,8 @@ public:
    * hand more data to the encoder.
    */
   void AdvanceCurrentTime(StreamTime aDuration) override;
-protected:
+
+ protected:
   /**
    * Number of samples per channel in a pcm buffer. This is also the value of
    * frame size required by audio encoder, and listeners will be notified when
@@ -350,10 +343,10 @@ protected:
   virtual nsresult Init(int aChannels, int aSamplingRate) = 0;
 
   /**
-   * The number of channels are used for processing PCM data in the audio encoder.
-   * This value comes from the first valid audio chunk. If encoder can't support
-   * the channels in the chunk, downmix PCM stream can be performed.
-   * This value also be used to initialize the audio encoder.
+   * The number of channels are used for processing PCM data in the audio
+   * encoder. This value comes from the first valid audio chunk. If encoder
+   * can't support the channels in the chunk, downmix PCM stream can be
+   * performed. This value also be used to initialize the audio encoder.
    */
   int mChannels;
 
@@ -386,14 +379,14 @@ protected:
 };
 
 enum class FrameDroppingMode {
-  ALLOW, // Allowed to drop frames to keep up under load
-  DISALLOW, // Must not drop any frames, even if it means we will OOM
+  ALLOW,     // Allowed to drop frames to keep up under load
+  DISALLOW,  // Must not drop any frames, even if it means we will OOM
 };
 
-class VideoTrackEncoder : public TrackEncoder
-{
-public:
-  explicit VideoTrackEncoder(TrackRate aTrackRate, FrameDroppingMode aFrameDroppingMode);
+class VideoTrackEncoder : public TrackEncoder {
+ public:
+  explicit VideoTrackEncoder(TrackRate aTrackRate,
+                             FrameDroppingMode aFrameDroppingMode);
 
   /**
    * Suspends encoding from aTime, i.e., all video frame with a timestamp
@@ -424,8 +417,7 @@ public:
    */
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) override;
 
-  void SetBitrate(const uint32_t aBitrate) override
-  {
+  void SetBitrate(const uint32_t aBitrate) override {
     mVideoBitrate = aBitrate;
   }
 
@@ -440,9 +432,8 @@ public:
    */
   void Init(const VideoSegment& aSegment, StreamTime aDuration);
 
-  StreamTime SecondsToMediaTime(double aS) const
-  {
-    NS_ASSERTION(0 <= aS && aS <= TRACK_TICKS_MAX/TRACK_RATE_MAX,
+  StreamTime SecondsToMediaTime(double aS) const {
+    NS_ASSERTION(0 <= aS && aS <= TRACK_TICKS_MAX / TRACK_RATE_MAX,
                  "Bad seconds");
     return mTrackRate * aS;
   }
@@ -479,7 +470,7 @@ public:
    */
   void SetKeyFrameInterval(int32_t aKeyFrameInterval);
 
-protected:
+ protected:
   /**
    * Initialize the video encoder. In order to collect the value of width and
    * height of source frames, this initialization is delayed until we have
@@ -510,8 +501,9 @@ protected:
   int mDisplayHeight;
 
   /**
-   * The last unique frame and duration so far handled by NotifyAdvanceCurrentTime.
-   * When a new frame is detected, mLastChunk is added to mOutgoingBuffer.
+   * The last unique frame and duration so far handled by
+   * NotifyAdvanceCurrentTime. When a new frame is detected, mLastChunk is added
+   * to mOutgoingBuffer.
    */
   VideoChunk mLastChunk;
 
@@ -564,6 +556,6 @@ protected:
   int32_t mKeyFrameInterval;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

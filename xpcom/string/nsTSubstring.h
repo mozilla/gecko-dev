@@ -21,8 +21,10 @@
 #error "Using XPCOM strings is limited to code linked into libxul."
 #endif
 
-template <typename T> class nsTSubstringSplitter;
-template <typename T> class nsTString;
+template <typename T>
+class nsTSubstringSplitter;
+template <typename T>
+class nsTString;
 
 /**
  * nsTSubstring is an abstract string class. From an API perspective, this
@@ -37,9 +39,8 @@ template <typename T> class nsTString;
  *
  */
 template <typename T>
-class nsTSubstring : public mozilla::detail::nsTStringRepr<T>
-{
-public:
+class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
+ public:
   typedef nsTSubstring<T> self_type;
 
   typedef nsTString<T> string_type;
@@ -52,7 +53,8 @@ public:
 
   typedef typename base_string_type::char_type char_type;
   typedef typename base_string_type::char_traits char_traits;
-  typedef typename base_string_type::incompatible_char_type incompatible_char_type;
+  typedef
+      typename base_string_type::incompatible_char_type incompatible_char_type;
 
   typedef typename base_string_type::substring_tuple_type substring_tuple_type;
 
@@ -72,17 +74,13 @@ public:
   typedef typename base_string_type::ClassFlags ClassFlags;
 
   // this acts like a virtual destructor
-  ~nsTSubstring()
-  {
-    Finalize();
-  }
+  ~nsTSubstring() { Finalize(); }
 
   /**
    * writing iterators
    */
 
-  char_iterator BeginWriting()
-  {
+  char_iterator BeginWriting() {
     if (!EnsureMutable()) {
       AllocFailed(base_string_type::mLength);
     }
@@ -90,13 +88,11 @@ public:
     return base_string_type::mData;
   }
 
-  char_iterator BeginWriting(const fallible_t&)
-  {
+  char_iterator BeginWriting(const fallible_t&) {
     return EnsureMutable() ? base_string_type::mData : char_iterator(0);
   }
 
-  char_iterator EndWriting()
-  {
+  char_iterator EndWriting() {
     if (!EnsureMutable()) {
       AllocFailed(base_string_type::mLength);
     }
@@ -104,28 +100,26 @@ public:
     return base_string_type::mData + base_string_type::mLength;
   }
 
-  char_iterator EndWriting(const fallible_t&)
-  {
-    return EnsureMutable() ? (base_string_type::mData + base_string_type::mLength) : char_iterator(0);
+  char_iterator EndWriting(const fallible_t&) {
+    return EnsureMutable()
+               ? (base_string_type::mData + base_string_type::mLength)
+               : char_iterator(0);
   }
 
-  char_iterator& BeginWriting(char_iterator& aIter)
-  {
+  char_iterator& BeginWriting(char_iterator& aIter) {
     return aIter = BeginWriting();
   }
 
-  char_iterator& BeginWriting(char_iterator& aIter, const fallible_t& aFallible)
-  {
+  char_iterator& BeginWriting(char_iterator& aIter,
+                              const fallible_t& aFallible) {
     return aIter = BeginWriting(aFallible);
   }
 
-  char_iterator& EndWriting(char_iterator& aIter)
-  {
+  char_iterator& EndWriting(char_iterator& aIter) {
     return aIter = EndWriting();
   }
 
-  char_iterator& EndWriting(char_iterator& aIter, const fallible_t& aFallible)
-  {
+  char_iterator& EndWriting(char_iterator& aIter, const fallible_t& aFallible) {
     return aIter = EndWriting(aFallible);
   }
 
@@ -149,8 +143,7 @@ public:
    * deprecated writing iterators
    */
 
-  iterator& BeginWriting(iterator& aIter)
-  {
+  iterator& BeginWriting(iterator& aIter) {
     char_type* data = BeginWriting();
     aIter.mStart = data;
     aIter.mEnd = data + base_string_type::mLength;
@@ -158,8 +151,7 @@ public:
     return aIter;
   }
 
-  iterator& EndWriting(iterator& aIter)
-  {
+  iterator& EndWriting(iterator& aIter) {
     char_type* data = BeginWriting();
     aIter.mStart = data;
     aIter.mEnd = data + base_string_type::mLength;
@@ -201,23 +193,19 @@ public:
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  void Assign(char16ptr_t aData)
-  {
+  void Assign(char16ptr_t aData) {
     Assign(static_cast<const char16_t*>(aData));
   }
 
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  void Assign(char16ptr_t aData, size_type aLength)
-  {
+  void Assign(char16ptr_t aData, size_type aLength) {
     Assign(static_cast<const char16_t*>(aData), aLength);
   }
 
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   MOZ_MUST_USE bool Assign(char16ptr_t aData, size_type aLength,
-                           const fallible_t& aFallible)
-  {
-    return Assign(static_cast<const char16_t*>(aData), aLength,
-                  aFallible);
+                           const fallible_t& aFallible) {
+    return Assign(static_cast<const char16_t*>(aData), aLength, aFallible);
   }
 #endif
 
@@ -226,13 +214,11 @@ public:
                                             size_type aLength,
                                             const fallible_t&);
 
-  void NS_FASTCALL AssignASCII(const char* aData)
-  {
+  void NS_FASTCALL AssignASCII(const char* aData) {
     AssignASCII(aData, mozilla::AssertedCast<size_type, size_t>(strlen(aData)));
   }
   MOZ_MUST_USE bool NS_FASTCALL AssignASCII(const char* aData,
-                                            const fallible_t& aFallible)
-  {
+                                            const fallible_t& aFallible) {
     return AssignASCII(aData,
                        mozilla::AssertedCast<size_type, size_t>(strlen(aData)),
                        aFallible);
@@ -244,54 +230,46 @@ public:
   // non-constant char array variable. Use AssignASCII for those.
   // There are not fallible version of these methods because they only really
   // apply to small allocations that we wouldn't want to check anyway.
-  template<int N>
-  void AssignLiteral(const char_type (&aStr)[N])
-  {
+  template <int N>
+  void AssignLiteral(const char_type (&aStr)[N]) {
     AssignLiteral(aStr, N - 1);
   }
 
-  template<int N, typename Q = T, typename EnableIfChar16 = typename mozilla::Char16OnlyT<Q>>
-  void AssignLiteral(const incompatible_char_type (&aStr)[N])
-  {
+  template <int N, typename Q = T,
+            typename EnableIfChar16 = typename mozilla::Char16OnlyT<Q>>
+  void AssignLiteral(const incompatible_char_type (&aStr)[N]) {
     AssignASCII(aStr, N - 1);
   }
 
-  self_type& operator=(char_type aChar)
-  {
+  self_type& operator=(char_type aChar) {
     Assign(aChar);
     return *this;
   }
-  self_type& operator=(const char_type* aData)
-  {
+  self_type& operator=(const char_type* aData) {
     Assign(aData);
     return *this;
   }
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  self_type& operator=(char16ptr_t aData)
-  {
+  self_type& operator=(char16ptr_t aData) {
     Assign(aData);
     return *this;
   }
 #endif
-  self_type& operator=(const self_type& aStr)
-  {
+  self_type& operator=(const self_type& aStr) {
     Assign(aStr);
     return *this;
   }
-  self_type& operator=(self_type&& aStr)
-  {
+  self_type& operator=(self_type&& aStr) {
     Assign(mozilla::Move(aStr));
     return *this;
   }
   // NOTE(nika): gcc 4.9 workaround. Remove when support is dropped.
-  self_type& operator=(const literalstring_type& aStr)
-  {
+  self_type& operator=(const literalstring_type& aStr) {
     Assign(aStr);
     return *this;
   }
-  self_type& operator=(const substring_tuple_type& aTuple)
-  {
+  self_type& operator=(const substring_tuple_type& aTuple) {
     Assign(aTuple);
     return *this;
   }
@@ -301,7 +279,6 @@ public:
   // nsCString. See also getter_Copies(), which is a useful wrapper.
   void NS_FASTCALL Adopt(char_type* aData, size_type aLength = size_type(-1));
 
-
   /**
    * buffer manipulation
    */
@@ -309,8 +286,7 @@ public:
   void NS_FASTCALL Replace(index_type aCutStart, size_type aCutLength,
                            char_type aChar);
   MOZ_MUST_USE bool NS_FASTCALL Replace(index_type aCutStart,
-                                        size_type aCutLength,
-                                        char_type aChar,
+                                        size_type aCutLength, char_type aChar,
                                         const fallible_t&);
   void NS_FASTCALL Replace(index_type aCutStart, size_type aCutLength,
                            const char_type* aData,
@@ -318,18 +294,14 @@ public:
   MOZ_MUST_USE bool NS_FASTCALL Replace(index_type aCutStart,
                                         size_type aCutLength,
                                         const char_type* aData,
-                                        size_type aLength,
-                                        const fallible_t&);
+                                        size_type aLength, const fallible_t&);
   void Replace(index_type aCutStart, size_type aCutLength,
-               const self_type& aStr)
-  {
+               const self_type& aStr) {
     Replace(aCutStart, aCutLength, aStr.Data(), aStr.Length());
   }
-  MOZ_MUST_USE bool Replace(index_type aCutStart,
-                            size_type aCutLength,
+  MOZ_MUST_USE bool Replace(index_type aCutStart, size_type aCutLength,
                             const self_type& aStr,
-                            const fallible_t& aFallible)
-  {
+                            const fallible_t& aFallible) {
     return Replace(aCutStart, aCutLength, aStr.Data(), aStr.Length(),
                    aFallible);
   }
@@ -340,7 +312,8 @@ public:
                                 const char* aData,
                                 size_type aLength = size_type(-1));
 
-  MOZ_MUST_USE bool NS_FASTCALL ReplaceASCII(index_type aCutStart, size_type aCutLength,
+  MOZ_MUST_USE bool NS_FASTCALL ReplaceASCII(index_type aCutStart,
+                                             size_type aCutLength,
                                              const char* aData,
                                              size_type aLength,
                                              const fallible_t&);
@@ -348,65 +321,55 @@ public:
   // ReplaceLiteral must ONLY be applied to an actual literal string.
   // Do not attempt to use it with a regular char* pointer, or with a char
   // array variable. Use Replace or ReplaceASCII for those.
-  template<int N>
+  template <int N>
   void ReplaceLiteral(index_type aCutStart, size_type aCutLength,
-                      const char_type (&aStr)[N])
-  {
+                      const char_type (&aStr)[N]) {
     ReplaceLiteral(aCutStart, aCutLength, aStr, N - 1);
   }
 
-  void Append(char_type aChar)
-  {
-    Replace(base_string_type::mLength, 0, aChar);
-  }
-  MOZ_MUST_USE bool Append(char_type aChar, const fallible_t& aFallible)
-  {
+  void Append(char_type aChar) { Replace(base_string_type::mLength, 0, aChar); }
+  MOZ_MUST_USE bool Append(char_type aChar, const fallible_t& aFallible) {
     return Replace(base_string_type::mLength, 0, aChar, aFallible);
   }
-  void Append(const char_type* aData, size_type aLength = size_type(-1))
-  {
+  void Append(const char_type* aData, size_type aLength = size_type(-1)) {
     Replace(base_string_type::mLength, 0, aData, aLength);
   }
   MOZ_MUST_USE bool Append(const char_type* aData, size_type aLength,
-                           const fallible_t& aFallible)
-  {
+                           const fallible_t& aFallible) {
     return Replace(base_string_type::mLength, 0, aData, aLength, aFallible);
   }
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  void Append(char16ptr_t aData, size_type aLength = size_type(-1))
-  {
+  void Append(char16ptr_t aData, size_type aLength = size_type(-1)) {
     Append(static_cast<const char16_t*>(aData), aLength);
   }
 #endif
 
-  void Append(const self_type& aStr)
-  {
+  void Append(const self_type& aStr) {
     Replace(base_string_type::mLength, 0, aStr);
   }
-  MOZ_MUST_USE bool Append(const self_type& aStr, const fallible_t& aFallible)
-  {
+  MOZ_MUST_USE bool Append(const self_type& aStr, const fallible_t& aFallible) {
     return Replace(base_string_type::mLength, 0, aStr, aFallible);
   }
-  void Append(const substring_tuple_type& aTuple)
-  {
+  void Append(const substring_tuple_type& aTuple) {
     Replace(base_string_type::mLength, 0, aTuple);
   }
 
-  void AppendASCII(const char* aData, size_type aLength = size_type(-1))
-  {
+  void AppendASCII(const char* aData, size_type aLength = size_type(-1)) {
     ReplaceASCII(base_string_type::mLength, 0, aData, aLength);
   }
 
-  MOZ_MUST_USE bool AppendASCII(const char* aData, const fallible_t& aFallible)
-  {
-    return ReplaceASCII(base_string_type::mLength, 0, aData, size_type(-1), aFallible);
+  MOZ_MUST_USE bool AppendASCII(const char* aData,
+                                const fallible_t& aFallible) {
+    return ReplaceASCII(base_string_type::mLength, 0, aData, size_type(-1),
+                        aFallible);
   }
 
-  MOZ_MUST_USE bool AppendASCII(const char* aData, size_type aLength, const fallible_t& aFallible)
-  {
-    return ReplaceASCII(base_string_type::mLength, 0, aData, aLength, aFallible);
+  MOZ_MUST_USE bool AppendASCII(const char* aData, size_type aLength,
+                                const fallible_t& aFallible) {
+    return ReplaceASCII(base_string_type::mLength, 0, aData, aLength,
+                        aFallible);
   }
 
   /**
@@ -417,12 +380,8 @@ public:
    */
   void AppendPrintf(const char* aFormat, ...) MOZ_FORMAT_PRINTF(2, 3);
   void AppendPrintf(const char* aFormat, va_list aAp) MOZ_FORMAT_PRINTF(2, 0);
-  void AppendInt(int32_t aInteger)
-  {
-    AppendPrintf("%" PRId32, aInteger);
-  }
-  void AppendInt(int32_t aInteger, int aRadix)
-  {
+  void AppendInt(int32_t aInteger) { AppendPrintf("%" PRId32, aInteger); }
+  void AppendInt(int32_t aInteger, int aRadix) {
     if (aRadix == 10) {
       AppendPrintf("%" PRId32, aInteger);
     } else {
@@ -430,21 +389,14 @@ public:
                    static_cast<uint32_t>(aInteger));
     }
   }
-  void AppendInt(uint32_t aInteger)
-  {
-    AppendPrintf("%" PRIu32, aInteger);
+  void AppendInt(uint32_t aInteger) { AppendPrintf("%" PRIu32, aInteger); }
+  void AppendInt(uint32_t aInteger, int aRadix) {
+    AppendPrintf(
+        aRadix == 10 ? "%" PRIu32 : aRadix == 8 ? "%" PRIo32 : "%" PRIx32,
+        aInteger);
   }
-  void AppendInt(uint32_t aInteger, int aRadix)
-  {
-    AppendPrintf(aRadix == 10 ? "%" PRIu32 : aRadix == 8 ? "%" PRIo32 : "%" PRIx32,
-                 aInteger);
-  }
-  void AppendInt(int64_t aInteger)
-  {
-    AppendPrintf("%" PRId64, aInteger);
-  }
-  void AppendInt(int64_t aInteger, int aRadix)
-  {
+  void AppendInt(int64_t aInteger) { AppendPrintf("%" PRId64, aInteger); }
+  void AppendInt(int64_t aInteger, int aRadix) {
     if (aRadix == 10) {
       AppendPrintf("%" PRId64, aInteger);
     } else {
@@ -452,14 +404,11 @@ public:
                    static_cast<uint64_t>(aInteger));
     }
   }
-  void AppendInt(uint64_t aInteger)
-  {
-    AppendPrintf("%" PRIu64, aInteger);
-  }
-  void AppendInt(uint64_t aInteger, int aRadix)
-  {
-    AppendPrintf(aRadix == 10 ? "%" PRIu64 : aRadix == 8 ? "%" PRIo64 : "%" PRIx64,
-                 aInteger);
+  void AppendInt(uint64_t aInteger) { AppendPrintf("%" PRIu64, aInteger); }
+  void AppendInt(uint64_t aInteger, int aRadix) {
+    AppendPrintf(
+        aRadix == 10 ? "%" PRIu64 : aRadix == 8 ? "%" PRIo64 : "%" PRIx64,
+        aInteger);
   }
 
   /**
@@ -467,98 +416,83 @@ public:
    */
   void NS_FASTCALL AppendFloat(float aFloat);
   void NS_FASTCALL AppendFloat(double aFloat);
-public:
 
+ public:
   // AppendLiteral must ONLY be applied to an actual literal string.
   // Do not attempt to use it with a regular char* pointer, or with a char
   // array variable. Use Append or AppendASCII for those.
-  template<int N>
-  void AppendLiteral(const char_type (&aStr)[N])
-  {
+  template <int N>
+  void AppendLiteral(const char_type (&aStr)[N]) {
     ReplaceLiteral(base_string_type::mLength, 0, aStr, N - 1);
   }
 
   // Only enable for T = char16_t
-  template <int N, typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  void AppendLiteral(const incompatible_char_type (&aStr)[N])
-  {
+  template <int N, typename Q = T,
+            typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
+  void AppendLiteral(const incompatible_char_type (&aStr)[N]) {
     AppendASCII(aStr, N - 1);
   }
 
   // Only enable for T = char16_t
-  template <int N, typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  MOZ_MUST_USE bool
-  AppendLiteral(const incompatible_char_type (&aStr)[N], const fallible_t& aFallible)
-  {
+  template <int N, typename Q = T,
+            typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
+  MOZ_MUST_USE bool AppendLiteral(const incompatible_char_type (&aStr)[N],
+                                  const fallible_t& aFallible) {
     return AppendASCII(aStr, N - 1, aFallible);
   }
 
-  self_type& operator+=(char_type aChar)
-  {
+  self_type& operator+=(char_type aChar) {
     Append(aChar);
     return *this;
   }
-  self_type& operator+=(const char_type* aData)
-  {
+  self_type& operator+=(const char_type* aData) {
     Append(aData);
     return *this;
   }
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  self_type& operator+=(char16ptr_t aData)
-  {
+  self_type& operator+=(char16ptr_t aData) {
     Append(aData);
     return *this;
   }
 #endif
-  self_type& operator+=(const self_type& aStr)
-  {
+  self_type& operator+=(const self_type& aStr) {
     Append(aStr);
     return *this;
   }
-  self_type& operator+=(const substring_tuple_type& aTuple)
-  {
+  self_type& operator+=(const substring_tuple_type& aTuple) {
     Append(aTuple);
     return *this;
   }
 
-  void Insert(char_type aChar, index_type aPos)
-  {
-    Replace(aPos, 0, aChar);
-  }
+  void Insert(char_type aChar, index_type aPos) { Replace(aPos, 0, aChar); }
   void Insert(const char_type* aData, index_type aPos,
-              size_type aLength = size_type(-1))
-  {
+              size_type aLength = size_type(-1)) {
     Replace(aPos, 0, aData, aLength);
   }
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   void Insert(char16ptr_t aData, index_type aPos,
-              size_type aLength = size_type(-1))
-  {
+              size_type aLength = size_type(-1)) {
     Insert(static_cast<const char16_t*>(aData), aPos, aLength);
   }
 #endif
-  void Insert(const self_type& aStr, index_type aPos)
-  {
+  void Insert(const self_type& aStr, index_type aPos) {
     Replace(aPos, 0, aStr);
   }
-  void Insert(const substring_tuple_type& aTuple, index_type aPos)
-  {
+  void Insert(const substring_tuple_type& aTuple, index_type aPos) {
     Replace(aPos, 0, aTuple);
   }
 
   // InsertLiteral must ONLY be applied to an actual literal string.
   // Do not attempt to use it with a regular char* pointer, or with a char
   // array variable. Use Insert for those.
-  template<int N>
-  void InsertLiteral(const char_type (&aStr)[N], index_type aPos)
-  {
+  template <int N>
+  void InsertLiteral(const char_type (&aStr)[N], index_type aPos) {
     ReplaceLiteral(aPos, 0, aStr, N - 1);
   }
 
-  void Cut(index_type aCutStart, size_type aCutLength)
-  {
+  void Cut(index_type aCutStart, size_type aCutLength) {
     Replace(aCutStart, aCutLength, char_traits::sEmptyBuffer, 0);
   }
 
@@ -583,17 +517,15 @@ public:
   MOZ_MUST_USE bool NS_FASTCALL SetLength(size_type aNewLength,
                                           const fallible_t&);
 
-  void Truncate(size_type aNewLength = 0)
-  {
-    NS_ASSERTION(aNewLength <= base_string_type::mLength, "Truncate cannot make string longer");
+  void Truncate(size_type aNewLength = 0) {
+    NS_ASSERTION(aNewLength <= base_string_type::mLength,
+                 "Truncate cannot make string longer");
     SetLength(aNewLength);
   }
-
 
   /**
    * buffer access
    */
-
 
   /**
    * Get a const pointer to the string's internal buffer.  The caller
@@ -601,8 +533,7 @@ public:
    *
    * @returns The length of the buffer in characters.
    */
-  inline size_type GetData(const char_type** aData) const
-  {
+  inline size_type GetData(const char_type** aData) const {
     *aData = base_string_type::mData;
     return base_string_type::mLength;
   }
@@ -617,18 +548,19 @@ public:
    * @returns The length of the buffer in characters or 0 if unable to
    * satisfy the request due to low-memory conditions.
    */
-  size_type GetMutableData(char_type** aData, size_type aNewLen = size_type(-1))
-  {
+  size_type GetMutableData(char_type** aData,
+                           size_type aNewLen = size_type(-1)) {
     if (!EnsureMutable(aNewLen)) {
-      AllocFailed(aNewLen == size_type(-1) ? base_string_type::mLength : aNewLen);
+      AllocFailed(aNewLen == size_type(-1) ? base_string_type::mLength
+                                           : aNewLen);
     }
 
     *aData = base_string_type::mData;
     return base_string_type::mLength;
   }
 
-  size_type GetMutableData(char_type** aData, size_type aNewLen, const fallible_t&)
-  {
+  size_type GetMutableData(char_type** aData, size_type aNewLen,
+                           const fallible_t&) {
     if (!EnsureMutable(aNewLen)) {
       *aData = nullptr;
       return 0;
@@ -640,15 +572,13 @@ public:
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
-  size_type GetMutableData(wchar_t** aData, size_type aNewLen = size_type(-1))
-  {
+  size_type GetMutableData(wchar_t** aData, size_type aNewLen = size_type(-1)) {
     return GetMutableData(reinterpret_cast<char16_t**>(aData), aNewLen);
   }
 
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>
   size_type GetMutableData(wchar_t** aData, size_type aNewLen,
-                           const fallible_t& aFallible)
-  {
+                           const fallible_t& aFallible) {
     return GetMutableData(reinterpret_cast<char16_t**>(aData), aNewLen,
                           aFallible);
   }
@@ -658,26 +588,23 @@ public:
    * Span integration
    */
 
-  operator mozilla::Span<char_type>()
-  {
+  operator mozilla::Span<char_type>() {
     return mozilla::MakeSpan(BeginWriting(), base_string_type::Length());
   }
 
-  operator mozilla::Span<const char_type>() const
-  {
-    return mozilla::MakeSpan(base_string_type::BeginReading(), base_string_type::Length());
+  operator mozilla::Span<const char_type>() const {
+    return mozilla::MakeSpan(base_string_type::BeginReading(),
+                             base_string_type::Length());
   }
 
-  void Append(mozilla::Span<const char_type> aSpan)
-  {
+  void Append(mozilla::Span<const char_type> aSpan) {
     auto len = aSpan.Length();
     MOZ_RELEASE_ASSERT(len <= mozilla::MaxValue<size_type>::value);
     Append(aSpan.Elements(), len);
   }
 
   MOZ_MUST_USE bool Append(mozilla::Span<const char_type> aSpan,
-                           const fallible_t& aFallible)
-  {
+                           const fallible_t& aFallible) {
     auto len = aSpan.Length();
     if (len > mozilla::MaxValue<size_type>::value) {
       return false;
@@ -686,22 +613,20 @@ public:
   }
 
   template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
-  operator mozilla::Span<uint8_t>()
-  {
+  operator mozilla::Span<uint8_t>() {
     return mozilla::MakeSpan(reinterpret_cast<uint8_t*>(BeginWriting()),
                              base_string_type::Length());
   }
 
   template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
-  operator mozilla::Span<const uint8_t>() const
-  {
-    return mozilla::MakeSpan(reinterpret_cast<const uint8_t*>(base_string_type::BeginReading()),
-                             base_string_type::Length());
+  operator mozilla::Span<const uint8_t>() const {
+    return mozilla::MakeSpan(
+        reinterpret_cast<const uint8_t*>(base_string_type::BeginReading()),
+        base_string_type::Length());
   }
 
   template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
-  void Append(mozilla::Span<const uint8_t> aSpan)
-  {
+  void Append(mozilla::Span<const uint8_t> aSpan) {
     auto len = aSpan.Length();
     MOZ_RELEASE_ASSERT(len <= mozilla::MaxValue<size_type>::value);
     Append(reinterpret_cast<const char*>(aSpan.Elements()), len);
@@ -709,14 +634,13 @@ public:
 
   template <typename Q = T, typename EnableIfChar = mozilla::CharOnlyT<Q>>
   MOZ_MUST_USE bool Append(mozilla::Span<const uint8_t> aSpan,
-                           const fallible_t& aFallible)
-  {
+                           const fallible_t& aFallible) {
     auto len = aSpan.Length();
     if (len > mozilla::MaxValue<size_type>::value) {
       return false;
     }
-    return Append(
-      reinterpret_cast<const char*>(aSpan.Elements()), len, aFallible);
+    return Append(reinterpret_cast<const char*>(aSpan.Elements()), len,
+                  aFallible);
   }
 
   /**
@@ -772,39 +696,35 @@ public:
    * If the string uses a shared buffer, this method
    * clears the pointer without releasing the buffer.
    */
-  void ForgetSharedBuffer()
-  {
+  void ForgetSharedBuffer() {
     if (base_string_type::mDataFlags & DataFlags::SHARED) {
       SetToEmptyBuffer();
     }
   }
 
-protected:
-  void AssertValid()
-  {
+ protected:
+  void AssertValid() {
     MOZ_ASSERT(!(this->mClassFlags & ClassFlags::NULL_TERMINATED) ||
-               (this->mDataFlags & DataFlags::TERMINATED),
+                   (this->mDataFlags & DataFlags::TERMINATED),
                "String classes whose static type guarantees a null-terminated "
                "buffer must not be assigned a non-null-terminated buffer.");
   }
 
-public:
-
+ public:
   /**
    * this is public to support automatic conversion of tuple to string
    * base type, which helps avoid converting to nsTAString.
    */
   MOZ_IMPLICIT nsTSubstring(const substring_tuple_type& aTuple)
-    : base_string_type(nullptr, 0, DataFlags(0), ClassFlags(0))
-  {
+      : base_string_type(nullptr, 0, DataFlags(0), ClassFlags(0)) {
     AssertValid();
     Assign(aTuple);
   }
 
-  size_t SizeOfExcludingThisIfUnshared(mozilla::MallocSizeOf aMallocSizeOf)
-  const;
-  size_t SizeOfIncludingThisIfUnshared(mozilla::MallocSizeOf aMallocSizeOf)
-  const;
+  size_t SizeOfExcludingThisIfUnshared(
+      mozilla::MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfIncludingThisIfUnshared(
+      mozilla::MallocSizeOf aMallocSizeOf) const;
 
   /**
    * WARNING: Only use these functions if you really know what you are
@@ -812,81 +732,75 @@ public:
    * you do use them, please explain clearly in a comment why it's safe
    * and won't lead to double-counting.
    */
-  size_t SizeOfExcludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSizeOf)
-  const;
-  size_t SizeOfIncludingThisEvenIfShared(mozilla::MallocSizeOf aMallocSizeOf)
-  const;
+  size_t SizeOfExcludingThisEvenIfShared(
+      mozilla::MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfIncludingThisEvenIfShared(
+      mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  template<class N>
-  void NS_ABORT_OOM(T)
-  {
-    struct never {}; // a compiler-friendly way to do static_assert(false)
-    static_assert(mozilla::IsSame<N, never>::value,
-      "In string classes, use AllocFailed to account for sizeof(char_type). "
-      "Use the global ::NS_ABORT_OOM if you really have a count of bytes.");
+  template <class N>
+  void NS_ABORT_OOM(T) {
+    struct never {};  // a compiler-friendly way to do static_assert(false)
+    static_assert(
+        mozilla::IsSame<N, never>::value,
+        "In string classes, use AllocFailed to account for sizeof(char_type). "
+        "Use the global ::NS_ABORT_OOM if you really have a count of bytes.");
   }
 
-  MOZ_ALWAYS_INLINE void AllocFailed(size_t aLength)
-  {
+  MOZ_ALWAYS_INLINE void AllocFailed(size_t aLength) {
     ::NS_ABORT_OOM(aLength * sizeof(char_type));
   }
 
-protected:
-
+ protected:
   // default initialization
   nsTSubstring()
-    : base_string_type(char_traits::sEmptyBuffer, 0, DataFlags::TERMINATED,
-                       ClassFlags(0))
-  {
+      : base_string_type(char_traits::sEmptyBuffer, 0, DataFlags::TERMINATED,
+                         ClassFlags(0)) {
     AssertValid();
   }
 
   // copy-constructor, constructs as dependent on given object
   // (NOTE: this is for internal use only)
   nsTSubstring(const self_type& aStr)
-    : base_string_type(aStr.base_string_type::mData, aStr.base_string_type::mLength,
-                       aStr.base_string_type::mDataFlags & (DataFlags::TERMINATED | DataFlags::VOIDED),
-                       ClassFlags(0))
-  {
+      : base_string_type(aStr.base_string_type::mData,
+                         aStr.base_string_type::mLength,
+                         aStr.base_string_type::mDataFlags &
+                             (DataFlags::TERMINATED | DataFlags::VOIDED),
+                         ClassFlags(0)) {
     AssertValid();
   }
 
   // initialization with ClassFlags
   explicit nsTSubstring(ClassFlags aClassFlags)
-    : base_string_type(char_traits::sEmptyBuffer, 0, DataFlags::TERMINATED,
-                       aClassFlags)
-  {
+      : base_string_type(char_traits::sEmptyBuffer, 0, DataFlags::TERMINATED,
+                         aClassFlags) {
     AssertValid();
   }
 
- /**
+  /**
    * allows for direct initialization of a nsTSubstring object.
    */
-  nsTSubstring(char_type* aData, size_type aLength,
-               DataFlags aDataFlags, ClassFlags aClassFlags)
+  nsTSubstring(char_type* aData, size_type aLength, DataFlags aDataFlags,
+               ClassFlags aClassFlags)
 // XXXbz or can I just include nscore.h and use NS_BUILD_REFCNT_LOGGING?
 #if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING)
 #define XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
-    ;
+      ;
 #else
 #undef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
-    : base_string_type(aData, aLength, aDataFlags, aClassFlags)
-  {
+      : base_string_type(aData, aLength, aDataFlags, aClassFlags) {
     AssertValid();
     MOZ_RELEASE_ASSERT(CheckCapacity(aLength), "String is too large.");
   }
 #endif /* DEBUG || FORCE_BUILD_REFCNT_LOGGING */
 
-  void SetToEmptyBuffer()
-  {
+  void SetToEmptyBuffer() {
     base_string_type::mData = char_traits::sEmptyBuffer;
     base_string_type::mLength = 0;
     base_string_type::mDataFlags = DataFlags::TERMINATED;
     AssertValid();
   }
 
-  void SetData(char_type* aData, size_type aLength, DataFlags aDataFlags)
-  {
+  void SetData(char_type* aData, size_type aLength, DataFlags aDataFlags) {
     base_string_type::mData = aData;
     base_string_type::mLength = aLength;
     base_string_type::mDataFlags = aDataFlags;
@@ -918,8 +832,8 @@ protected:
    *
    * XXX we should expose a way for subclasses to free old_data.
    */
-  bool NS_FASTCALL MutatePrep(size_type aCapacity,
-                              char_type** aOldData, DataFlags* aOldDataFlags);
+  bool NS_FASTCALL MutatePrep(size_type aCapacity, char_type** aOldData,
+                              DataFlags* aOldDataFlags);
 
   /**
    * this function prepares a section of mData to be modified.  if
@@ -941,15 +855,13 @@ protected:
    * this function returns false if is unable to allocate sufficient
    * memory.
    */
-  MOZ_MUST_USE bool ReplacePrep(index_type aCutStart,
-                                size_type aCutLength,
+  MOZ_MUST_USE bool ReplacePrep(index_type aCutStart, size_type aCutLength,
                                 size_type aNewLength);
 
-  MOZ_MUST_USE bool NS_FASTCALL ReplacePrepInternal(
-    index_type aCutStart,
-    size_type aCutLength,
-    size_type aNewFragLength,
-    size_type aNewTotalLength);
+  MOZ_MUST_USE bool NS_FASTCALL ReplacePrepInternal(index_type aCutStart,
+                                                    size_type aCutLength,
+                                                    size_type aNewFragLength,
+                                                    size_type aNewTotalLength);
 
   /**
    * returns the number of writable storage units starting at mData.
@@ -964,8 +876,8 @@ protected:
    * this helper function can be called prior to directly manipulating
    * the contents of mData.  see, for example, BeginWriting.
    */
-  MOZ_MUST_USE bool NS_FASTCALL EnsureMutable(
-    size_type aNewLen = size_type(-1));
+  MOZ_MUST_USE bool NS_FASTCALL
+  EnsureMutable(size_type aNewLen = size_type(-1));
 
   /**
    * Checks if the given capacity is valid for this string type.
@@ -985,8 +897,8 @@ protected:
                                   const char_type* aData, size_type aLength);
 
   static const size_type kMaxCapacity;
-public:
 
+ public:
   // NOTE: this method is declared public _only_ for convenience for
   // callers who don't have access to the original nsLiteralString_CharT.
   void NS_FASTCALL AssignLiteral(const char_type* aData, size_type aLength);
@@ -996,68 +908,56 @@ extern template class nsTSubstring<char>;
 extern template class nsTSubstring<char16_t>;
 
 static_assert(sizeof(nsTSubstring<char>) ==
-              sizeof(mozilla::detail::nsTStringRepr<char>),
+                  sizeof(mozilla::detail::nsTStringRepr<char>),
               "Don't add new data fields to nsTSubstring_CharT. "
               "Add to nsTStringRepr<T> instead.");
-
 
 // You should not need to instantiate this class directly.
 // Use nsTSubstring::Split instead.
 template <typename T>
-class nsTSubstringSplitter
-{
+class nsTSubstringSplitter {
   typedef typename nsTSubstring<T>::size_type size_type;
   typedef typename nsTSubstring<T>::char_type char_type;
 
-  class nsTSubstringSplit_Iter
-  {
-  public:
-    nsTSubstringSplit_Iter(const nsTSubstringSplitter<T>& aObj,
-                           size_type aPos)
-      : mObj(aObj)
-      , mPos(aPos)
-    {
-    }
+  class nsTSubstringSplit_Iter {
+   public:
+    nsTSubstringSplit_Iter(const nsTSubstringSplitter<T>& aObj, size_type aPos)
+        : mObj(aObj), mPos(aPos) {}
 
-    bool operator!=(const nsTSubstringSplit_Iter& other) const
-    {
+    bool operator!=(const nsTSubstringSplit_Iter& other) const {
       return mPos != other.mPos;
     }
 
     const nsTDependentSubstring<T>& operator*() const;
 
-    const nsTSubstringSplit_Iter& operator++()
-    {
+    const nsTSubstringSplit_Iter& operator++() {
       ++mPos;
       return *this;
     }
 
-  private:
+   private:
     const nsTSubstringSplitter<T>& mObj;
     size_type mPos;
   };
 
-private:
+ private:
   const nsTSubstring<T>* const mStr;
   mozilla::UniquePtr<nsTDependentSubstring<T>[]> mArray;
   size_type mArraySize;
   const char_type mDelim;
 
-public:
+ public:
   nsTSubstringSplitter(const nsTSubstring<T>* aStr, char_type aDelim);
 
-  nsTSubstringSplit_Iter begin() const
-  {
+  nsTSubstringSplit_Iter begin() const {
     return nsTSubstringSplit_Iter(*this, 0);
   }
 
-  nsTSubstringSplit_Iter end() const
-  {
+  nsTSubstringSplit_Iter end() const {
     return nsTSubstringSplit_Iter(*this, mArraySize);
   }
 
-  const nsTDependentSubstring<T>& Get(const size_type index) const
-  {
+  const nsTDependentSubstring<T>& Get(const size_type index) const {
     MOZ_ASSERT(index < mArraySize);
     return mArray[index];
   }
@@ -1071,31 +971,20 @@ extern template class nsTSubstringSplitter<char16_t>;
  */
 namespace mozilla {
 
-inline Span<char>
-MakeSpan(nsTSubstring<char>& aString)
-{
+inline Span<char> MakeSpan(nsTSubstring<char>& aString) { return aString; }
+
+inline Span<const char> MakeSpan(const nsTSubstring<char>& aString) {
   return aString;
 }
 
-inline Span<const char>
-MakeSpan(const nsTSubstring<char>& aString)
-{
+inline Span<char16_t> MakeSpan(nsTSubstring<char16_t>& aString) {
   return aString;
 }
 
-inline Span<char16_t>
-MakeSpan(nsTSubstring<char16_t>& aString)
-{
+inline Span<const char16_t> MakeSpan(const nsTSubstring<char16_t>& aString) {
   return aString;
 }
 
-inline Span<const char16_t>
-MakeSpan(const nsTSubstring<char16_t>& aString)
-{
-  return aString;
-}
-
-
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

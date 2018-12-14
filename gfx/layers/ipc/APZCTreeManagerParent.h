@@ -14,12 +14,10 @@ namespace layers {
 
 class APZCTreeManager;
 
-class APZCTreeManagerParent
-    : public PAPZCTreeManagerParent
-{
-public:
-
-  explicit APZCTreeManagerParent(uint64_t aLayersId, RefPtr<APZCTreeManager> aAPZCTreeManager);
+class APZCTreeManagerParent : public PAPZCTreeManagerParent {
+ public:
+  explicit APZCTreeManagerParent(uint64_t aLayersId,
+                                 RefPtr<APZCTreeManager> aAPZCTreeManager);
   virtual ~APZCTreeManagerParent();
 
   uint64_t LayersId() const { return mLayersId; }
@@ -30,136 +28,99 @@ public:
    */
   void ChildAdopted(RefPtr<APZCTreeManager> aAPZCTreeManager);
 
-  mozilla::ipc::IPCResult
-  RecvReceiveMultiTouchInputEvent(
-          const MultiTouchInput& aEvent,
-          nsEventStatus* aOutStatus,
-          MultiTouchInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceiveMultiTouchInputEvent(
+      const MultiTouchInput& aEvent, nsEventStatus* aOutStatus,
+      MultiTouchInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceiveMouseInputEvent(
-          const MouseInput& aEvent,
-          nsEventStatus* aOutStatus,
-          MouseInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceiveMouseInputEvent(
+      const MouseInput& aEvent, nsEventStatus* aOutStatus,
+      MouseInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceivePanGestureInputEvent(
-          const PanGestureInput& aEvent,
-          nsEventStatus* aOutStatus,
-          PanGestureInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceivePanGestureInputEvent(
+      const PanGestureInput& aEvent, nsEventStatus* aOutStatus,
+      PanGestureInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceivePinchGestureInputEvent(
-          const PinchGestureInput& aEvent,
-          nsEventStatus* aOutStatus,
-          PinchGestureInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceivePinchGestureInputEvent(
+      const PinchGestureInput& aEvent, nsEventStatus* aOutStatus,
+      PinchGestureInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceiveTapGestureInputEvent(
-          const TapGestureInput& aEvent,
-          nsEventStatus* aOutStatus,
-          TapGestureInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceiveTapGestureInputEvent(
+      const TapGestureInput& aEvent, nsEventStatus* aOutStatus,
+      TapGestureInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceiveScrollWheelInputEvent(
-          const ScrollWheelInput& aEvent,
-          nsEventStatus* aOutStatus,
-          ScrollWheelInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceiveScrollWheelInputEvent(
+      const ScrollWheelInput& aEvent, nsEventStatus* aOutStatus,
+      ScrollWheelInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvReceiveKeyboardInputEvent(
-          const KeyboardInput& aEvent,
-          nsEventStatus* aOutStatus,
-          KeyboardInput* aOutEvent,
-          ScrollableLayerGuid* aOutTargetGuid,
-          uint64_t* aOutInputBlockId) override;
+  mozilla::ipc::IPCResult RecvReceiveKeyboardInputEvent(
+      const KeyboardInput& aEvent, nsEventStatus* aOutStatus,
+      KeyboardInput* aOutEvent, ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutInputBlockId) override;
 
-  mozilla::ipc::IPCResult
-  RecvSetKeyboardMap(const KeyboardMap& aKeyboardMap) override;
+  mozilla::ipc::IPCResult RecvSetKeyboardMap(
+      const KeyboardMap& aKeyboardMap) override;
 
-  mozilla::ipc::IPCResult
-  RecvZoomToRect(
-          const ScrollableLayerGuid& aGuid,
-          const CSSRect& aRect,
-          const uint32_t& aFlags) override;
+  mozilla::ipc::IPCResult RecvZoomToRect(const ScrollableLayerGuid& aGuid,
+                                         const CSSRect& aRect,
+                                         const uint32_t& aFlags) override;
 
-  mozilla::ipc::IPCResult
-  RecvContentReceivedInputBlock(
-          const uint64_t& aInputBlockId,
-          const bool& aPreventDefault) override;
+  mozilla::ipc::IPCResult RecvContentReceivedInputBlock(
+      const uint64_t& aInputBlockId, const bool& aPreventDefault) override;
 
-  mozilla::ipc::IPCResult
-  RecvSetTargetAPZC(
-          const uint64_t& aInputBlockId,
-          nsTArray<ScrollableLayerGuid>&& aTargets) override;
+  mozilla::ipc::IPCResult RecvSetTargetAPZC(
+      const uint64_t& aInputBlockId,
+      nsTArray<ScrollableLayerGuid>&& aTargets) override;
 
-  mozilla::ipc::IPCResult
-  RecvUpdateZoomConstraints(
-          const ScrollableLayerGuid& aGuid,
-          const MaybeZoomConstraints& aConstraints) override;
+  mozilla::ipc::IPCResult RecvUpdateZoomConstraints(
+      const ScrollableLayerGuid& aGuid,
+      const MaybeZoomConstraints& aConstraints) override;
 
-  mozilla::ipc::IPCResult
-  RecvSetDPI(const float& aDpiValue) override;
+  mozilla::ipc::IPCResult RecvSetDPI(const float& aDpiValue) override;
 
-  mozilla::ipc::IPCResult
-  RecvSetAllowedTouchBehavior(
-          const uint64_t& aInputBlockId,
-          nsTArray<TouchBehaviorFlags>&& aValues) override;
+  mozilla::ipc::IPCResult RecvSetAllowedTouchBehavior(
+      const uint64_t& aInputBlockId,
+      nsTArray<TouchBehaviorFlags>&& aValues) override;
 
-  mozilla::ipc::IPCResult
-  RecvStartScrollbarDrag(
-          const ScrollableLayerGuid& aGuid,
-          const AsyncDragMetrics& aDragMetrics) override;
+  mozilla::ipc::IPCResult RecvStartScrollbarDrag(
+      const ScrollableLayerGuid& aGuid,
+      const AsyncDragMetrics& aDragMetrics) override;
 
-  mozilla::ipc::IPCResult
-  RecvStartAutoscroll(
-          const ScrollableLayerGuid& aGuid,
-          const ScreenPoint& aAnchorLocation) override;
+  mozilla::ipc::IPCResult RecvStartAutoscroll(
+      const ScrollableLayerGuid& aGuid,
+      const ScreenPoint& aAnchorLocation) override;
 
-  mozilla::ipc::IPCResult
-  RecvStopAutoscroll(const ScrollableLayerGuid& aGuid) override;
+  mozilla::ipc::IPCResult RecvStopAutoscroll(
+      const ScrollableLayerGuid& aGuid) override;
 
-  mozilla::ipc::IPCResult
-  RecvSetLongTapEnabled(const bool& aTapGestureEnabled) override;
+  mozilla::ipc::IPCResult RecvSetLongTapEnabled(
+      const bool& aTapGestureEnabled) override;
 
-  mozilla::ipc::IPCResult
-  RecvProcessTouchVelocity(
-          const uint32_t& aTimestampMs,
-          const float& aSpeedY) override;
+  mozilla::ipc::IPCResult RecvProcessTouchVelocity(
+      const uint32_t& aTimestampMs, const float& aSpeedY) override;
 
-  mozilla::ipc::IPCResult
-  RecvUpdateWheelTransaction(
-          const LayoutDeviceIntPoint& aRefPoint,
-          const EventMessage& aEventMessage) override;
+  mozilla::ipc::IPCResult RecvUpdateWheelTransaction(
+      const LayoutDeviceIntPoint& aRefPoint,
+      const EventMessage& aEventMessage) override;
 
-  mozilla::ipc::IPCResult
-  RecvProcessUnhandledEvent(
-          const LayoutDeviceIntPoint& aRefPoint,
-          LayoutDeviceIntPoint* aOutRefPoint,
-          ScrollableLayerGuid*  aOutTargetGuid,
-          uint64_t*             aOutFocusSequenceNumber) override;
+  mozilla::ipc::IPCResult RecvProcessUnhandledEvent(
+      const LayoutDeviceIntPoint& aRefPoint, LayoutDeviceIntPoint* aOutRefPoint,
+      ScrollableLayerGuid* aOutTargetGuid,
+      uint64_t* aOutFocusSequenceNumber) override;
 
-  void
-  ActorDestroy(ActorDestroyReason aWhy) override { }
+  void ActorDestroy(ActorDestroyReason aWhy) override {}
 
-private:
+ private:
   uint64_t mLayersId;
   RefPtr<APZCTreeManager> mTreeManager;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_APZCTreeManagerParent_h
+#endif  // mozilla_layers_APZCTreeManagerParent_h

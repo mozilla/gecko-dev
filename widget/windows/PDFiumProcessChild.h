@@ -16,12 +16,11 @@ namespace widget {
  * Contains the PDFiumChild object that facilitates IPC communication to/from
  * the instance of the PDFium library that is run in this process.
  */
-class PDFiumProcessChild final : public mozilla::ipc::ProcessChild
-{
-protected:
+class PDFiumProcessChild final : public mozilla::ipc::ProcessChild {
+ protected:
   typedef mozilla::ipc::ProcessChild ProcessChild;
 
-public:
+ public:
   explicit PDFiumProcessChild(ProcessId aParentPid);
   ~PDFiumProcessChild();
 
@@ -29,16 +28,16 @@ public:
   bool Init(int aArgc, char* aArgv[]) override;
   void CleanUp() override;
 
-private:
+ private:
   DISALLOW_COPY_AND_ASSIGN(PDFiumProcessChild);
 
   PDFiumChild mPDFiumActor;
 #if defined(MOZ_SANDBOX)
-  PRLibrary*  mPDFium;
+  PRLibrary* mPDFium;
 #endif
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // PDFIUMPROCESSCHILD_H_
+#endif  // PDFIUMPROCESSCHILD_H_

@@ -28,25 +28,25 @@ class SizeOfState;
  * Replaced types. These get mapped to associated Servo types in bindgen.
  */
 
-template<typename T>
+template <typename T>
 struct ServoUnsafeCell {
   T value;
 
   // Ensure that primitive types (i.e. pointers) get zero-initialized.
-  ServoUnsafeCell() : value() {};
+  ServoUnsafeCell() : value(){};
 };
 
-template<typename T>
+template <typename T>
 struct ServoCell {
   ServoUnsafeCell<T> value;
   T Get() const { return value.value; }
   void Set(T arg) { value.value = arg; }
-  ServoCell() : value() {};
+  ServoCell() : value(){};
 };
 
-// Indicates whether the Servo style system should expect the style on an element
-// to have already been resolved (i.e. via a parallel traversal), or whether it
-// may be lazily computed.
+// Indicates whether the Servo style system should expect the style on an
+// element to have already been resolved (i.e. via a parallel traversal), or
+// whether it may be lazily computed.
 enum class LazyComputeBehavior {
   Allow,
   Assert,
@@ -64,9 +64,9 @@ enum class ServoTraversalFlags : uint32_t {
   // pre-traversal. A forgetful traversal is usually the right thing if you
   // aren't going to do a post-traversal.
   Forgetful = 1 << 3,
-  // Clears all the dirty bits (dirty descendants, animation-only dirty-descendants,
-  // needs frame, descendants need frames) on the elements traversed.
-  // in the subtree.
+  // Clears all the dirty bits (dirty descendants, animation-only
+  // dirty-descendants, needs frame, descendants need frames) on the elements
+  // traversed. in the subtree.
   ClearDirtyBits = 1 << 5,
   // Clears only the animation-only dirty descendants bit in the subtree.
   ClearAnimationOnlyDirtyDescendants = 1 << 6,
@@ -92,10 +92,10 @@ enum class StyleRuleInclusion {
 
 // Represents which tasks are performed in a SequentialTask of UpdateAnimations.
 enum class UpdateAnimationsTasks : uint8_t {
-  CSSAnimations          = 1 << 0,
-  CSSTransitions         = 1 << 1,
-  EffectProperties       = 1 << 2,
-  CascadeResults         = 1 << 3,
+  CSSAnimations = 1 << 0,
+  CSSTransitions = 1 << 1,
+  EffectProperties = 1 << 2,
+  CascadeResults = 1 << 3,
   DisplayChangedFromNone = 1 << 4,
 };
 
@@ -141,7 +141,6 @@ struct ServoRuleNode {
   uintptr_t mPtr;
 };
 
-
 class ServoStyleContext;
 
 struct ServoVisitedStyle {
@@ -171,35 +170,33 @@ struct ServoComputedValueFlags {
 
 // These measurements are obtained for both the UA cache and the Stylist, but
 // not all the fields are used in both cases.
-class ServoStyleSetSizes
-{
-public:
-  size_t mRuleTree;                // Stylist-only
-  size_t mPrecomputedPseudos;      // UA cache-only
-  size_t mElementAndPseudosMaps;   // Used for both
-  size_t mInvalidationMap;         // Used for both
-  size_t mRevalidationSelectors;   // Used for both
-  size_t mOther;                   // Used for both
+class ServoStyleSetSizes {
+ public:
+  size_t mRuleTree;               // Stylist-only
+  size_t mPrecomputedPseudos;     // UA cache-only
+  size_t mElementAndPseudosMaps;  // Used for both
+  size_t mInvalidationMap;        // Used for both
+  size_t mRevalidationSelectors;  // Used for both
+  size_t mOther;                  // Used for both
 
   ServoStyleSetSizes()
-    : mRuleTree(0)
-    , mPrecomputedPseudos(0)
-    , mElementAndPseudosMaps(0)
-    , mInvalidationMap(0)
-    , mRevalidationSelectors(0)
-    , mOther(0)
-  {}
+      : mRuleTree(0),
+        mPrecomputedPseudos(0),
+        mElementAndPseudosMaps(0),
+        mInvalidationMap(0),
+        mRevalidationSelectors(0),
+        mOther(0) {}
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 class ServoComputedData;
 
-struct ServoComputedDataForgotten
-{
+struct ServoComputedDataForgotten {
   // Make sure you manually mem::forget the backing ServoComputedData
   // after calling this
-  explicit ServoComputedDataForgotten(const ServoComputedData* aValue) : mPtr(aValue) {}
+  explicit ServoComputedDataForgotten(const ServoComputedData* aValue)
+      : mPtr(aValue) {}
   const ServoComputedData* mPtr;
 };
 
@@ -208,18 +205,17 @@ struct ServoComputedDataForgotten
  * so we define this type on the C++ side and use the bindgenned version
  * on the Rust side.
  */
-class ServoComputedData
-{
+class ServoComputedData {
   friend class mozilla::ServoStyleContext;
 
-public:
+ public:
   // Constructs via memcpy.  Will not move out of aValue.
   explicit ServoComputedData(const ServoComputedDataForgotten aValue);
 
 #define STYLE_STRUCT(name_, checkdata_cb_)                 \
   mozilla::ServoRawOffsetArc<mozilla::Gecko##name_> name_; \
   inline const nsStyle##name_* GetStyle##name_() const;
-  #define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
@@ -227,7 +223,7 @@ public:
 
   void AddSizeOfExcludingThis(nsWindowSizes& aSizes) const;
 
-private:
+ private:
   mozilla::ServoCustomPropertiesMap custom_properties;
   mozilla::ServoWritingMode writing_mode;
   mozilla::ServoComputedValueFlags flags;
@@ -253,4 +249,4 @@ private:
   ServoComputedData(const ServoComputedData&&) = delete;
 };
 
-#endif // mozilla_ServoTypes_h
+#endif  // mozilla_ServoTypes_h

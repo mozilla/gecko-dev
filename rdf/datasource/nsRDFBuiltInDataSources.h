@@ -23,5 +23,4 @@ class nsIRDFDataSource;
 // in nsFileSystemDataSource.cpp
 nsresult NS_NewRDFFileSystemDataSource(nsIRDFDataSource** result);
 
-#endif // nsBuiltinDataSources_h__
-
+#endif  // nsBuiltinDataSources_h__

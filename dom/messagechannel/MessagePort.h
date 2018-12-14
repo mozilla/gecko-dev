@@ -28,37 +28,31 @@ class PostMessageRunnable;
 class SharedMessagePortMessage;
 class WorkerHolder;
 
-class MessagePort final : public DOMEventTargetHelper
-                        , public nsIObserver
-{
+class MessagePort final : public DOMEventTargetHelper, public nsIObserver {
   friend class PostMessageRunnable;
 
-public:
+ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort,
-                                           DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort, DOMEventTargetHelper)
 
-  static already_AddRefed<MessagePort>
-  Create(nsIGlobalObject* aGlobal, const nsID& aUUID,
-         const nsID& aDestinationUUID, ErrorResult& aRv);
+  static already_AddRefed<MessagePort> Create(nsIGlobalObject* aGlobal,
+                                              const nsID& aUUID,
+                                              const nsID& aDestinationUUID,
+                                              ErrorResult& aRv);
 
-  static already_AddRefed<MessagePort>
-  Create(nsIGlobalObject* aGlobal,
-         const MessagePortIdentifier& aIdentifier,
-         ErrorResult& aRv);
+  static already_AddRefed<MessagePort> Create(
+      nsIGlobalObject* aGlobal, const MessagePortIdentifier& aIdentifier,
+      ErrorResult& aRv);
 
   // For IPC.
-  static void
-  ForceClose(const MessagePortIdentifier& aIdentifier);
+  static void ForceClose(const MessagePortIdentifier& aIdentifier);
 
-  virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  void
-  PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-              const Sequence<JSObject*>& aTransferable,
-              ErrorResult& aRv);
+  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+                   const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 
   void Start();
 
@@ -85,7 +79,7 @@ public:
   void StopSendingDataConfirmed();
   void Closed();
 
-private:
+ private:
   explicit MessagePort(nsIGlobalObject* aGlobal);
   ~MessagePort();
 
@@ -157,10 +151,7 @@ private:
   // We release the object when the port is closed or disentangled.
   void UpdateMustKeepAlive();
 
-  bool IsCertainlyAliveForCC() const override
-  {
-    return mIsKeptAlive;
-  }
+  bool IsCertainlyAliveForCC() const override { return mIsKeptAlive; }
 
   nsAutoPtr<WorkerHolder> mWorkerHolder;
 
@@ -184,7 +175,7 @@ private:
   bool mIsKeptAlive;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_MessagePort_h
+#endif  // mozilla_dom_MessagePort_h

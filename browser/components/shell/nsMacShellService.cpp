@@ -26,18 +26,20 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
 
-#define NETWORK_PREFPANE NS_LITERAL_CSTRING("/System/Library/PreferencePanes/Network.prefPane")
-#define DESKTOP_PREFPANE NS_LITERAL_CSTRING("/System/Library/PreferencePanes/DesktopScreenEffectsPref.prefPane")
+#define NETWORK_PREFPANE \
+  NS_LITERAL_CSTRING("/System/Library/PreferencePanes/Network.prefPane")
+#define DESKTOP_PREFPANE \
+  NS_LITERAL_CSTRING(    \
+      "/System/Library/PreferencePanes/DesktopScreenEffectsPref.prefPane")
 
 #define SAFARI_BUNDLE_IDENTIFIER "com.apple.Safari"
 
-NS_IMPL_ISUPPORTS(nsMacShellService, nsIMacShellService, nsIShellService, nsIWebProgressListener)
+NS_IMPL_ISUPPORTS(nsMacShellService, nsIMacShellService, nsIShellService,
+                  nsIWebProgressListener)
 
 NS_IMETHODIMP
-nsMacShellService::IsDefaultBrowser(bool aStartupCheck,
-                                    bool aForAllTypes,
-                                    bool* aIsDefaultBrowser)
-{
+nsMacShellService::IsDefaultBrowser(bool aStartupCheck, bool aForAllTypes,
+                                    bool* aIsDefaultBrowser) {
   *aIsDefaultBrowser = false;
 
   CFStringRef firefoxID = ::CFBundleGetIdentifier(::CFBundleGetMainBundle());
@@ -50,9 +52,11 @@ nsMacShellService::IsDefaultBrowser(bool aStartupCheck,
 
   // Get the default http handler's bundle ID (or nullptr if it has not been
   // explicitly set)
-  CFStringRef defaultBrowserID = ::LSCopyDefaultHandlerForURLScheme(CFSTR("http"));
+  CFStringRef defaultBrowserID =
+      ::LSCopyDefaultHandlerForURLScheme(CFSTR("http"));
   if (defaultBrowserID) {
-    *aIsDefaultBrowser = ::CFStringCompare(firefoxID, defaultBrowserID, 0) == kCFCompareEqualTo;
+    *aIsDefaultBrowser =
+        ::CFStringCompare(firefoxID, defaultBrowserID, 0) == kCFCompareEqualTo;
     ::CFRelease(defaultBrowserID);
   }
 
@@ -60,8 +64,7 @@ nsMacShellService::IsDefaultBrowser(bool aStartupCheck,
 }
 
 NS_IMETHODIMP
-nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
-{
+nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers) {
   // Note: We don't support aForAllUsers on Mac OS X.
 
   CFStringRef firefoxID = ::CFBundleGetIdentifier(::CFBundleGetMainBundle());
@@ -80,17 +83,18 @@ nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
     if (::LSSetDefaultHandlerForURLScheme(CFSTR("ftp"), firefoxID) != noErr) {
       return NS_ERROR_FAILURE;
     }
-    if (::LSSetDefaultRoleHandlerForContentType(kUTTypeHTML, kLSRolesAll, firefoxID) != noErr) {
+    if (::LSSetDefaultRoleHandlerForContentType(kUTTypeHTML, kLSRolesAll,
+                                                firefoxID) != noErr) {
       return NS_ERROR_FAILURE;
     }
   }
 
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (prefs) {
-    (void) prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, true);
+    (void)prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, true);
     // Reset the number of times the dialog should be shown
     // before it is silenced.
-    (void) prefs->SetIntPref(PREF_DEFAULTBROWSERCHECKCOUNT, 0);
+    (void)prefs->SetIntPref(PREF_DEFAULTBROWSERCHECKCOUNT, 0);
   }
 
   return NS_OK;
@@ -99,14 +103,13 @@ nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
 NS_IMETHODIMP
 nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
                                         int32_t aPosition,
-                                        const nsACString& aImageName)
-{
+                                        const nsACString& aImageName) {
   // Note: We don't support aPosition on OS X.
 
   // Get the image URI:
   nsresult rv;
-  nsCOMPtr<nsIImageLoadingContent> imageContent = do_QueryInterface(aElement,
-                                                                    &rv);
+  nsCOMPtr<nsIImageLoadingContent> imageContent =
+      do_QueryInterface(aElement, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIURI> imageURI;
   rv = imageContent->GetCurrentURI(getter_AddRefs(imageURI));
@@ -116,19 +119,17 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
   nsCOMPtr<nsIContent> content = do_QueryInterface(aElement, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIURI *docURI = content->OwnerDoc()->GetDocumentURI();
-  if (!docURI)
-    return NS_ERROR_FAILURE;
+  nsIURI* docURI = content->OwnerDoc()->GetDocumentURI();
+  if (!docURI) return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIProperties> fileLocator
-    (do_GetService("@mozilla.org/file/directory_service;1", &rv));
+  nsCOMPtr<nsIProperties> fileLocator(
+      do_GetService("@mozilla.org/file/directory_service;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the current user's "Pictures" folder (That's ~/Pictures):
   fileLocator->Get(NS_OSX_PICTURE_DOCUMENTS_DIR, NS_GET_IID(nsIFile),
                    getter_AddRefs(mBackgroundFile));
-  if (!mBackgroundFile)
-    return NS_ERROR_OUT_OF_MEMORY;
+  if (!mBackgroundFile) return NS_ERROR_OUT_OF_MEMORY;
 
   nsAutoString fileNameUnicode;
   CopyUTF8toUTF16(aImageName, fileNameUnicode);
@@ -137,8 +138,8 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
   mBackgroundFile->Append(fileNameUnicode);
 
   // Download the image; the desktop background will be set in OnStateChange()
-  nsCOMPtr<nsIWebBrowserPersist> wbp
-    (do_CreateInstance("@mozilla.org/embedding/browser/nsWebBrowserPersist;1", &rv));
+  nsCOMPtr<nsIWebBrowserPersist> wbp(do_CreateInstance(
+      "@mozilla.org/embedding/browser/nsWebBrowserPersist;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t flags = nsIWebBrowserPersist::PERSIST_FLAGS_NO_CONVERSION |
@@ -155,10 +156,9 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     loadContext = do_QueryInterface(docShell);
   }
 
-  return wbp->SaveURI(imageURI, nullptr,
-                      docURI, content->OwnerDoc()->GetReferrerPolicy(),
-                      nullptr, nullptr,
-                      mBackgroundFile, loadContext);
+  return wbp->SaveURI(imageURI, nullptr, docURI,
+                      content->OwnerDoc()->GetReferrerPolicy(), nullptr,
+                      nullptr, mBackgroundFile, loadContext);
 }
 
 NS_IMETHODIMP
@@ -167,69 +167,59 @@ nsMacShellService::OnProgressChange(nsIWebProgress* aWebProgress,
                                     int32_t aCurSelfProgress,
                                     int32_t aMaxSelfProgress,
                                     int32_t aCurTotalProgress,
-                                    int32_t aMaxTotalProgress)
-{
+                                    int32_t aMaxTotalProgress) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMacShellService::OnLocationChange(nsIWebProgress* aWebProgress,
-                                    nsIRequest* aRequest,
-                                    nsIURI* aLocation,
-                                    uint32_t aFlags)
-{
+                                    nsIRequest* aRequest, nsIURI* aLocation,
+                                    uint32_t aFlags) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMacShellService::OnStatusChange(nsIWebProgress* aWebProgress,
-                                  nsIRequest* aRequest,
-                                  nsresult aStatus,
-                                  const char16_t* aMessage)
-{
+                                  nsIRequest* aRequest, nsresult aStatus,
+                                  const char16_t* aMessage) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMacShellService::OnSecurityChange(nsIWebProgress* aWebProgress,
-                                    nsIRequest* aRequest,
-                                    uint32_t aState)
-{
+                                    nsIRequest* aRequest, uint32_t aState) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
-                                 nsIRequest* aRequest,
-                                 uint32_t aStateFlags,
-                                 nsresult aStatus)
-{
+                                 nsIRequest* aRequest, uint32_t aStateFlags,
+                                 nsresult aStatus) {
   if (aStateFlags & STATE_STOP) {
-    nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1"));
+    nsCOMPtr<nsIObserverService> os(
+        do_GetService("@mozilla.org/observer-service;1"));
     if (os)
       os->NotifyObservers(nullptr, "shell:desktop-background-changed", nullptr);
 
     bool exists = false;
     mBackgroundFile->Exists(&exists);
-    if (!exists)
-      return NS_OK;
+    if (!exists) return NS_OK;
 
     nsAutoCString nativePath;
     mBackgroundFile->GetNativePath(nativePath);
 
-    AEDesc tAEDesc = { typeNull, nil };
+    AEDesc tAEDesc = {typeNull, nil};
     OSErr err = noErr;
     AliasHandle aliasHandle = nil;
     FSRef pictureRef;
     OSStatus status;
 
     // Convert the path into a FSRef
-    status = ::FSPathMakeRef((const UInt8*)nativePath.get(), &pictureRef,
-                             nullptr);
+    status =
+        ::FSPathMakeRef((const UInt8*)nativePath.get(), &pictureRef, nullptr);
     if (status == noErr) {
       err = ::FSNewAlias(nil, &pictureRef, &aliasHandle);
-      if (err == noErr && aliasHandle == nil)
-        err = paramErr;
+      if (err == noErr && aliasHandle == nil) err = paramErr;
 
       if (err == noErr) {
         // We need the descriptor (based on the picture file reference)
@@ -247,14 +237,15 @@ nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
         OSType sig = 'MACS';
         AEBuildError tAEBuildError;
         // Create a 'Set Desktop Pictue' Apple Event
-        err = ::AEBuildAppleEvent(kAECoreSuite, kAESetData, typeApplSignature,
-                                  &sig, sizeof(OSType), kAutoGenerateReturnID,
-                                  kAnyTransactionID, &tAppleEvent, &tAEBuildError,
-                                  "'----':'obj '{want:type (prop),form:prop" \
-                                  ",seld:type('dpic'),from:'null'()},data:(@)",
-                                  &tAEDesc);
+        err =
+            ::AEBuildAppleEvent(kAECoreSuite, kAESetData, typeApplSignature,
+                                &sig, sizeof(OSType), kAutoGenerateReturnID,
+                                kAnyTransactionID, &tAppleEvent, &tAEBuildError,
+                                "'----':'obj '{want:type (prop),form:prop"
+                                ",seld:type('dpic'),from:'null'()},data:(@)",
+                                &tAEDesc);
         if (err == noErr) {
-          AppleEvent reply = { typeNull, nil };
+          AppleEvent reply = {typeNull, nil};
           // Sent the event we built, the reply event isn't necessary
           err = ::AESend(&tAppleEvent, &reply, kAENoReply, kAENormalPriority,
                          kNoTimeOut, nil, nil);
@@ -268,53 +259,44 @@ nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
 }
 
 NS_IMETHODIMP
-nsMacShellService::OpenApplication(int32_t aApplication)
-{
+nsMacShellService::OpenApplication(int32_t aApplication) {
   nsresult rv = NS_OK;
   CFURLRef appURL = nil;
   OSStatus err = noErr;
 
   switch (aApplication) {
-  case nsIShellService::APPLICATION_MAIL:
-    {
+    case nsIShellService::APPLICATION_MAIL: {
       CFURLRef tempURL = ::CFURLCreateWithString(kCFAllocatorDefault,
                                                  CFSTR("mailto:"), nullptr);
       err = ::LSGetApplicationForURL(tempURL, kLSRolesAll, nullptr, &appURL);
       ::CFRelease(tempURL);
-    }
-    break;
-  case nsIShellService::APPLICATION_NEWS:
-    {
-      CFURLRef tempURL = ::CFURLCreateWithString(kCFAllocatorDefault,
-                                                 CFSTR("news:"), nullptr);
+    } break;
+    case nsIShellService::APPLICATION_NEWS: {
+      CFURLRef tempURL =
+          ::CFURLCreateWithString(kCFAllocatorDefault, CFSTR("news:"), nullptr);
       err = ::LSGetApplicationForURL(tempURL, kLSRolesAll, nullptr, &appURL);
       ::CFRelease(tempURL);
-    }
-    break;
-  case nsIMacShellService::APPLICATION_KEYCHAIN_ACCESS:
-    err = ::LSGetApplicationForInfo('APPL', 'kcmr', nullptr, kLSRolesAll,
-                                    nullptr, &appURL);
-    break;
-  case nsIMacShellService::APPLICATION_NETWORK:
-    {
+    } break;
+    case nsIMacShellService::APPLICATION_KEYCHAIN_ACCESS:
+      err = ::LSGetApplicationForInfo('APPL', 'kcmr', nullptr, kLSRolesAll,
+                                      nullptr, &appURL);
+      break;
+    case nsIMacShellService::APPLICATION_NETWORK: {
       nsCOMPtr<nsIFile> lf;
       rv = NS_NewNativeLocalFile(NETWORK_PREFPANE, true, getter_AddRefs(lf));
       NS_ENSURE_SUCCESS(rv, rv);
       bool exists;
       lf->Exists(&exists);
-      if (!exists)
-        return NS_ERROR_FILE_NOT_FOUND;
+      if (!exists) return NS_ERROR_FILE_NOT_FOUND;
       return lf->Launch();
     }
-  case nsIMacShellService::APPLICATION_DESKTOP:
-    {
+    case nsIMacShellService::APPLICATION_DESKTOP: {
       nsCOMPtr<nsIFile> lf;
       rv = NS_NewNativeLocalFile(DESKTOP_PREFPANE, true, getter_AddRefs(lf));
       NS_ENSURE_SUCCESS(rv, rv);
       bool exists;
       lf->Exists(&exists);
-      if (!exists)
-        return NS_ERROR_FILE_NOT_FOUND;
+      if (!exists) return NS_ERROR_FILE_NOT_FOUND;
       return lf->Launch();
     }
   }
@@ -330,8 +312,7 @@ nsMacShellService::OpenApplication(int32_t aApplication)
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetDesktopBackgroundColor(uint32_t *aColor)
-{
+nsMacShellService::GetDesktopBackgroundColor(uint32_t* aColor) {
   // This method and |SetDesktopBackgroundColor| has no meaning on Mac OS X.
   // The mac desktop preferences UI uses pictures for the few solid colors it
   // supports.
@@ -339,8 +320,7 @@ nsMacShellService::GetDesktopBackgroundColor(uint32_t *aColor)
 }
 
 NS_IMETHODIMP
-nsMacShellService::SetDesktopBackgroundColor(uint32_t aColor)
-{
+nsMacShellService::SetDesktopBackgroundColor(uint32_t aColor) {
   // This method and |GetDesktopBackgroundColor| has no meaning on Mac OS X.
   // The mac desktop preferences UI uses pictures for the few solid colors it
   // supports.
@@ -348,20 +328,18 @@ nsMacShellService::SetDesktopBackgroundColor(uint32_t aColor)
 }
 
 NS_IMETHODIMP
-nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACString& aURI)
-{
+nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication,
+                                          const nsACString& aURI) {
   nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(aApplication));
   CFURLRef appURL;
   nsresult rv = lfm->GetCFURL(&appURL);
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) return rv;
 
   const nsCString spec(aURI);
   const UInt8* uriString = (const UInt8*)spec.get();
   CFURLRef uri = ::CFURLCreateWithBytes(nullptr, uriString, aURI.Length(),
                                         kCFStringEncodingUTF8, nullptr);
-  if (!uri)
-    return NS_ERROR_OUT_OF_MEMORY;
+  if (!uri) return NS_ERROR_OUT_OF_MEMORY;
 
   CFArrayRef uris = ::CFArrayCreate(nullptr, (const void**)&uri, 1, nullptr);
   if (!uris) {
@@ -385,28 +363,27 @@ nsMacShellService::OpenApplicationWithURI(nsIFile* aApplication, const nsACStrin
 }
 
 NS_IMETHODIMP
-nsMacShellService::GetDefaultFeedReader(nsIFile** _retval)
-{
+nsMacShellService::GetDefaultFeedReader(nsIFile** _retval) {
   nsresult rv = NS_ERROR_FAILURE;
   *_retval = nullptr;
 
-  CFStringRef defaultHandlerID = ::LSCopyDefaultHandlerForURLScheme(CFSTR("feed"));
+  CFStringRef defaultHandlerID =
+      ::LSCopyDefaultHandlerForURLScheme(CFSTR("feed"));
   if (!defaultHandlerID) {
-    defaultHandlerID = ::CFStringCreateWithCString(kCFAllocatorDefault,
-                                                   SAFARI_BUNDLE_IDENTIFIER,
-                                                   kCFStringEncodingASCII);
+    defaultHandlerID = ::CFStringCreateWithCString(
+        kCFAllocatorDefault, SAFARI_BUNDLE_IDENTIFIER, kCFStringEncodingASCII);
   }
 
   CFURLRef defaultHandlerURL = nullptr;
-  OSStatus status = ::LSFindApplicationForInfo(kLSUnknownCreator,
-                                               defaultHandlerID,
-                                               nullptr, // inName
-                                               nullptr, // outAppRef
-                                               &defaultHandlerURL);
+  OSStatus status =
+      ::LSFindApplicationForInfo(kLSUnknownCreator, defaultHandlerID,
+                                 nullptr,  // inName
+                                 nullptr,  // outAppRef
+                                 &defaultHandlerURL);
 
   if (status == noErr && defaultHandlerURL) {
     nsCOMPtr<nsILocalFileMac> defaultReader =
-      do_CreateInstance("@mozilla.org/file/local;1", &rv);
+        do_CreateInstance("@mozilla.org/file/local;1", &rv);
     if (NS_SUCCEEDED(rv)) {
       rv = defaultReader->InitWithCFURL(defaultHandlerURL);
       if (NS_SUCCEEDED(rv)) {

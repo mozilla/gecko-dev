@@ -6,11 +6,11 @@
 
 #include "FrameBuilder.h"
 #include "ContainerLayerMLGPU.h"
-#include "GeckoProfiler.h"              // for profiler_*
+#include "GeckoProfiler.h"  // for profiler_*
 #include "LayerMLGPU.h"
 #include "LayerManagerMLGPU.h"
 #include "MaskOperation.h"
-#include "MLGDevice.h"                  // for MLGSwapChain
+#include "MLGDevice.h"  // for MLGSwapChain
 #include "RenderPassMLGPU.h"
 #include "RenderViewMLGPU.h"
 #include "mozilla/gfx/Polygon.h"
@@ -22,23 +22,19 @@ namespace layers {
 
 using namespace mlg;
 
-FrameBuilder::FrameBuilder(LayerManagerMLGPU* aManager, MLGSwapChain* aSwapChain)
- : mManager(aManager),
-   mDevice(aManager->GetDevice()),
-   mSwapChain(aSwapChain)
-{
+FrameBuilder::FrameBuilder(LayerManagerMLGPU* aManager,
+                           MLGSwapChain* aSwapChain)
+    : mManager(aManager),
+      mDevice(aManager->GetDevice()),
+      mSwapChain(aSwapChain) {
   // test_bug1124898.html has a root ColorLayer, so we don't assume the root is
   // a container.
   mRoot = mManager->GetRoot()->AsHostLayer()->AsLayerMLGPU();
 }
 
-FrameBuilder::~FrameBuilder()
-{
-}
+FrameBuilder::~FrameBuilder() {}
 
-bool
-FrameBuilder::Build()
-{
+bool FrameBuilder::Build() {
   AUTO_PROFILER_LABEL("FrameBuilder::Build", GRAPHICS);
 
   // AcquireBackBuffer can fail, so we check the result here.
@@ -68,7 +64,8 @@ FrameBuilder::Build()
   // Traverse the layer tree and assign each layer to tiles.
   {
     Maybe<gfx::Polygon> geometry;
-    RenderTargetIntRect clip(0, 0, target->GetSize().width, target->GetSize().height);
+    RenderTargetIntRect clip(0, 0, target->GetSize().width,
+                             target->GetSize().height);
 
     AssignLayer(mRoot->GetLayer(), mWidgetRenderView, clip, Move(geometry));
   }
@@ -76,7 +73,8 @@ FrameBuilder::Build()
   // Build the default mask buffer.
   {
     MaskInformation defaultMaskInfo(1.0f, false);
-    if (!mDevice->GetSharedPSBuffer()->Allocate(&mDefaultMaskInfo, defaultMaskInfo)) {
+    if (!mDevice->GetSharedPSBuffer()->Allocate(&mDefaultMaskInfo,
+                                                defaultMaskInfo)) {
       return false;
     }
   }
@@ -95,9 +93,7 @@ FrameBuilder::Build()
   return true;
 }
 
-void
-FrameBuilder::Render()
-{
+void FrameBuilder::Render() {
   AUTO_PROFILER_LABEL("FrameBuilder::Render", GRAPHICS);
 
   // Render combined masks into single mask textures.
@@ -109,12 +105,9 @@ FrameBuilder::Render()
   mWidgetRenderView->Render();
 }
 
-void
-FrameBuilder::AssignLayer(Layer* aLayer,
-                          RenderViewMLGPU* aView,
-                          const RenderTargetIntRect& aClipRect,
-                          Maybe<gfx::Polygon>&& aGeometry)
-{
+void FrameBuilder::AssignLayer(Layer* aLayer, RenderViewMLGPU* aView,
+                               const RenderTargetIntRect& aClipRect,
+                               Maybe<gfx::Polygon>&& aGeometry) {
   LayerMLGPU* layer = aLayer->AsHostLayer()->AsLayerMLGPU();
 
   if (ContainerLayer* container = aLayer->AsContainerLayer()) {
@@ -141,18 +134,16 @@ FrameBuilder::AssignLayer(Layer* aLayer,
   layer->AssignToView(this, aView, Move(aGeometry));
 }
 
-bool
-FrameBuilder::ProcessContainerLayer(ContainerLayer* aContainer,
-                                    RenderViewMLGPU* aView,
-                                    const RenderTargetIntRect& aClipRect,
-                                    Maybe<gfx::Polygon>& aGeometry)
-{
+bool FrameBuilder::ProcessContainerLayer(ContainerLayer* aContainer,
+                                         RenderViewMLGPU* aView,
+                                         const RenderTargetIntRect& aClipRect,
+                                         Maybe<gfx::Polygon>& aGeometry) {
   LayerMLGPU* layer = aContainer->AsHostLayer()->AsLayerMLGPU();
 
   // Diagnostic information for bug 1387467.
   if (!layer) {
-    gfxDevCrash(LogReason::InvalidLayerType) <<
-      "Layer type is invalid: " << aContainer->Name();
+    gfxDevCrash(LogReason::InvalidLayerType)
+        << "Layer type is invalid: " << aContainer->Name();
     return false;
   }
 
@@ -180,28 +171,27 @@ FrameBuilder::ProcessContainerLayer(ContainerLayer* aContainer,
   // to be a full-fledged ContainerLayerMLGPU.
   ContainerLayerMLGPU* viewContainer = layer->AsContainerLayerMLGPU();
   if (!viewContainer) {
-    gfxDevCrash(LogReason::InvalidLayerType) <<
-      "Container layer type is invalid: " << aContainer->Name();
+    gfxDevCrash(LogReason::InvalidLayerType)
+        << "Container layer type is invalid: " << aContainer->Name();
     return false;
   }
 
   if (isFirstVisit && !viewContainer->GetInvalidRect().IsEmpty()) {
     // The RenderView constructor automatically attaches itself to the parent.
-    RefPtr<RenderViewMLGPU> view = new RenderViewMLGPU(this, viewContainer, aView);
+    RefPtr<RenderViewMLGPU> view =
+        new RenderViewMLGPU(this, viewContainer, aView);
     ProcessChildList(aContainer, view, aClipRect, Nothing());
     view->FinishBuilding();
   }
   return true;
 }
 
-void
-FrameBuilder::ProcessChildList(ContainerLayer* aContainer,
-                               RenderViewMLGPU* aView,
-                               const RenderTargetIntRect& aParentClipRect,
-                               const Maybe<gfx::Polygon>& aParentGeometry)
-{
-  nsTArray<LayerPolygon> polygons =
-    aContainer->SortChildrenBy3DZOrder(ContainerLayer::SortMode::WITH_GEOMETRY);
+void FrameBuilder::ProcessChildList(
+    ContainerLayer* aContainer, RenderViewMLGPU* aView,
+    const RenderTargetIntRect& aParentClipRect,
+    const Maybe<gfx::Polygon>& aParentGeometry) {
+  nsTArray<LayerPolygon> polygons = aContainer->SortChildrenBy3DZOrder(
+      ContainerLayer::SortMode::WITH_GEOMETRY);
 
   // Visit layers in front-to-back order.
   for (auto iter = polygons.rbegin(); iter != polygons.rend(); iter++) {
@@ -230,9 +220,7 @@ FrameBuilder::ProcessChildList(ContainerLayer* aContainer,
   }
 }
 
-bool
-FrameBuilder::AddLayerToConstantBuffer(ItemInfo& aItem)
-{
+bool FrameBuilder::AddLayerToConstantBuffer(ItemInfo& aItem) {
   LayerMLGPU* layer = aItem.layer;
 
   // If this layer could appear multiple times, cache it.
@@ -267,16 +255,13 @@ FrameBuilder::AddLayerToConstantBuffer(ItemInfo& aItem)
   return true;
 }
 
-MaskOperation*
-FrameBuilder::AddMaskOperation(LayerMLGPU* aLayer)
-{
+MaskOperation* FrameBuilder::AddMaskOperation(LayerMLGPU* aLayer) {
   Layer* layer = aLayer->GetLayer();
   MOZ_ASSERT(layer->HasMaskLayers());
 
   // Multiple masks are combined into a single mask.
   if ((layer->GetMaskLayer() && layer->GetAncestorMaskLayerCount()) ||
-      layer->GetAncestorMaskLayerCount() > 1)
-  {
+      layer->GetAncestorMaskLayerCount() > 1) {
     // Since each mask can be moved independently of the other, we must create
     // a separate combined mask for every new positioning we encounter.
     MaskTextureList textures;
@@ -299,9 +284,8 @@ FrameBuilder::AddMaskOperation(LayerMLGPU* aLayer)
     return op;
   }
 
-  Layer* maskLayer = layer->GetMaskLayer()
-                     ? layer->GetMaskLayer()
-                     : layer->GetAncestorMaskLayerAt(0);
+  Layer* maskLayer = layer->GetMaskLayer() ? layer->GetMaskLayer()
+                                           : layer->GetAncestorMaskLayerAt(0);
   RefPtr<TextureSource> texture = GetMaskLayerTexture(maskLayer);
   if (!texture) {
     return nullptr;
@@ -320,21 +304,16 @@ FrameBuilder::AddMaskOperation(LayerMLGPU* aLayer)
   return op;
 }
 
-void
-FrameBuilder::RetainTemporaryLayer(LayerMLGPU* aLayer)
-{
+void FrameBuilder::RetainTemporaryLayer(LayerMLGPU* aLayer) {
   // This should only be used with temporary layers. Temporary layers do not
   // have parents.
   MOZ_ASSERT(!aLayer->GetLayer()->GetParent());
   mTemporaryLayers.push_back(aLayer->GetLayer());
 }
 
-LayerConstants*
-FrameBuilder::AllocateLayerInfo(ItemInfo& aItem)
-{
+LayerConstants* FrameBuilder::AllocateLayerInfo(ItemInfo& aItem) {
   if (((mCurrentLayerBuffer.Length() + 1) * sizeof(LayerConstants)) >
-      mDevice->GetMaxConstantBufferBindSize())
-  {
+      mDevice->GetMaxConstantBufferBindSize()) {
     FinishCurrentLayerBuffer();
     mLayerBufferMap.Clear();
     mCurrentLayerBuffer.ClearAndRetainStorage();
@@ -349,9 +328,7 @@ FrameBuilder::AllocateLayerInfo(ItemInfo& aItem)
   return info;
 }
 
-void
-FrameBuilder::FinishCurrentLayerBuffer()
-{
+void FrameBuilder::FinishCurrentLayerBuffer() {
   if (mCurrentLayerBuffer.IsEmpty()) {
     return;
   }
@@ -360,35 +337,26 @@ FrameBuilder::FinishCurrentLayerBuffer()
   // that keeps the indices sane.
   ConstantBufferSection section;
   mDevice->GetSharedVSBuffer()->Allocate(
-    &section,
-    mCurrentLayerBuffer.Elements(),
-    mCurrentLayerBuffer.Length());
+      &section, mCurrentLayerBuffer.Elements(), mCurrentLayerBuffer.Length());
   mLayerBuffers.AppendElement(section);
 }
 
-size_t
-FrameBuilder::CurrentLayerBufferIndex() const
-{
+size_t FrameBuilder::CurrentLayerBufferIndex() const {
   // The mask rect buffer list doesn't contain the buffer currently being
   // built, so we don't subtract 1 here.
   return mLayerBuffers.Length();
 }
 
-ConstantBufferSection
-FrameBuilder::GetLayerBufferByIndex(size_t aIndex) const
-{
+ConstantBufferSection FrameBuilder::GetLayerBufferByIndex(size_t aIndex) const {
   if (aIndex >= mLayerBuffers.Length()) {
     return ConstantBufferSection();
   }
   return mLayerBuffers[aIndex];
 }
 
-bool
-FrameBuilder::AddMaskRect(const gfx::Rect& aRect, uint32_t* aOutIndex)
-{
+bool FrameBuilder::AddMaskRect(const gfx::Rect& aRect, uint32_t* aOutIndex) {
   if (((mCurrentMaskRectList.Length() + 1) * sizeof(gfx::Rect)) >
-      mDevice->GetMaxConstantBufferBindSize())
-  {
+      mDevice->GetMaxConstantBufferBindSize()) {
     FinishCurrentMaskRectBuffer();
     mCurrentMaskRectList.ClearAndRetainStorage();
   }
@@ -400,9 +368,7 @@ FrameBuilder::AddMaskRect(const gfx::Rect& aRect, uint32_t* aOutIndex)
   return true;
 }
 
-void
-FrameBuilder::FinishCurrentMaskRectBuffer()
-{
+void FrameBuilder::FinishCurrentMaskRectBuffer() {
   if (mCurrentMaskRectList.IsEmpty()) {
     return;
   }
@@ -411,28 +377,23 @@ FrameBuilder::FinishCurrentMaskRectBuffer()
   // that keeps the indices sane.
   ConstantBufferSection section;
   mDevice->GetSharedVSBuffer()->Allocate(
-    &section,
-    mCurrentMaskRectList.Elements(),
-    mCurrentMaskRectList.Length());
+      &section, mCurrentMaskRectList.Elements(), mCurrentMaskRectList.Length());
   mMaskRectBuffers.AppendElement(section);
 }
 
-size_t
-FrameBuilder::CurrentMaskRectBufferIndex() const
-{
+size_t FrameBuilder::CurrentMaskRectBufferIndex() const {
   // The mask rect buffer list doesn't contain the buffer currently being
   // built, so we don't subtract 1 here.
   return mMaskRectBuffers.Length();
 }
 
-ConstantBufferSection
-FrameBuilder::GetMaskRectBufferByIndex(size_t aIndex) const
-{
+ConstantBufferSection FrameBuilder::GetMaskRectBufferByIndex(
+    size_t aIndex) const {
   if (aIndex >= mMaskRectBuffers.Length()) {
     return ConstantBufferSection();
   }
   return mMaskRectBuffers[aIndex];
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

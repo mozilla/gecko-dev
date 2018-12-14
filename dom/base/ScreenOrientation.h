@@ -22,24 +22,29 @@ class Promise;
 // also made in mobile/android/base/GeckoScreenOrientation.java
 typedef uint32_t ScreenOrientationInternal;
 
-static const ScreenOrientationInternal eScreenOrientation_None               = 0;
-static const ScreenOrientationInternal eScreenOrientation_PortraitPrimary    = 1u << 0;
-static const ScreenOrientationInternal eScreenOrientation_PortraitSecondary  = 1u << 1;
-static const ScreenOrientationInternal eScreenOrientation_LandscapePrimary   = 1u << 2;
-static const ScreenOrientationInternal eScreenOrientation_LandscapeSecondary = 1u << 3;
-//eScreenOrientation_Default will use the natural orientation for the deivce,
-//it could be PortraitPrimary or LandscapePrimary depends on display resolution
-static const ScreenOrientationInternal eScreenOrientation_Default            = 1u << 4;
+static const ScreenOrientationInternal eScreenOrientation_None = 0;
+static const ScreenOrientationInternal eScreenOrientation_PortraitPrimary =
+    1u << 0;
+static const ScreenOrientationInternal eScreenOrientation_PortraitSecondary =
+    1u << 1;
+static const ScreenOrientationInternal eScreenOrientation_LandscapePrimary =
+    1u << 2;
+static const ScreenOrientationInternal eScreenOrientation_LandscapeSecondary =
+    1u << 3;
+// eScreenOrientation_Default will use the natural orientation for the deivce,
+// it could be PortraitPrimary or LandscapePrimary depends on display resolution
+static const ScreenOrientationInternal eScreenOrientation_Default = 1u << 4;
 
-class ScreenOrientation final : public DOMEventTargetHelper,
-                                public mozilla::hal::ScreenConfigurationObserver
-{
+class ScreenOrientation final
+    : public DOMEventTargetHelper,
+      public mozilla::hal::ScreenConfigurationObserver {
   // nsScreen has deprecated API that shares implementation.
   friend class ::nsScreen;
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ScreenOrientation, mozilla::DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ScreenOrientation,
+                                           mozilla::DOMEventTargetHelper)
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(mozilla::DOMEventTargetHelper)
 
   IMPL_EVENT_HANDLER(change)
@@ -60,13 +65,15 @@ public:
   OrientationType GetType(CallerType aCallerType, ErrorResult& aRv) const;
   uint16_t GetAngle(CallerType aCallerType, ErrorResult& aRv) const;
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   void Notify(const mozilla::hal::ScreenConfiguration& aConfiguration) override;
 
-  static void UpdateActiveOrientationLock(ScreenOrientationInternal aOrientation);
+  static void UpdateActiveOrientationLock(
+      ScreenOrientationInternal aOrientation);
 
-private:
+ private:
   virtual ~ScreenOrientation();
 
   // Listener to unlock orientation if we leave fullscreen.
@@ -79,11 +86,7 @@ private:
   // Task to run step to lock orientation as defined in specification.
   class LockOrientationTask;
 
-  enum LockPermission {
-    LOCK_DENIED,
-    FULLSCREEN_LOCK_ALLOWED,
-    LOCK_ALLOWED
-  };
+  enum LockPermission { LOCK_DENIED, FULLSCREEN_LOCK_ALLOWED, LOCK_ALLOWED };
 
   // This method calls into the HAL to lock the device and sets
   // up listeners for full screen change.
@@ -117,7 +120,7 @@ private:
   uint16_t mAngle;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_ScreenOrientation_h
+#endif  // mozilla_dom_ScreenOrientation_h

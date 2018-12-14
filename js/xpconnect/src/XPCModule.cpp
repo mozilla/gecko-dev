@@ -7,18 +7,14 @@
 #define XPCONNECT_MODULE
 #include "xpcprivate.h"
 
-nsresult
-xpcModuleCtor()
-{
-    nsXPConnect::InitStatics();
+nsresult xpcModuleCtor() {
+  nsXPConnect::InitStatics();
 
-    return NS_OK;
+  return NS_OK;
 }
 
-void
-xpcModuleDtor()
-{
-    // Release our singletons
-    nsXPConnect::ReleaseXPConnectSingleton();
-    xpc_DestroyJSxIDClassObjects();
+void xpcModuleDtor() {
+  // Release our singletons
+  nsXPConnect::ReleaseXPConnectSingleton();
+  xpc_DestroyJSxIDClassObjects();
 }

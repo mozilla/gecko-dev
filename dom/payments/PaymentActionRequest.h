@@ -15,15 +15,14 @@
 namespace mozilla {
 namespace dom {
 
-class PaymentActionRequest : public nsIPaymentActionRequest
-{
-public:
+class PaymentActionRequest : public nsIPaymentActionRequest {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPAYMENTACTIONREQUEST
 
   PaymentActionRequest();
 
-protected:
+ protected:
   virtual ~PaymentActionRequest() = default;
 
   nsString mRequestId;
@@ -31,17 +30,16 @@ protected:
   nsCOMPtr<nsIPaymentActionCallback> mCallback;
 };
 
-class PaymentCreateActionRequest final : public nsIPaymentCreateActionRequest
-                                       , public PaymentActionRequest
-{
-public:
+class PaymentCreateActionRequest final : public nsIPaymentCreateActionRequest,
+                                         public PaymentActionRequest {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONREQUEST(PaymentActionRequest::)
   NS_DECL_NSIPAYMENTCREATEACTIONREQUEST
 
   PaymentCreateActionRequest();
 
-private:
+ private:
   ~PaymentCreateActionRequest() = default;
 
   uint64_t mTabId;
@@ -51,38 +49,38 @@ private:
   nsCOMPtr<nsIPaymentOptions> mOptions;
 };
 
-class PaymentCompleteActionRequest final : public nsIPaymentCompleteActionRequest
-                                         , public PaymentActionRequest
-{
-public:
+class PaymentCompleteActionRequest final
+    : public nsIPaymentCompleteActionRequest,
+      public PaymentActionRequest {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONREQUEST(PaymentActionRequest::)
   NS_DECL_NSIPAYMENTCOMPLETEACTIONREQUEST
 
   PaymentCompleteActionRequest();
 
-private:
+ private:
   ~PaymentCompleteActionRequest() = default;
 
   nsString mCompleteStatus;
 };
 
-class PaymentUpdateActionRequest final : public nsIPaymentUpdateActionRequest
-                                       , public PaymentActionRequest
-{
-public:
+class PaymentUpdateActionRequest final : public nsIPaymentUpdateActionRequest,
+                                         public PaymentActionRequest {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONREQUEST(PaymentActionRequest::)
   NS_DECL_NSIPAYMENTUPDATEACTIONREQUEST
 
   PaymentUpdateActionRequest() = default;
-private:
+
+ private:
   ~PaymentUpdateActionRequest() = default;
 
   nsCOMPtr<nsIPaymentDetails> mDetails;
 };
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla
 
 #endif

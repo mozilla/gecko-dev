@@ -4,26 +4,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AnimationFrameBuffer.h"
-#include "mozilla/Move.h"             // for Move
+#include "mozilla/Move.h"  // for Move
 
 namespace mozilla {
 namespace image {
 
 AnimationFrameBuffer::AnimationFrameBuffer()
-  : mThreshold(0)
-  , mBatch(0)
-  , mPending(0)
-  , mAdvance(0)
-  , mInsertIndex(0)
-  , mGetIndex(0)
-  , mSizeKnown(false)
-{ }
+    : mThreshold(0),
+      mBatch(0),
+      mPending(0),
+      mAdvance(0),
+      mInsertIndex(0),
+      mGetIndex(0),
+      mSizeKnown(false) {}
 
-void
-AnimationFrameBuffer::Initialize(size_t aThreshold,
-                                 size_t aBatch,
-                                 size_t aStartFrame)
-{
+void AnimationFrameBuffer::Initialize(size_t aThreshold, size_t aBatch,
+                                      size_t aStartFrame) {
   MOZ_ASSERT(mThreshold == 0);
   MOZ_ASSERT(mBatch == 0);
   MOZ_ASSERT(mPending == 0);
@@ -34,9 +30,9 @@ AnimationFrameBuffer::Initialize(size_t aThreshold,
   mBatch = aBatch;
   mAdvance = aStartFrame;
 
-  if (mBatch > SIZE_MAX/4) {
+  if (mBatch > SIZE_MAX / 4) {
     // Batch size is so big, we will just end up decoding the whole animation.
-    mBatch = SIZE_MAX/4;
+    mBatch = SIZE_MAX / 4;
   } else if (mBatch < 1) {
     // Never permit a batch size smaller than 1. We always want to be asking for
     // at least one frame to start.
@@ -60,9 +56,7 @@ AnimationFrameBuffer::Initialize(size_t aThreshold,
   mPending = mBatch * 2;
 }
 
-bool
-AnimationFrameBuffer::Insert(RawAccessFrameRef&& aFrame)
-{
+bool AnimationFrameBuffer::Insert(RawAccessFrameRef&& aFrame) {
   // We should only insert new frames if we actually asked for them.
   MOZ_ASSERT(mPending > 0);
 
@@ -100,7 +94,7 @@ AnimationFrameBuffer::Insert(RawAccessFrameRef&& aFrame)
     MOZ_ASSERT(!mFrames[mInsertIndex]);
     MOZ_ASSERT(MayDiscard());
     mFrames[mInsertIndex] = Move(aFrame);
-  } else { // mInsertIndex == 0
+  } else {  // mInsertIndex == 0
     // We were forced to restart an animation before we decoded the last
     // frame. We don't need the redecoded first frame because we always keep
     // the original.
@@ -124,9 +118,7 @@ AnimationFrameBuffer::Insert(RawAccessFrameRef&& aFrame)
   return continueDecoding;
 }
 
-bool
-AnimationFrameBuffer::MarkComplete()
-{
+bool AnimationFrameBuffer::MarkComplete() {
   // We reached the end of the animation, the next frame we get, if we get
   // another, will be the first frame again.
   MOZ_ASSERT(mInsertIndex == mFrames.Length());
@@ -143,8 +135,9 @@ AnimationFrameBuffer::MarkComplete()
     mFrames.Compact();
 
     if (!MayDiscard()) {
-      // If we did not meet the threshold, then we know we want to keep all of the
-      // frames. If we also hit the last frame, we don't want to ask for more.
+      // If we did not meet the threshold, then we know we want to keep all of
+      // the frames. If we also hit the last frame, we don't want to ask for
+      // more.
       mPending = 0;
     }
   }
@@ -152,9 +145,7 @@ AnimationFrameBuffer::MarkComplete()
   return mPending > 0;
 }
 
-DrawableFrameRef
-AnimationFrameBuffer::Get(size_t aFrame)
-{
+DrawableFrameRef AnimationFrameBuffer::Get(size_t aFrame) {
   // We should not have asked for a frame if we never inserted.
   if (mFrames.IsEmpty()) {
     MOZ_ASSERT_UNREACHABLE("Calling Get() when we have no frames");
@@ -180,9 +171,7 @@ AnimationFrameBuffer::Get(size_t aFrame)
   return mFrames[aFrame]->DrawableRef();
 }
 
-bool
-AnimationFrameBuffer::AdvanceTo(size_t aExpectedFrame)
-{
+bool AnimationFrameBuffer::AdvanceTo(size_t aExpectedFrame) {
   // The owner should only be advancing once it has reached the requested frame
   // in the animation.
   MOZ_ASSERT(mAdvance == 0);
@@ -193,9 +182,7 @@ AnimationFrameBuffer::AdvanceTo(size_t aExpectedFrame)
   return restartDecoder;
 }
 
-bool
-AnimationFrameBuffer::AdvanceInternal()
-{
+bool AnimationFrameBuffer::AdvanceInternal() {
   // We should not have advanced if we never inserted.
   if (mFrames.IsEmpty()) {
     MOZ_ASSERT_UNREACHABLE("Calling Advance() when we have no frames");
@@ -254,9 +241,7 @@ AnimationFrameBuffer::AdvanceInternal()
   return false;
 }
 
-bool
-AnimationFrameBuffer::Reset()
-{
+bool AnimationFrameBuffer::Reset() {
   // The animation needs to start back at the beginning.
   mGetIndex = 0;
   mAdvance = 0;
@@ -293,5 +278,5 @@ AnimationFrameBuffer::Reset()
   return restartDecoder;
 }
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla

@@ -18,13 +18,12 @@
 
 namespace mozilla {
 
-class ServoSpecifiedValues final : public GenericSpecifiedValues
-{
-public:
+class ServoSpecifiedValues final : public GenericSpecifiedValues {
+ public:
   ServoSpecifiedValues(nsIDocument* aDocument, RawServoDeclarationBlock* aDecl)
-    : GenericSpecifiedValues(StyleBackendType::Servo, aDocument, NS_STYLE_INHERIT_MASK)
-    , mDecl(aDecl)
-  {}
+      : GenericSpecifiedValues(StyleBackendType::Servo, aDocument,
+                               NS_STYLE_INHERIT_MASK),
+        mDecl(aDecl) {}
 
   // GenericSpecifiedValues overrides
   bool PropertyIsSet(nsCSSPropertyID aId);
@@ -55,10 +54,10 @@ public:
   void SetTextDecorationColorOverride();
   void SetBackgroundImage(nsAttrValue& aValue);
 
-private:
+ private:
   RefPtr<RawServoDeclarationBlock> mDecl;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoSpecifiedValues_h
+#endif  // mozilla_ServoSpecifiedValues_h

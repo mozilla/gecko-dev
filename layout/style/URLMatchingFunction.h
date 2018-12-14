@@ -21,7 +21,7 @@ enum class URLMatchingFunction {
   eRegExp,
 };
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
-#endif // mozilla_css_URLMatchingFunction_h
+#endif  // mozilla_css_URLMatchingFunction_h

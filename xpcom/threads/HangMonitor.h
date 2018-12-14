@@ -12,9 +12,8 @@ namespace HangMonitor {
 
 /**
  * Signifies the type of activity in question
-*/
-enum ActivityType
-{
+ */
+enum ActivityType {
   /* There is activity and it is known to be UI related activity. */
   kUIActivity,
 
@@ -52,7 +51,7 @@ void NotifyActivity(ActivityType activityType = kGeneralActivity);
  */
 void Suspend();
 
-} // namespace HangMonitor
-} // namespace mozilla
+}  // namespace HangMonitor
+}  // namespace mozilla
 
-#endif // mozilla_HangMonitor_h
+#endif  // mozilla_HangMonitor_h

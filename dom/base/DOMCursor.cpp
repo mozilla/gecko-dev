@@ -10,8 +10,7 @@
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(DOMCursor, DOMRequest,
-                                   mCallback)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(DOMCursor, DOMRequest, mCallback)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMCursor)
   NS_INTERFACE_MAP_ENTRY(nsIDOMDOMCursor)
@@ -20,23 +19,15 @@ NS_INTERFACE_MAP_END_INHERITING(DOMRequest)
 NS_IMPL_ADDREF_INHERITED(DOMCursor, DOMRequest)
 NS_IMPL_RELEASE_INHERITED(DOMCursor, DOMRequest)
 
-DOMCursor::DOMCursor(nsPIDOMWindowInner* aWindow, nsICursorContinueCallback* aCallback)
-  : DOMRequest(aWindow)
-  , mCallback(aCallback)
-  , mFinished(false)
-{
-}
+DOMCursor::DOMCursor(nsPIDOMWindowInner* aWindow,
+                     nsICursorContinueCallback* aCallback)
+    : DOMRequest(aWindow), mCallback(aCallback), mFinished(false) {}
 
-DOMCursor::DOMCursor(nsIGlobalObject* aGlobal, nsICursorContinueCallback* aCallback)
-  : DOMRequest(aGlobal)
-  , mCallback(aCallback)
-  , mFinished(false)
-{
-}
+DOMCursor::DOMCursor(nsIGlobalObject* aGlobal,
+                     nsICursorContinueCallback* aCallback)
+    : DOMRequest(aGlobal), mCallback(aCallback), mFinished(false) {}
 
-void
-DOMCursor::Reset()
-{
+void DOMCursor::Reset() {
   MOZ_ASSERT(!mFinished);
 
   // Reset the request state so we can FireSuccess() again.
@@ -44,33 +35,29 @@ DOMCursor::Reset()
   mDone = false;
 }
 
-void
-DOMCursor::FireDone()
-{
+void DOMCursor::FireDone() {
   Reset();
   mFinished = true;
   FireSuccess(JS::UndefinedHandleValue);
 }
 
 NS_IMETHODIMP
-DOMCursor::GetDone(bool *aDone)
-{
+DOMCursor::GetDone(bool* aDone) {
   *aDone = Done();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-DOMCursor::Continue()
-{
+DOMCursor::Continue() {
   ErrorResult rv;
   Continue(rv);
   return rv.StealNSResult();
 }
 
-void
-DOMCursor::Continue(ErrorResult& aRv)
-{
-  MOZ_ASSERT(mCallback, "If you're creating your own cursor class with no callback, you should override Continue()");
+void DOMCursor::Continue(ErrorResult& aRv) {
+  MOZ_ASSERT(mCallback,
+             "If you're creating your own cursor class with no callback, you "
+             "should override Continue()");
 
   // We need to have a result here because we must be in a 'success' state.
   if (mResult.isUndefined()) {
@@ -82,11 +69,10 @@ DOMCursor::Continue(ErrorResult& aRv)
   mCallback->HandleContinue();
 }
 
-/* virtual */ JSObject*
-DOMCursor::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* DOMCursor::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return DOMCursorBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

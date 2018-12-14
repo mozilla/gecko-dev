@@ -14,49 +14,38 @@ namespace gl {
 
 class GLContext;
 
-enum class GLContextType {
-    Unknown,
-    WGL,
-    CGL,
-    GLX,
-    EGL,
-    EAGL
-};
+enum class GLContextType { Unknown, WGL, CGL, GLX, EGL, EAGL };
 
-enum class OriginPos : uint8_t {
-  TopLeft,
-  BottomLeft
-};
+enum class OriginPos : uint8_t { TopLeft, BottomLeft };
 
-struct GLFormats
-{
-    // Constructs a zeroed object:
-    GLFormats();
+struct GLFormats {
+  // Constructs a zeroed object:
+  GLFormats();
 
-    GLenum color_texInternalFormat;
-    GLenum color_texFormat;
-    GLenum color_texType;
-    GLenum color_rbFormat;
+  GLenum color_texInternalFormat;
+  GLenum color_texFormat;
+  GLenum color_texType;
+  GLenum color_rbFormat;
 
-    GLenum depthStencil;
-    GLenum depth;
-    GLenum stencil;
+  GLenum depthStencil;
+  GLenum depth;
+  GLenum stencil;
 
-    GLsizei samples;
+  GLsizei samples;
 };
 
 enum class CreateContextFlags : int8_t {
-    NONE = 0,
-    REQUIRE_COMPAT_PROFILE = 1 << 0,
-    // Force the use of hardware backed GL, don't allow software implementations.
-    FORCE_ENABLE_HARDWARE = 1 << 1,
-    /* Don't force discrete GPU to be used (if applicable) */
-    ALLOW_OFFLINE_RENDERER =  1 << 2,
-    // Ask for ES3 if possible
-    PREFER_ES3 = 1 << 3,
+  NONE = 0,
+  REQUIRE_COMPAT_PROFILE = 1 << 0,
+  // Force the use of hardware backed GL, don't allow software implementations.
+  FORCE_ENABLE_HARDWARE = 1 << 1,
+  /* Don't force discrete GPU to be used (if applicable) */
+  ALLOW_OFFLINE_RENDERER = 1 << 2,
+  // Ask for ES3 if possible
+  PREFER_ES3 = 1 << 3,
 
-    NO_VALIDATION = 1 << 4,
-    PREFER_ROBUSTNESS = 1 << 5,
+  NO_VALIDATION = 1 << 4,
+  PREFER_ROBUSTNESS = 1 << 5,
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(CreateContextFlags)
 

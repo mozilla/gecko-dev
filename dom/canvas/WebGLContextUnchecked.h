@@ -15,21 +15,21 @@ namespace mozilla {
 class WebGLBuffer;
 class WebGLSampler;
 
-class WebGLContextUnchecked
-{
-public:
-    explicit WebGLContextUnchecked(gl::GLContext* gl);
+class WebGLContextUnchecked {
+ public:
+  explicit WebGLContextUnchecked(gl::GLContext* gl);
 
-protected:
-    // We've had issues in the past with nulling `gl` without actually releasing
-    // all of our resources. This construction ensures that we are aware that we
-    // should only null `gl` in DestroyResourcesAndContext.
-    RefPtr<gl::GLContext> mGL_OnlyClearInDestroyResourcesAndContext;
-public:
-    // Grab a const reference so we can see changes, but can't make changes.
-    const decltype(mGL_OnlyClearInDestroyResourcesAndContext)& gl;
+ protected:
+  // We've had issues in the past with nulling `gl` without actually releasing
+  // all of our resources. This construction ensures that we are aware that we
+  // should only null `gl` in DestroyResourcesAndContext.
+  RefPtr<gl::GLContext> mGL_OnlyClearInDestroyResourcesAndContext;
+
+ public:
+  // Grab a const reference so we can see changes, but can't make changes.
+  const decltype(mGL_OnlyClearInDestroyResourcesAndContext)& gl;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // !WEBGLCONTEXTUNCHECKED_H
+#endif  // !WEBGLCONTEXTUNCHECKED_H

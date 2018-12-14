@@ -16,12 +16,10 @@ namespace dom {
 
 class PermissionObserver;
 
-class PermissionStatus final
-  : public DOMEventTargetHelper
-{
+class PermissionStatus final : public DOMEventTargetHelper {
   friend class PermissionObserver;
 
-public:
+ public:
   static already_AddRefed<PermissionStatus> Create(nsPIDOMWindowInner* aWindow,
                                                    PermissionName aName,
                                                    ErrorResult& aRv);
@@ -33,7 +31,7 @@ public:
 
   IMPL_EVENT_HANDLER(change)
 
-private:
+ private:
   ~PermissionStatus();
 
   PermissionStatus(nsPIDOMWindowInner* aWindow, PermissionName aName);
@@ -52,7 +50,7 @@ private:
   RefPtr<PermissionObserver> mObserver;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_permissionstatus_h_
+#endif  // mozilla_dom_permissionstatus_h_

@@ -16,29 +16,24 @@
 namespace js {
 namespace jit {
 
-inline void
-SafepointIndex::resolve()
-{
-    MOZ_ASSERT(!resolved);
-    safepointOffset_ = safepoint_->offset();
+inline void SafepointIndex::resolve() {
+  MOZ_ASSERT(!resolved);
+  safepointOffset_ = safepoint_->offset();
 #ifdef DEBUG
-    resolved = true;
+  resolved = true;
 #endif
 }
 
-inline BaselineFrame*
-GetTopBaselineFrame(JSContext* cx)
-{
-    JSJitFrameIter frame(cx->activation()->asJit());
-    MOZ_ASSERT(frame.type() == JitFrame_Exit);
-    ++frame;
-    if (frame.isBaselineStub())
-        ++frame;
-    MOZ_ASSERT(frame.isBaselineJS());
-    return frame.baselineFrame();
+inline BaselineFrame* GetTopBaselineFrame(JSContext* cx) {
+  JSJitFrameIter frame(cx->activation()->asJit());
+  MOZ_ASSERT(frame.type() == JitFrame_Exit);
+  ++frame;
+  if (frame.isBaselineStub()) ++frame;
+  MOZ_ASSERT(frame.isBaselineJS());
+  return frame.baselineFrame();
 }
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_JitFrames_inl_h */

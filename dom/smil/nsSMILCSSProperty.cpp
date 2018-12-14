@@ -21,22 +21,18 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 // Class Methods
-nsSMILCSSProperty::nsSMILCSSProperty(nsCSSPropertyID aPropID,
-                                     Element* aElement,
+nsSMILCSSProperty::nsSMILCSSProperty(nsCSSPropertyID aPropID, Element* aElement,
                                      nsStyleContext* aBaseStyleContext)
-  : mPropID(aPropID)
-  , mElement(aElement)
-  , mBaseStyleContext(aBaseStyleContext)
-{
+    : mPropID(aPropID),
+      mElement(aElement),
+      mBaseStyleContext(aBaseStyleContext) {
   MOZ_ASSERT(IsPropertyAnimatable(mPropID,
-               aElement->OwnerDoc()->GetStyleBackendType()),
+                                  aElement->OwnerDoc()->GetStyleBackendType()),
              "Creating a nsSMILCSSProperty for a property "
              "that's not supported for animation");
 }
 
-nsSMILValue
-nsSMILCSSProperty::GetBaseValue() const
-{
+nsSMILValue nsSMILCSSProperty::GetBaseValue() const {
   // To benefit from Return Value Optimization and avoid copy constructor calls
   // due to our use of return-by-value, we must return the exact same object
   // from ALL return points. This function must only return THIS variable:
@@ -45,8 +41,7 @@ nsSMILCSSProperty::GetBaseValue() const
   // SPECIAL CASE: (a) Shorthands
   //               (b) 'display'
   //               (c) No base style context
-  if (nsCSSProps::IsShorthand(mPropID) ||
-      mPropID == eCSSProperty_display ||
+  if (nsCSSProps::IsShorthand(mPropID) || mPropID == eCSSProperty_display ||
       !mBaseStyleContext) {
     // We can't look up the base (computed-style) value of shorthand
     // properties because they aren't guaranteed to have a consistent computed
@@ -68,17 +63,16 @@ nsSMILCSSProperty::GetBaseValue() const
 
   AnimationValue computedValue;
   if (mElement->IsStyledByServo()) {
-    computedValue.mServo =
-      Servo_ComputedValues_ExtractAnimationValue(mBaseStyleContext->AsServo(), mPropID)
-      .Consume();
+    computedValue.mServo = Servo_ComputedValues_ExtractAnimationValue(
+                               mBaseStyleContext->AsServo(), mPropID)
+                               .Consume();
     if (!computedValue.mServo) {
       return baseValue;
     }
   } else {
 #ifdef MOZ_OLD_STYLE
-    if (!StyleAnimationValue::ExtractComputedValue(mPropID,
-                                                   mBaseStyleContext->AsGecko(),
-                                                   computedValue.mGecko)) {
+    if (!StyleAnimationValue::ExtractComputedValue(
+            mPropID, mBaseStyleContext->AsGecko(), computedValue.mGecko)) {
       return baseValue;
     }
 #else
@@ -86,24 +80,20 @@ nsSMILCSSProperty::GetBaseValue() const
 #endif
   }
 
-  baseValue =
-    nsSMILCSSValueType::ValueFromAnimationValue(mPropID, mElement,
-                                                computedValue);
+  baseValue = nsSMILCSSValueType::ValueFromAnimationValue(mPropID, mElement,
+                                                          computedValue);
   return baseValue;
 }
 
-nsresult
-nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
-                                   const SVGAnimationElement* aSrcElement,
-                                   nsSMILValue& aValue,
-                                   bool& aPreventCachingOfSandwich) const
-{
-  NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID,
-                   mElement->OwnerDoc()->GetStyleBackendType()),
+nsresult nsSMILCSSProperty::ValueFromString(
+    const nsAString& aStr, const SVGAnimationElement* aSrcElement,
+    nsSMILValue& aValue, bool& aPreventCachingOfSandwich) const {
+  NS_ENSURE_TRUE(IsPropertyAnimatable(
+                     mPropID, mElement->OwnerDoc()->GetStyleBackendType()),
                  NS_ERROR_FAILURE);
 
   nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue,
-      &aPreventCachingOfSandwich);
+                                      &aPreventCachingOfSandwich);
 
   if (aValue.IsNull()) {
     return NS_ERROR_FAILURE;
@@ -118,11 +108,9 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
   return NS_OK;
 }
 
-nsresult
-nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue)
-{
-  NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID,
-                   mElement->OwnerDoc()->GetStyleBackendType()),
+nsresult nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue) {
+  NS_ENSURE_TRUE(IsPropertyAnimatable(
+                     mPropID, mElement->OwnerDoc()->GetStyleBackendType()),
                  NS_ERROR_FAILURE);
 
   // Convert nsSMILValue to string
@@ -142,9 +130,7 @@ nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue)
   return NS_OK;
 }
 
-void
-nsSMILCSSProperty::ClearAnimValue()
-{
+void nsSMILCSSProperty::ClearAnimValue() {
   // Put empty string in override style for our property
   nsDOMCSSAttributeDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
   if (overrideDecl) {
@@ -154,10 +140,8 @@ nsSMILCSSProperty::ClearAnimValue()
 
 // Based on http://www.w3.org/TR/SVG/propidx.html
 // static
-bool
-nsSMILCSSProperty::IsPropertyAnimatable(nsCSSPropertyID aPropID,
-                                        StyleBackendType aBackend)
-{
+bool nsSMILCSSProperty::IsPropertyAnimatable(nsCSSPropertyID aPropID,
+                                             StyleBackendType aBackend) {
   // Bug 1353918: Drop this check
   if (aBackend == StyleBackendType::Servo &&
       !Servo_Property_IsAnimatable(aPropID)) {

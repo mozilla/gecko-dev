@@ -12,16 +12,14 @@
 #include <oleidl.h>
 #include "mozilla/Attributes.h"
 
-//class nsIDragSource;
+// class nsIDragSource;
 
 /*
  * nsNativeDragSource implements the IDropSource interface and gets
  * most of its behavior from the associated adapter (m_dragDrop).
  */
-class nsNativeDragSource final : public IDropSource
-{
-public:
-
+class nsNativeDragSource final : public IDropSource {
+ public:
   // construct an nsNativeDragSource referencing adapter
   // nsNativeDragSource(nsIDragSource * adapter);
   explicit nsNativeDragSource(nsIDOMDataTransfer* aDataTransfer);
@@ -48,7 +46,7 @@ public:
 
   bool UserCancelled() { return mUserCancelled; }
 
-protected:
+ protected:
   // Reference count
   ULONG m_cRef;
 
@@ -62,5 +60,4 @@ protected:
   bool mUserCancelled;
 };
 
-#endif // _nsNativeDragSource_h_
-
+#endif  // _nsNativeDragSource_h_

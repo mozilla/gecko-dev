@@ -10,10 +10,8 @@
 
 #include <arm_neon.h>
 
-void
-LossyConvertEncoding16to8::write_neon(const char16_t* aSource,
-                                      uint32_t aSourceLength)
-{
+void LossyConvertEncoding16to8::write_neon(const char16_t* aSource,
+                                           uint32_t aSourceLength) {
   char* dest = mDestination;
 
   // Align source to a 16-byte boundary and destination to 8-bytes boundary.
@@ -28,34 +26,28 @@ LossyConvertEncoding16to8::write_neon(const char16_t* aSource,
   while ((reinterpret_cast<uintptr_t>(dest + i) & 0xf) &&
          aSourceLength - i > 7) {
     // source is aligned, but destination isn't aligned by 16-byte yet
-    uint16x8_t s =
-      vld1q_u16(reinterpret_cast<const uint16_t*>(
-                  __builtin_assume_aligned(aSource + i, 16)));
-    vst1_u8(reinterpret_cast<uint8_t*>(
-              __builtin_assume_aligned(dest + i, 8)),
+    uint16x8_t s = vld1q_u16(reinterpret_cast<const uint16_t*>(
+        __builtin_assume_aligned(aSource + i, 16)));
+    vst1_u8(reinterpret_cast<uint8_t*>(__builtin_assume_aligned(dest + i, 8)),
             vmovn_u16(s));
     i += 8;
   }
 
   // Align source and destination to a 16-byte boundary.
   while (aSourceLength - i > 15) {
-    uint16x8_t low =
-      vld1q_u16(reinterpret_cast<const uint16_t*>(
-                  __builtin_assume_aligned(aSource + i, 16)));
-    uint16x8_t high =
-      vld1q_u16(reinterpret_cast<const uint16_t*>(
-                  __builtin_assume_aligned(aSource + i + 8, 16)));
-    vst1q_u8(reinterpret_cast<uint8_t*>(
-               __builtin_assume_aligned(dest + i, 16)),
+    uint16x8_t low = vld1q_u16(reinterpret_cast<const uint16_t*>(
+        __builtin_assume_aligned(aSource + i, 16)));
+    uint16x8_t high = vld1q_u16(reinterpret_cast<const uint16_t*>(
+        __builtin_assume_aligned(aSource + i + 8, 16)));
+    vst1q_u8(reinterpret_cast<uint8_t*>(__builtin_assume_aligned(dest + i, 16)),
              vcombine_u8(vmovn_u16(low), vmovn_u16(high)));
     i += 16;
   }
 
   if (aSourceLength - i > 7) {
     uint16x8_t s = vld1q_u16(reinterpret_cast<const uint16_t*>(
-                               __builtin_assume_aligned(aSource + i, 16)));
-    vst1_u8(reinterpret_cast<uint8_t*>(
-              __builtin_assume_aligned(dest + i, 8)),
+        __builtin_assume_aligned(aSource + i, 16)));
+    vst1_u8(reinterpret_cast<uint8_t*>(__builtin_assume_aligned(dest + i, 8)),
             vmovn_u16(s));
     i += 8;
   }
@@ -68,10 +60,8 @@ LossyConvertEncoding16to8::write_neon(const char16_t* aSource,
   mDestination += i;
 }
 
-void
-LossyConvertEncoding8to16::write_neon(const char* aSource,
-                                      uint32_t aSourceLength)
-{
+void LossyConvertEncoding8to16::write_neon(const char* aSource,
+                                           uint32_t aSourceLength) {
   char16_t* dest = mDestination;
 
   // Align source to a 8-byte boundary and destination to 16-bytes boundary.
@@ -85,38 +75,35 @@ LossyConvertEncoding8to16::write_neon(const char* aSource,
 
   if ((uintptr_t(aSource + i) & 0xf) && aSourceLength - i > 7) {
     // destination is aligned, but source isn't aligned by 16-byte yet
-    uint8x8_t s =
-      vld1_u8(reinterpret_cast<const uint8_t*>(
-                __builtin_assume_aligned(aSource + i, 8)));
-    vst1q_u16(reinterpret_cast<uint16_t*>(
-                __builtin_assume_aligned(dest + i, 16)),
-              vmovl_u8(s));
+    uint8x8_t s = vld1_u8(reinterpret_cast<const uint8_t*>(
+        __builtin_assume_aligned(aSource + i, 8)));
+    vst1q_u16(
+        reinterpret_cast<uint16_t*>(__builtin_assume_aligned(dest + i, 16)),
+        vmovl_u8(s));
     i += 8;
   }
 
   // Align source and destination to a 16-byte boundary.
   while (aSourceLength - i > 15) {
-    uint8x16_t s =
-      vld1q_u8(reinterpret_cast<const uint8_t*>(
-                 __builtin_assume_aligned(aSource + i, 16)));
+    uint8x16_t s = vld1q_u8(reinterpret_cast<const uint8_t*>(
+        __builtin_assume_aligned(aSource + i, 16)));
     uint16x8_t low = vmovl_u8(vget_low_u8(s));
     uint16x8_t high = vmovl_u8(vget_high_u8(s));
-    vst1q_u16(reinterpret_cast<uint16_t*>(
-                __builtin_assume_aligned(dest + i, 16)),
-              low);
-    vst1q_u16(reinterpret_cast<uint16_t*>(
-                __builtin_assume_aligned(dest + i + 8, 16)),
-              high);
+    vst1q_u16(
+        reinterpret_cast<uint16_t*>(__builtin_assume_aligned(dest + i, 16)),
+        low);
+    vst1q_u16(
+        reinterpret_cast<uint16_t*>(__builtin_assume_aligned(dest + i + 8, 16)),
+        high);
     i += 16;
   }
 
   if (aSourceLength - i > 7) {
-    uint8x8_t s =
-      vld1_u8(reinterpret_cast<const uint8_t*>(
-                __builtin_assume_aligned(aSource + i, 8)));
-    vst1q_u16(reinterpret_cast<uint16_t*>(
-                __builtin_assume_aligned(dest + i, 16)),
-              vmovl_u8(s));
+    uint8x8_t s = vld1_u8(reinterpret_cast<const uint8_t*>(
+        __builtin_assume_aligned(aSource + i, 8)));
+    vst1q_u16(
+        reinterpret_cast<uint16_t*>(__builtin_assume_aligned(dest + i, 16)),
+        vmovl_u8(s));
     i += 8;
   }
 

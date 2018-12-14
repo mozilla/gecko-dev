@@ -19,53 +19,44 @@
 #include "nsCycleCollectionParticipant.h"
 
 /* non-XPCOM class for holding controllers and their IDs */
-class nsXULControllerData
-{
-public:
-                            nsXULControllerData(uint32_t inControllerID, nsIController* inController)
-                            : mControllerID(inControllerID)
-                            , mController(inController)
-                            {
-                            }
+class nsXULControllerData {
+ public:
+  nsXULControllerData(uint32_t inControllerID, nsIController* inController)
+      : mControllerID(inControllerID), mController(inController) {}
 
-                            ~nsXULControllerData() {}
+  ~nsXULControllerData() {}
 
-    uint32_t                GetControllerID()   { return mControllerID; }
+  uint32_t GetControllerID() { return mControllerID; }
 
-    nsresult                GetController(nsIController **outController)
-                            {
-                              NS_IF_ADDREF(*outController = mController);
-                              return NS_OK;
-                            }
+  nsresult GetController(nsIController** outController) {
+    NS_IF_ADDREF(*outController = mController);
+    return NS_OK;
+  }
 
-    uint32_t                mControllerID;
-    nsCOMPtr<nsIController> mController;
+  uint32_t mControllerID;
+  nsCOMPtr<nsIController> mController;
 };
 
+nsresult NS_NewXULControllers(nsISupports* aOuter, REFNSIID aIID,
+                              void** aResult);
 
-nsresult NS_NewXULControllers(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+class nsXULControllers : public nsIControllers {
+ public:
+  friend nsresult NS_NewXULControllers(nsISupports* aOuter, REFNSIID aIID,
+                                       void** aResult);
 
-class nsXULControllers : public nsIControllers
-{
-public:
-    friend nsresult
-    NS_NewXULControllers(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXULControllers, nsIControllers)
+  NS_DECL_NSICONTROLLERS
 
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXULControllers, nsIControllers)
-    NS_DECL_NSICONTROLLERS
+ protected:
+  nsXULControllers();
+  virtual ~nsXULControllers(void);
 
-protected:
-    nsXULControllers();
-    virtual ~nsXULControllers(void);
+  void DeleteControllers();
 
-    void        DeleteControllers();
-
-    nsTArray<nsXULControllerData*>   mControllers;
-    uint32_t                         mCurControllerID;
+  nsTArray<nsXULControllerData*> mControllers;
+  uint32_t mCurControllerID;
 };
 
-
-
-
-#endif // nsXULControllers_h__
+#endif  // nsXULControllers_h__

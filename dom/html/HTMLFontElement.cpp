@@ -17,25 +17,19 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Font)
 namespace mozilla {
 namespace dom {
 
-HTMLFontElement::~HTMLFontElement()
-{
-}
+HTMLFontElement::~HTMLFontElement() {}
 
-JSObject*
-HTMLFontElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLFontElement::WrapNode(JSContext* aCx,
+                                    JS::Handle<JSObject*> aGivenProto) {
   return HTMLFontElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMPL_ELEMENT_CLONE(HTMLFontElement)
 
-bool
-HTMLFontElement::ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult)
-{
+bool HTMLFontElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                                     const nsAString& aValue,
+                                     nsIPrincipal* aMaybeScriptedPrincipal,
+                                     nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::size) {
       int32_t size = nsContentUtils::ParseLegacyFontSize(aValue);
@@ -54,10 +48,8 @@ HTMLFontElement::ParseAttribute(int32_t aNamespaceID,
                                               aMaybeScriptedPrincipal, aResult);
 }
 
-void
-HTMLFontElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                       GenericSpecifiedValues* aData)
-{
+void HTMLFontElement::MapAttributesIntoRule(
+    const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData) {
   if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(Font))) {
     // face: string list
     if (!aData->PropertyIsSet(eCSSProperty_font_family)) {
@@ -71,7 +63,8 @@ HTMLFontElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     if (!aData->PropertyIsSet(eCSSProperty_font_size)) {
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::size);
       if (value && value->Type() == nsAttrValue::eInteger)
-        aData->SetKeywordValue(eCSSProperty_font_size, value->GetIntegerValue());
+        aData->SetKeywordValue(eCSSProperty_font_size,
+                               value->GetIntegerValue());
     }
   }
   if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(Color))) {
@@ -101,29 +94,21 @@ HTMLFontElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLFontElement::IsAttributeMapped(const nsAtom* aAttribute) const
-{
+HTMLFontElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   static const MappedAttributeEntry attributes[] = {
-    { &nsGkAtoms::face },
-    { &nsGkAtoms::size },
-    { &nsGkAtoms::color },
-    { nullptr }
-  };
+      {&nsGkAtoms::face}, {&nsGkAtoms::size}, {&nsGkAtoms::color}, {nullptr}};
 
   static const MappedAttributeEntry* const map[] = {
-    attributes,
-    sCommonAttributeMap,
+      attributes,
+      sCommonAttributeMap,
   };
 
   return FindAttributeDependence(aAttribute, map);
 }
 
-
-nsMapRuleToAttributesFunc
-HTMLFontElement::GetAttributeMappingFunction() const
-{
+nsMapRuleToAttributesFunc HTMLFontElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

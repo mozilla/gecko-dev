@@ -14,9 +14,8 @@
 namespace mozilla {
 namespace dom {
 
-class SelectionChangeListener final : public nsISelectionListener
-{
-public:
+class SelectionChangeListener final : public nsISelectionListener {
+ public:
   // SelectionChangeListener has to participate in cycle collection because
   // it holds strong references to nsINodes in its mOldRanges array.
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -27,13 +26,12 @@ public:
   // selection when the selectionchange event was previously fired. This allows
   // for the selectionchange event to only be fired when a selection is actually
   // changed.
-  struct RawRangeData
-  {
-    // These properties are not void*s to avoid the potential situation where the
-    // nsINode is freed, and a new nsINode is allocated with the same address, which
-    // could potentially break the comparison logic. In reality, this is extremely
-    // unlikely to occur (potentially impossible), but these nsCOMPtrs are safer.
-    // They are never dereferenced.
+  struct RawRangeData {
+    // These properties are not void*s to avoid the potential situation where
+    // the nsINode is freed, and a new nsINode is allocated with the same
+    // address, which could potentially break the comparison logic. In reality,
+    // this is extremely unlikely to occur (potentially impossible), but these
+    // nsCOMPtrs are safer. They are never dereferenced.
     nsCOMPtr<nsINode> mStartContainer;
     nsCOMPtr<nsINode> mEndContainer;
 
@@ -46,13 +44,13 @@ public:
     bool Equals(const nsRange* aRange);
   };
 
-private:
+ private:
   nsTArray<RawRangeData> mOldRanges;
 
   ~SelectionChangeListener() {}
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_SelectionChangeListener_h_
+#endif  // mozilla_SelectionChangeListener_h_

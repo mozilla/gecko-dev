@@ -16,22 +16,15 @@ namespace wr {
 
 using namespace mozilla::layers;
 
-ShmSegmentsWriter::ShmSegmentsWriter(layers::WebRenderBridgeChild* aAllocator, size_t aChunkSize)
-: mShmAllocator(aAllocator)
-, mCursor(0)
-, mChunkSize(aChunkSize)
-{
+ShmSegmentsWriter::ShmSegmentsWriter(layers::WebRenderBridgeChild* aAllocator,
+                                     size_t aChunkSize)
+    : mShmAllocator(aAllocator), mCursor(0), mChunkSize(aChunkSize) {
   MOZ_ASSERT(mShmAllocator);
 }
 
-ShmSegmentsWriter::~ShmSegmentsWriter()
-{
-  Clear();
-}
+ShmSegmentsWriter::~ShmSegmentsWriter() { Clear(); }
 
-layers::OffsetRange
-ShmSegmentsWriter::Write(Range<uint8_t> aBytes)
-{
+layers::OffsetRange ShmSegmentsWriter::Write(Range<uint8_t> aBytes) {
   const size_t start = mCursor;
   const size_t length = aBytes.length();
 
@@ -56,7 +49,7 @@ ShmSegmentsWriter::Write(Range<uint8_t> aBytes)
       if (!AllocChunk()) {
         // Allocation failed, so roll back to the state at the start of this
         // Write() call and abort.
-        for (size_t i = mSmallAllocs.Length() ; currAllocLen < i ; i--) {
+        for (size_t i = mSmallAllocs.Length(); currAllocLen < i; i--) {
           MOZ_ASSERT(i > 0);
           RefCountedShmem& shm = mSmallAllocs.ElementAt(i - 1);
           RefCountedShm::Dealloc(mShmAllocator, shm);
@@ -80,7 +73,8 @@ ShmSegmentsWriter::Write(Range<uint8_t> aBytes)
     size_t copyRange = std::min<int>(availableRange, remainingBytesToCopy);
 
     uint8_t* srcPtr = &aBytes[srcCursor];
-    uint8_t* dstPtr = RefCountedShm::GetBytes(mSmallAllocs.LastElement()) + (dstCursor - dstBaseOffset);
+    uint8_t* dstPtr = RefCountedShm::GetBytes(mSmallAllocs.LastElement()) +
+                      (dstCursor - dstBaseOffset);
 
     memcpy(dstPtr, srcPtr, copyRange);
 
@@ -97,12 +91,11 @@ ShmSegmentsWriter::Write(Range<uint8_t> aBytes)
   return layers::OffsetRange(0, start, length);
 }
 
-bool
-ShmSegmentsWriter::AllocChunk()
-{
+bool ShmSegmentsWriter::AllocChunk() {
   RefCountedShmem shm;
   if (!mShmAllocator->AllocResourceShmem(mChunkSize, shm)) {
-    gfxCriticalNote << "ShmSegmentsWriter failed to allocate chunk #" << mSmallAllocs.Length();
+    gfxCriticalNote << "ShmSegmentsWriter failed to allocate chunk #"
+                    << mSmallAllocs.Length();
     MOZ_ASSERT(false, "ShmSegmentsWriter fails to allocate chunk");
     return false;
   }
@@ -111,13 +104,12 @@ ShmSegmentsWriter::AllocChunk()
   return true;
 }
 
-layers::OffsetRange
-ShmSegmentsWriter::AllocLargeChunk(size_t aSize)
-{
+layers::OffsetRange ShmSegmentsWriter::AllocLargeChunk(size_t aSize) {
   ipc::Shmem shm;
   auto shmType = ipc::SharedMemory::SharedMemoryType::TYPE_BASIC;
   if (!mShmAllocator->AllocShmem(aSize, shmType, &shm)) {
-    gfxCriticalNote << "ShmSegmentsWriter failed to allocate large chunk of size " << aSize;
+    gfxCriticalNote
+        << "ShmSegmentsWriter failed to allocate large chunk of size " << aSize;
     MOZ_ASSERT(false, "ShmSegmentsWriter fails to allocate large chunk");
     return layers::OffsetRange(0, 0, 0);
   }
@@ -126,9 +118,8 @@ ShmSegmentsWriter::AllocLargeChunk(size_t aSize)
   return layers::OffsetRange(mLargeAllocs.Length(), 0, aSize);
 }
 
-void
-ShmSegmentsWriter::Flush(nsTArray<RefCountedShmem>& aSmallAllocs, nsTArray<ipc::Shmem>& aLargeAllocs)
-{
+void ShmSegmentsWriter::Flush(nsTArray<RefCountedShmem>& aSmallAllocs,
+                              nsTArray<ipc::Shmem>& aLargeAllocs) {
   MOZ_ASSERT(aSmallAllocs.IsEmpty());
   MOZ_ASSERT(aLargeAllocs.IsEmpty());
   mSmallAllocs.SwapElements(aSmallAllocs);
@@ -136,15 +127,9 @@ ShmSegmentsWriter::Flush(nsTArray<RefCountedShmem>& aSmallAllocs, nsTArray<ipc::
   mCursor = 0;
 }
 
-bool
-ShmSegmentsWriter::IsEmpty() const
-{
-  return mCursor == 0;
-}
+bool ShmSegmentsWriter::IsEmpty() const { return mCursor == 0; }
 
-void
-ShmSegmentsWriter::Clear()
-{
+void ShmSegmentsWriter::Clear() {
   if (mShmAllocator) {
     IpcResourceUpdateQueue::ReleaseShmems(mShmAllocator, mSmallAllocs);
     IpcResourceUpdateQueue::ReleaseShmems(mShmAllocator, mLargeAllocs);
@@ -152,12 +137,10 @@ ShmSegmentsWriter::Clear()
   mCursor = 0;
 }
 
-ShmSegmentsReader::ShmSegmentsReader(const nsTArray<RefCountedShmem>& aSmallShmems,
-                                     const nsTArray<ipc::Shmem>& aLargeShmems)
-: mSmallAllocs(aSmallShmems)
-, mLargeAllocs(aLargeShmems)
-, mChunkSize(0)
-{
+ShmSegmentsReader::ShmSegmentsReader(
+    const nsTArray<RefCountedShmem>& aSmallShmems,
+    const nsTArray<ipc::Shmem>& aLargeShmems)
+    : mSmallAllocs(aSmallShmems), mLargeAllocs(aLargeShmems), mChunkSize(0) {
   if (mSmallAllocs.IsEmpty()) {
     return;
   }
@@ -168,26 +151,24 @@ ShmSegmentsReader::ShmSegmentsReader(const nsTArray<RefCountedShmem>& aSmallShme
   // isn't right, set mChunkSize to zero which signifies that the reader is
   // in an invalid state and Read calls will return false;
   for (const auto& shm : mSmallAllocs) {
-    if (!RefCountedShm::IsValid(shm)
-        || RefCountedShm::GetSize(shm) != mChunkSize
-        || RefCountedShm::GetBytes(shm) == nullptr) {
+    if (!RefCountedShm::IsValid(shm) ||
+        RefCountedShm::GetSize(shm) != mChunkSize ||
+        RefCountedShm::GetBytes(shm) == nullptr) {
       mChunkSize = 0;
       return;
     }
   }
 
   for (const auto& shm : mLargeAllocs) {
-    if (!shm.IsReadable()
-        || shm.get<uint8_t>() == nullptr) {
+    if (!shm.IsReadable() || shm.get<uint8_t>() == nullptr) {
       mChunkSize = 0;
       return;
     }
   }
 }
 
-bool
-ShmSegmentsReader::ReadLarge(const layers::OffsetRange& aRange, wr::Vec<uint8_t>& aInto)
-{
+bool ShmSegmentsReader::ReadLarge(const layers::OffsetRange& aRange,
+                                  wr::Vec<uint8_t>& aInto) {
   // source = zero is for small allocs.
   MOZ_RELEASE_ASSERT(aRange.source() != 0);
   if (aRange.source() > mLargeAllocs.Length()) {
@@ -205,9 +186,8 @@ ShmSegmentsReader::ReadLarge(const layers::OffsetRange& aRange, wr::Vec<uint8_t>
   return true;
 }
 
-bool
-ShmSegmentsReader::Read(const layers::OffsetRange& aRange, wr::Vec<uint8_t>& aInto)
-{
+bool ShmSegmentsReader::Read(const layers::OffsetRange& aRange,
+                             wr::Vec<uint8_t>& aInto) {
   if (aRange.length() == 0) {
     return true;
   }
@@ -231,8 +211,10 @@ ShmSegmentsReader::Read(const layers::OffsetRange& aRange, wr::Vec<uint8_t>& aIn
   while (remainingBytesToCopy > 0) {
     const size_t shm_idx = srcCursor / mChunkSize;
     const size_t ptrOffset = srcCursor % mChunkSize;
-    const size_t copyRange = std::min<int>(remainingBytesToCopy, mChunkSize - ptrOffset);
-    uint8_t* srcPtr = RefCountedShm::GetBytes(mSmallAllocs[shm_idx]) + ptrOffset;
+    const size_t copyRange =
+        std::min<int>(remainingBytesToCopy, mChunkSize - ptrOffset);
+    uint8_t* srcPtr =
+        RefCountedShm::GetBytes(mSmallAllocs[shm_idx]) + ptrOffset;
 
     aInto.PushBytes(Range<uint8_t>(srcPtr, copyRange));
 
@@ -243,15 +225,13 @@ ShmSegmentsReader::Read(const layers::OffsetRange& aRange, wr::Vec<uint8_t>& aIn
   return aInto.Length() - initialLength == aRange.length();
 }
 
-IpcResourceUpdateQueue::IpcResourceUpdateQueue(layers::WebRenderBridgeChild* aAllocator,
-                                               size_t aChunkSize)
-: mWriter(Move(aAllocator), aChunkSize)
-{}
+IpcResourceUpdateQueue::IpcResourceUpdateQueue(
+    layers::WebRenderBridgeChild* aAllocator, size_t aChunkSize)
+    : mWriter(Move(aAllocator), aChunkSize) {}
 
-bool
-IpcResourceUpdateQueue::AddImage(ImageKey key, const ImageDescriptor& aDescriptor,
-                                 Range<uint8_t> aBytes)
-{
+bool IpcResourceUpdateQueue::AddImage(ImageKey key,
+                                      const ImageDescriptor& aDescriptor,
+                                      Range<uint8_t> aBytes) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
@@ -260,10 +240,9 @@ IpcResourceUpdateQueue::AddImage(ImageKey key, const ImageDescriptor& aDescripto
   return true;
 }
 
-bool
-IpcResourceUpdateQueue::AddBlobImage(ImageKey key, const ImageDescriptor& aDescriptor,
-                                     Range<uint8_t> aBytes)
-{
+bool IpcResourceUpdateQueue::AddBlobImage(ImageKey key,
+                                          const ImageDescriptor& aDescriptor,
+                                          Range<uint8_t> aBytes) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
@@ -272,17 +251,13 @@ IpcResourceUpdateQueue::AddBlobImage(ImageKey key, const ImageDescriptor& aDescr
   return true;
 }
 
-void
-IpcResourceUpdateQueue::AddExternalImage(wr::ExternalImageId aExtId, wr::ImageKey aKey)
-{
+void IpcResourceUpdateQueue::AddExternalImage(wr::ExternalImageId aExtId,
+                                              wr::ImageKey aKey) {
   mUpdates.AppendElement(layers::OpAddExternalImage(aExtId, aKey));
 }
 
-bool
-IpcResourceUpdateQueue::UpdateImageBuffer(ImageKey aKey,
-                                          const ImageDescriptor& aDescriptor,
-                                          Range<uint8_t> aBytes)
-{
+bool IpcResourceUpdateQueue::UpdateImageBuffer(
+    ImageKey aKey, const ImageDescriptor& aDescriptor, Range<uint8_t> aBytes) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
@@ -291,29 +266,25 @@ IpcResourceUpdateQueue::UpdateImageBuffer(ImageKey aKey,
   return true;
 }
 
-bool
-IpcResourceUpdateQueue::UpdateBlobImage(ImageKey aKey,
-                                        const ImageDescriptor& aDescriptor,
-                                        Range<uint8_t> aBytes,
-                                        ImageIntRect aDirtyRect)
-{
+bool IpcResourceUpdateQueue::UpdateBlobImage(ImageKey aKey,
+                                             const ImageDescriptor& aDescriptor,
+                                             Range<uint8_t> aBytes,
+                                             ImageIntRect aDirtyRect) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
   }
-  mUpdates.AppendElement(layers::OpUpdateBlobImage(aDescriptor, bytes, aKey, aDirtyRect));
+  mUpdates.AppendElement(
+      layers::OpUpdateBlobImage(aDescriptor, bytes, aKey, aDirtyRect));
   return true;
 }
 
-void
-IpcResourceUpdateQueue::DeleteImage(ImageKey aKey)
-{
+void IpcResourceUpdateQueue::DeleteImage(ImageKey aKey) {
   mUpdates.AppendElement(layers::OpDeleteImage(aKey));
 }
 
-bool
-IpcResourceUpdateQueue::AddRawFont(wr::FontKey aKey, Range<uint8_t> aBytes, uint32_t aIndex)
-{
+bool IpcResourceUpdateQueue::AddRawFont(wr::FontKey aKey, Range<uint8_t> aBytes,
+                                        uint32_t aIndex) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
@@ -322,9 +293,9 @@ IpcResourceUpdateQueue::AddRawFont(wr::FontKey aKey, Range<uint8_t> aBytes, uint
   return true;
 }
 
-bool
-IpcResourceUpdateQueue::AddFontDescriptor(wr::FontKey aKey, Range<uint8_t> aBytes, uint32_t aIndex)
-{
+bool IpcResourceUpdateQueue::AddFontDescriptor(wr::FontKey aKey,
+                                               Range<uint8_t> aBytes,
+                                               uint32_t aIndex) {
   auto bytes = mWriter.Write(aBytes);
   if (!bytes.length()) {
     return false;
@@ -333,49 +304,36 @@ IpcResourceUpdateQueue::AddFontDescriptor(wr::FontKey aKey, Range<uint8_t> aByte
   return true;
 }
 
-void
-IpcResourceUpdateQueue::DeleteFont(wr::FontKey aKey)
-{
+void IpcResourceUpdateQueue::DeleteFont(wr::FontKey aKey) {
   mUpdates.AppendElement(layers::OpDeleteFont(aKey));
 }
 
-void
-IpcResourceUpdateQueue::AddFontInstance(wr::FontInstanceKey aKey,
-                                        wr::FontKey aFontKey,
-                                        float aGlyphSize,
-                                        const wr::FontInstanceOptions* aOptions,
-                                        const wr::FontInstancePlatformOptions* aPlatformOptions,
-                                        Range<const gfx::FontVariation> aVariations)
-{
+void IpcResourceUpdateQueue::AddFontInstance(
+    wr::FontInstanceKey aKey, wr::FontKey aFontKey, float aGlyphSize,
+    const wr::FontInstanceOptions* aOptions,
+    const wr::FontInstancePlatformOptions* aPlatformOptions,
+    Range<const gfx::FontVariation> aVariations) {
   auto bytes = mWriter.WriteAsBytes(aVariations);
   mUpdates.AppendElement(layers::OpAddFontInstance(
-    aOptions ? Some(*aOptions) : Nothing(),
-    aPlatformOptions ? Some(*aPlatformOptions) : Nothing(),
-    bytes,
-    aKey, aFontKey,
-    aGlyphSize
-  ));
+      aOptions ? Some(*aOptions) : Nothing(),
+      aPlatformOptions ? Some(*aPlatformOptions) : Nothing(), bytes, aKey,
+      aFontKey, aGlyphSize));
 }
 
-void
-IpcResourceUpdateQueue::DeleteFontInstance(wr::FontInstanceKey aKey)
-{
+void IpcResourceUpdateQueue::DeleteFontInstance(wr::FontInstanceKey aKey) {
   mUpdates.AppendElement(layers::OpDeleteFontInstance(aKey));
 }
 
-void
-IpcResourceUpdateQueue::Flush(nsTArray<layers::OpUpdateResource>& aUpdates,
-                              nsTArray<layers::RefCountedShmem>& aSmallAllocs,
-                              nsTArray<ipc::Shmem>& aLargeAllocs)
-{
+void IpcResourceUpdateQueue::Flush(
+    nsTArray<layers::OpUpdateResource>& aUpdates,
+    nsTArray<layers::RefCountedShmem>& aSmallAllocs,
+    nsTArray<ipc::Shmem>& aLargeAllocs) {
   aUpdates.Clear();
   mUpdates.SwapElements(aUpdates);
   mWriter.Flush(aSmallAllocs, aLargeAllocs);
 }
 
-bool
-IpcResourceUpdateQueue::IsEmpty() const
-{
+bool IpcResourceUpdateQueue::IsEmpty() const {
   if (mUpdates.Length() == 0) {
     MOZ_ASSERT(mWriter.IsEmpty());
     return true;
@@ -383,17 +341,14 @@ IpcResourceUpdateQueue::IsEmpty() const
   return false;
 }
 
-void
-IpcResourceUpdateQueue::Clear()
-{
+void IpcResourceUpdateQueue::Clear() {
   mWriter.Clear();
   mUpdates.Clear();
 }
 
-//static
-void
-IpcResourceUpdateQueue::ReleaseShmems(ipc::IProtocol* aShmAllocator, nsTArray<layers::RefCountedShmem>& aShms)
-{
+// static
+void IpcResourceUpdateQueue::ReleaseShmems(
+    ipc::IProtocol* aShmAllocator, nsTArray<layers::RefCountedShmem>& aShms) {
   for (auto& shm : aShms) {
     if (RefCountedShm::IsValid(shm) && RefCountedShm::Release(shm) == 0) {
       RefCountedShm::Dealloc(aShmAllocator, shm);
@@ -402,15 +357,14 @@ IpcResourceUpdateQueue::ReleaseShmems(ipc::IProtocol* aShmAllocator, nsTArray<la
   aShms.Clear();
 }
 
-//static
-void
-IpcResourceUpdateQueue::ReleaseShmems(ipc::IProtocol* aShmAllocator, nsTArray<ipc::Shmem>& aShms)
-{
+// static
+void IpcResourceUpdateQueue::ReleaseShmems(ipc::IProtocol* aShmAllocator,
+                                           nsTArray<ipc::Shmem>& aShms) {
   for (auto& shm : aShms) {
     aShmAllocator->DeallocShmem(shm);
   }
   aShms.Clear();
 }
 
-} // namespace
-} // namespace
+}  // namespace wr
+}  // namespace mozilla

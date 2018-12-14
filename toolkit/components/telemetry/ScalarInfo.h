@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,8 +11,8 @@
 
 // This module is internal to Telemetry. It defines a structure that holds the
 // scalar info. It should only be used by TelemetryScalarData.h automatically
-// generated file and TelemetryScalar.cpp. This should not be used anywhere else.
-// For the public interface to Telemetry functionality, see Telemetry.h.
+// generated file and TelemetryScalar.cpp. This should not be used anywhere
+// else. For the public interface to Telemetry functionality, see Telemetry.h.
 
 namespace {
 
@@ -25,15 +26,15 @@ struct BaseScalarInfo {
   bool keyed;
   bool builtin;
 
-  BaseScalarInfo(uint32_t aKind, uint32_t aDataset,
-                 mozilla::Telemetry::Common::RecordedProcessType aRecordInProcess,
-                 bool aKeyed, bool aBuiltin = true)
-    : kind(aKind)
-    , dataset(aDataset)
-    , record_in_processes(aRecordInProcess)
-    , keyed(aKeyed)
-    , builtin(aBuiltin)
-  {}
+  BaseScalarInfo(
+      uint32_t aKind, uint32_t aDataset,
+      mozilla::Telemetry::Common::RecordedProcessType aRecordInProcess,
+      bool aKeyed, bool aBuiltin = true)
+      : kind(aKind),
+        dataset(aDataset),
+        record_in_processes(aRecordInProcess),
+        keyed(aKeyed),
+        builtin(aBuiltin) {}
   virtual ~BaseScalarInfo() {}
 
   virtual const char *name() const = 0;
@@ -49,24 +50,24 @@ struct ScalarInfo : BaseScalarInfo {
   uint32_t expiration_offset;
 
   // In order to cleanly support dynamic scalars in TelemetryScalar.cpp, we need
-  // to use virtual functions for |name| and |expiration|, as they won't be looked
-  // up in the static tables in that case. However, using virtual functions makes
-  // |ScalarInfo| non-aggregate and prevents from using aggregate initialization (curly
-  // brackets) in the generated TelemetryScalarData.h. To work around this problem
-  // we define a constructor that takes the exact number of parameters we need.
+  // to use virtual functions for |name| and |expiration|, as they won't be
+  // looked up in the static tables in that case. However, using virtual
+  // functions makes |ScalarInfo| non-aggregate and prevents from using
+  // aggregate initialization (curly brackets) in the generated
+  // TelemetryScalarData.h. To work around this problem we define a constructor
+  // that takes the exact number of parameters we need.
   ScalarInfo(uint32_t aKind, uint32_t aNameOffset, uint32_t aExpirationOffset,
              uint32_t aDataset,
              mozilla::Telemetry::Common::RecordedProcessType aRecordInProcess,
              bool aKeyed)
-    : BaseScalarInfo(aKind, aDataset, aRecordInProcess, aKeyed)
-    , name_offset(aNameOffset)
-    , expiration_offset(aExpirationOffset)
-  {}
+      : BaseScalarInfo(aKind, aDataset, aRecordInProcess, aKeyed),
+        name_offset(aNameOffset),
+        expiration_offset(aExpirationOffset) {}
 
   const char *name() const override;
   const char *expiration() const override;
 };
 
-} // namespace
+}  // namespace
 
-#endif // TelemetryScalarInfo_h__
+#endif  // TelemetryScalarInfo_h__

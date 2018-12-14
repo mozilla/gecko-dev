@@ -20,7 +20,7 @@
 #ifdef MOZ_PLACES
 #include "mozIAsyncFavicons.h"
 #include "nsIFaviconService.h"
-#endif // MOZ_PLACES
+#endif  // MOZ_PLACES
 
 #ifdef XP_WIN
 #include <shellapi.h>
@@ -34,23 +34,17 @@ namespace {
 
 #ifdef MOZ_PLACES
 
-class IconCallback final : public nsIFaviconDataCallback
-{
-public:
+class IconCallback final : public nsIFaviconDataCallback {
+ public:
   NS_DECL_ISUPPORTS
 
-  IconCallback(nsIAlertsService* aBackend,
-               nsIAlertNotification* aAlert,
+  IconCallback(nsIAlertsService* aBackend, nsIAlertNotification* aAlert,
                nsIObserver* aAlertListener)
-    : mBackend(aBackend)
-    , mAlert(aAlert)
-    , mAlertListener(aAlertListener)
-  {}
+      : mBackend(aBackend), mAlert(aAlert), mAlertListener(aAlertListener) {}
 
   NS_IMETHOD
-  OnComplete(nsIURI *aIconURI, uint32_t aIconSize, const uint8_t *aIconData,
-             const nsACString &aMimeType, uint16_t aWidth) override
-  {
+  OnComplete(nsIURI* aIconURI, uint32_t aIconSize, const uint8_t* aIconData,
+             const nsACString& aMimeType, uint16_t aWidth) override {
     nsresult rv = NS_ERROR_FAILURE;
     if (aIconSize > 0) {
       nsCOMPtr<nsIAlertsIconData> alertsIconData(do_QueryInterface(mBackend));
@@ -71,7 +65,7 @@ public:
     return rv;
   }
 
-private:
+ private:
   virtual ~IconCallback() {}
 
   nsCOMPtr<nsIAlertsService> mBackend;
@@ -81,12 +75,11 @@ private:
 
 NS_IMPL_ISUPPORTS(IconCallback, nsIFaviconDataCallback)
 
-#endif // MOZ_PLACES
+#endif  // MOZ_PLACES
 
-nsresult
-ShowWithIconBackend(nsIAlertsService* aBackend, nsIAlertNotification* aAlert,
-                    nsIObserver* aAlertListener)
-{
+nsresult ShowWithIconBackend(nsIAlertsService* aBackend,
+                             nsIAlertNotification* aAlert,
+                             nsIObserver* aAlertListener) {
 #ifdef MOZ_PLACES
   nsCOMPtr<nsIURI> uri;
   nsresult rv = aAlert->GetURI(getter_AddRefs(uri));
@@ -104,28 +97,28 @@ ShowWithIconBackend(nsIAlertsService* aBackend, nsIAlertNotification* aAlert,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  nsCOMPtr<mozIAsyncFavicons> favicons(do_GetService(
-    "@mozilla.org/browser/favicon-service;1"));
+  nsCOMPtr<mozIAsyncFavicons> favicons(
+      do_GetService("@mozilla.org/browser/favicon-service;1"));
   NS_ENSURE_TRUE(favicons, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIFaviconDataCallback> callback =
-    new IconCallback(aBackend, aAlert, aAlertListener);
+      new IconCallback(aBackend, aAlert, aAlertListener);
   if (alertsIconData) {
     return favicons->GetFaviconDataForPage(uri, callback, 0);
   }
   return favicons->GetFaviconURLForPage(uri, callback, 0);
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
-#endif // !MOZ_PLACES
+#endif  // !MOZ_PLACES
 }
 
-nsresult
-ShowWithBackend(nsIAlertsService* aBackend, nsIAlertNotification* aAlert,
-                nsIObserver* aAlertListener, const nsAString& aPersistentData)
-{
+nsresult ShowWithBackend(nsIAlertsService* aBackend,
+                         nsIAlertNotification* aAlert,
+                         nsIObserver* aAlertListener,
+                         const nsAString& aPersistentData) {
   if (!aPersistentData.IsEmpty()) {
-    return aBackend->ShowPersistentNotification(
-        aPersistentData, aAlert, aAlertListener);
+    return aBackend->ShowPersistentNotification(aPersistentData, aAlert,
+                                                aAlertListener);
   }
 
   if (Preferences::GetBool("alerts.showFavicons")) {
@@ -140,28 +133,24 @@ ShowWithBackend(nsIAlertsService* aBackend, nsIAlertNotification* aAlert,
   return aBackend->ShowAlert(aAlert, aAlertListener);
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 NS_IMPL_ISUPPORTS(nsAlertsService, nsIAlertsService, nsIAlertsDoNotDisturb)
 
-nsAlertsService::nsAlertsService() :
-  mBackend(nullptr)
-{
+nsAlertsService::nsAlertsService() : mBackend(nullptr) {
   mBackend = do_GetService(NS_SYSTEMALERTSERVICE_CONTRACTID);
 }
 
-nsAlertsService::~nsAlertsService()
-{}
+nsAlertsService::~nsAlertsService() {}
 
-bool nsAlertsService::ShouldShowAlert()
-{
+bool nsAlertsService::ShouldShowAlert() {
   bool result = true;
 
 #ifdef XP_WIN
   QUERY_USER_NOTIFICATION_STATE qstate;
   if (SUCCEEDED(SHQueryUserNotificationState(&qstate))) {
     if (qstate != QUNS_ACCEPTS_NOTIFICATIONS) {
-       result = false;
+      result = false;
     }
   }
 #endif
@@ -169,8 +158,7 @@ bool nsAlertsService::ShouldShowAlert()
   return result;
 }
 
-bool nsAlertsService::ShouldUseSystemBackend()
-{
+bool nsAlertsService::ShouldUseSystemBackend() {
   if (!mBackend) {
     return false;
   }
@@ -178,46 +166,38 @@ bool nsAlertsService::ShouldUseSystemBackend()
   static bool sAlertsUseSystemBackendCached = false;
   if (!sAlertsUseSystemBackendCached) {
     sAlertsUseSystemBackendCached = true;
-    Preferences::AddBoolVarCache(&sAlertsUseSystemBackend, "alerts.useSystemBackend", true);
+    Preferences::AddBoolVarCache(&sAlertsUseSystemBackend,
+                                 "alerts.useSystemBackend", true);
   }
   return sAlertsUseSystemBackend;
 }
 
-NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl, const nsAString & aAlertTitle,
-                                                     const nsAString & aAlertText, bool aAlertTextClickable,
-                                                     const nsAString & aAlertCookie,
-                                                     nsIObserver * aAlertListener,
-                                                     const nsAString & aAlertName,
-                                                     const nsAString & aBidi,
-                                                     const nsAString & aLang,
-                                                     const nsAString & aData,
-                                                     nsIPrincipal * aPrincipal,
-                                                     bool aInPrivateBrowsing,
-                                                     bool aRequireInteraction)
-{
+NS_IMETHODIMP nsAlertsService::ShowAlertNotification(
+    const nsAString& aImageUrl, const nsAString& aAlertTitle,
+    const nsAString& aAlertText, bool aAlertTextClickable,
+    const nsAString& aAlertCookie, nsIObserver* aAlertListener,
+    const nsAString& aAlertName, const nsAString& aBidi, const nsAString& aLang,
+    const nsAString& aData, nsIPrincipal* aPrincipal, bool aInPrivateBrowsing,
+    bool aRequireInteraction) {
   nsCOMPtr<nsIAlertNotification> alert =
-    do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
+      do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
   NS_ENSURE_TRUE(alert, NS_ERROR_FAILURE);
-  nsresult rv = alert->Init(aAlertName, aImageUrl, aAlertTitle,
-                            aAlertText, aAlertTextClickable,
-                            aAlertCookie, aBidi, aLang, aData,
-                            aPrincipal, aInPrivateBrowsing,
-                            aRequireInteraction);
+  nsresult rv =
+      alert->Init(aAlertName, aImageUrl, aAlertTitle, aAlertText,
+                  aAlertTextClickable, aAlertCookie, aBidi, aLang, aData,
+                  aPrincipal, aInPrivateBrowsing, aRequireInteraction);
   NS_ENSURE_SUCCESS(rv, rv);
   return ShowAlert(alert, aAlertListener);
 }
 
-
-NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification * aAlert,
-                                         nsIObserver * aAlertListener)
-{
+NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
+                                         nsIObserver* aAlertListener) {
   return ShowPersistentNotification(EmptyString(), aAlert, aAlertListener);
 }
 
-NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(const nsAString & aPersistentData,
-                                                          nsIAlertNotification * aAlert,
-                                                          nsIObserver * aAlertListener)
-{
+NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(
+    const nsAString& aPersistentData, nsIAlertNotification* aAlert,
+    nsIObserver* aAlertListener) {
   NS_ENSURE_ARG(aAlert);
 
   nsAutoString cookie;
@@ -227,14 +207,14 @@ NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(const nsAString & aPer
   if (XRE_IsContentProcess()) {
     ContentChild* cpc = ContentChild::GetSingleton();
 
-    if (aAlertListener)
-      cpc->AddRemoteAlertObserver(cookie, aAlertListener);
+    if (aAlertListener) cpc->AddRemoteAlertObserver(cookie, aAlertListener);
 
     cpc->SendShowAlert(aAlert);
     return NS_OK;
   }
 
-  // Check if there is an optional service that handles system-level notifications
+  // Check if there is an optional service that handles system-level
+  // notifications
   if (ShouldUseSystemBackend()) {
     rv = ShowWithBackend(mBackend, aAlert, aAlertListener, aPersistentData);
     if (NS_SUCCEEDED(rv)) {
@@ -259,8 +239,7 @@ NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(const nsAString & aPer
 }
 
 NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,
-                                          nsIPrincipal* aPrincipal)
-{
+                                          nsIPrincipal* aPrincipal) {
   if (XRE_IsContentProcess()) {
     ContentChild* cpc = ContentChild::GetSingleton();
     cpc->SendCloseAlert(nsAutoString(aAlertName), IPC::Principal(aPrincipal));
@@ -284,10 +263,8 @@ NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,
   return rv;
 }
 
-
 // nsIAlertsDoNotDisturb
-NS_IMETHODIMP nsAlertsService::GetManualDoNotDisturb(bool* aRetVal)
-{
+NS_IMETHODIMP nsAlertsService::GetManualDoNotDisturb(bool* aRetVal) {
 #ifdef MOZ_WIDGET_ANDROID
   return NS_ERROR_NOT_IMPLEMENTED;
 #else
@@ -297,8 +274,7 @@ NS_IMETHODIMP nsAlertsService::GetManualDoNotDisturb(bool* aRetVal)
 #endif
 }
 
-NS_IMETHODIMP nsAlertsService::SetManualDoNotDisturb(bool aDoNotDisturb)
-{
+NS_IMETHODIMP nsAlertsService::SetManualDoNotDisturb(bool aDoNotDisturb) {
 #ifdef MOZ_WIDGET_ANDROID
   return NS_ERROR_NOT_IMPLEMENTED;
 #else
@@ -313,9 +289,7 @@ NS_IMETHODIMP nsAlertsService::SetManualDoNotDisturb(bool aDoNotDisturb)
 #endif
 }
 
-already_AddRefed<nsIAlertsDoNotDisturb>
-nsAlertsService::GetDNDBackend()
-{
+already_AddRefed<nsIAlertsDoNotDisturb> nsAlertsService::GetDNDBackend() {
   nsCOMPtr<nsIAlertsService> backend;
   // Try the system notification service.
   if (ShouldUseSystemBackend()) {

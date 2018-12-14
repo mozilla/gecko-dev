@@ -13,24 +13,17 @@
 #include "mozITXTToHTMLConv.h"
 #include "nsCycleCollectionParticipant.h"
 
-class mozEnglishWordUtils : public mozISpellI18NUtil
-{
-public:
+class mozEnglishWordUtils : public mozISpellI18NUtil {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_MOZISPELLI18NUTIL
   NS_DECL_CYCLE_COLLECTION_CLASS(mozEnglishWordUtils)
 
   mozEnglishWordUtils();
   /* additional members */
-  enum myspCapitalization
-  {
-    NoCap,
-    InitCap,
-    AllCap,
-    HuhCap
-  };
+  enum myspCapitalization { NoCap, InitCap, AllCap, HuhCap };
 
-protected:
+ protected:
   virtual ~mozEnglishWordUtils();
 
   mozEnglishWordUtils::myspCapitalization captype(const nsString &word);
@@ -38,7 +31,8 @@ protected:
 
   nsString mLanguage;
   nsString mCharset;
-  nsCOMPtr<mozITXTToHTMLConv> mURLDetector; // used to detect urls so the spell checker can skip them.
+  nsCOMPtr<mozITXTToHTMLConv>
+      mURLDetector;  // used to detect urls so the spell checker can skip them.
 };
 
 #endif

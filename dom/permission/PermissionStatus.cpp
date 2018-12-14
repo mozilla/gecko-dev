@@ -15,11 +15,8 @@
 namespace mozilla {
 namespace dom {
 
-/* static */ already_AddRefed<PermissionStatus>
-PermissionStatus::Create(nsPIDOMWindowInner* aWindow,
-                         PermissionName aName,
-                         ErrorResult& aRv)
-{
+/* static */ already_AddRefed<PermissionStatus> PermissionStatus::Create(
+    nsPIDOMWindowInner* aWindow, PermissionName aName, ErrorResult& aRv) {
   RefPtr<PermissionStatus> status = new PermissionStatus(aWindow, aName);
   aRv = status->Init();
   if (NS_WARN_IF(aRv.Failed())) {
@@ -31,15 +28,11 @@ PermissionStatus::Create(nsPIDOMWindowInner* aWindow,
 
 PermissionStatus::PermissionStatus(nsPIDOMWindowInner* aWindow,
                                    PermissionName aName)
-  : DOMEventTargetHelper(aWindow)
-  , mName(aName)
-  , mState(PermissionState::Denied)
-{
-}
+    : DOMEventTargetHelper(aWindow),
+      mName(aName),
+      mState(PermissionState::Denied) {}
 
-nsresult
-PermissionStatus::Init()
-{
+nsresult PermissionStatus::Init() {
   mObserver = PermissionObserver::GetInstance();
   if (NS_WARN_IF(!mObserver)) {
     return NS_ERROR_FAILURE;
@@ -55,22 +48,18 @@ PermissionStatus::Init()
   return NS_OK;
 }
 
-PermissionStatus::~PermissionStatus()
-{
+PermissionStatus::~PermissionStatus() {
   if (mObserver) {
     mObserver->RemoveSink(this);
   }
 }
 
-JSObject*
-PermissionStatus::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* PermissionStatus::WrapObject(JSContext* aCx,
+                                       JS::Handle<JSObject*> aGivenProto) {
   return PermissionStatusBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsresult
-PermissionStatus::UpdateState()
-{
+nsresult PermissionStatus::UpdateState() {
   nsCOMPtr<nsIPermissionManager> permMgr = services::GetPermissionManager();
   if (NS_WARN_IF(!permMgr)) {
     return NS_ERROR_FAILURE;
@@ -82,9 +71,8 @@ PermissionStatus::UpdateState()
   }
 
   uint32_t action = nsIPermissionManager::DENY_ACTION;
-  nsresult rv = permMgr->TestPermissionFromWindow(window,
-                                                  PermissionNameToType(mName),
-                                                  &action);
+  nsresult rv = permMgr->TestPermissionFromWindow(
+      window, PermissionNameToType(mName), &action);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -93,9 +81,7 @@ PermissionStatus::UpdateState()
   return NS_OK;
 }
 
-already_AddRefed<nsIPrincipal>
-PermissionStatus::GetPrincipal() const
-{
+already_AddRefed<nsIPrincipal> PermissionStatus::GetPrincipal() const {
   nsCOMPtr<nsPIDOMWindowInner> window = GetOwner();
   if (NS_WARN_IF(!window)) {
     return nullptr;
@@ -107,23 +93,22 @@ PermissionStatus::GetPrincipal() const
   }
 
   nsCOMPtr<nsIPrincipal> principal =
-    mozilla::BasePrincipal::Cast(doc->NodePrincipal())->CloneStrippingUserContextIdAndFirstPartyDomain();
+      mozilla::BasePrincipal::Cast(doc->NodePrincipal())
+          ->CloneStrippingUserContextIdAndFirstPartyDomain();
   NS_ENSURE_TRUE(principal, nullptr);
 
   return principal.forget();
 }
 
-void
-PermissionStatus::PermissionChanged()
-{
+void PermissionStatus::PermissionChanged() {
   auto oldState = mState;
   UpdateState();
   if (mState != oldState) {
     RefPtr<AsyncEventDispatcher> eventDispatcher =
-      new AsyncEventDispatcher(this, NS_LITERAL_STRING("change"), false);
+        new AsyncEventDispatcher(this, NS_LITERAL_STRING("change"), false);
     eventDispatcher->PostDOMEvent();
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

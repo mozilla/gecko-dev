@@ -26,81 +26,73 @@
 using namespace js;
 using namespace wasm;
 
-Compartment::Compartment(Zone* zone)
-{}
+Compartment::Compartment(Zone* zone) {}
 
-Compartment::~Compartment()
-{
-    MOZ_ASSERT(instances_.empty());
-}
+Compartment::~Compartment() { MOZ_ASSERT(instances_.empty()); }
 
-struct InstanceComparator
-{
-    const Instance& target;
-    explicit InstanceComparator(const Instance& target) : target(target) {}
+struct InstanceComparator {
+  const Instance& target;
+  explicit InstanceComparator(const Instance& target) : target(target) {}
 
-    int operator()(const Instance* instance) const {
-        if (instance == &target)
-            return 0;
+  int operator()(const Instance* instance) const {
+    if (instance == &target) return 0;
 
-        // Instances can share code, so the segments can be equal (though they
-        // can't partially overlap).  If the codeBases are equal, we sort by
-        // Instance address.  Thus a Code may map to many instances.
+    // Instances can share code, so the segments can be equal (though they
+    // can't partially overlap).  If the codeBases are equal, we sort by
+    // Instance address.  Thus a Code may map to many instances.
 
-        // Compare by the first tier, always.
+    // Compare by the first tier, always.
 
-        Tier instanceTier = instance->code().stableTier();
-        Tier targetTier = target.code().stableTier();
+    Tier instanceTier = instance->code().stableTier();
+    Tier targetTier = target.code().stableTier();
 
-        if (instance->codeBase(instanceTier) == target.codeBase(targetTier))
-            return instance < &target ? -1 : 1;
+    if (instance->codeBase(instanceTier) == target.codeBase(targetTier))
+      return instance < &target ? -1 : 1;
 
-        return target.codeBase(targetTier) < instance->codeBase(instanceTier) ? -1 : 1;
-    }
+    return target.codeBase(targetTier) < instance->codeBase(instanceTier) ? -1
+                                                                          : 1;
+  }
 };
 
-bool
-Compartment::registerInstance(JSContext* cx, HandleWasmInstanceObject instanceObj)
-{
-    Instance& instance = instanceObj->instance();
-    MOZ_ASSERT(this == &instance.compartment()->wasm);
+bool Compartment::registerInstance(JSContext* cx,
+                                   HandleWasmInstanceObject instanceObj) {
+  Instance& instance = instanceObj->instance();
+  MOZ_ASSERT(this == &instance.compartment()->wasm);
 
-    instance.ensureProfilingLabels(cx->runtime()->geckoProfiler().enabled());
+  instance.ensureProfilingLabels(cx->runtime()->geckoProfiler().enabled());
 
-    if (instance.debugEnabled() && instance.compartment()->debuggerObservesAllExecution())
-        instance.ensureEnterFrameTrapsState(cx, true);
+  if (instance.debugEnabled() &&
+      instance.compartment()->debuggerObservesAllExecution())
+    instance.ensureEnterFrameTrapsState(cx, true);
 
-    size_t index;
-    if (BinarySearchIf(instances_, 0, instances_.length(), InstanceComparator(instance), &index))
-        MOZ_CRASH("duplicate registration");
+  size_t index;
+  if (BinarySearchIf(instances_, 0, instances_.length(),
+                     InstanceComparator(instance), &index))
+    MOZ_CRASH("duplicate registration");
 
-    if (!instances_.insert(instances_.begin() + index, &instance)) {
-        ReportOutOfMemory(cx);
-        return false;
-    }
+  if (!instances_.insert(instances_.begin() + index, &instance)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
 
-    Debugger::onNewWasmInstance(cx, instanceObj);
-    return true;
+  Debugger::onNewWasmInstance(cx, instanceObj);
+  return true;
 }
 
-void
-Compartment::unregisterInstance(Instance& instance)
-{
-    size_t index;
-    if (!BinarySearchIf(instances_, 0, instances_.length(), InstanceComparator(instance), &index))
-        return;
-    instances_.erase(instances_.begin() + index);
+void Compartment::unregisterInstance(Instance& instance) {
+  size_t index;
+  if (!BinarySearchIf(instances_, 0, instances_.length(),
+                      InstanceComparator(instance), &index))
+    return;
+  instances_.erase(instances_.begin() + index);
 }
 
-void
-Compartment::ensureProfilingLabels(bool profilingEnabled)
-{
-    for (Instance* instance : instances_)
-        instance->ensureProfilingLabels(profilingEnabled);
+void Compartment::ensureProfilingLabels(bool profilingEnabled) {
+  for (Instance* instance : instances_)
+    instance->ensureProfilingLabels(profilingEnabled);
 }
 
-void
-Compartment::addSizeOfExcludingThis(MallocSizeOf mallocSizeOf, size_t* compartmentTables)
-{
-    *compartmentTables += instances_.sizeOfExcludingThis(mallocSizeOf);
+void Compartment::addSizeOfExcludingThis(MallocSizeOf mallocSizeOf,
+                                         size_t* compartmentTables) {
+  *compartmentTables += instances_.sizeOfExcludingThis(mallocSizeOf);
 }

@@ -9,8 +9,7 @@
 
 #include "nsStyleConsts.h"
 
-struct nsTimingFunction
-{
+struct nsTimingFunction {
   enum class Type {
     Ease,         // ease
     Linear,       // linear
@@ -25,22 +24,18 @@ struct nsTimingFunction
 
   // Whether the timing function type is represented by a spline,
   // and thus will have mFunc filled in.
-  static bool IsSplineType(Type aType)
-  {
-    return aType != Type::StepStart &&
-           aType != Type::StepEnd &&
+  static bool IsSplineType(Type aType) {
+    return aType != Type::StepStart && aType != Type::StepEnd &&
            aType != Type::Frames;
   }
 
-  explicit nsTimingFunction(int32_t aTimingFunctionType
-                              = NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE)
-  {
+  explicit nsTimingFunction(
+      int32_t aTimingFunctionType = NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE) {
     AssignFromKeyword(aTimingFunctionType);
   }
 
   nsTimingFunction(float x1, float y1, float x2, float y2)
-    : mType(Type::CubicBezier)
-  {
+      : mType(Type::CubicBezier) {
     mFunc.mX1 = x1;
     mFunc.mY1 = y1;
     mFunc.mX2 = x2;
@@ -49,20 +44,14 @@ struct nsTimingFunction
 
   enum class Keyword { Implicit, Explicit };
 
-  nsTimingFunction(Type aType, uint32_t aStepsOrFrames)
-    : mType(aType)
-  {
-    MOZ_ASSERT(mType == Type::StepStart ||
-               mType == Type::StepEnd ||
-               mType == Type::Frames,
+  nsTimingFunction(Type aType, uint32_t aStepsOrFrames) : mType(aType) {
+    MOZ_ASSERT(mType == Type::StepStart || mType == Type::StepEnd ||
+                   mType == Type::Frames,
                "wrong type");
     mStepsOrFrames = aStepsOrFrames;
   }
 
-  nsTimingFunction(const nsTimingFunction& aOther)
-  {
-    *this = aOther;
-  }
+  nsTimingFunction(const nsTimingFunction& aOther) { *this = aOther; }
 
   Type mType;
   union {
@@ -77,9 +66,7 @@ struct nsTimingFunction
     };
   };
 
-  nsTimingFunction&
-  operator=(const nsTimingFunction& aOther)
-  {
+  nsTimingFunction& operator=(const nsTimingFunction& aOther) {
     if (&aOther == this) {
       return *this;
     }
@@ -98,8 +85,7 @@ struct nsTimingFunction
     return *this;
   }
 
-  bool operator==(const nsTimingFunction& aOther) const
-  {
+  bool operator==(const nsTimingFunction& aOther) const {
     if (mType != aOther.mType) {
       return false;
     }
@@ -110,15 +96,14 @@ struct nsTimingFunction
     return mStepsOrFrames == aOther.mStepsOrFrames;
   }
 
-  bool operator!=(const nsTimingFunction& aOther) const
-  {
+  bool operator!=(const nsTimingFunction& aOther) const {
     return !(*this == aOther);
   }
 
   bool HasSpline() const { return IsSplineType(mType); }
 
-private:
+ private:
   void AssignFromKeyword(int32_t aTimingFunctionType);
 };
 
-#endif // nsTimingFunction_h
+#endif  // nsTimingFunction_h

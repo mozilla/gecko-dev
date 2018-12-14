@@ -17,52 +17,42 @@
 namespace mozilla {
 namespace dom {
 
-enum class U2FOperation
-{
-  Register,
-  Sign
-};
+enum class U2FOperation { Register, Sign };
 
-bool
-EvaluateAppID(nsPIDOMWindowInner* aParent, const nsString& aOrigin,
-              const U2FOperation& aOp, /* in/out */ nsString& aAppId);
+bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsString& aOrigin,
+                   const U2FOperation& aOp, /* in/out */ nsString& aAppId);
 
-nsresult
-AssembleAuthenticatorData(const CryptoBuffer& rpIdHashBuf,
-                          const uint8_t flags,
-                          const CryptoBuffer& counterBuf,
-                          const CryptoBuffer& attestationDataBuf,
-                          /* out */ CryptoBuffer& authDataBuf);
+nsresult AssembleAuthenticatorData(const CryptoBuffer& rpIdHashBuf,
+                                   const uint8_t flags,
+                                   const CryptoBuffer& counterBuf,
+                                   const CryptoBuffer& attestationDataBuf,
+                                   /* out */ CryptoBuffer& authDataBuf);
 
-nsresult
-AssembleAttestationData(const CryptoBuffer& aaguidBuf,
-                        const CryptoBuffer& keyHandleBuf,
-                        const CryptoBuffer& pubKeyObj,
-                        /* out */ CryptoBuffer& attestationDataBuf);
+nsresult AssembleAttestationData(const CryptoBuffer& aaguidBuf,
+                                 const CryptoBuffer& keyHandleBuf,
+                                 const CryptoBuffer& pubKeyObj,
+                                 /* out */ CryptoBuffer& attestationDataBuf);
 
-nsresult
-U2FDecomposeSignResponse(const CryptoBuffer& aResponse,
-                         /* out */ uint8_t& aFlags,
-                         /* out */ CryptoBuffer& aCounterBuf,
-                         /* out */ CryptoBuffer& aSignatureBuf);
+nsresult U2FDecomposeSignResponse(const CryptoBuffer& aResponse,
+                                  /* out */ uint8_t& aFlags,
+                                  /* out */ CryptoBuffer& aCounterBuf,
+                                  /* out */ CryptoBuffer& aSignatureBuf);
 
-nsresult
-U2FDecomposeRegistrationResponse(const CryptoBuffer& aResponse,
-                                 /* out */ CryptoBuffer& aPubKeyBuf,
-                                 /* out */ CryptoBuffer& aKeyHandleBuf,
-                                 /* out */ CryptoBuffer& aAttestationCertBuf,
-                                 /* out */ CryptoBuffer& aSignatureBuf);
+nsresult U2FDecomposeRegistrationResponse(
+    const CryptoBuffer& aResponse,
+    /* out */ CryptoBuffer& aPubKeyBuf,
+    /* out */ CryptoBuffer& aKeyHandleBuf,
+    /* out */ CryptoBuffer& aAttestationCertBuf,
+    /* out */ CryptoBuffer& aSignatureBuf);
 
-nsresult
-ReadToCryptoBuffer(pkix::Reader& aSrc, /* out */ CryptoBuffer& aDest,
-                   uint32_t aLen);
+nsresult ReadToCryptoBuffer(pkix::Reader& aSrc, /* out */ CryptoBuffer& aDest,
+                            uint32_t aLen);
 
-nsresult
-U2FDecomposeECKey(const CryptoBuffer& aPubKeyBuf,
-                  /* out */ CryptoBuffer& aXcoord,
-                  /* out */ CryptoBuffer& aYcoord);
+nsresult U2FDecomposeECKey(const CryptoBuffer& aPubKeyBuf,
+                           /* out */ CryptoBuffer& aXcoord,
+                           /* out */ CryptoBuffer& aYcoord);
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_WebAuthnUtil_h
+#endif  // mozilla_dom_WebAuthnUtil_h

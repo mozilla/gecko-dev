@@ -23,17 +23,14 @@ extern mozilla::LazyLogModule gPIPNSSLog;
 
 NS_IMPL_ISUPPORTS(nsPKCS11Slot, nsIPKCS11Slot)
 
-nsPKCS11Slot::nsPKCS11Slot(PK11SlotInfo* slot)
-{
+nsPKCS11Slot::nsPKCS11Slot(PK11SlotInfo* slot) {
   MOZ_ASSERT(slot);
   mSlot.reset(PK11_ReferenceSlot(slot));
   mSeries = PK11_GetSlotSeries(slot);
   Unused << refreshSlotInfo();
 }
 
-nsresult
-nsPKCS11Slot::refreshSlotInfo()
-{
+nsresult nsPKCS11Slot::refreshSlotInfo() {
   CK_SLOT_INFO slotInfo;
   nsresult rv = MapSECStatus(PK11_GetSlotInfo(mSlot.get(), &slotInfo));
   if (NS_FAILED(rv)) {
@@ -42,16 +39,15 @@ nsPKCS11Slot::refreshSlotInfo()
 
   // Set the Description field
   const char* ccDesc =
-    mozilla::BitwiseCast<char*, CK_UTF8CHAR*>(slotInfo.slotDescription);
+      mozilla::BitwiseCast<char*, CK_UTF8CHAR*>(slotInfo.slotDescription);
   mSlotDesc.Assign(ccDesc, strnlen(ccDesc, sizeof(slotInfo.slotDescription)));
   mSlotDesc.Trim(" ", false, true);
 
   // Set the Manufacturer field
   const char* ccManID =
-    mozilla::BitwiseCast<char*, CK_UTF8CHAR*>(slotInfo.manufacturerID);
-  mSlotManufacturerID.Assign(
-    ccManID,
-    strnlen(ccManID, sizeof(slotInfo.manufacturerID)));
+      mozilla::BitwiseCast<char*, CK_UTF8CHAR*>(slotInfo.manufacturerID);
+  mSlotManufacturerID.Assign(ccManID,
+                             strnlen(ccManID, sizeof(slotInfo.manufacturerID)));
   mSlotManufacturerID.Trim(" ", false, true);
 
   // Set the Hardware Version field
@@ -69,10 +65,8 @@ nsPKCS11Slot::refreshSlotInfo()
   return NS_OK;
 }
 
-nsresult
-nsPKCS11Slot::GetAttributeHelper(const nsACString& attribute,
-                         /*out*/ nsACString& xpcomOutParam)
-{
+nsresult nsPKCS11Slot::GetAttributeHelper(const nsACString& attribute,
+                                          /*out*/ nsACString& xpcomOutParam) {
   if (PK11_GetSlotSeries(mSlot.get()) != mSeries) {
     nsresult rv = refreshSlotInfo();
     if (NS_FAILED(rv)) {
@@ -85,8 +79,7 @@ nsPKCS11Slot::GetAttributeHelper(const nsACString& attribute,
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetName(/*out*/ nsACString& name)
-{
+nsPKCS11Slot::GetName(/*out*/ nsACString& name) {
   // |csn| is non-owning.
   char* csn = PK11_GetSlotName(mSlot.get());
   if (csn && *csn) {
@@ -105,32 +98,27 @@ nsPKCS11Slot::GetName(/*out*/ nsACString& name)
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetDesc(/*out*/ nsACString& desc)
-{
+nsPKCS11Slot::GetDesc(/*out*/ nsACString& desc) {
   return GetAttributeHelper(mSlotDesc, desc);
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetManID(/*out*/ nsACString& manufacturerID)
-{
+nsPKCS11Slot::GetManID(/*out*/ nsACString& manufacturerID) {
   return GetAttributeHelper(mSlotManufacturerID, manufacturerID);
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetHWVersion(/*out*/ nsACString& hwVersion)
-{
+nsPKCS11Slot::GetHWVersion(/*out*/ nsACString& hwVersion) {
   return GetAttributeHelper(mSlotHWVersion, hwVersion);
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetFWVersion(/*out*/ nsACString& fwVersion)
-{
+nsPKCS11Slot::GetFWVersion(/*out*/ nsACString& fwVersion) {
   return GetAttributeHelper(mSlotFWVersion, fwVersion);
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetToken(nsIPK11Token** _retval)
-{
+nsPKCS11Slot::GetToken(nsIPK11Token** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
   nsCOMPtr<nsIPK11Token> token = new nsPK11Token(mSlot.get());
   token.forget(_retval);
@@ -138,8 +126,7 @@ nsPKCS11Slot::GetToken(nsIPK11Token** _retval)
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetTokenName(/*out*/ nsACString& tokenName)
-{
+nsPKCS11Slot::GetTokenName(/*out*/ nsACString& tokenName) {
   if (!PK11_IsPresent(mSlot.get())) {
     tokenName.SetIsVoid(true);
     return NS_OK;
@@ -157,8 +144,7 @@ nsPKCS11Slot::GetTokenName(/*out*/ nsACString& tokenName)
 }
 
 NS_IMETHODIMP
-nsPKCS11Slot::GetStatus(uint32_t* _retval)
-{
+nsPKCS11Slot::GetStatus(uint32_t* _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
   if (PK11_IsDisabled(mSlot.get())) {
     *_retval = SLOT_DISABLED;
@@ -179,22 +165,19 @@ nsPKCS11Slot::GetStatus(uint32_t* _retval)
 
 NS_IMPL_ISUPPORTS(nsPKCS11Module, nsIPKCS11Module)
 
-nsPKCS11Module::nsPKCS11Module(SECMODModule* module)
-{
+nsPKCS11Module::nsPKCS11Module(SECMODModule* module) {
   MOZ_ASSERT(module);
   mModule.reset(SECMOD_ReferenceModule(module));
 }
 
 NS_IMETHODIMP
-nsPKCS11Module::GetName(/*out*/ nsACString& name)
-{
+nsPKCS11Module::GetName(/*out*/ nsACString& name) {
   name = mModule->commonName;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsPKCS11Module::GetLibName(/*out*/ nsACString& libName)
-{
+nsPKCS11Module::GetLibName(/*out*/ nsACString& libName) {
   if (mModule->dllName) {
     libName = mModule->dllName;
   } else {
@@ -205,17 +188,15 @@ nsPKCS11Module::GetLibName(/*out*/ nsACString& libName)
 
 NS_IMETHODIMP
 nsPKCS11Module::FindSlotByName(const nsACString& name,
-                       /*out*/ nsIPKCS11Slot** _retval)
-{
+                               /*out*/ nsIPKCS11Slot** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
 
   const nsCString& flatName = PromiseFlatCString(name);
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Getting \"%s\"", flatName.get()));
   UniquePK11SlotInfo slotInfo;
-  UniquePK11SlotList slotList(PK11_FindSlotsByNames(mModule->dllName,
-                                                    flatName.get() /*slotName*/,
-                                                    nullptr /*tokenName*/,
-                                                    false));
+  UniquePK11SlotList slotList(
+      PK11_FindSlotsByNames(mModule->dllName, flatName.get() /*slotName*/,
+                            nullptr /*tokenName*/, false));
   if (!slotList) {
     /* name must be the token name */
     slotList.reset(PK11_FindSlotsByNames(mModule->dllName, nullptr /*slotName*/,
@@ -240,8 +221,7 @@ nsPKCS11Module::FindSlotByName(const nsACString& name,
 }
 
 NS_IMETHODIMP
-nsPKCS11Module::ListSlots(nsISimpleEnumerator** _retval)
-{
+nsPKCS11Module::ListSlots(nsISimpleEnumerator** _retval) {
   NS_ENSURE_ARG_POINTER(_retval);
 
   nsresult rv = CheckForSmartCardChanges();

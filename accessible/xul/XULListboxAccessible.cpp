@@ -28,65 +28,34 @@ using namespace mozilla::a11y;
 // XULColumAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULColumAccessible::
-  XULColumAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
-}
+XULColumAccessible::XULColumAccessible(nsIContent* aContent,
+                                       DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {}
 
-role
-XULColumAccessible::NativeRole()
-{
-  return roles::LIST;
-}
+role XULColumAccessible::NativeRole() { return roles::LIST; }
 
-uint64_t
-XULColumAccessible::NativeState()
-{
-  return states::READONLY;
-}
-
+uint64_t XULColumAccessible::NativeState() { return states::READONLY; }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULColumnItemAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULColumnItemAccessible::
-  XULColumnItemAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LeafAccessible(aContent, aDoc)
-{
+XULColumnItemAccessible::XULColumnItemAccessible(nsIContent* aContent,
+                                                 DocAccessible* aDoc)
+    : LeafAccessible(aContent, aDoc) {}
+
+role XULColumnItemAccessible::NativeRole() { return roles::COLUMNHEADER; }
+
+uint64_t XULColumnItemAccessible::NativeState() { return states::READONLY; }
+
+uint8_t XULColumnItemAccessible::ActionCount() { return 1; }
+
+void XULColumnItemAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
+  if (aIndex == eAction_Click) aName.AssignLiteral("click");
 }
 
-role
-XULColumnItemAccessible::NativeRole()
-{
-  return roles::COLUMNHEADER;
-}
-
-uint64_t
-XULColumnItemAccessible::NativeState()
-{
-  return states::READONLY;
-}
-
-uint8_t
-XULColumnItemAccessible::ActionCount()
-{
-  return 1;
-}
-
-void
-XULColumnItemAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
-{
-  if (aIndex == eAction_Click)
-    aName.AssignLiteral("click");
-}
-
-bool
-XULColumnItemAccessible::DoAction(uint8_t aIndex)
-{
-  if (aIndex != eAction_Click)
-    return false;
+bool XULColumnItemAccessible::DoAction(uint8_t aIndex) {
+  if (aIndex != eAction_Click) return false;
 
   DoCommand();
   return true;
@@ -96,28 +65,23 @@ XULColumnItemAccessible::DoAction(uint8_t aIndex)
 // XULListboxAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULListboxAccessible::
-  XULListboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  XULSelectControlAccessible(aContent, aDoc)
-{
+XULListboxAccessible::XULListboxAccessible(nsIContent* aContent,
+                                           DocAccessible* aDoc)
+    : XULSelectControlAccessible(aContent, aDoc) {
   nsIContent* parentContent = mContent->GetFlattenedTreeParent();
   if (parentContent) {
     nsCOMPtr<nsIAutoCompletePopup> autoCompletePopupElm =
-      do_QueryInterface(parentContent);
-    if (autoCompletePopupElm)
-      mGenericTypes |= eAutoCompletePopup;
+        do_QueryInterface(parentContent);
+    if (autoCompletePopupElm) mGenericTypes |= eAutoCompletePopup;
   }
 
-  if (IsMulticolumn())
-    mGenericTypes |= eTable;
+  if (IsMulticolumn()) mGenericTypes |= eTable;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULListboxAccessible: Accessible
 
-uint64_t
-XULListboxAccessible::NativeState()
-{
+uint64_t XULListboxAccessible::NativeState() {
   // As a XULListboxAccessible we can have the following states:
   //   FOCUSED, READONLY, FOCUSABLE
 
@@ -128,35 +92,31 @@ XULListboxAccessible::NativeState()
 
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::seltype,
                                          nsGkAtoms::multiple, eCaseMatters)) {
-      states |= states::MULTISELECTABLE | states::EXTSELECTABLE;
+    states |= states::MULTISELECTABLE | states::EXTSELECTABLE;
   }
 
   return states;
 }
 
 /**
-  * Our value is the label of our ( first ) selected child.
-  */
-void
-XULListboxAccessible::Value(nsString& aValue)
-{
+ * Our value is the label of our ( first ) selected child.
+ */
+void XULListboxAccessible::Value(nsString& aValue) {
   aValue.Truncate();
 
   nsCOMPtr<nsIDOMXULSelectControlElement> select(do_QueryInterface(mContent));
   if (select) {
     nsCOMPtr<nsIDOMXULSelectControlItemElement> selectedItem;
     select->GetSelectedItem(getter_AddRefs(selectedItem));
-    if (selectedItem)
-      selectedItem->GetLabel(aValue);
+    if (selectedItem) selectedItem->GetLabel(aValue);
   }
 }
 
-role
-XULListboxAccessible::NativeRole()
-{
+role XULListboxAccessible::NativeRole() {
   // A richlistbox is used with the new autocomplete URL bar, and has a parent
   // popup <panel>.
-  if (mContent->GetParent() && mContent->GetParent()->IsXULElement(nsGkAtoms::panel))
+  if (mContent->GetParent() &&
+      mContent->GetParent()->IsXULElement(nsGkAtoms::panel))
     return roles::COMBOBOX_LIST;
 
   return IsMulticolumn() ? roles::TABLE : roles::LISTBOX;
@@ -165,9 +125,7 @@ XULListboxAccessible::NativeRole()
 ////////////////////////////////////////////////////////////////////////////////
 // XULListboxAccessible: Table
 
-uint32_t
-XULListboxAccessible::ColCount()
-{
+uint32_t XULListboxAccessible::ColCount() {
   nsIContent* headContent = nullptr;
   for (nsIContent* childContent = mContent->GetFirstChild(); childContent;
        childContent = childContent->GetNextSibling()) {
@@ -176,8 +134,7 @@ XULListboxAccessible::ColCount()
       headContent = childContent;
     }
   }
-  if (!headContent)
-    return 0;
+  if (!headContent) return 0;
 
   uint32_t columnCount = 0;
   for (nsIContent* childContent = headContent->GetFirstChild(); childContent;
@@ -191,33 +148,26 @@ XULListboxAccessible::ColCount()
   return columnCount;
 }
 
-uint32_t
-XULListboxAccessible::RowCount()
-{
+uint32_t XULListboxAccessible::RowCount() {
   nsCOMPtr<nsIDOMXULSelectControlElement> element(do_QueryInterface(mContent));
 
   uint32_t itemCount = 0;
-  if(element)
-    element->GetItemCount(&itemCount);
+  if (element) element->GetItemCount(&itemCount);
 
   return itemCount;
 }
 
-Accessible*
-XULListboxAccessible::CellAt(uint32_t aRowIndex, uint32_t aColumnIndex)
-{
-  nsCOMPtr<nsIDOMXULSelectControlElement> control =
-    do_QueryInterface(mContent);
+Accessible* XULListboxAccessible::CellAt(uint32_t aRowIndex,
+                                         uint32_t aColumnIndex) {
+  nsCOMPtr<nsIDOMXULSelectControlElement> control = do_QueryInterface(mContent);
   NS_ENSURE_TRUE(control, nullptr);
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> item;
   control->GetItemAtIndex(aRowIndex, getter_AddRefs(item));
-  if (!item)
-    return nullptr;
+  if (!item) return nullptr;
 
   nsCOMPtr<nsIContent> itemContent(do_QueryInterface(item));
-  if (!itemContent)
-    return nullptr;
+  if (!itemContent) return nullptr;
 
   Accessible* row = mDoc->GetAccessible(itemContent);
   NS_ENSURE_TRUE(row, nullptr);
@@ -225,11 +175,9 @@ XULListboxAccessible::CellAt(uint32_t aRowIndex, uint32_t aColumnIndex)
   return row->GetChildAt(aColumnIndex);
 }
 
-bool
-XULListboxAccessible::IsColSelected(uint32_t aColIdx)
-{
+bool XULListboxAccessible::IsColSelected(uint32_t aColIdx) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
@@ -240,13 +188,9 @@ XULListboxAccessible::IsColSelected(uint32_t aColIdx)
   return selectedrowCount == static_cast<int32_t>(RowCount());
 }
 
-bool
-XULListboxAccessible::IsRowSelected(uint32_t aRowIdx)
-{
-  nsCOMPtr<nsIDOMXULSelectControlElement> control =
-    do_QueryInterface(mContent);
-  NS_ASSERTION(control,
-               "Doesn't implement nsIDOMXULSelectControlElement.");
+bool XULListboxAccessible::IsRowSelected(uint32_t aRowIdx) {
+  nsCOMPtr<nsIDOMXULSelectControlElement> control = do_QueryInterface(mContent);
+  NS_ASSERTION(control, "Doesn't implement nsIDOMXULSelectControlElement.");
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> item;
   nsresult rv = control->GetItemAtIndex(aRowIdx, getter_AddRefs(item));
@@ -257,24 +201,19 @@ XULListboxAccessible::IsRowSelected(uint32_t aRowIdx)
   return isSelected;
 }
 
-bool
-XULListboxAccessible::IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx)
-{
+bool XULListboxAccessible::IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx) {
   return IsRowSelected(aRowIdx);
 }
 
-uint32_t
-XULListboxAccessible::SelectedCellCount()
-{
+uint32_t XULListboxAccessible::SelectedCellCount() {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
   nsCOMPtr<nsIDOMNodeList> selectedItems;
   control->GetSelectedItems(getter_AddRefs(selectedItems));
-  if (!selectedItems)
-    return 0;
+  if (!selectedItems) return 0;
 
   uint32_t selectedItemsCount = 0;
   nsresult rv = selectedItems->GetLength(&selectedItemsCount);
@@ -283,11 +222,9 @@ XULListboxAccessible::SelectedCellCount()
   return selectedItemsCount * ColCount();
 }
 
-uint32_t
-XULListboxAccessible::SelectedColCount()
-{
+uint32_t XULListboxAccessible::SelectedColCount() {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
@@ -296,14 +233,14 @@ XULListboxAccessible::SelectedColCount()
   NS_ENSURE_SUCCESS(rv, 0);
 
   return selectedRowCount > 0 &&
-   selectedRowCount == static_cast<int32_t>(RowCount()) ? ColCount() : 0;
+                 selectedRowCount == static_cast<int32_t>(RowCount())
+             ? ColCount()
+             : 0;
 }
 
-uint32_t
-XULListboxAccessible::SelectedRowCount()
-{
+uint32_t XULListboxAccessible::SelectedRowCount() {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
@@ -314,18 +251,15 @@ XULListboxAccessible::SelectedRowCount()
   return selectedRowCount >= 0 ? selectedRowCount : 0;
 }
 
-void
-XULListboxAccessible::SelectedCells(nsTArray<Accessible*>* aCells)
-{
+void XULListboxAccessible::SelectedCells(nsTArray<Accessible*>* aCells) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
   nsCOMPtr<nsIDOMNodeList> selectedItems;
   control->GetSelectedItems(getter_AddRefs(selectedItems));
-  if (!selectedItems)
-    return;
+  if (!selectedItems) return;
 
   uint32_t selectedItemsCount = 0;
   DebugOnly<nsresult> rv = selectedItems->GetLength(&selectedItemsCount);
@@ -341,25 +275,21 @@ XULListboxAccessible::SelectedCells(nsTArray<Accessible*>* aCells)
       uint32_t cellCount = item->ChildCount();
       for (uint32_t cellIdx = 0; cellIdx < cellCount; cellIdx++) {
         Accessible* cell = mChildren[cellIdx];
-        if (cell->Role() == roles::CELL)
-          aCells->AppendElement(cell);
+        if (cell->Role() == roles::CELL) aCells->AppendElement(cell);
       }
     }
   }
 }
 
-void
-XULListboxAccessible::SelectedCellIndices(nsTArray<uint32_t>* aCells)
-{
+void XULListboxAccessible::SelectedCellIndices(nsTArray<uint32_t>* aCells) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
   nsCOMPtr<nsIDOMNodeList> selectedItems;
   control->GetSelectedItems(getter_AddRefs(selectedItems));
-  if (!selectedItems)
-    return;
+  if (!selectedItems) return;
 
   uint32_t selectedItemsCount = 0;
   DebugOnly<nsresult> rv = selectedItems->GetLength(&selectedItemsCount);
@@ -369,13 +299,12 @@ XULListboxAccessible::SelectedCellIndices(nsTArray<uint32_t>* aCells)
   aCells->SetCapacity(selectedItemsCount * colCount);
   aCells->AppendElements(selectedItemsCount * colCount);
 
-  for (uint32_t selItemsIdx = 0, cellsIdx = 0;
-       selItemsIdx < selectedItemsCount; selItemsIdx++) {
-
+  for (uint32_t selItemsIdx = 0, cellsIdx = 0; selItemsIdx < selectedItemsCount;
+       selItemsIdx++) {
     nsCOMPtr<nsIDOMNode> itemNode;
     selectedItems->Item(selItemsIdx, getter_AddRefs(itemNode));
     nsCOMPtr<nsIDOMXULSelectControlItemElement> item =
-      do_QueryInterface(itemNode);
+        do_QueryInterface(itemNode);
 
     if (item) {
       int32_t itemIdx = -1;
@@ -387,9 +316,7 @@ XULListboxAccessible::SelectedCellIndices(nsTArray<uint32_t>* aCells)
   }
 }
 
-void
-XULListboxAccessible::SelectedColIndices(nsTArray<uint32_t>* aCols)
-{
+void XULListboxAccessible::SelectedColIndices(nsTArray<uint32_t>* aCols) {
   uint32_t selColCount = SelectedColCount();
   aCols->SetCapacity(selColCount);
 
@@ -397,25 +324,21 @@ XULListboxAccessible::SelectedColIndices(nsTArray<uint32_t>* aCols)
     aCols->AppendElement(colIdx);
 }
 
-void
-XULListboxAccessible::SelectedRowIndices(nsTArray<uint32_t>* aRows)
-{
+void XULListboxAccessible::SelectedRowIndices(nsTArray<uint32_t>* aRows) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
   nsCOMPtr<nsIDOMNodeList> selectedItems;
   control->GetSelectedItems(getter_AddRefs(selectedItems));
-  if (!selectedItems)
-    return;
+  if (!selectedItems) return;
 
   uint32_t rowCount = 0;
   DebugOnly<nsresult> rv = selectedItems->GetLength(&rowCount);
   NS_ASSERTION(NS_SUCCEEDED(rv), "GetLength() Shouldn't fail!");
 
-  if (!rowCount)
-    return;
+  if (!rowCount) return;
 
   aRows->SetCapacity(rowCount);
   aRows->AppendElements(rowCount);
@@ -424,22 +347,19 @@ XULListboxAccessible::SelectedRowIndices(nsTArray<uint32_t>* aRows)
     nsCOMPtr<nsIDOMNode> itemNode;
     selectedItems->Item(rowIdx, getter_AddRefs(itemNode));
     nsCOMPtr<nsIDOMXULSelectControlItemElement> item =
-      do_QueryInterface(itemNode);
+        do_QueryInterface(itemNode);
 
     if (item) {
       int32_t itemIdx = -1;
       control->GetIndexOfItem(item, &itemIdx);
-      if (itemIdx >= 0)
-        aRows->ElementAt(rowIdx) = itemIdx;
+      if (itemIdx >= 0) aRows->ElementAt(rowIdx) = itemIdx;
     }
   }
 }
 
-void
-XULListboxAccessible::SelectRow(uint32_t aRowIdx)
-{
+void XULListboxAccessible::SelectRow(uint32_t aRowIdx) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
@@ -448,11 +368,9 @@ XULListboxAccessible::SelectRow(uint32_t aRowIdx)
   control->SelectItem(item);
 }
 
-void
-XULListboxAccessible::UnselectRow(uint32_t aRowIdx)
-{
+void XULListboxAccessible::UnselectRow(uint32_t aRowIdx) {
   nsCOMPtr<nsIDOMXULMultiSelectControlElement> control =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
   NS_ASSERTION(control,
                "Doesn't implement nsIDOMXULMultiSelectControlElement.");
 
@@ -464,18 +382,12 @@ XULListboxAccessible::UnselectRow(uint32_t aRowIdx)
 ////////////////////////////////////////////////////////////////////////////////
 // XULListboxAccessible: Widgets
 
-bool
-XULListboxAccessible::IsWidget() const
-{
-  return true;
-}
+bool XULListboxAccessible::IsWidget() const { return true; }
 
-bool
-XULListboxAccessible::IsActiveWidget() const
-{
+bool XULListboxAccessible::IsActiveWidget() const {
   if (IsAutoCompletePopup()) {
     nsCOMPtr<nsIAutoCompletePopup> autoCompletePopupElm =
-      do_QueryInterface(mContent->GetParent());
+        do_QueryInterface(mContent->GetParent());
 
     if (autoCompletePopupElm) {
       bool isOpen = false;
@@ -486,12 +398,10 @@ XULListboxAccessible::IsActiveWidget() const
   return FocusMgr()->HasDOMFocus(mContent);
 }
 
-bool
-XULListboxAccessible::AreItemsOperable() const
-{
+bool XULListboxAccessible::AreItemsOperable() const {
   if (IsAutoCompletePopup()) {
     nsCOMPtr<nsIAutoCompletePopup> autoCompletePopupElm =
-      do_QueryInterface(mContent->GetParent());
+        do_QueryInterface(mContent->GetParent());
 
     if (autoCompletePopupElm) {
       bool isOpen = false;
@@ -502,24 +412,21 @@ XULListboxAccessible::AreItemsOperable() const
   return true;
 }
 
-Accessible*
-XULListboxAccessible::ContainerWidget() const
-{
+Accessible* XULListboxAccessible::ContainerWidget() const {
   if (IsAutoCompletePopup()) {
     // This works for XUL autocompletes. It doesn't work for HTML forms
     // autocomplete because of potential crossprocess calls (when autocomplete
     // lives in content process while popup lives in chrome process). If that's
     // a problem then rethink Widgets interface.
     nsCOMPtr<nsIDOMXULMenuListElement> menuListElm =
-      do_QueryInterface(mContent->GetParent());
+        do_QueryInterface(mContent->GetParent());
     if (menuListElm) {
       nsCOMPtr<nsIDOMNode> inputElm;
       menuListElm->GetInputField(getter_AddRefs(inputElm));
       if (inputElm) {
         nsCOMPtr<nsINode> inputNode = do_QueryInterface(inputElm);
         if (inputNode) {
-          Accessible* input =
-            mDoc->GetAccessible(inputNode);
+          Accessible* input = mDoc->GetAccessible(inputNode);
           return input ? input->ContainerWidget() : nullptr;
         }
       }
@@ -532,14 +439,11 @@ XULListboxAccessible::ContainerWidget() const
 // XULListitemAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULListitemAccessible::
-  XULListitemAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  XULMenuitemAccessible(aContent, aDoc)
-{
-  mIsCheckbox = mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                                   nsGkAtoms::type,
-                                                   nsGkAtoms::checkbox,
-                                                   eCaseMatters);
+XULListitemAccessible::XULListitemAccessible(nsIContent* aContent,
+                                             DocAccessible* aDoc)
+    : XULMenuitemAccessible(aContent, aDoc) {
+  mIsCheckbox = mContent->AsElement()->AttrValueIs(
+      kNameSpaceID_None, nsGkAtoms::type, nsGkAtoms::checkbox, eCaseMatters);
   mType = eXULListItemType;
 
   // Walk XBL anonymous children for list items. Overrides the flag value from
@@ -547,27 +451,20 @@ XULListitemAccessible::
   mStateFlags &= ~eNoXBLKids;
 }
 
-XULListitemAccessible::~XULListitemAccessible()
-{
-}
+XULListitemAccessible::~XULListitemAccessible() {}
 
-Accessible*
-XULListitemAccessible::GetListAccessible() const
-{
-  if (IsDefunct())
-    return nullptr;
+Accessible* XULListitemAccessible::GetListAccessible() const {
+  if (IsDefunct()) return nullptr;
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> listItem =
-    do_QueryInterface(mContent);
-  if (!listItem)
-    return nullptr;
+      do_QueryInterface(mContent);
+  if (!listItem) return nullptr;
 
   nsCOMPtr<nsIDOMXULSelectControlElement> list;
   listItem->GetControl(getter_AddRefs(list));
 
   nsCOMPtr<nsIContent> listContent(do_QueryInterface(list));
-  if (!listContent)
-    return nullptr;
+  if (!listContent) return nullptr;
 
   return mDoc->GetAccessible(listContent);
 }
@@ -575,9 +472,7 @@ XULListitemAccessible::GetListAccessible() const
 ////////////////////////////////////////////////////////////////////////////////
 // XULListitemAccessible Accessible
 
-void
-XULListitemAccessible::Description(nsString& aDesc)
-{
+void XULListitemAccessible::Description(nsString& aDesc) {
   AccessibleWrap::Description(aDesc);
 }
 
@@ -585,17 +480,16 @@ XULListitemAccessible::Description(nsString& aDesc)
 // XULListitemAccessible: Accessible
 
 /**
-  * If there is a Listcell as a child ( not anonymous ) use it, otherwise
-  *   default to getting the name from GetXULName
-  */
-ENameValueFlag
-XULListitemAccessible::NativeName(nsString& aName)
-{
+ * If there is a Listcell as a child ( not anonymous ) use it, otherwise
+ *   default to getting the name from GetXULName
+ */
+ENameValueFlag XULListitemAccessible::NativeName(nsString& aName) {
   nsIContent* childContent = mContent->GetFirstChild();
   if (childContent) {
     if (childContent->NodeInfo()->Equals(nsGkAtoms::listcell,
                                          kNameSpaceID_XUL)) {
-      childContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::label, aName);
+      childContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::label,
+                                         aName);
       return eNameOK;
     }
   }
@@ -603,20 +497,16 @@ XULListitemAccessible::NativeName(nsString& aName)
   return Accessible::NativeName(aName);
 }
 
-role
-XULListitemAccessible::NativeRole()
-{
+role XULListitemAccessible::NativeRole() {
   Accessible* list = GetListAccessible();
   if (!list) {
     NS_ERROR("No list accessible for listitem accessible!");
     return roles::NOTHING;
   }
 
-  if (list->Role() == roles::TABLE)
-    return roles::ROW;
+  if (list->Role() == roles::TABLE) return roles::ROW;
 
-  if (mIsCheckbox)
-    return roles::CHECK_RICH_OPTION;
+  if (mIsCheckbox) return roles::CHECK_RICH_OPTION;
 
   if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
     return roles::COMBOBOX_OPTION;
@@ -624,40 +514,32 @@ XULListitemAccessible::NativeRole()
   return roles::RICH_OPTION;
 }
 
-uint64_t
-XULListitemAccessible::NativeState()
-{
-  if (mIsCheckbox)
-    return XULMenuitemAccessible::NativeState();
+uint64_t XULListitemAccessible::NativeState() {
+  if (mIsCheckbox) return XULMenuitemAccessible::NativeState();
 
   uint64_t states = NativeInteractiveState();
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> listItem =
-    do_QueryInterface(mContent);
+      do_QueryInterface(mContent);
 
   if (listItem) {
     bool isSelected;
     listItem->GetSelected(&isSelected);
-    if (isSelected)
-      states |= states::SELECTED;
+    if (isSelected) states |= states::SELECTED;
 
-    if (FocusMgr()->IsFocused(this))
-      states |= states::FOCUSED;
+    if (FocusMgr()->IsFocused(this)) states |= states::FOCUSED;
   }
 
   return states;
 }
 
-uint64_t
-XULListitemAccessible::NativeInteractiveState() const
-{
-  return NativelyUnavailable() || (mParent && mParent->NativelyUnavailable()) ?
-    states::UNAVAILABLE : states::FOCUSABLE | states::SELECTABLE;
+uint64_t XULListitemAccessible::NativeInteractiveState() const {
+  return NativelyUnavailable() || (mParent && mParent->NativelyUnavailable())
+             ? states::UNAVAILABLE
+             : states::FOCUSABLE | states::SELECTABLE;
 }
 
-void
-XULListitemAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
-{
+void XULListitemAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
   if (aIndex == eAction_Click && mIsCheckbox) {
     uint64_t states = NativeState();
     if (states & states::CHECKED)
@@ -670,21 +552,15 @@ XULListitemAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
 ////////////////////////////////////////////////////////////////////////////////
 // XULListitemAccessible: Widgets
 
-Accessible*
-XULListitemAccessible::ContainerWidget() const
-{
-  return Parent();
-}
-
+Accessible* XULListitemAccessible::ContainerWidget() const { return Parent(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULListCellAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULListCellAccessible::
-  XULListCellAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  HyperTextAccessibleWrap(aContent, aDoc)
-{
+XULListCellAccessible::XULListCellAccessible(nsIContent* aContent,
+                                             DocAccessible* aDoc)
+    : HyperTextAccessibleWrap(aContent, aDoc) {
   mGenericTypes |= eTableCell;
 }
 
@@ -694,26 +570,19 @@ XULListCellAccessible::
 ////////////////////////////////////////////////////////////////////////////////
 // XULListCellAccessible: TableCell
 
-TableAccessible*
-XULListCellAccessible::Table() const
-{
+TableAccessible* XULListCellAccessible::Table() const {
   Accessible* thisRow = Parent();
-  if (!thisRow || thisRow->Role() != roles::ROW)
-    return nullptr;
+  if (!thisRow || thisRow->Role() != roles::ROW) return nullptr;
 
   Accessible* table = thisRow->Parent();
-  if (!table || table->Role() != roles::TABLE)
-    return nullptr;
+  if (!table || table->Role() != roles::TABLE) return nullptr;
 
   return table->AsTable();
 }
 
-uint32_t
-XULListCellAccessible::ColIdx() const
-{
+uint32_t XULListCellAccessible::ColIdx() const {
   Accessible* row = Parent();
-  if (!row)
-    return 0;
+  if (!row) return 0;
 
   int32_t indexInRow = IndexInParent();
   uint32_t colIdx = 0;
@@ -728,35 +597,27 @@ XULListCellAccessible::ColIdx() const
   return colIdx;
 }
 
-uint32_t
-XULListCellAccessible::RowIdx() const
-{
+uint32_t XULListCellAccessible::RowIdx() const {
   Accessible* row = Parent();
-  if (!row)
-    return 0;
+  if (!row) return 0;
 
   Accessible* table = row->Parent();
-  if (!table)
-    return 0;
+  if (!table) return 0;
 
   int32_t indexInTable = row->IndexInParent();
   uint32_t rowIdx = 0;
   for (int32_t idx = 0; idx < indexInTable; idx++) {
     row = table->GetChildAt(idx);
-    if (row->Role() == roles::ROW)
-      rowIdx++;
+    if (row->Role() == roles::ROW) rowIdx++;
   }
 
   return rowIdx;
 }
 
-void
-XULListCellAccessible::ColHeaderCells(nsTArray<Accessible*>* aCells)
-{
+void XULListCellAccessible::ColHeaderCells(nsTArray<Accessible*>* aCells) {
   TableAccessible* table = Table();
   NS_ASSERTION(table, "cell not in a table!");
-  if (!table)
-    return;
+  if (!table) return;
 
   // Get column header cell from XUL listhead.
   Accessible* list = nullptr;
@@ -783,11 +644,9 @@ XULListCellAccessible::ColHeaderCells(nsTArray<Accessible*>* aCells)
   TableCellAccessible::ColHeaderCells(aCells);
 }
 
-bool
-XULListCellAccessible::Selected()
-{
+bool XULListCellAccessible::Selected() {
   TableAccessible* table = Table();
-  NS_ENSURE_TRUE(table, false); // we expect to be in a listbox (table)
+  NS_ENSURE_TRUE(table, false);  // we expect to be in a listbox (table)
 
   return table->IsRowSelected(RowIdx());
 }
@@ -795,21 +654,16 @@ XULListCellAccessible::Selected()
 ////////////////////////////////////////////////////////////////////////////////
 // XULListCellAccessible. Accessible implementation
 
-role
-XULListCellAccessible::NativeRole()
-{
-  return roles::CELL;
-}
+role XULListCellAccessible::NativeRole() { return roles::CELL; }
 
 already_AddRefed<nsIPersistentProperties>
-XULListCellAccessible::NativeAttributes()
-{
+XULListCellAccessible::NativeAttributes() {
   nsCOMPtr<nsIPersistentProperties> attributes =
-    HyperTextAccessibleWrap::NativeAttributes();
+      HyperTextAccessibleWrap::NativeAttributes();
 
   // "table-cell-index" attribute
   TableAccessible* table = Table();
-  if (!table) // we expect to be in a listbox (table)
+  if (!table)  // we expect to be in a listbox (table)
     return attributes.forget();
 
   nsAutoString stringIdx;

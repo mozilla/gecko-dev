@@ -29,18 +29,18 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 extern Result CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA,
                                     const Input* encodedExtendedKeyUsage,
                                     KeyPurposeId requiredEKU,
                                     TrustDomain& trustDomain, Time notBefore);
+}
+}  // namespace mozilla
 
-} } // namespace mozilla::pkix
-
-class pkixcheck_CheckExtendedKeyUsage : public ::testing::Test
-{
-protected:
+class pkixcheck_CheckExtendedKeyUsage : public ::testing::Test {
+ protected:
   DefaultCryptoTrustDomain mTrustDomain;
 };
 
@@ -49,74 +49,65 @@ protected:
 // tlv_id_kp_OCSPSigning and tlv_id_kp_serverAuth are defined in pkixtestutil.h
 
 // python DottedOIDToCode.py --tlv id-kp-clientAuth 1.3.6.1.5.5.7.3.2
-static const uint8_t tlv_id_kp_clientAuth[] = {
-  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x02
-};
+static const uint8_t tlv_id_kp_clientAuth[] = {0x06, 0x08, 0x2b, 0x06, 0x01,
+                                               0x05, 0x05, 0x07, 0x03, 0x02};
 
 // python DottedOIDToCode.py --tlv id-kp-codeSigning 1.3.6.1.5.5.7.3.3
-static const uint8_t tlv_id_kp_codeSigning[] = {
-  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x03
-};
+static const uint8_t tlv_id_kp_codeSigning[] = {0x06, 0x08, 0x2b, 0x06, 0x01,
+                                                0x05, 0x05, 0x07, 0x03, 0x03};
 
 // python DottedOIDToCode.py --tlv id_kp_emailProtection 1.3.6.1.5.5.7.3.4
 static const uint8_t tlv_id_kp_emailProtection[] = {
-  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x04
-};
+    0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x04};
 
 // python DottedOIDToCode.py --tlv id-Netscape-stepUp 2.16.840.1.113730.4.1
 static const uint8_t tlv_id_Netscape_stepUp[] = {
-  0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x04, 0x01
-};
+    0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x04, 0x01};
 
-// python DottedOIDToCode.py --tlv unknownOID 1.3.6.1.4.1.13769.666.666.666.1.500.9.3
+// python DottedOIDToCode.py --tlv
+// unknownOID 1.3.6.1.4.1.13769.666.666.666.1.500.9.3
 static const uint8_t tlv_unknownOID[] = {
-  0x06, 0x12, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85, 0x1a, 0x85, 0x1a,
-  0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x03
-};
+    0x06, 0x12, 0x2b, 0x06, 0x01, 0x04, 0x01, 0xeb, 0x49, 0x85,
+    0x1a, 0x85, 0x1a, 0x85, 0x1a, 0x01, 0x83, 0x74, 0x09, 0x03};
 
 // python DottedOIDToCode.py --tlv anyExtendedKeyUsage 2.5.29.37.0
-static const uint8_t tlv_anyExtendedKeyUsage[] = {
-  0x06, 0x04, 0x55, 0x1d, 0x25, 0x00
-};
+static const uint8_t tlv_anyExtendedKeyUsage[] = {0x06, 0x04, 0x55,
+                                                  0x1d, 0x25, 0x00};
 
-TEST_F(pkixcheck_CheckExtendedKeyUsage, none)
-{
+TEST_F(pkixcheck_CheckExtendedKeyUsage, none) {
   // The input Input is nullptr. This means the cert had no extended key usage
   // extension. This is always valid except for when the certificate is an
   // end-entity and the required usage is id-kp-OCSPSigning.
 
-  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                                           nullptr,
-                                           KeyPurposeId::anyExtendedKeyUsage,
-                                           mTrustDomain, Now()));
+  ASSERT_EQ(Success,
+            CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                  KeyPurposeId::anyExtendedKeyUsage,
+                                  mTrustDomain, Now()));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::anyExtendedKeyUsage,
                                            mTrustDomain, Now()));
-  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                                           nullptr,
-                                           KeyPurposeId::id_kp_serverAuth,
-                                           mTrustDomain, Now()));
+  ASSERT_EQ(Success, CheckExtendedKeyUsage(
+                         EndEntityOrCA::MustBeEndEntity, nullptr,
+                         KeyPurposeId::id_kp_serverAuth, mTrustDomain, Now()));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::id_kp_serverAuth,
                                            mTrustDomain, Now()));
-  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                                           nullptr,
-                                           KeyPurposeId::id_kp_clientAuth,
-                                           mTrustDomain, Now()));
+  ASSERT_EQ(Success, CheckExtendedKeyUsage(
+                         EndEntityOrCA::MustBeEndEntity, nullptr,
+                         KeyPurposeId::id_kp_clientAuth, mTrustDomain, Now()));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::id_kp_clientAuth,
                                            mTrustDomain, Now()));
-  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                                           nullptr,
-                                           KeyPurposeId::id_kp_codeSigning,
-                                           mTrustDomain, Now()));
+  ASSERT_EQ(Success, CheckExtendedKeyUsage(
+                         EndEntityOrCA::MustBeEndEntity, nullptr,
+                         KeyPurposeId::id_kp_codeSigning, mTrustDomain, Now()));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::id_kp_codeSigning,
                                            mTrustDomain, Now()));
-  ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity,
-                                           nullptr,
-                                           KeyPurposeId::id_kp_emailProtection,
-                                           mTrustDomain, Now()));
+  ASSERT_EQ(Success,
+            CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, nullptr,
+                                  KeyPurposeId::id_kp_emailProtection,
+                                  mTrustDomain, Now()));
   ASSERT_EQ(Success, CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, nullptr,
                                            KeyPurposeId::id_kp_emailProtection,
                                            mTrustDomain, Now()));
@@ -130,376 +121,560 @@ TEST_F(pkixcheck_CheckExtendedKeyUsage, none)
 
 static const Input empty_null;
 
-TEST_F(pkixcheck_CheckExtendedKeyUsage, empty)
-{
+TEST_F(pkixcheck_CheckExtendedKeyUsage, empty) {
   // The input Input is empty. The cert has an empty extended key usage
   // extension, which is syntactically invalid.
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &empty_null,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth, mTrustDomain,
+                                   Now()));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &empty_null,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth, mTrustDomain,
+                                   Now()));
 
   static const uint8_t dummy = 0x00;
   Input empty_nonnull;
   ASSERT_EQ(Success, empty_nonnull.Init(&dummy, 0));
-  ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &empty_nonnull,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+  ASSERT_BAD(CheckExtendedKeyUsage(
+      EndEntityOrCA::MustBeEndEntity, &empty_nonnull,
+      KeyPurposeId::id_kp_serverAuth, mTrustDomain, Now()));
   ASSERT_BAD(CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &empty_nonnull,
-                                   KeyPurposeId::id_kp_serverAuth,
-                                   mTrustDomain, Now()));
+                                   KeyPurposeId::id_kp_serverAuth, mTrustDomain,
+                                   Now()));
 }
 
-struct EKUTestcase
-{
+struct EKUTestcase {
   ByteString ekuSEQUENCE;
   KeyPurposeId keyPurposeId;
   Result expectedResultEndEntity;
   Result expectedResultCA;
 };
 
-::std::ostream& operator<<(::std::ostream& os, const EKUTestcase&)
-{
+::std::ostream& operator<<(::std::ostream& os, const EKUTestcase&) {
   return os << "TODO (bug 1318770)";
 }
 
 class CheckExtendedKeyUsageTest
-  : public ::testing::Test
-  , public ::testing::WithParamInterface<EKUTestcase>
-{
-protected:
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<EKUTestcase> {
+ protected:
   DefaultCryptoTrustDomain mTrustDomain;
 };
 
-TEST_P(CheckExtendedKeyUsageTest, EKUTestcase)
-{
+TEST_P(CheckExtendedKeyUsageTest, EKUTestcase) {
   const EKUTestcase& param(GetParam());
   Input encodedEKU;
   ASSERT_EQ(Success, encodedEKU.Init(param.ekuSEQUENCE.data(),
                                      param.ekuSEQUENCE.length()));
   ASSERT_EQ(param.expectedResultEndEntity,
             CheckExtendedKeyUsage(EndEntityOrCA::MustBeEndEntity, &encodedEKU,
-                                  param.keyPurposeId,
-                                  mTrustDomain, Now()));
+                                  param.keyPurposeId, mTrustDomain, Now()));
   ASSERT_EQ(param.expectedResultCA,
             CheckExtendedKeyUsage(EndEntityOrCA::MustBeCA, &encodedEKU,
-                                  param.keyPurposeId,
-                                  mTrustDomain, Now()));
+                                  param.keyPurposeId, mTrustDomain, Now()));
 }
 
-#define SINGLE_EKU_SUCCESS(oidBytes, keyPurposeId) \
-  { TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId, \
-    Success, Success }
-#define SINGLE_EKU_SUCCESS_CA(oidBytes, keyPurposeId) \
-  { TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId, \
-    Result::ERROR_INADEQUATE_CERT_TYPE, Success }
-#define SINGLE_EKU_FAILURE(oidBytes, keyPurposeId) \
-  { TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId, \
-    Result::ERROR_INADEQUATE_CERT_TYPE, Result::ERROR_INADEQUATE_CERT_TYPE }
-#define DOUBLE_EKU_SUCCESS(oidBytes1, oidBytes2, keyPurposeId) \
-  { TLV(der::SEQUENCE, \
+#define SINGLE_EKU_SUCCESS(oidBytes, keyPurposeId)                          \
+  {                                                                         \
+    TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId, Success, \
+        Success                                                             \
+  }
+#define SINGLE_EKU_SUCCESS_CA(oidBytes, keyPurposeId)              \
+  {                                                                \
+    TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId, \
+        Result::ERROR_INADEQUATE_CERT_TYPE, Success                \
+  }
+#define SINGLE_EKU_FAILURE(oidBytes, keyPurposeId)                             \
+  {                                                                            \
+    TLV(der::SEQUENCE, BytesToByteString(oidBytes)), keyPurposeId,             \
+        Result::ERROR_INADEQUATE_CERT_TYPE, Result::ERROR_INADEQUATE_CERT_TYPE \
+  }
+#define DOUBLE_EKU_SUCCESS(oidBytes1, oidBytes2, keyPurposeId)        \
+  {                                                                   \
+    TLV(der::SEQUENCE,                                                \
         BytesToByteString(oidBytes1) + BytesToByteString(oidBytes2)), \
-    keyPurposeId, \
-    Success, Success }
-#define DOUBLE_EKU_SUCCESS_CA(oidBytes1, oidBytes2, keyPurposeId) \
-  { TLV(der::SEQUENCE, \
+        keyPurposeId, Success, Success                                \
+  }
+#define DOUBLE_EKU_SUCCESS_CA(oidBytes1, oidBytes2, keyPurposeId)     \
+  {                                                                   \
+    TLV(der::SEQUENCE,                                                \
         BytesToByteString(oidBytes1) + BytesToByteString(oidBytes2)), \
-    keyPurposeId, \
-    Result::ERROR_INADEQUATE_CERT_TYPE, Success }
-#define DOUBLE_EKU_FAILURE(oidBytes1, oidBytes2, keyPurposeId) \
-  { TLV(der::SEQUENCE, \
+        keyPurposeId, Result::ERROR_INADEQUATE_CERT_TYPE, Success     \
+  }
+#define DOUBLE_EKU_FAILURE(oidBytes1, oidBytes2, keyPurposeId)        \
+  {                                                                   \
+    TLV(der::SEQUENCE,                                                \
         BytesToByteString(oidBytes1) + BytesToByteString(oidBytes2)), \
-    keyPurposeId, \
-    Result::ERROR_INADEQUATE_CERT_TYPE, Result::ERROR_INADEQUATE_CERT_TYPE }
+        keyPurposeId, Result::ERROR_INADEQUATE_CERT_TYPE,             \
+        Result::ERROR_INADEQUATE_CERT_TYPE                            \
+  }
 
-static const EKUTestcase EKU_TESTCASES[] =
-{
-  SINGLE_EKU_SUCCESS(tlv_id_kp_serverAuth, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_SUCCESS(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_OCSPSigning),
+static const EKUTestcase EKU_TESTCASES[] = {
+    SINGLE_EKU_SUCCESS(tlv_id_kp_serverAuth, KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_id_kp_serverAuth, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_id_kp_clientAuth, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_SUCCESS(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_clientAuth, KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_id_kp_clientAuth, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_SUCCESS(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_codeSigning,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  // For end-entities, if id-kp-OCSPSigning is present, no usage is allowed
-  // except OCSPSigning.
-  SINGLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
+    // For end-entities, if id-kp-OCSPSigning is present, no usage is allowed
+    // except OCSPSigning.
+    SINGLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  // For compatibility, id-Netscape-stepUp is treated as equivalent to
-  // id-kp-serverAuth for CAs.
-  SINGLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_id_Netscape_stepUp,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    // For compatibility, id-Netscape-stepUp is treated as equivalent to
+    // id-kp-serverAuth for CAs.
+    SINGLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp,
+                          KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
 
-  SINGLE_EKU_SUCCESS(tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    SINGLE_EKU_SUCCESS(tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
+    SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
+    SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    SINGLE_EKU_FAILURE(tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_clientAuth,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_serverAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_codeSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_clientAuth, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_emailProtection,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_codeSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                          KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_kp_OCSPSigning,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_emailProtection, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_id_Netscape_stepUp,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                          KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_SUCCESS(tlv_id_kp_OCSPSigning, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_unknownOID,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_SUCCESS_CA(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                          KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_id_Netscape_stepUp, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 
-  DOUBLE_EKU_SUCCESS(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::anyExtendedKeyUsage),
-  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_serverAuth),
-  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_clientAuth),
-  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_codeSigning),
-  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_emailProtection),
-  DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage, KeyPurposeId::id_kp_OCSPSigning),
+    DOUBLE_EKU_SUCCESS(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::anyExtendedKeyUsage),
+    DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_serverAuth),
+    DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_clientAuth),
+    DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_codeSigning),
+    DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_emailProtection),
+    DOUBLE_EKU_FAILURE(tlv_unknownOID, tlv_anyExtendedKeyUsage,
+                       KeyPurposeId::id_kp_OCSPSigning),
 };
 
 INSTANTIATE_TEST_CASE_P(pkixcheck_CheckExtendedKeyUsage,
                         CheckExtendedKeyUsageTest,
                         ::testing::ValuesIn(EKU_TESTCASES));
 
-struct EKUChainTestcase
-{
+struct EKUChainTestcase {
   ByteString ekuExtensionEE;
   ByteString ekuExtensionCA;
   KeyPurposeId keyPurposeId;
   Result expectedResult;
 };
 
-::std::ostream& operator<<(::std::ostream& os, const EKUChainTestcase&)
-{
+::std::ostream& operator<<(::std::ostream& os, const EKUChainTestcase&) {
   return os << "TODO (bug 1318770)";
 }
 
 class CheckExtendedKeyUsageChainTest
-  : public ::testing::Test
-  , public ::testing::WithParamInterface<EKUChainTestcase>
-{
-};
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<EKUChainTestcase> {};
 
-static ByteString
-CreateCert(const char* issuerCN, const char* subjectCN,
-           EndEntityOrCA endEntityOrCA, ByteString encodedEKU)
-{
+static ByteString CreateCert(const char* issuerCN, const char* subjectCN,
+                             EndEntityOrCA endEntityOrCA,
+                             ByteString encodedEKU) {
   static long serialNumberValue = 0;
   ++serialNumberValue;
   ByteString serialNumber(CreateEncodedSerialNumber(serialNumberValue));
@@ -509,9 +684,8 @@ CreateCert(const char* issuerCN, const char* subjectCN,
   ByteString subjectDER(CNToDERName(subjectCN));
 
   ByteString extensions[3];
-  extensions[0] =
-    CreateEncodedBasicConstraints(endEntityOrCA == EndEntityOrCA::MustBeCA,
-                                  nullptr, Critical::Yes);
+  extensions[0] = CreateEncodedBasicConstraints(
+      endEntityOrCA == EndEntityOrCA::MustBeCA, nullptr, Critical::Yes);
   EXPECT_FALSE(ENCODING_FAILED(extensions[0]));
   if (encodedEKU.length() > 0) {
     extensions[1] = encodedEKU;
@@ -519,35 +693,29 @@ CreateCert(const char* issuerCN, const char* subjectCN,
 
   ScopedTestKeyPair reusedKey(CloneReusedKeyPair());
   ByteString certDER(CreateEncodedCertificate(
-                       v3, sha256WithRSAEncryption(), serialNumber, issuerDER,
-                       oneDayBeforeNow, oneDayAfterNow, subjectDER,
-                       *reusedKey, extensions, *reusedKey,
-                       sha256WithRSAEncryption()));
+      v3, sha256WithRSAEncryption(), serialNumber, issuerDER, oneDayBeforeNow,
+      oneDayAfterNow, subjectDER, *reusedKey, extensions, *reusedKey,
+      sha256WithRSAEncryption()));
   EXPECT_FALSE(ENCODING_FAILED(certDER));
 
   return certDER;
 }
 
-class EKUTrustDomain final : public DefaultCryptoTrustDomain
-{
-public:
+class EKUTrustDomain final : public DefaultCryptoTrustDomain {
+ public:
   explicit EKUTrustDomain(ByteString issuerCertDER)
-    : mIssuerCertDER(issuerCertDER)
-  {
-  }
+      : mIssuerCertDER(issuerCertDER) {}
 
-private:
+ private:
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input candidateCert,
-                      TrustLevel& trustLevel) override
-  {
+                      TrustLevel& trustLevel) override {
     trustLevel = InputEqualsByteString(candidateCert, mIssuerCertDER)
-               ? TrustLevel::TrustAnchor
-               : TrustLevel::InheritsTrust;
+                     ? TrustLevel::TrustAnchor
+                     : TrustLevel::InheritsTrust;
     return Success;
   }
 
-  Result FindIssuer(Input, IssuerChecker& checker, Time) override
-  {
+  Result FindIssuer(Input, IssuerChecker& checker, Time) override {
     Input derCert;
     Result rv = derCert.Init(mIssuerCertDER.data(), mIssuerCertDER.length());
     if (rv != Success) {
@@ -558,162 +726,104 @@ private:
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         const Input*, const Input*) override
-  {
+                         const Input*, const Input*) override {
     return Success;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Success;
   }
 
   ByteString mIssuerCertDER;
 };
 
-TEST_P(CheckExtendedKeyUsageChainTest, EKUChainTestcase)
-{
+TEST_P(CheckExtendedKeyUsageChainTest, EKUChainTestcase) {
   const EKUChainTestcase& param(GetParam());
-  ByteString issuerCertDER(CreateCert("CA", "CA", EndEntityOrCA::MustBeCA,
-                                      param.ekuExtensionCA));
-  ByteString subjectCertDER(CreateCert("CA", "EE",
-                                       EndEntityOrCA::MustBeEndEntity,
-                                       param.ekuExtensionEE));
+  ByteString issuerCertDER(
+      CreateCert("CA", "CA", EndEntityOrCA::MustBeCA, param.ekuExtensionCA));
+  ByteString subjectCertDER(CreateCert(
+      "CA", "EE", EndEntityOrCA::MustBeEndEntity, param.ekuExtensionEE));
 
   EKUTrustDomain trustDomain(issuerCertDER);
 
   Input subjectCertDERInput;
   ASSERT_EQ(Success, subjectCertDERInput.Init(subjectCertDER.data(),
                                               subjectCertDER.length()));
-  ASSERT_EQ(param.expectedResult,
-            BuildCertChain(trustDomain, subjectCertDERInput, Now(),
-                           EndEntityOrCA::MustBeEndEntity,
-                           KeyUsage::noParticularKeyUsageRequired,
-                           param.keyPurposeId,
-                           CertPolicyId::anyPolicy,
-                           nullptr));
+  ASSERT_EQ(
+      param.expectedResult,
+      BuildCertChain(trustDomain, subjectCertDERInput, Now(),
+                     EndEntityOrCA::MustBeEndEntity,
+                     KeyUsage::noParticularKeyUsageRequired, param.keyPurposeId,
+                     CertPolicyId::anyPolicy, nullptr));
 }
 
 // python DottedOIDToCode.py --tlv id-ce-extKeyUsage 2.5.29.37
-static const uint8_t tlv_id_ce_extKeyUsage[] = {
-  0x06, 0x03, 0x55, 0x1d, 0x25
-};
+static const uint8_t tlv_id_ce_extKeyUsage[] = {0x06, 0x03, 0x55, 0x1d, 0x25};
 
-static inline ByteString
-CreateEKUExtension(ByteString ekuOIDs)
-{
+static inline ByteString CreateEKUExtension(ByteString ekuOIDs) {
   return TLV(der::SEQUENCE,
              BytesToByteString(tlv_id_ce_extKeyUsage) +
-               TLV(der::OCTET_STRING, TLV(der::SEQUENCE, ekuOIDs)));
+                 TLV(der::OCTET_STRING, TLV(der::SEQUENCE, ekuOIDs)));
 }
 
-static const EKUChainTestcase EKU_CHAIN_TESTCASES[] =
-{
-  {
-    // Both end-entity and CA have id-kp-serverAuth => should succeed
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // CA has no EKU extension => should succeed
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    ByteString(),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // End-entity has no EKU extension => should succeed
-    ByteString(),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // No EKU extensions at all => should succeed
-    ByteString(),
-    ByteString(),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // CA has EKU without id-kp-serverAuth => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // End-entity has EKU without id-kp-serverAuth => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // Both end-entity and CA have EKU without id-kp-serverAuth => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // End-entity has no EKU, CA doesn't have id-kp-serverAuth => should fail
-    ByteString(),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // End-entity doesn't have id-kp-serverAuth, CA has no EKU => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
-    ByteString(),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // CA has id-Netscape-stepUp => should succeed
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_Netscape_stepUp)),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // End-entity has id-Netscape-stepUp => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_Netscape_stepUp)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // End-entity and CA have id-kp-serverAuth and id-kp-clientAuth => should
-    // succeed
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_clientAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_clientAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
-  {
-    // End-entity has id-kp-serverAuth and id-kp-OCSPSigning => should fail
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_OCSPSigning)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_clientAuth)),
-    KeyPurposeId::id_kp_serverAuth,
-    Result::ERROR_INADEQUATE_CERT_TYPE
-  },
-  {
-    // CA has id-kp-serverAuth and id-kp-OCSPSigning => should succeed
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_clientAuth)),
-    CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
-                       BytesToByteString(tlv_id_kp_OCSPSigning)),
-    KeyPurposeId::id_kp_serverAuth,
-    Success
-  },
+static const EKUChainTestcase EKU_CHAIN_TESTCASES[] = {
+    {// Both end-entity and CA have id-kp-serverAuth => should succeed
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     KeyPurposeId::id_kp_serverAuth, Success},
+    {// CA has no EKU extension => should succeed
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)), ByteString(),
+     KeyPurposeId::id_kp_serverAuth, Success},
+    {// End-entity has no EKU extension => should succeed
+     ByteString(), CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     KeyPurposeId::id_kp_serverAuth, Success},
+    {// No EKU extensions at all => should succeed
+     ByteString(), ByteString(), KeyPurposeId::id_kp_serverAuth, Success},
+    {// CA has EKU without id-kp-serverAuth => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// End-entity has EKU without id-kp-serverAuth => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// Both end-entity and CA have EKU without id-kp-serverAuth => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// End-entity has no EKU, CA doesn't have id-kp-serverAuth => should fail
+     ByteString(), CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// End-entity doesn't have id-kp-serverAuth, CA has no EKU => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_clientAuth)), ByteString(),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// CA has id-Netscape-stepUp => should succeed
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_Netscape_stepUp)),
+     KeyPurposeId::id_kp_serverAuth, Success},
+    {// End-entity has id-Netscape-stepUp => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_Netscape_stepUp)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// End-entity and CA have id-kp-serverAuth and id-kp-clientAuth => should
+     // succeed
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_clientAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_clientAuth)),
+     KeyPurposeId::id_kp_serverAuth, Success},
+    {// End-entity has id-kp-serverAuth and id-kp-OCSPSigning => should fail
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_OCSPSigning)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_clientAuth)),
+     KeyPurposeId::id_kp_serverAuth, Result::ERROR_INADEQUATE_CERT_TYPE},
+    {// CA has id-kp-serverAuth and id-kp-OCSPSigning => should succeed
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_clientAuth)),
+     CreateEKUExtension(BytesToByteString(tlv_id_kp_serverAuth) +
+                        BytesToByteString(tlv_id_kp_OCSPSigning)),
+     KeyPurposeId::id_kp_serverAuth, Success},
 };
 
 INSTANTIATE_TEST_CASE_P(pkixcheck_CheckExtendedKeyUsage,

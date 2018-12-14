@@ -11,36 +11,27 @@
 // <msqrt> -- form a radical - implementation
 //
 
-nsIFrame*
-NS_NewMathMLmsqrtFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewMathMLmsqrtFrame(nsIPresShell* aPresShell,
+                                 nsStyleContext* aContext) {
   return new (aPresShell) nsMathMLmsqrtFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmsqrtFrame)
 
-nsMathMLmsqrtFrame::nsMathMLmsqrtFrame(nsStyleContext* aContext) :
-  nsMathMLmencloseFrame(aContext, kClassID)
-{
-}
+nsMathMLmsqrtFrame::nsMathMLmsqrtFrame(nsStyleContext* aContext)
+    : nsMathMLmencloseFrame(aContext, kClassID) {}
 
-nsMathMLmsqrtFrame::~nsMathMLmsqrtFrame()
-{
-}
+nsMathMLmsqrtFrame::~nsMathMLmsqrtFrame() {}
 
-void
-nsMathMLmsqrtFrame::Init(nsIContent*       aContent,
-                         nsContainerFrame* aParent,
-                         nsIFrame*         aPrevInFlow)
-{
+void nsMathMLmsqrtFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
+                              nsIFrame* aPrevInFlow) {
   nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
   AllocateMathMLChar(NOTATION_RADICAL);
   mNotationsToDraw += NOTATION_RADICAL;
 }
 
 NS_IMETHODIMP
-nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent)
-{
+nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent) {
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
 
   mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
@@ -48,11 +39,9 @@ nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent)
   return NS_OK;
 }
 
-nsresult
-nsMathMLmsqrtFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                     nsAtom*        aAttribute,
-                                     int32_t         aModType)
-{
-  return nsMathMLContainerFrame::
-    AttributeChanged(aNameSpaceID, aAttribute, aModType);
+nsresult nsMathMLmsqrtFrame::AttributeChanged(int32_t aNameSpaceID,
+                                              nsAtom* aAttribute,
+                                              int32_t aModType) {
+  return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
+                                                  aModType);
 }

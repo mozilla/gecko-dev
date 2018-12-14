@@ -19,9 +19,8 @@ mozilla::LazyLogModule gMediaChildLog("MediaChild");
 namespace mozilla {
 namespace media {
 
-already_AddRefed<Pledge<nsCString>>
-GetPrincipalKey(const ipc::PrincipalInfo& aPrincipalInfo, bool aPersist)
-{
+already_AddRefed<Pledge<nsCString>> GetPrincipalKey(
+    const ipc::PrincipalInfo& aPrincipalInfo, bool aPersist) {
   RefPtr<MediaManager> mgr = MediaManager::GetInstance();
   MOZ_ASSERT(mgr);
 
@@ -36,11 +35,9 @@ GetPrincipalKey(const ipc::PrincipalInfo& aPrincipalInfo, bool aPersist)
   return p.forget();
 }
 
-void
-SanitizeOriginKeys(const uint64_t& aSinceWhen, bool aOnlyPrivateBrowsing)
-{
+void SanitizeOriginKeys(const uint64_t& aSinceWhen, bool aOnlyPrivateBrowsing) {
   LOG(("SanitizeOriginKeys since %" PRIu64 " %s", aSinceWhen,
-       (aOnlyPrivateBrowsing? "in Private Browsing." : ".")));
+       (aOnlyPrivateBrowsing ? "in Private Browsing." : ".")));
 
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     // Avoid opening MediaManager in this case, since this is called by
@@ -54,63 +51,49 @@ SanitizeOriginKeys(const uint64_t& aSinceWhen, bool aOnlyPrivateBrowsing)
 
 static Child* sChild;
 
-Child* Child::Get()
-{
+Child* Child::Get() {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content);
   MOZ_ASSERT(NS_IsMainThread());
   if (!sChild) {
-    sChild = static_cast<Child*>(dom::ContentChild::GetSingleton()->SendPMediaConstructor());
+    sChild = static_cast<Child*>(
+        dom::ContentChild::GetSingleton()->SendPMediaConstructor());
   }
   return sChild;
 }
 
-Child::Child()
-  : mActorDestroyed(false)
-{
+Child::Child() : mActorDestroyed(false) {
   LOG(("media::Child: %p", this));
   MOZ_COUNT_CTOR(Child);
 }
 
-Child::~Child()
-{
+Child::~Child() {
   LOG(("~media::Child: %p", this));
   sChild = nullptr;
   MOZ_COUNT_DTOR(Child);
 }
 
-void Child::ActorDestroy(ActorDestroyReason aWhy)
-{
-  mActorDestroyed = true;
-}
+void Child::ActorDestroy(ActorDestroyReason aWhy) { mActorDestroyed = true; }
 
-mozilla::ipc::IPCResult
-Child::RecvGetPrincipalKeyResponse(const uint32_t& aRequestId,
-                                   const nsCString& aKey)
-{
+mozilla::ipc::IPCResult Child::RecvGetPrincipalKeyResponse(
+    const uint32_t& aRequestId, const nsCString& aKey) {
   RefPtr<MediaManager> mgr = MediaManager::GetInstance();
   if (!mgr) {
     return IPC_FAIL_NO_REASON(this);
   }
   RefPtr<Pledge<nsCString>> pledge =
-    mgr->mGetPrincipalKeyPledges.Remove(aRequestId);
+      mgr->mGetPrincipalKeyPledges.Remove(aRequestId);
   if (pledge) {
     pledge->Resolve(aKey);
   }
   return IPC_OK();
 }
 
-PMediaChild*
-AllocPMediaChild()
-{
-  return new Child();
-}
+PMediaChild* AllocPMediaChild() { return new Child(); }
 
-bool
-DeallocPMediaChild(media::PMediaChild *aActor)
-{
+bool DeallocPMediaChild(media::PMediaChild* aActor) {
   delete static_cast<Child*>(aActor);
   return true;
 }
 
-} // namespace media
-} // namespace mozilla
+}  // namespace media
+}  // namespace mozilla

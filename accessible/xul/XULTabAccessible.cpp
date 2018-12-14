@@ -25,31 +25,19 @@ using namespace mozilla::a11y;
 // XULTabAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULTabAccessible::
-  XULTabAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  HyperTextAccessibleWrap(aContent, aDoc)
-{
-}
+XULTabAccessible::XULTabAccessible(nsIContent* aContent, DocAccessible* aDoc)
+    : HyperTextAccessibleWrap(aContent, aDoc) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTabAccessible: Accessible
 
-uint8_t
-XULTabAccessible::ActionCount()
-{
-  return 1;
+uint8_t XULTabAccessible::ActionCount() { return 1; }
+
+void XULTabAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
+  if (aIndex == eAction_Switch) aName.AssignLiteral("switch");
 }
 
-void
-XULTabAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
-{
-  if (aIndex == eAction_Switch)
-    aName.AssignLiteral("switch");
-}
-
-bool
-XULTabAccessible::DoAction(uint8_t index)
-{
+bool XULTabAccessible::DoAction(uint8_t index) {
   if (index == eAction_Switch) {
     // XXXbz Could this just FromContent?
     RefPtr<nsXULElement> tab = nsXULElement::FromContentOrNull(mContent);
@@ -64,15 +52,9 @@ XULTabAccessible::DoAction(uint8_t index)
 ////////////////////////////////////////////////////////////////////////////////
 // XULTabAccessible: Accessible
 
-role
-XULTabAccessible::NativeRole()
-{
-  return roles::PAGETAB;
-}
+role XULTabAccessible::NativeRole() { return roles::PAGETAB; }
 
-uint64_t
-XULTabAccessible::NativeState()
-{
+uint64_t XULTabAccessible::NativeState() {
   // Possible states: focused, focusable, unavailable(disabled), offscreen.
 
   // get focus and disable status from base class
@@ -88,124 +70,82 @@ XULTabAccessible::NativeState()
     if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::pinned,
                                            nsGkAtoms::_true, eCaseMatters))
       state |= states::PINNED;
-
   }
 
   return state;
 }
 
-uint64_t
-XULTabAccessible::NativeInteractiveState() const
-{
+uint64_t XULTabAccessible::NativeInteractiveState() const {
   uint64_t state = Accessible::NativeInteractiveState();
   return (state & states::UNAVAILABLE) ? state : state | states::SELECTABLE;
 }
 
-Relation
-XULTabAccessible::RelationByType(RelationType aType)
-{
+Relation XULTabAccessible::RelationByType(RelationType aType) {
   Relation rel = AccessibleWrap::RelationByType(aType);
-  if (aType != RelationType::LABEL_FOR)
-    return rel;
+  if (aType != RelationType::LABEL_FOR) return rel;
 
   // Expose 'LABEL_FOR' relation on tab accessible for tabpanel accessible.
   nsCOMPtr<nsIDOMXULRelatedElement> tabsElm =
-    do_QueryInterface(mContent->GetParent());
-  if (!tabsElm)
-    return rel;
+      do_QueryInterface(mContent->GetParent());
+  if (!tabsElm) return rel;
 
   nsCOMPtr<nsIDOMNode> domNode(DOMNode());
   nsCOMPtr<nsIDOMNode> tabpanelNode;
   tabsElm->GetRelatedElement(domNode, getter_AddRefs(tabpanelNode));
-  if (!tabpanelNode)
-    return rel;
+  if (!tabpanelNode) return rel;
 
   nsCOMPtr<nsIContent> tabpanelContent(do_QueryInterface(tabpanelNode));
   rel.AppendTarget(mDoc, tabpanelContent);
   return rel;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // XULTabsAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULTabsAccessible::
-  XULTabsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  XULSelectControlAccessible(aContent, aDoc)
-{
-}
+XULTabsAccessible::XULTabsAccessible(nsIContent* aContent, DocAccessible* aDoc)
+    : XULSelectControlAccessible(aContent, aDoc) {}
 
-role
-XULTabsAccessible::NativeRole()
-{
-  return roles::PAGETABLIST;
-}
+role XULTabsAccessible::NativeRole() { return roles::PAGETABLIST; }
 
-uint8_t
-XULTabsAccessible::ActionCount()
-{
-  return 0;
-}
+uint8_t XULTabsAccessible::ActionCount() { return 0; }
 
-void
-XULTabsAccessible::Value(nsString& aValue)
-{
-  aValue.Truncate();
-}
+void XULTabsAccessible::Value(nsString& aValue) { aValue.Truncate(); }
 
-ENameValueFlag
-XULTabsAccessible::NativeName(nsString& aName)
-{
+ENameValueFlag XULTabsAccessible::NativeName(nsString& aName) {
   // no name
   return eNameOK;
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTabpanelsAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-role
-XULTabpanelsAccessible::NativeRole()
-{
-  return roles::PANE;
-}
+role XULTabpanelsAccessible::NativeRole() { return roles::PANE; }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULTabpanelAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULTabpanelAccessible::
-  XULTabpanelAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
-}
+XULTabpanelAccessible::XULTabpanelAccessible(nsIContent* aContent,
+                                             DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {}
 
-role
-XULTabpanelAccessible::NativeRole()
-{
-  return roles::PROPERTYPAGE;
-}
+role XULTabpanelAccessible::NativeRole() { return roles::PROPERTYPAGE; }
 
-Relation
-XULTabpanelAccessible::RelationByType(RelationType aType)
-{
+Relation XULTabpanelAccessible::RelationByType(RelationType aType) {
   Relation rel = AccessibleWrap::RelationByType(aType);
-  if (aType != RelationType::LABELLED_BY)
-    return rel;
+  if (aType != RelationType::LABELLED_BY) return rel;
 
   // Expose 'LABELLED_BY' relation on tabpanel accessible for tab accessible.
   nsCOMPtr<nsIDOMXULRelatedElement> tabpanelsElm =
-    do_QueryInterface(mContent->GetParent());
-  if (!tabpanelsElm)
-    return rel;
+      do_QueryInterface(mContent->GetParent());
+  if (!tabpanelsElm) return rel;
 
   nsCOMPtr<nsIDOMNode> domNode(DOMNode());
   nsCOMPtr<nsIDOMNode> tabNode;
   tabpanelsElm->GetRelatedElement(domNode, getter_AddRefs(tabNode));
-  if (!tabNode)
-    return rel;
+  if (!tabNode) return rel;
 
   nsCOMPtr<nsIContent> tabContent(do_QueryInterface(tabNode));
   rel.AppendTarget(mDoc, tabContent);

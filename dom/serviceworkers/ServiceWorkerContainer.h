@@ -19,11 +19,11 @@ struct RegistrationOptions;
 class ServiceWorker;
 
 // Lightweight serviceWorker APIs collection.
-class ServiceWorkerContainer final : public DOMEventTargetHelper
-{
-public:
+class ServiceWorkerContainer final : public DOMEventTargetHelper {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerContainer, DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerContainer,
+                                           DOMEventTargetHelper)
 
   IMPL_EVENT_HANDLER(controllerchange)
   IMPL_EVENT_HANDLER(error)
@@ -33,40 +33,34 @@ public:
 
   explicit ServiceWorkerContainer(nsPIDOMWindowInner* aWindow);
 
-  virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<Promise>
-  Register(const nsAString& aScriptURL,
-           const RegistrationOptions& aOptions,
-           ErrorResult& aRv);
+  already_AddRefed<Promise> Register(const nsAString& aScriptURL,
+                                     const RegistrationOptions& aOptions,
+                                     ErrorResult& aRv);
 
-  already_AddRefed<ServiceWorker>
-  GetController();
+  already_AddRefed<ServiceWorker> GetController();
 
-  already_AddRefed<Promise>
-  GetRegistration(const nsAString& aDocumentURL,
-                  ErrorResult& aRv);
+  already_AddRefed<Promise> GetRegistration(const nsAString& aDocumentURL,
+                                            ErrorResult& aRv);
 
-  already_AddRefed<Promise>
-  GetRegistrations(ErrorResult& aRv);
+  already_AddRefed<Promise> GetRegistrations(ErrorResult& aRv);
 
-  Promise*
-  GetReady(ErrorResult& aRv);
+  Promise* GetReady(ErrorResult& aRv);
 
   // Testing only.
-  void
-  GetScopeForUrl(const nsAString& aUrl, nsString& aScope, ErrorResult& aRv);
+  void GetScopeForUrl(const nsAString& aUrl, nsString& aScope,
+                      ErrorResult& aRv);
 
   // DOMEventTargetHelper
   void DisconnectFromOwner() override;
 
   // Invalidates |mControllerWorker| and dispatches a "controllerchange"
   // event.
-  void
-  ControllerChanged(ErrorResult& aRv);
+  void ControllerChanged(ErrorResult& aRv);
 
-private:
+ private:
   ~ServiceWorkerContainer();
 
   void RemoveReadyPromise();
@@ -78,7 +72,7 @@ private:
   RefPtr<Promise> mReadyPromise;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_serviceworkercontainer_h__ */

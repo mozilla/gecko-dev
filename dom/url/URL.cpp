@@ -26,16 +26,13 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(URL)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject*
-URL::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* URL::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return URLBinding::Wrap(aCx, this, aGivenProto);
 }
 
-/* static */ already_AddRefed<URL>
-URL::Constructor(const GlobalObject& aGlobal, const nsAString& aURL,
-                 const Optional<nsAString>& aBase, ErrorResult& aRv)
-{
+/* static */ already_AddRefed<URL> URL::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aURL,
+    const Optional<nsAString>& aBase, ErrorResult& aRv) {
   if (NS_IsMainThread()) {
     return URLMainThread::Constructor(aGlobal, aURL, aBase, aRv);
   }
@@ -43,17 +40,14 @@ URL::Constructor(const GlobalObject& aGlobal, const nsAString& aURL,
   return URLWorker::Constructor(aGlobal, aURL, aBase, aRv);
 }
 
-/* static */ already_AddRefed<URL>
-URL::WorkerConstructor(const GlobalObject& aGlobal, const nsAString& aURL,
-                       const nsAString& aBase, ErrorResult& aRv)
-{
+/* static */ already_AddRefed<URL> URL::WorkerConstructor(
+    const GlobalObject& aGlobal, const nsAString& aURL, const nsAString& aBase,
+    ErrorResult& aRv) {
   return URLWorker::Constructor(aGlobal, aURL, aBase, aRv);
 }
 
-void
-URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
-                     nsAString& aResult, ErrorResult& aRv)
-{
+void URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
+                          nsAString& aResult, ErrorResult& aRv) {
   if (NS_IsMainThread()) {
     URLMainThread::CreateObjectURL(aGlobal, aBlob, aResult, aRv);
   } else {
@@ -61,10 +55,8 @@ URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
   }
 }
 
-void
-URL::CreateObjectURL(const GlobalObject& aGlobal, DOMMediaStream& aStream,
-                     nsAString& aResult, ErrorResult& aRv)
-{
+void URL::CreateObjectURL(const GlobalObject& aGlobal, DOMMediaStream& aStream,
+                          nsAString& aResult, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
   DeprecationWarning(aGlobal, nsIDocument::eURLCreateObjectURL_MediaStream);
@@ -72,18 +64,14 @@ URL::CreateObjectURL(const GlobalObject& aGlobal, DOMMediaStream& aStream,
   URLMainThread::CreateObjectURL(aGlobal, aStream, aResult, aRv);
 }
 
-void
-URL::CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
-                     nsAString& aResult, ErrorResult& aRv)
-{
+void URL::CreateObjectURL(const GlobalObject& aGlobal, MediaSource& aSource,
+                          nsAString& aResult, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
   URLMainThread::CreateObjectURL(aGlobal, aSource, aResult, aRv);
 }
 
-void
-URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aURL,
-                     ErrorResult& aRv)
-{
+void URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aURL,
+                          ErrorResult& aRv) {
   if (NS_IsMainThread()) {
     URLMainThread::RevokeObjectURL(aGlobal, aURL, aRv);
   } else {
@@ -91,50 +79,38 @@ URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aURL,
   }
 }
 
-bool
-URL::IsValidURL(const GlobalObject& aGlobal, const nsAString& aURL,
-                ErrorResult& aRv)
-{
+bool URL::IsValidURL(const GlobalObject& aGlobal, const nsAString& aURL,
+                     ErrorResult& aRv) {
   if (NS_IsMainThread()) {
     return URLMainThread::IsValidURL(aGlobal, aURL, aRv);
   }
   return URLWorker::IsValidURL(aGlobal, aURL, aRv);
 }
 
-URLSearchParams*
-URL::SearchParams()
-{
+URLSearchParams* URL::SearchParams() {
   CreateSearchParamsIfNeeded();
   return mSearchParams;
 }
 
-bool IsChromeURI(nsIURI* aURI)
-{
+bool IsChromeURI(nsIURI* aURI) {
   bool isChrome = false;
-  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)))
-      return isChrome;
+  if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome))) return isChrome;
   return false;
 }
 
-void
-URL::CreateSearchParamsIfNeeded()
-{
+void URL::CreateSearchParamsIfNeeded() {
   if (!mSearchParams) {
     mSearchParams = new URLSearchParams(mParent, this);
     UpdateURLSearchParams();
   }
 }
 
-void
-URL::SetSearch(const nsAString& aSearch, ErrorResult& aRv)
-{
+void URL::SetSearch(const nsAString& aSearch, ErrorResult& aRv) {
   SetSearchInternal(aSearch, aRv);
   UpdateURLSearchParams();
 }
 
-void
-URL::URLSearchParamsUpdated(URLSearchParams* aSearchParams)
-{
+void URL::URLSearchParamsUpdated(URLSearchParams* aSearchParams) {
   MOZ_ASSERT(mSearchParams);
   MOZ_ASSERT(mSearchParams == aSearchParams);
 
@@ -147,5 +123,5 @@ URL::URLSearchParamsUpdated(URLSearchParams* aSearchParams)
   rv.SuppressException();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

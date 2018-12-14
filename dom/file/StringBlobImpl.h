@@ -13,31 +13,27 @@
 namespace mozilla {
 namespace dom {
 
-class StringBlobImpl final : public BaseBlobImpl
-                           , public nsIMemoryReporter
-{
+class StringBlobImpl final : public BaseBlobImpl, public nsIMemoryReporter {
   MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf)
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMEMORYREPORTER
 
-  static already_AddRefed<StringBlobImpl>
-  Create(const nsACString& aData, const nsAString& aContentType);
+  static already_AddRefed<StringBlobImpl> Create(const nsACString& aData,
+                                                 const nsAString& aContentType);
 
   virtual void CreateInputStream(nsIInputStream** aStream,
                                  ErrorResult& aRv) override;
 
-  virtual already_AddRefed<BlobImpl>
-  CreateSlice(uint64_t aStart, uint64_t aLength,
-              const nsAString& aContentType, ErrorResult& aRv) override;
+  virtual already_AddRefed<BlobImpl> CreateSlice(uint64_t aStart,
+                                                 uint64_t aLength,
+                                                 const nsAString& aContentType,
+                                                 ErrorResult& aRv) override;
 
-  size_t GetAllocationSize() const override
-  {
-    return mData.Length();
-  }
+  size_t GetAllocationSize() const override { return mData.Length(); }
 
-private:
+ private:
   StringBlobImpl(const nsACString& aData, const nsAString& aContentType);
 
   ~StringBlobImpl();
@@ -45,7 +41,7 @@ private:
   nsCString mData;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_StringBlobImpl_h
+#endif  // mozilla_dom_StringBlobImpl_h

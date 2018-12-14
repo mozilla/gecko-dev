@@ -18,34 +18,33 @@ namespace mozilla {
 
 namespace dom {
 class DocGroup;
-} // namespace dom
+}  // namespace dom
 
 class ServoDeclarationBlock;
 class ServoPageRule;
 
-class ServoPageRuleDeclaration final : public nsDOMCSSDeclaration
-{
-public:
+class ServoPageRuleDeclaration final : public nsDOMCSSDeclaration {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   css::Rule* GetParentRule() final;
   nsINode* GetParentObject() final;
 
-protected:
+ protected:
   DeclarationBlock* GetCSSDeclaration(Operation aOperation) final;
   nsresult SetCSSDeclaration(DeclarationBlock* aDecl) final;
   nsIDocument* DocToUpdate() final;
   void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv,
                                 nsIPrincipal* aSubjectPrincipal) final;
-  nsDOMCSSDeclaration::ServoCSSParsingEnvironment
-  GetServoCSSParsingEnvironment(nsIPrincipal* aSubjectPrincipal) const final;
+  nsDOMCSSDeclaration::ServoCSSParsingEnvironment GetServoCSSParsingEnvironment(
+      nsIPrincipal* aSubjectPrincipal) const final;
 
-private:
+ private:
   // For accessing the constructor.
   friend class ServoPageRule;
 
   explicit ServoPageRuleDeclaration(
-    already_AddRefed<RawServoDeclarationBlock> aDecls);
+      already_AddRefed<RawServoDeclarationBlock> aDecls);
   ~ServoPageRuleDeclaration();
 
   inline ServoPageRule* Rule();
@@ -54,16 +53,14 @@ private:
   RefPtr<ServoDeclarationBlock> mDecls;
 };
 
-class ServoPageRule final : public dom::CSSPageRule
-{
-public:
-  ServoPageRule(RefPtr<RawServoPageRule> aRawRule,
-                uint32_t aLine, uint32_t aColumn);
+class ServoPageRule final : public dom::CSSPageRule {
+ public:
+  ServoPageRule(RefPtr<RawServoPageRule> aRawRule, uint32_t aLine,
+                uint32_t aColumn);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
-    ServoPageRule, dom::CSSPageRule
-  )
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(ServoPageRule,
+                                                         dom::CSSPageRule)
   bool IsCCLeaf() const final;
 
   RawServoPageRule* Raw() const { return mRawRule; }
@@ -74,14 +71,13 @@ public:
 
   // Methods of mozilla::css::Rule
   already_AddRefed<css::Rule> Clone() const final;
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const final;
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const final;
 
 #ifdef DEBUG
   void List(FILE* out = stdout, int32_t aIndent = 0) const final;
 #endif
 
-private:
+ private:
   virtual ~ServoPageRule();
 
   // For computing the offset of mDecls.
@@ -91,20 +87,16 @@ private:
   ServoPageRuleDeclaration mDecls;
 };
 
-ServoPageRule*
-ServoPageRuleDeclaration::Rule()
-{
-  return reinterpret_cast<ServoPageRule*>(
-    reinterpret_cast<uint8_t*>(this) - offsetof(ServoPageRule, mDecls));
+ServoPageRule* ServoPageRuleDeclaration::Rule() {
+  return reinterpret_cast<ServoPageRule*>(reinterpret_cast<uint8_t*>(this) -
+                                          offsetof(ServoPageRule, mDecls));
 }
 
-const ServoPageRule*
-ServoPageRuleDeclaration::Rule() const
-{
+const ServoPageRule* ServoPageRuleDeclaration::Rule() const {
   return reinterpret_cast<const ServoPageRule*>(
-    reinterpret_cast<const uint8_t*>(this) - offsetof(ServoPageRule, mDecls));
+      reinterpret_cast<const uint8_t*>(this) - offsetof(ServoPageRule, mDecls));
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoPageRule_h
+#endif  // mozilla_ServoPageRule_h

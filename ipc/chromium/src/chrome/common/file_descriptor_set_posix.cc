@@ -11,15 +11,13 @@
 
 #include <unistd.h>
 
-FileDescriptorSet::FileDescriptorSet()
-    : consumed_descriptor_highwater_(0) {
-}
+FileDescriptorSet::FileDescriptorSet() : consumed_descriptor_highwater_(0) {}
 
 FileDescriptorSet::~FileDescriptorSet() {
-  if (consumed_descriptor_highwater_ == descriptors_.size())
-    return;
+  if (consumed_descriptor_highwater_ == descriptors_.size()) return;
 
-  CHROMIUM_LOG(WARNING) << "FileDescriptorSet destroyed with unconsumed descriptors";
+  CHROMIUM_LOG(WARNING)
+      << "FileDescriptorSet destroyed with unconsumed descriptors";
   // We close all the descriptors where the close flag is set. If this
   // message should have been transmitted, then closing those with close
   // flags set mirrors the expected behaviour.
@@ -28,16 +26,14 @@ FileDescriptorSet::~FileDescriptorSet() {
   // (which could a DOS against the browser by a rogue renderer) then all
   // the descriptors have their close flag set and we free all the extra
   // kernel resources.
-  for (unsigned i = consumed_descriptor_highwater_;
-       i < descriptors_.size(); ++i) {
-    if (descriptors_[i].auto_close)
-      HANDLE_EINTR(close(descriptors_[i].fd));
+  for (unsigned i = consumed_descriptor_highwater_; i < descriptors_.size();
+       ++i) {
+    if (descriptors_[i].auto_close) HANDLE_EINTR(close(descriptors_[i].fd));
   }
 }
 
 bool FileDescriptorSet::Add(int fd) {
-  if (descriptors_.size() == MAX_DESCRIPTORS_PER_MESSAGE)
-    return false;
+  if (descriptors_.size() == MAX_DESCRIPTORS_PER_MESSAGE) return false;
 
   struct base::FileDescriptor sd;
   sd.fd = fd;
@@ -47,8 +43,7 @@ bool FileDescriptorSet::Add(int fd) {
 }
 
 bool FileDescriptorSet::AddAndAutoClose(int fd) {
-  if (descriptors_.size() == MAX_DESCRIPTORS_PER_MESSAGE)
-    return false;
+  if (descriptors_.size() == MAX_DESCRIPTORS_PER_MESSAGE) return false;
 
   struct base::FileDescriptor sd;
   sd.fd = fd;
@@ -59,8 +54,7 @@ bool FileDescriptorSet::AddAndAutoClose(int fd) {
 }
 
 int FileDescriptorSet::GetDescriptorAt(unsigned index) const {
-  if (index >= descriptors_.size())
-    return -1;
+  if (index >= descriptors_.size()) return -1;
 
   // We should always walk the descriptors in order, so it's reasonable to
   // enforce this. Consider the case where a compromised renderer sends us
@@ -84,25 +78,24 @@ int FileDescriptorSet::GetDescriptorAt(unsigned index) const {
   if (index == 0 && consumed_descriptor_highwater_ == descriptors_.size())
     consumed_descriptor_highwater_ = 0;
 
-  if (index != consumed_descriptor_highwater_)
-    return -1;
+  if (index != consumed_descriptor_highwater_) return -1;
 
   consumed_descriptor_highwater_ = index + 1;
   return descriptors_[index].fd;
 }
 
 void FileDescriptorSet::GetDescriptors(int* buffer) const {
-  for (std::vector<base::FileDescriptor>::const_iterator
-       i = descriptors_.begin(); i != descriptors_.end(); ++i) {
+  for (std::vector<base::FileDescriptor>::const_iterator i =
+           descriptors_.begin();
+       i != descriptors_.end(); ++i) {
     *(buffer++) = i->fd;
   }
 }
 
 void FileDescriptorSet::CommitAll() {
-  for (std::vector<base::FileDescriptor>::iterator
-       i = descriptors_.begin(); i != descriptors_.end(); ++i) {
-    if (i->auto_close)
-      HANDLE_EINTR(close(i->fd));
+  for (std::vector<base::FileDescriptor>::iterator i = descriptors_.begin();
+       i != descriptors_.end(); ++i) {
+    if (i->auto_close) HANDLE_EINTR(close(i->fd));
   }
   descriptors_.clear();
   consumed_descriptor_highwater_ = 0;

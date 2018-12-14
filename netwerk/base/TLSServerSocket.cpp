@@ -28,22 +28,13 @@ namespace net {
 // TLSServerSocket
 //-----------------------------------------------------------------------------
 
-TLSServerSocket::TLSServerSocket()
-  : mServerCert(nullptr)
-{
-}
+TLSServerSocket::TLSServerSocket() : mServerCert(nullptr) {}
 
-TLSServerSocket::~TLSServerSocket()
-{
-}
+TLSServerSocket::~TLSServerSocket() {}
 
-NS_IMPL_ISUPPORTS_INHERITED(TLSServerSocket,
-                            nsServerSocket,
-                            nsITLSServerSocket)
+NS_IMPL_ISUPPORTS_INHERITED(TLSServerSocket, nsServerSocket, nsITLSServerSocket)
 
-nsresult
-TLSServerSocket::SetSocketDefaults()
-{
+nsresult TLSServerSocket::SetSocketDefaults() {
   // Set TLS options on the listening socket
   mFD = SSL_ImportFD(nullptr, mFD);
   if (NS_WARN_IF(!mFD)) {
@@ -65,10 +56,8 @@ TLSServerSocket::SetSocketDefaults()
   return NS_OK;
 }
 
-void
-TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
-                                       const NetAddr& aClientAddr)
-{
+void TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
+                                            const NetAddr& aClientAddr) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   nsresult rv;
 
@@ -82,7 +71,7 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
   info->mServerSocket = this;
   info->mTransport = trans;
   nsCOMPtr<nsISupports> infoSupports =
-    NS_ISUPPORTS_CAST(nsITLSServerConnectionInfo*, info);
+      NS_ISUPPORTS_CAST(nsITLSServerConnectionInfo*, info);
   rv = trans->InitWithConnectedSocket(aClientFD, &aClientAddr, infoSupports);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     mCondition = rv;
@@ -103,13 +92,11 @@ TLSServerSocket::CreateClientTransport(PRFileDesc* aClientFD,
   // Security details aren't known yet.  The security observer will be notified
   // later when they are ready.
   nsCOMPtr<nsIServerSocket> serverSocket =
-    do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
+      do_QueryInterface(NS_ISUPPORTS_CAST(nsITLSServerSocket*, this));
   mListener->OnSocketAccepted(serverSocket, trans);
 }
 
-nsresult
-TLSServerSocket::OnSocketListen()
-{
+nsresult TLSServerSocket::OnSocketListen() {
   if (NS_WARN_IF(!mServerCert)) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -126,8 +113,8 @@ TLSServerSocket::OnSocketListen()
 
   SSLKEAType certKEA = NSS_FindCertKEAType(cert.get());
 
-  nsresult rv = MapSECStatus(SSL_ConfigSecureServer(mFD, cert.get(), key.get(),
-                                                    certKEA));
+  nsresult rv =
+      MapSECStatus(SSL_ConfigSecureServer(mFD, cert.get(), key.get(), certKEA));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -136,10 +123,9 @@ TLSServerSocket::OnSocketListen()
 }
 
 // static
-SECStatus
-TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
-                                     PRBool isServer)
-{
+SECStatus TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd,
+                                               PRBool checksig,
+                                               PRBool isServer) {
   // Allow any client cert here, server consumer code can decide whether it's
   // okay after being notified of the new client socket.
   return SECSuccess;
@@ -150,8 +136,7 @@ TLSServerSocket::AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checksig,
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-TLSServerSocket::GetServerCert(nsIX509Cert** aCert)
-{
+TLSServerSocket::GetServerCert(nsIX509Cert** aCert) {
   if (NS_WARN_IF(!aCert)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -161,8 +146,7 @@ TLSServerSocket::GetServerCert(nsIX509Cert** aCert)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetServerCert(nsIX509Cert* aCert)
-{
+TLSServerSocket::SetServerCert(nsIX509Cert* aCert) {
   // If AsyncListen was already called (and set mListener), it's too late to set
   // this.
   if (NS_WARN_IF(mListener)) {
@@ -173,8 +157,7 @@ TLSServerSocket::SetServerCert(nsIX509Cert* aCert)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetSessionTickets(bool aEnabled)
-{
+TLSServerSocket::SetSessionTickets(bool aEnabled) {
   // If AsyncListen was already called (and set mListener), it's too late to set
   // this.
   if (NS_WARN_IF(mListener)) {
@@ -185,8 +168,7 @@ TLSServerSocket::SetSessionTickets(bool aEnabled)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetRequestClientCertificate(uint32_t aMode)
-{
+TLSServerSocket::SetRequestClientCertificate(uint32_t aMode) {
   // If AsyncListen was already called (and set mListener), it's too late to set
   // this.
   if (NS_WARN_IF(mListener)) {
@@ -211,8 +193,7 @@ TLSServerSocket::SetRequestClientCertificate(uint32_t aMode)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetCipherSuites(uint16_t* aCipherSuites, uint32_t aLength)
-{
+TLSServerSocket::SetCipherSuites(uint16_t* aCipherSuites, uint32_t aLength) {
   // If AsyncListen was already called (and set mListener), it's too late to set
   // this.
   if (NS_WARN_IF(mListener)) {
@@ -236,8 +217,7 @@ TLSServerSocket::SetCipherSuites(uint16_t* aCipherSuites, uint32_t aLength)
 }
 
 NS_IMETHODIMP
-TLSServerSocket::SetVersionRange(uint16_t aMinVersion, uint16_t aMaxVersion)
-{
+TLSServerSocket::SetVersionRange(uint16_t aMinVersion, uint16_t aMaxVersion) {
   // If AsyncListen was already called (and set mListener), it's too late to set
   // this.
   if (NS_WARN_IF(mListener)) {
@@ -258,83 +238,74 @@ TLSServerSocket::SetVersionRange(uint16_t aMinVersion, uint16_t aMaxVersion)
 
 namespace {
 
-class TLSServerSecurityObserverProxy final : public nsITLSServerSecurityObserver
-{
+class TLSServerSecurityObserverProxy final
+    : public nsITLSServerSecurityObserver {
   ~TLSServerSecurityObserverProxy() {}
 
-public:
-  explicit TLSServerSecurityObserverProxy(nsITLSServerSecurityObserver* aListener)
-    : mListener(new nsMainThreadPtrHolder<nsITLSServerSecurityObserver>(
-        "TLSServerSecurityObserverProxy::mListener", aListener))
-  { }
+ public:
+  explicit TLSServerSecurityObserverProxy(
+      nsITLSServerSecurityObserver* aListener)
+      : mListener(new nsMainThreadPtrHolder<nsITLSServerSecurityObserver>(
+            "TLSServerSecurityObserverProxy::mListener", aListener)) {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITLSSERVERSECURITYOBSERVER
 
-  class OnHandshakeDoneRunnable : public Runnable
-  {
-  public:
+  class OnHandshakeDoneRunnable : public Runnable {
+   public:
     OnHandshakeDoneRunnable(
-      const nsMainThreadPtrHandle<nsITLSServerSecurityObserver>& aListener,
-      nsITLSServerSocket* aServer,
-      nsITLSClientStatus* aStatus)
-      : Runnable("net::TLSServerSecurityObserverProxy::OnHandshakeDoneRunnable")
-      , mListener(aListener)
-      , mServer(aServer)
-      , mStatus(aStatus)
-    { }
+        const nsMainThreadPtrHandle<nsITLSServerSecurityObserver>& aListener,
+        nsITLSServerSocket* aServer, nsITLSClientStatus* aStatus)
+        : Runnable(
+              "net::TLSServerSecurityObserverProxy::OnHandshakeDoneRunnable"),
+          mListener(aListener),
+          mServer(aServer),
+          mStatus(aStatus) {}
 
     NS_DECL_NSIRUNNABLE
 
-  private:
+   private:
     nsMainThreadPtrHandle<nsITLSServerSecurityObserver> mListener;
     nsCOMPtr<nsITLSServerSocket> mServer;
     nsCOMPtr<nsITLSClientStatus> mStatus;
   };
 
-private:
+ private:
   nsMainThreadPtrHandle<nsITLSServerSecurityObserver> mListener;
 };
 
-NS_IMPL_ISUPPORTS(TLSServerSecurityObserverProxy,
-                  nsITLSServerSecurityObserver)
+NS_IMPL_ISUPPORTS(TLSServerSecurityObserverProxy, nsITLSServerSecurityObserver)
 
 NS_IMETHODIMP
 TLSServerSecurityObserverProxy::OnHandshakeDone(nsITLSServerSocket* aServer,
-                                                nsITLSClientStatus* aStatus)
-{
+                                                nsITLSClientStatus* aStatus) {
   RefPtr<OnHandshakeDoneRunnable> r =
-    new OnHandshakeDoneRunnable(mListener, aServer, aStatus);
+      new OnHandshakeDoneRunnable(mListener, aServer, aStatus);
   return NS_DispatchToMainThread(r);
 }
 
 NS_IMETHODIMP
-TLSServerSecurityObserverProxy::OnHandshakeDoneRunnable::Run()
-{
+TLSServerSecurityObserverProxy::OnHandshakeDoneRunnable::Run() {
   mListener->OnHandshakeDone(mServer, mStatus);
   return NS_OK;
 }
 
-} // namespace
+}  // namespace
 
-NS_IMPL_ISUPPORTS(TLSServerConnectionInfo,
-                  nsITLSServerConnectionInfo,
+NS_IMPL_ISUPPORTS(TLSServerConnectionInfo, nsITLSServerConnectionInfo,
                   nsITLSClientStatus)
 
 TLSServerConnectionInfo::TLSServerConnectionInfo()
-  : mServerSocket(nullptr)
-  , mTransport(nullptr)
-  , mPeerCert(nullptr)
-  , mTlsVersionUsed(TLS_VERSION_UNKNOWN)
-  , mKeyLength(0)
-  , mMacLength(0)
-  , mLock("TLSServerConnectionInfo.mLock")
-  , mSecurityObserver(nullptr)
-{
-}
+    : mServerSocket(nullptr),
+      mTransport(nullptr),
+      mPeerCert(nullptr),
+      mTlsVersionUsed(TLS_VERSION_UNKNOWN),
+      mKeyLength(0),
+      mMacLength(0),
+      mLock("TLSServerConnectionInfo.mLock"),
+      mSecurityObserver(nullptr) {}
 
-TLSServerConnectionInfo::~TLSServerConnectionInfo()
-{
+TLSServerConnectionInfo::~TLSServerConnectionInfo() {
   if (!mSecurityObserver) {
     return;
   }
@@ -347,13 +318,13 @@ TLSServerConnectionInfo::~TLSServerConnectionInfo()
 
   if (observer) {
     NS_ReleaseOnMainThreadSystemGroup(
-      "TLSServerConnectionInfo::mSecurityObserver", observer.forget());
+        "TLSServerConnectionInfo::mSecurityObserver", observer.forget());
   }
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::SetSecurityObserver(nsITLSServerSecurityObserver* aObserver)
-{
+TLSServerConnectionInfo::SetSecurityObserver(
+    nsITLSServerSecurityObserver* aObserver) {
   {
     MutexAutoLock lock(mLock);
     mSecurityObserver = new TLSServerSecurityObserverProxy(aObserver);
@@ -362,8 +333,7 @@ TLSServerConnectionInfo::SetSecurityObserver(nsITLSServerSecurityObserver* aObse
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
-{
+TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket) {
   if (NS_WARN_IF(!aSocket)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -373,8 +343,7 @@ TLSServerConnectionInfo::GetServerSocket(nsITLSServerSocket** aSocket)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetStatus(nsITLSClientStatus** aStatus)
-{
+TLSServerConnectionInfo::GetStatus(nsITLSClientStatus** aStatus) {
   if (NS_WARN_IF(!aStatus)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -384,8 +353,7 @@ TLSServerConnectionInfo::GetStatus(nsITLSClientStatus** aStatus)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetPeerCert(nsIX509Cert** aCert)
-{
+TLSServerConnectionInfo::GetPeerCert(nsIX509Cert** aCert) {
   if (NS_WARN_IF(!aCert)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -395,8 +363,7 @@ TLSServerConnectionInfo::GetPeerCert(nsIX509Cert** aCert)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetTlsVersionUsed(int16_t* aTlsVersionUsed)
-{
+TLSServerConnectionInfo::GetTlsVersionUsed(int16_t* aTlsVersionUsed) {
   if (NS_WARN_IF(!aTlsVersionUsed)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -405,15 +372,13 @@ TLSServerConnectionInfo::GetTlsVersionUsed(int16_t* aTlsVersionUsed)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetCipherName(nsACString& aCipherName)
-{
+TLSServerConnectionInfo::GetCipherName(nsACString& aCipherName) {
   aCipherName.Assign(mCipherName);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetKeyLength(uint32_t* aKeyLength)
-{
+TLSServerConnectionInfo::GetKeyLength(uint32_t* aKeyLength) {
   if (NS_WARN_IF(!aKeyLength)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -422,8 +387,7 @@ TLSServerConnectionInfo::GetKeyLength(uint32_t* aKeyLength)
 }
 
 NS_IMETHODIMP
-TLSServerConnectionInfo::GetMacLength(uint32_t* aMacLength)
-{
+TLSServerConnectionInfo::GetMacLength(uint32_t* aMacLength) {
   if (NS_WARN_IF(!aMacLength)) {
     return NS_ERROR_INVALID_POINTER;
   }
@@ -432,11 +396,9 @@ TLSServerConnectionInfo::GetMacLength(uint32_t* aMacLength)
 }
 
 // static
-void
-TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD, void* aArg)
-{
+void TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD, void* aArg) {
   RefPtr<TLSServerConnectionInfo> info =
-    static_cast<TLSServerConnectionInfo*>(aArg);
+      static_cast<TLSServerConnectionInfo*>(aArg);
   nsISocketTransport* transport = info->mTransport;
   // No longer needed outside this function, so clear the weak ref
   info->mTransport = nullptr;
@@ -446,23 +408,21 @@ TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD, void* aArg)
   }
 }
 
-nsresult
-TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD)
-{
+nsresult TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD) {
   nsresult rv;
 
   UniqueCERTCertificate clientCert(SSL_PeerCertificate(aFD));
   if (clientCert) {
     nsCOMPtr<nsIX509CertDB> certDB =
-      do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
+        do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
     if (NS_FAILED(rv)) {
       return rv;
     }
 
     nsCOMPtr<nsIX509Cert> clientCertPSM;
     nsDependentCSubstring certDER(
-      reinterpret_cast<char*>(clientCert->derCert.data),
-      clientCert->derCert.len);
+        reinterpret_cast<char*>(clientCert->derCert.data),
+        clientCert->derCert.len);
     rv = certDB->ConstructX509(certDER, getter_AddRefs(clientCertPSM));
     if (NS_FAILED(rv)) {
       return rv;
@@ -505,5 +465,5 @@ TLSServerConnectionInfo::HandshakeCallback(PRFileDesc* aFD)
   return NS_OK;
 }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

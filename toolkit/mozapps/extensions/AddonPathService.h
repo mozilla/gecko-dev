@@ -15,12 +15,10 @@ class JSAddonId;
 
 namespace mozilla {
 
-JSAddonId*
-MapURIToAddonID(nsIURI* aURI);
+JSAddonId* MapURIToAddonID(nsIURI* aURI);
 
-class AddonPathService final : public amIAddonPathService
-{
-public:
+class AddonPathService final : public amIAddonPathService {
+ public:
   AddonPathService();
 
   static already_AddRefed<AddonPathService> GetInstance();
@@ -31,17 +29,15 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_AMIADDONPATHSERVICE
 
-  struct PathEntry
-  {
+  struct PathEntry {
     nsString mPath;
     JSAddonId* mAddonId;
 
     PathEntry(const nsAString& aPath, JSAddonId* aAddonId)
-     : mPath(aPath), mAddonId(aAddonId)
-    {}
+        : mPath(aPath), mAddonId(aAddonId) {}
   };
 
-private:
+ private:
   virtual ~AddonPathService();
 
   // Paths are stored sorted in order of their mPath.
@@ -50,6 +46,6 @@ private:
   static AddonPathService* sInstance;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

@@ -19,41 +19,40 @@
 
 namespace mozilla {
 class DeclarationBlock;
-} // namespace mozilla
+}  // namespace mozilla
 
 // IID for nsStyledElement interface
-#define NS_STYLED_ELEMENT_IID \
-{ 0xacbd9ea6, 0x15aa, 0x4f37, \
- { 0x8c, 0xe0, 0x35, 0x1e, 0xd7, 0x21, 0xca, 0xe9 } }
+#define NS_STYLED_ELEMENT_IID                        \
+  {                                                  \
+    0xacbd9ea6, 0x15aa, 0x4f37, {                    \
+      0x8c, 0xe0, 0x35, 0x1e, 0xd7, 0x21, 0xca, 0xe9 \
+    }                                                \
+  }
 
 typedef mozilla::dom::Element nsStyledElementBase;
 
-class nsStyledElement : public nsStyledElementBase
-{
+class nsStyledElement : public nsStyledElementBase {
+ protected:
+  inline explicit nsStyledElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : nsStyledElementBase(aNodeInfo) {}
 
-protected:
-
-  inline explicit nsStyledElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsStyledElementBase(aNodeInfo)
-  {}
-
-public:
+ public:
   // We don't want to implement AddRef/Release because that would add an extra
   // function call for those on pretty much all elements.  But we do need QI, so
   // we can QI to nsStyledElement.
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
   // Element interface methods
-  virtual nsresult SetInlineStyleDeclaration(mozilla::DeclarationBlock* aDeclaration,
-                                             const nsAString* aSerialized,
-                                             bool aNotify) override;
+  virtual nsresult SetInlineStyleDeclaration(
+      mozilla::DeclarationBlock* aDeclaration, const nsAString* aSerialized,
+      bool aNotify) override;
 
   nsICSSDeclaration* Style();
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_STYLED_ELEMENT_IID)
 
-protected:
-
+ protected:
   nsICSSDeclaration* GetExistingStyle();
 
   /**
@@ -68,13 +67,12 @@ protected:
    */
   void ParseStyleAttribute(const nsAString& aValue,
                            nsIPrincipal* aMaybeScriptedPrincipal,
-                           nsAttrValue& aResult,
-                           bool aForceInDataDoc);
+                           nsAttrValue& aResult, bool aForceInDataDoc);
 
   virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult) override;
+                              const nsAString& aValue,
+                              nsIPrincipal* aMaybeScriptedPrincipal,
+                              nsAttrValue& aResult) override;
 
   friend class mozilla::dom::Element;
 
@@ -85,7 +83,8 @@ protected:
    * document. If aForceIfAlreadyParsed is set, this will always reparse even
    * if the value has already been parsed.
    */
-  nsresult ReparseStyleAttribute(bool aForceInDataDoc, bool aForceIfAlreadyParsed);
+  nsresult ReparseStyleAttribute(bool aForceInDataDoc,
+                                 bool aForceIfAlreadyParsed);
 
   virtual void NodeInfoChanged(nsIDocument* aOldDoc) override;
 
@@ -95,4 +94,4 @@ protected:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsStyledElement, NS_STYLED_ELEMENT_IID)
-#endif // __NS_STYLEDELEMENT_H_
+#endif  // __NS_STYLEDELEMENT_H_

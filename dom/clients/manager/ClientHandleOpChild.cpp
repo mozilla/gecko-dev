@@ -9,18 +9,15 @@
 namespace mozilla {
 namespace dom {
 
-void
-ClientHandleOpChild::ActorDestroy(ActorDestroyReason aReason)
-{
+void ClientHandleOpChild::ActorDestroy(ActorDestroyReason aReason) {
   if (mPromise) {
     mPromise->Reject(NS_ERROR_ABORT, __func__);
     mPromise = nullptr;
   }
 }
 
-mozilla::ipc::IPCResult
-ClientHandleOpChild::Recv__delete__(const ClientOpResult& aResult)
-{
+mozilla::ipc::IPCResult ClientHandleOpChild::Recv__delete__(
+    const ClientOpResult& aResult) {
   if (aResult.type() == ClientOpResult::Tnsresult &&
       NS_FAILED(aResult.get_nsresult())) {
     mPromise->Reject(aResult.get_nsresult(), __func__);
@@ -34,15 +31,13 @@ ClientHandleOpChild::Recv__delete__(const ClientOpResult& aResult)
 
 ClientHandleOpChild::ClientHandleOpChild(const ClientOpConstructorArgs& aArgs,
                                          ClientOpPromise::Private* aPromise)
-  : mPromise(aPromise)
-{
+    : mPromise(aPromise) {
   MOZ_DIAGNOSTIC_ASSERT(mPromise);
 }
 
-ClientHandleOpChild::~ClientHandleOpChild()
-{
+ClientHandleOpChild::~ClientHandleOpChild() {
   MOZ_DIAGNOSTIC_ASSERT(!mPromise);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

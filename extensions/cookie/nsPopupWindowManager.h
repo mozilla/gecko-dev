@@ -16,8 +16,7 @@
 class nsPopupWindowManager : public nsIPopupWindowManager,
                              public nsIObserver,
                              public nsSupportsWeakReference {
-
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPOPUPWINDOWMANAGER
   NS_DECL_NSIOBSERVER
@@ -25,15 +24,19 @@ public:
   nsPopupWindowManager();
   nsresult Init();
 
-private:
+ private:
   virtual ~nsPopupWindowManager();
 
-  uint32_t                       mPolicy;
+  uint32_t mPolicy;
   nsCOMPtr<nsIPermissionManager> mPermissionManager;
 };
 
 // {822bcd11-6432-48be-9e9d-36f7804b7747}
-#define NS_POPUPWINDOWMANAGER_CID \
- {0x822bcd11, 0x6432, 0x48be, {0x9e, 0x9d, 0x36, 0xf7, 0x80, 0x4b, 0x77, 0x47}}
+#define NS_POPUPWINDOWMANAGER_CID                    \
+  {                                                  \
+    0x822bcd11, 0x6432, 0x48be, {                    \
+      0x9e, 0x9d, 0x36, 0xf7, 0x80, 0x4b, 0x77, 0x47 \
+    }                                                \
+  }
 
 #endif /* nsPopupWindowManager_h__ */

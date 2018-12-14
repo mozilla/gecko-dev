@@ -8,11 +8,11 @@ typedef void (*RpcFromPlugin)(const char*, bool, char**);
 RpcFromPlugin gRpcFromPlugin;
 PP_GetInterface_Func gGetInterface;
 
-void ToHost(std::stringstream &s, bool abortIfNonMainThread) {
+void ToHost(std::stringstream& s, bool abortIfNonMainThread) {
   gRpcFromPlugin(s.str().c_str(), abortIfNonMainThread, nullptr);
 }
 
-std::string ToHostWithResult(std::stringstream &s, bool abortIfNonMainThread) {
+std::string ToHostWithResult(std::stringstream& s, bool abortIfNonMainThread) {
   char* result;
   gRpcFromPlugin(s.str().c_str(), abortIfNonMainThread, &result);
   return result;
@@ -26,17 +26,13 @@ static const void* GetInterfaceForRPC(const char* interfaceName) {
   return _interface;
 }
 
-void
-Fail(const char *reason, const char *data)
-{
+void Fail(const char* reason, const char* data) {
   fprintf(stdout, reason, data);
   fflush(stdout);
   exit(-1);
 }
 
-char*
-CallFromJSON(JSONIterator& iterator)
-{
+char* CallFromJSON(JSONIterator& iterator) {
   iterator.expectObjectAndGotoFirstProperty();
   const Token& propertyName = iterator.getCurrentStringAndGotoNext();
   if (!propertyName.value().compare("__interface")) {
@@ -103,9 +99,7 @@ CallFromJSON(JSONIterator& iterator)
 extern "C" {
 #endif
 
-PP_EXPORT char*
-CallFromJSON(const char* json)
-{
+PP_EXPORT char* CallFromJSON(const char* json) {
   JSONIterator iterator(json);
 
   const Token& item = iterator;
@@ -131,10 +125,9 @@ CallFromJSON(const char* json)
   return CallFromJSON(iterator);
 }
 
-PP_EXPORT void
-Initialize(RpcFromPlugin aRpcFromPlugin,
-           PP_GetInterface_Func aGetInterface,
-           PP_InitializeModule_Func aInitializeModule) {
+PP_EXPORT void Initialize(RpcFromPlugin aRpcFromPlugin,
+                          PP_GetInterface_Func aGetInterface,
+                          PP_InitializeModule_Func aInitializeModule) {
   gRpcFromPlugin = aRpcFromPlugin;
   gGetInterface = aGetInterface;
   InitializeInterfaceList();
@@ -142,10 +135,10 @@ Initialize(RpcFromPlugin aRpcFromPlugin,
 }
 
 #ifdef __cplusplus
-}  /* extern "C" */
+} /* extern "C" */
 #endif
 
-void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu *&value) {
+void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu*& value) {
   const JSON::Token& pointer = iterator.getCurrentAndGotoNext();
   if (!pointer.isObject()) {
     if (!pointer.isPrimitive() || !pointer.value().compare("null")) {
@@ -158,8 +151,8 @@ void FromJSON_PP_Flash_Menu(JSONIterator& iterator, PP_Flash_Menu *&value) {
   }
 }
 
-void FromJSON_PP_DirContents_Dev(JSONIterator& iterator, PP_DirContents_Dev *&value)
-{
+void FromJSON_PP_DirContents_Dev(JSONIterator& iterator,
+                                 PP_DirContents_Dev*& value) {
   value = new PP_DirContents_Dev();
   const JSON::Token& current = iterator.getCurrentAndGotoNext();
   if (current.isPrimitive() && !current.value().compare("null")) {

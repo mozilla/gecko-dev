@@ -174,4 +174,4 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 
-#endif // mozilla_XPCOM_h
+#endif  // mozilla_XPCOM_h

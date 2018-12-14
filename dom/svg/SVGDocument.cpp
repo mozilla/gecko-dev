@@ -33,10 +33,8 @@ namespace dom {
 //----------------------------------------------------------------------
 // nsISupports methods:
 
-nsresult
-SVGDocument::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
-                               bool aNotify)
-{
+nsresult SVGDocument::InsertChildBefore(nsIContent* aKid,
+                                        nsIContent* aBeforeThis, bool aNotify) {
   if (aKid->IsElement() && !aKid->IsSVGElement()) {
     // We can get here when well formed XML with a non-SVG root element is
     // served with the SVG MIME type, for example. In that case we need to load
@@ -50,10 +48,8 @@ SVGDocument::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
   return XMLDocument::InsertChildBefore(aKid, aBeforeThis, aNotify);
 }
 
-nsresult
-SVGDocument::InsertChildAt_Deprecated(nsIContent* aKid, uint32_t aIndex,
-                                      bool aNotify)
-{
+nsresult SVGDocument::InsertChildAt_Deprecated(nsIContent* aKid,
+                                               uint32_t aIndex, bool aNotify) {
   if (aKid->IsElement() && !aKid->IsSVGElement()) {
     // We can get here when well formed XML with a non-SVG root element is
     // served with the SVG MIME type, for example. In that case we need to load
@@ -67,10 +63,9 @@ SVGDocument::InsertChildAt_Deprecated(nsIContent* aKid, uint32_t aIndex,
   return XMLDocument::InsertChildAt_Deprecated(aKid, aIndex, aNotify);
 }
 
-nsresult
-SVGDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
-                   bool aPreallocateChildren) const
-{
+nsresult SVGDocument::Clone(mozilla::dom::NodeInfo* aNodeInfo,
+                            nsINode** aResult,
+                            bool aPreallocateChildren) const {
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
                "Can't import this document into another document!");
 
@@ -81,9 +76,7 @@ SVGDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
   return CallQueryInterface(clone.get(), aResult);
 }
 
-void
-SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
-{
+void SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded() {
   if (mHasLoadedNonSVGUserAgentStyleSheets) {
     return;
   }
@@ -114,7 +107,7 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
     // EnsureOnDemandBuiltInUASheet prepends, and B2G/Fennec's
     // content.css must come after UASheet() etc.
     nsCOMPtr<nsICategoryManager> catMan =
-    do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
+        do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
     if (catMan) {
       nsCOMPtr<nsISimpleEnumerator> sheets;
       catMan->EnumerateCategory("agent-style-sheets", getter_AddRefs(sheets));
@@ -122,8 +115,7 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
         bool hasMore;
         while (NS_SUCCEEDED(sheets->HasMoreElements(&hasMore)) && hasMore) {
           nsCOMPtr<nsISupports> sheet;
-          if (NS_FAILED(sheets->GetNext(getter_AddRefs(sheet))))
-            break;
+          if (NS_FAILED(sheets->GetNext(getter_AddRefs(sheet)))) break;
 
           nsCOMPtr<nsISupportsCString> icStr = do_QueryInterface(sheet);
           MOZ_ASSERT(icStr,
@@ -142,8 +134,7 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
             NS_NewURI(getter_AddRefs(uri), spec);
             if (uri) {
               RefPtr<StyleSheet> sheet;
-              cssLoader->LoadSheetSync(uri,
-                                       mozilla::css::eAgentSheetFeatures,
+              cssLoader->LoadSheetSync(uri, mozilla::css::eAgentSheetFeatures,
                                        true, &sheet);
               if (sheet) {
                 EnsureOnDemandBuiltInUASheet(sheet);
@@ -176,15 +167,13 @@ SVGDocument::EnsureNonSVGUserAgentStyleSheetsLoaded()
   EndUpdate(UPDATE_STYLE);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 ////////////////////////////////////////////////////////////////////////
 // Exported creation functions
 
-nsresult
-NS_NewSVGDocument(nsIDocument** aInstancePtrResult)
-{
+nsresult NS_NewSVGDocument(nsIDocument** aInstancePtrResult) {
   RefPtr<SVGDocument> doc = new SVGDocument();
 
   nsresult rv = doc->Init();

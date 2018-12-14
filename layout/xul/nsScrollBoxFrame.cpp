@@ -15,52 +15,45 @@
 
 using namespace mozilla;
 
-class nsAutoRepeatBoxFrame final : public nsButtonBoxFrame
-{
-public:
+class nsAutoRepeatBoxFrame final : public nsButtonBoxFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsAutoRepeatBoxFrame)
 
   friend nsIFrame* NS_NewAutoRepeatBoxFrame(nsIPresShell* aPresShell,
                                             nsStyleContext* aContext);
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot,
+                           PostDestroyData& aPostDestroyData) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsAtom* aAttribute,
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                WidgetGUIEvent* aEvent,
                                nsEventStatus* aEventStatus) override;
 
-  NS_IMETHOD HandlePress(nsPresContext* aPresContext,
-                         WidgetGUIEvent* aEvent,
+  NS_IMETHOD HandlePress(nsPresContext* aPresContext, WidgetGUIEvent* aEvent,
                          nsEventStatus* aEventStatus) override;
 
-  NS_IMETHOD HandleRelease(nsPresContext* aPresContext,
-                           WidgetGUIEvent* aEvent,
+  NS_IMETHOD HandleRelease(nsPresContext* aPresContext, WidgetGUIEvent* aEvent,
                            nsEventStatus* aEventStatus) override;
 
-protected:
-  explicit nsAutoRepeatBoxFrame(nsStyleContext* aContext):
-    nsButtonBoxFrame(aContext, kClassID) {}
+ protected:
+  explicit nsAutoRepeatBoxFrame(nsStyleContext* aContext)
+      : nsButtonBoxFrame(aContext, kClassID) {}
 
   void StartRepeat() {
     if (IsActivatedOnHover()) {
       // No initial delay on hover.
-      nsRepeatService::GetInstance()->Start(Notify, this,
-                                            mContent->OwnerDoc(),
+      nsRepeatService::GetInstance()->Start(Notify, this, mContent->OwnerDoc(),
                                             NS_LITERAL_CSTRING("DoMouseClick"),
                                             0);
     } else {
-      nsRepeatService::GetInstance()->Start(Notify, this,
-                                            mContent->OwnerDoc(),
+      nsRepeatService::GetInstance()->Start(Notify, this, mContent->OwnerDoc(),
                                             NS_LITERAL_CSTRING("DoMouseClick"));
     }
   }
-  void StopRepeat() {
-    nsRepeatService::GetInstance()->Stop(Notify, this);
-  }
+  void StopRepeat() { nsRepeatService::GetInstance()->Stop(Notify, this); }
   void Notify();
   static void Notify(void* aData) {
     static_cast<nsAutoRepeatBoxFrame*>(aData)->Notify();
@@ -71,25 +64,22 @@ protected:
   bool IsActivatedOnHover();
 };
 
-nsIFrame*
-NS_NewAutoRepeatBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewAutoRepeatBoxFrame(nsIPresShell* aPresShell,
+                                   nsStyleContext* aContext) {
   return new (aPresShell) nsAutoRepeatBoxFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsAutoRepeatBoxFrame)
 
-nsresult
-nsAutoRepeatBoxFrame::HandleEvent(nsPresContext* aPresContext,
-                                  WidgetGUIEvent* aEvent,
-                                  nsEventStatus* aEventStatus)
-{
+nsresult nsAutoRepeatBoxFrame::HandleEvent(nsPresContext* aPresContext,
+                                           WidgetGUIEvent* aEvent,
+                                           nsEventStatus* aEventStatus) {
   NS_ENSURE_ARG_POINTER(aEventStatus);
   if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
     return NS_OK;
   }
 
-  switch(aEvent->mMessage) {
+  switch (aEvent->mMessage) {
     // repeat mode may be "hover" for repeating while the mouse is hovering
     // over the element, otherwise repetition is done while the element is
     // active (pressed).
@@ -128,8 +118,7 @@ nsAutoRepeatBoxFrame::HandleEvent(nsPresContext* aPresContext,
 NS_IMETHODIMP
 nsAutoRepeatBoxFrame::HandlePress(nsPresContext* aPresContext,
                                   WidgetGUIEvent* aEvent,
-                                  nsEventStatus* aEventStatus)
-{
+                                  nsEventStatus* aEventStatus) {
   if (!IsActivatedOnHover()) {
     StartRepeat();
     mTrustedEvent = aEvent->IsTrusted();
@@ -142,43 +131,33 @@ nsAutoRepeatBoxFrame::HandlePress(nsPresContext* aPresContext,
 NS_IMETHODIMP
 nsAutoRepeatBoxFrame::HandleRelease(nsPresContext* aPresContext,
                                     WidgetGUIEvent* aEvent,
-                                    nsEventStatus* aEventStatus)
-{
+                                    nsEventStatus* aEventStatus) {
   if (!IsActivatedOnHover()) {
     StopRepeat();
   }
   return NS_OK;
 }
 
-nsresult
-nsAutoRepeatBoxFrame::AttributeChanged(int32_t aNameSpaceID,
-                                       nsAtom* aAttribute,
-                                       int32_t aModType)
-{
+nsresult nsAutoRepeatBoxFrame::AttributeChanged(int32_t aNameSpaceID,
+                                                nsAtom* aAttribute,
+                                                int32_t aModType) {
   if (aAttribute == nsGkAtoms::type) {
     StopRepeat();
   }
   return NS_OK;
 }
 
-void
-nsAutoRepeatBoxFrame::Notify()
-{
-  DoMouseClick(nullptr, mTrustedEvent);
-}
+void nsAutoRepeatBoxFrame::Notify() { DoMouseClick(nullptr, mTrustedEvent); }
 
-void
-nsAutoRepeatBoxFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
-{
-  // Ensure our repeat service isn't going... it's possible that a scrollbar can disappear out
-  // from under you while you're in the process of scrolling.
+void nsAutoRepeatBoxFrame::DestroyFrom(nsIFrame* aDestructRoot,
+                                       PostDestroyData& aPostDestroyData) {
+  // Ensure our repeat service isn't going... it's possible that a scrollbar can
+  // disappear out from under you while you're in the process of scrolling.
   StopRepeat();
   nsButtonBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
-bool
-nsAutoRepeatBoxFrame::IsActivatedOnHover()
-{
+bool nsAutoRepeatBoxFrame::IsActivatedOnHover() {
   return mContent->AsElement()->AttrValueIs(
       kNameSpaceID_None, nsGkAtoms::repeat, nsGkAtoms::hover, eCaseMatters);
 }

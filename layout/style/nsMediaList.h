@@ -26,13 +26,13 @@ struct nsMediaFeature;
 namespace mozilla {
 namespace css {
 class DocumentRule;
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 struct nsMediaExpression {
   enum Range { eMin, eMax, eEqual };
 
-  const nsMediaFeature *mFeature;
+  const nsMediaFeature* mFeature;
   Range mRange;
   nsCSSValue mValue;
 
@@ -41,9 +41,8 @@ struct nsMediaExpression {
                const nsCSSValue& aActualValue) const;
 
   bool operator==(const nsMediaExpression& aOther) const {
-    return mFeature == aOther.mFeature && // pointer equality fine (atom-like)
-           mRange == aOther.mRange &&
-           mValue == aOther.mValue;
+    return mFeature == aOther.mFeature &&  // pointer equality fine (atom-like)
+           mRange == aOther.mRange && mValue == aOther.mValue;
   }
   bool operator!=(const nsMediaExpression& aOther) const {
     return !(*this == aOther);
@@ -70,10 +69,8 @@ struct nsMediaExpression {
  * However, this requires combining any such ranges.
  */
 class nsMediaQueryResultCacheKey {
-public:
-  explicit nsMediaQueryResultCacheKey(nsAtom* aMedium)
-    : mMedium(aMedium)
-  {}
+ public:
+  explicit nsMediaQueryResultCacheKey(nsAtom* aMedium) : mMedium(aMedium) {}
 
   /**
    * Record that aExpression was tested while building the cached set
@@ -83,22 +80,20 @@ public:
   void AddExpression(const nsMediaExpression* aExpression,
                      bool aExpressionMatches);
   bool Matches(nsPresContext* aPresContext) const;
-  bool HasFeatureConditions() const {
-    return !mFeatureCache.IsEmpty();
-  }
+  bool HasFeatureConditions() const { return !mFeatureCache.IsEmpty(); }
 
   /**
    * An operator== that implements list equality, which isn't quite as
    * good as set equality, but catches the trivial equality cases.
    */
   bool operator==(const nsMediaQueryResultCacheKey& aOther) const {
-    return mMedium == aOther.mMedium &&
-           mFeatureCache == aOther.mFeatureCache;
+    return mMedium == aOther.mMedium && mFeatureCache == aOther.mFeatureCache;
   }
   bool operator!=(const nsMediaQueryResultCacheKey& aOther) const {
     return !(*this == aOther);
   }
-private:
+
+ private:
   struct ExpressionEntry {
     // FIXME: if we were better at maintaining invariants about clearing
     // rule cascades when media lists change, this could be a |const
@@ -115,12 +110,11 @@ private:
     }
   };
   struct FeatureEntry {
-    const nsMediaFeature *mFeature;
+    const nsMediaFeature* mFeature;
     InfallibleTArray<ExpressionEntry> mExpressions;
 
     bool operator==(const FeatureEntry& aOther) const {
-      return mFeature == aOther.mFeature &&
-             mExpressions == aOther.mExpressions;
+      return mFeature == aOther.mFeature && mExpressions == aOther.mExpressions;
     }
     bool operator!=(const FeatureEntry& aOther) const {
       return !(*this == aOther);
@@ -145,12 +139,10 @@ private:
  * given nsPresContext, we also need the entire list of @-moz-document
  * rules to know which rules must not match.
  */
-class nsDocumentRuleResultCacheKey
-{
-public:
+class nsDocumentRuleResultCacheKey {
+ public:
 #ifdef DEBUG
-  nsDocumentRuleResultCacheKey()
-    : mFinalized(false) {}
+  nsDocumentRuleResultCacheKey() : mFinalized(false) {}
 #endif
 
   bool AddMatchingRule(mozilla::css::DocumentRule* aRule);
@@ -181,7 +173,7 @@ public:
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-private:
+ private:
   nsTArray<mozilla::css::DocumentRule*> mMatchingRules;
 #ifdef DEBUG
   bool mFinalized;
@@ -189,45 +181,40 @@ private:
 };
 
 class nsMediaQuery {
-public:
+ public:
   nsMediaQuery()
-    : mNegated(false)
-    , mHasOnly(false)
-    , mTypeOmitted(false)
-    , mHadUnknownExpression(false)
-  {
-  }
+      : mNegated(false),
+        mHasOnly(false),
+        mTypeOmitted(false),
+        mHadUnknownExpression(false) {}
 
-private:
+ private:
   // for Clone only
   nsMediaQuery(const nsMediaQuery& aOther)
-    : mNegated(aOther.mNegated)
-    , mHasOnly(aOther.mHasOnly)
-    , mTypeOmitted(aOther.mTypeOmitted)
-    , mHadUnknownExpression(aOther.mHadUnknownExpression)
-    , mMediaType(aOther.mMediaType)
-    , mExpressions(aOther.mExpressions)
-  {
+      : mNegated(aOther.mNegated),
+        mHasOnly(aOther.mHasOnly),
+        mTypeOmitted(aOther.mTypeOmitted),
+        mHadUnknownExpression(aOther.mHadUnknownExpression),
+        mMediaType(aOther.mMediaType),
+        mExpressions(aOther.mExpressions) {
     MOZ_ASSERT(mExpressions.Length() == aOther.mExpressions.Length());
   }
 
-public:
-
-  void SetNegated()                     { mNegated = true; }
-  void SetHasOnly()                     { mHasOnly = true; }
-  void SetTypeOmitted()                 { mTypeOmitted = true; }
-  void SetHadUnknownExpression()        { mHadUnknownExpression = true; }
-  void SetType(nsAtom* aMediaType)     {
-                                          NS_ASSERTION(aMediaType,
-                                                       "expected non-null");
-                                          mMediaType = aMediaType;
-                                        }
+ public:
+  void SetNegated() { mNegated = true; }
+  void SetHasOnly() { mHasOnly = true; }
+  void SetTypeOmitted() { mTypeOmitted = true; }
+  void SetHadUnknownExpression() { mHadUnknownExpression = true; }
+  void SetType(nsAtom* aMediaType) {
+    NS_ASSERTION(aMediaType, "expected non-null");
+    mMediaType = aMediaType;
+  }
 
   // Return a new nsMediaExpression in the array for the caller to fill
   // in.  The caller must either fill it in completely, or call
   // SetHadUnknownExpression on this nsMediaQuery.
   // Returns null on out-of-memory.
-  nsMediaExpression* NewExpression()    { return mExpressions.AppendElement(); }
+  nsMediaExpression* NewExpression() { return mExpressions.AppendElement(); }
 
   void AppendToString(nsAString& aString) const;
 
@@ -238,18 +225,17 @@ public:
   bool Matches(nsPresContext* aPresContext,
                nsMediaQueryResultCacheKey* aKey) const;
 
-private:
+ private:
   bool mNegated;
-  bool mHasOnly; // only needed for serialization
-  bool mTypeOmitted; // only needed for serialization
+  bool mHasOnly;      // only needed for serialization
+  bool mTypeOmitted;  // only needed for serialization
   bool mHadUnknownExpression;
   RefPtr<nsAtom> mMediaType;
   nsTArray<nsMediaExpression> mExpressions;
 };
 
-class nsMediaList final : public mozilla::dom::MediaList
-{
-public:
+class nsMediaList final : public mozilla::dom::MediaList {
+ public:
   nsMediaList();
 
   void GetText(nsAString& aMediaText) final;
@@ -280,14 +266,13 @@ public:
 
   // WebIDL
   uint32_t Length() final { return mArray.Length(); }
-  void IndexedGetter(uint32_t aIndex, bool& aFound,
-                     nsAString& aReturn) final;
+  void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aReturn) final;
 
-protected:
+ protected:
   ~nsMediaList();
 
-  nsresult Delete(const nsAString & aOldMedium) final;
-  nsresult Append(const nsAString & aOldMedium) final;
+  nsresult Delete(const nsAString& aOldMedium) final;
+  nsresult Append(const nsAString& aOldMedium) final;
 
   InfallibleTArray<nsAutoPtr<nsMediaQuery> > mArray;
 };

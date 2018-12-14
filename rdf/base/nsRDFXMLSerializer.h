@@ -24,94 +24,76 @@ class nsIRDFContainerUtils;
  * datasource. Implements both nsIRDFXMLSerializer and
  * nsIRDFXMLSource.
  */
-class nsRDFXMLSerializer : public nsIRDFXMLSerializer,
-                           public nsIRDFXMLSource
-{
-public:
-    static nsresult
-    Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+class nsRDFXMLSerializer : public nsIRDFXMLSerializer, public nsIRDFXMLSource {
+ public:
+  static nsresult Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRDFXMLSERIALIZER
-    NS_DECL_NSIRDFXMLSOURCE
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRDFXMLSERIALIZER
+  NS_DECL_NSIRDFXMLSOURCE
 
-protected:
-    nsRDFXMLSerializer();
-    virtual ~nsRDFXMLSerializer();
+ protected:
+  nsRDFXMLSerializer();
+  virtual ~nsRDFXMLSerializer();
 
-    // Implementation methods
-    nsresult
-    RegisterQName(nsIRDFResource* aResource);
-    nsresult
-    GetQName(nsIRDFResource* aResource, nsCString& aQName);
-    already_AddRefed<nsAtom>
-    EnsureNewPrefix();
+  // Implementation methods
+  nsresult RegisterQName(nsIRDFResource* aResource);
+  nsresult GetQName(nsIRDFResource* aResource, nsCString& aQName);
+  already_AddRefed<nsAtom> EnsureNewPrefix();
 
-    nsresult
-    SerializeInlineAssertion(nsIOutputStream* aStream,
+  nsresult SerializeInlineAssertion(nsIOutputStream* aStream,
+                                    nsIRDFResource* aResource,
+                                    nsIRDFResource* aProperty,
+                                    nsIRDFLiteral* aValue);
+
+  nsresult SerializeChildAssertion(nsIOutputStream* aStream,
+                                   nsIRDFResource* aResource,
+                                   nsIRDFResource* aProperty,
+                                   nsIRDFNode* aValue);
+
+  nsresult SerializeProperty(nsIOutputStream* aStream,
                              nsIRDFResource* aResource,
-                             nsIRDFResource* aProperty,
-                             nsIRDFLiteral* aValue);
+                             nsIRDFResource* aProperty, bool aInline,
+                             int32_t* aSkipped);
 
-    nsresult
-    SerializeChildAssertion(nsIOutputStream* aStream,
-                            nsIRDFResource* aResource,
-                            nsIRDFResource* aProperty,
-                            nsIRDFNode* aValue);
+  bool IsContainerProperty(nsIRDFResource* aProperty);
 
-    nsresult
-    SerializeProperty(nsIOutputStream* aStream,
-                      nsIRDFResource* aResource,
-                      nsIRDFResource* aProperty,
-                      bool aInline,
-                      int32_t* aSkipped);
+  nsresult SerializeDescription(nsIOutputStream* aStream,
+                                nsIRDFResource* aResource);
 
-    bool
-    IsContainerProperty(nsIRDFResource* aProperty);
+  nsresult SerializeMember(nsIOutputStream* aStream, nsIRDFResource* aContainer,
+                           nsIRDFNode* aMember);
 
-    nsresult
-    SerializeDescription(nsIOutputStream* aStream,
-                         nsIRDFResource* aResource);
+  nsresult SerializeContainer(nsIOutputStream* aStream,
+                              nsIRDFResource* aContainer);
 
-    nsresult
-    SerializeMember(nsIOutputStream* aStream,
-                    nsIRDFResource* aContainer,
-                    nsIRDFNode* aMember);
+  nsresult SerializePrologue(nsIOutputStream* aStream);
 
-    nsresult
-    SerializeContainer(nsIOutputStream* aStream,
-                       nsIRDFResource* aContainer);
+  nsresult SerializeEpilogue(nsIOutputStream* aStream);
 
-    nsresult
-    SerializePrologue(nsIOutputStream* aStream);
+  nsresult CollectNamespaces();
 
-    nsresult
-    SerializeEpilogue(nsIOutputStream* aStream);
+  bool IsA(nsIRDFDataSource* aDataSource, nsIRDFResource* aResource,
+           nsIRDFResource* aType);
 
-    nsresult
-    CollectNamespaces();
+  nsCOMPtr<nsIRDFDataSource> mDataSource;
+  nsNameSpaceMap mNameSpaces;
+  nsCString mBaseURLSpec;
 
-    bool
-    IsA(nsIRDFDataSource* aDataSource, nsIRDFResource* aResource, nsIRDFResource* aType);
+  // hash mapping resources to utf8-encoded QNames
+  nsDataHashtable<nsISupportsHashKey, nsCString> mQNames;
+  friend class QNameCollector;
 
-    nsCOMPtr<nsIRDFDataSource> mDataSource;
-    nsNameSpaceMap mNameSpaces;
-    nsCString mBaseURLSpec;
+  uint32_t mPrefixID;
 
-    // hash mapping resources to utf8-encoded QNames
-    nsDataHashtable<nsISupportsHashKey, nsCString> mQNames;
-    friend class QNameCollector;
-
-    uint32_t mPrefixID;
-
-    static int32_t gRefCnt;
-    static nsIRDFResource* kRDF_instanceOf;
-    static nsIRDFResource* kRDF_type;
-    static nsIRDFResource* kRDF_nextVal;
-    static nsIRDFResource* kRDF_Bag;
-    static nsIRDFResource* kRDF_Seq;
-    static nsIRDFResource* kRDF_Alt;
-    static nsIRDFContainerUtils* gRDFC;
+  static int32_t gRefCnt;
+  static nsIRDFResource* kRDF_instanceOf;
+  static nsIRDFResource* kRDF_type;
+  static nsIRDFResource* kRDF_nextVal;
+  static nsIRDFResource* kRDF_Bag;
+  static nsIRDFResource* kRDF_Seq;
+  static nsIRDFResource* kRDF_Alt;
+  static nsIRDFContainerUtils* gRDFC;
 };
 
-#endif // nsRDFXMLSerializer_h__
+#endif  // nsRDFXMLSerializer_h__

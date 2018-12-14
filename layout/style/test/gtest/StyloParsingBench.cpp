@@ -29,27 +29,20 @@ static void ServoParsingBench() {
   ASSERT_EQ(Encoding::UTF8ValidUpTo(css), css.Length());
 
   RefPtr<URLExtraData> data = new URLExtraData(
-    NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
+      NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
   for (int i = 0; i < PARSING_REPETITIONS; i++) {
     RefPtr<RawServoStyleSheetContents> stylesheet =
-      Servo_StyleSheet_FromUTF8Bytes(nullptr,
-                                     nullptr,
-                                     nullptr,
-                                     css.Elements(),
-                                     css.Length(),
-                                     eAuthorSheetFeatures,
-                                     data,
-                                     0,
-                                     eCompatibility_FullStandards,
-                                     nullptr)
-        .Consume();
+        Servo_StyleSheet_FromUTF8Bytes(nullptr, nullptr, nullptr,
+                                       css.Elements(), css.Length(),
+                                       eAuthorSheetFeatures, data, 0,
+                                       eCompatibility_FullStandards, nullptr)
+            .Consume();
   }
 }
 
 MOZ_GTEST_BENCH(Stylo, Servo_StyleSheet_FromUTF8Bytes_Bench, ServoParsingBench);
 
 #endif
-
 
 #ifdef MOZ_OLD_STYLE
 
@@ -61,8 +54,8 @@ static void GeckoParsingBench() {
 
   RefPtr<nsIURI> uri = NullPrincipalURI::Create();
   for (int i = 0; i < PARSING_REPETITIONS; i++) {
-    RefPtr<CSSStyleSheet> stylesheet = new CSSStyleSheet(
-      eAuthorSheetFeatures, CORS_NONE, RP_No_Referrer);
+    RefPtr<CSSStyleSheet> stylesheet =
+        new CSSStyleSheet(eAuthorSheetFeatures, CORS_NONE, RP_No_Referrer);
     stylesheet->SetURIs(uri, uri, uri);
     stylesheet->SetComplete();
     ASSERT_EQ(stylesheet->ReparseSheet(css), NS_OK);
@@ -73,68 +66,53 @@ MOZ_GTEST_BENCH(Stylo, Gecko_nsCSSParser_ParseSheet_Bench, GeckoParsingBench);
 
 #endif
 
-
 #ifdef MOZ_STYLO
 
 static void ServoSetPropertyByIdBench(const nsACString& css) {
-  RefPtr<RawServoDeclarationBlock> block = Servo_DeclarationBlock_CreateEmpty().Consume();
+  RefPtr<RawServoDeclarationBlock> block =
+      Servo_DeclarationBlock_CreateEmpty().Consume();
   RefPtr<URLExtraData> data = new URLExtraData(
-    NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
+      NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
 
   ASSERT_TRUE(IsUTF8(css));
 
   for (int i = 0; i < SETPROPERTY_REPETITIONS; i++) {
     Servo_DeclarationBlock_SetPropertyById(
-      block,
-      eCSSProperty_width,
-      &css,
-      /* is_important = */ false,
-      data,
-      ParsingMode::Default,
-      eCompatibility_FullStandards,
-      nullptr
-    );
+        block, eCSSProperty_width, &css,
+        /* is_important = */ false, data, ParsingMode::Default,
+        eCompatibility_FullStandards, nullptr);
   }
 }
 
-MOZ_GTEST_BENCH(Stylo, Servo_DeclarationBlock_SetPropertyById_Bench, [] {
-  ServoSetPropertyByIdBench(NS_LITERAL_CSTRING("10px"));
-});
+MOZ_GTEST_BENCH(Stylo, Servo_DeclarationBlock_SetPropertyById_Bench,
+                [] { ServoSetPropertyByIdBench(NS_LITERAL_CSTRING("10px")); });
 
-MOZ_GTEST_BENCH(Stylo, Servo_DeclarationBlock_SetPropertyById_WithInitialSpace_Bench, [] {
-  ServoSetPropertyByIdBench(NS_LITERAL_CSTRING(" 10px"));
-});
+MOZ_GTEST_BENCH(Stylo,
+                Servo_DeclarationBlock_SetPropertyById_WithInitialSpace_Bench,
+                [] { ServoSetPropertyByIdBench(NS_LITERAL_CSTRING(" 10px")); });
 
 static void ServoGetPropertyValueById() {
-  RefPtr<RawServoDeclarationBlock> block = Servo_DeclarationBlock_CreateEmpty().Consume();
+  RefPtr<RawServoDeclarationBlock> block =
+      Servo_DeclarationBlock_CreateEmpty().Consume();
   RefPtr<URLExtraData> data = new URLExtraData(
-    NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
+      NullPrincipalURI::Create(), nullptr, NullPrincipal::Create());
   NS_NAMED_LITERAL_CSTRING(css_, "10px");
   const nsACString& css = css_;
-  Servo_DeclarationBlock_SetPropertyById(
-    block,
-    eCSSProperty_width,
-    &css,
-    /* is_important = */ false,
-    data,
-    ParsingMode::Default,
-    eCompatibility_FullStandards,
-    nullptr
-  );
+  Servo_DeclarationBlock_SetPropertyById(block, eCSSProperty_width, &css,
+                                         /* is_important = */ false, data,
+                                         ParsingMode::Default,
+                                         eCompatibility_FullStandards, nullptr);
 
   for (int i = 0; i < GETPROPERTY_REPETITIONS; i++) {
     DOMString value_;
     nsAString& value = value_;
-    Servo_DeclarationBlock_GetPropertyValueById(
-      block,
-      eCSSProperty_width,
-      &value
-    );
+    Servo_DeclarationBlock_GetPropertyValueById(block, eCSSProperty_width,
+                                                &value);
     ASSERT_TRUE(value.EqualsLiteral("10px"));
   }
 }
 
-MOZ_GTEST_BENCH(Stylo, Servo_DeclarationBlock_GetPropertyById_Bench, ServoGetPropertyValueById);
-
+MOZ_GTEST_BENCH(Stylo, Servo_DeclarationBlock_GetPropertyById_Bench,
+                ServoGetPropertyValueById);
 
 #endif

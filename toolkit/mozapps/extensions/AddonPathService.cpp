@@ -29,47 +29,38 @@
 
 namespace mozilla {
 
-struct PathEntryComparator
-{
+struct PathEntryComparator {
   typedef AddonPathService::PathEntry PathEntry;
 
-  bool Equals(const PathEntry& entry1, const PathEntry& entry2) const
-  {
+  bool Equals(const PathEntry& entry1, const PathEntry& entry2) const {
     return entry1.mPath == entry2.mPath;
   }
 
-  bool LessThan(const PathEntry& entry1, const PathEntry& entry2) const
-  {
+  bool LessThan(const PathEntry& entry1, const PathEntry& entry2) const {
     return entry1.mPath < entry2.mPath;
   }
 };
 
-AddonPathService::AddonPathService()
-{
-}
+AddonPathService::AddonPathService() {}
 
-AddonPathService::~AddonPathService()
-{
+AddonPathService::~AddonPathService() {
   MOZ_ASSERT(sInstance == this);
   sInstance = nullptr;
 }
 
 NS_IMPL_ISUPPORTS(AddonPathService, amIAddonPathService)
 
-AddonPathService *AddonPathService::sInstance;
+AddonPathService* AddonPathService::sInstance;
 
 /* static */ already_AddRefed<AddonPathService>
-AddonPathService::GetInstance()
-{
+AddonPathService::GetInstance() {
   if (!sInstance) {
     sInstance = new AddonPathService();
   }
   return do_AddRef(sInstance);
 }
 
-static JSAddonId*
-ConvertAddonId(const nsAString& addonIdString)
-{
+static JSAddonId* ConvertAddonId(const nsAString& addonIdString) {
   AutoSafeJSContext cx;
   JS::RootedValue strv(cx);
   if (!mozilla::dom::ToJSValue(cx, addonIdString, &strv)) {
@@ -79,12 +70,11 @@ ConvertAddonId(const nsAString& addonIdString)
   return JS::NewAddonId(cx, str);
 }
 
-JSAddonId*
-AddonPathService::Find(const nsAString& path)
-{
+JSAddonId* AddonPathService::Find(const nsAString& path) {
   // Use binary search to find the nearest entry that is <= |path|.
   PathEntryComparator comparator;
-  unsigned index = mPaths.IndexOfFirstElementGt(PathEntry(path, nullptr), comparator);
+  unsigned index =
+      mPaths.IndexOfFirstElementGt(PathEntry(path, nullptr), comparator);
   if (index == 0) {
     return nullptr;
   }
@@ -98,8 +88,7 @@ AddonPathService::Find(const nsAString& path)
 }
 
 NS_IMETHODIMP
-AddonPathService::FindAddonId(const nsAString& path, nsAString& addonIdString)
-{
+AddonPathService::FindAddonId(const nsAString& path, nsAString& addonIdString) {
   if (JSAddonId* id = Find(path)) {
     JSFlatString* flat = JS_ASSERT_STRING_IS_FLAT(JS::StringOfAddonId(id));
     AssignJSFlatString(addonIdString, flat);
@@ -107,9 +96,7 @@ AddonPathService::FindAddonId(const nsAString& path, nsAString& addonIdString)
   return NS_OK;
 }
 
-/* static */ JSAddonId*
-AddonPathService::FindAddonId(const nsAString& path)
-{
+/* static */ JSAddonId* AddonPathService::FindAddonId(const nsAString& path) {
   // If no service has been created, then we're not going to find anything.
   if (!sInstance) {
     return nullptr;
@@ -119,8 +106,8 @@ AddonPathService::FindAddonId(const nsAString& path)
 }
 
 NS_IMETHODIMP
-AddonPathService::InsertPath(const nsAString& path, const nsAString& addonIdString)
-{
+AddonPathService::InsertPath(const nsAString& path,
+                             const nsAString& addonIdString) {
   JSAddonId* addonId = ConvertAddonId(addonIdString);
 
   // Add the new path in sorted order.
@@ -130,8 +117,7 @@ AddonPathService::InsertPath(const nsAString& path, const nsAString& addonIdStri
 }
 
 NS_IMETHODIMP
-AddonPathService::MapURIToAddonId(nsIURI* aURI, nsAString& addonIdString)
-{
+AddonPathService::MapURIToAddonId(nsIURI* aURI, nsAString& addonIdString) {
   if (JSAddonId* id = MapURIToAddonID(aURI)) {
     JSFlatString* flat = JS_ASSERT_STRING_IS_FLAT(JS::StringOfAddonId(id));
     AssignJSFlatString(addonIdString, flat);
@@ -139,9 +125,7 @@ AddonPathService::MapURIToAddonId(nsIURI* aURI, nsAString& addonIdString)
   return NS_OK;
 }
 
-static nsresult
-ResolveURI(nsIURI* aURI, nsAString& out)
-{
+static nsresult ResolveURI(nsIURI* aURI, nsAString& out) {
   bool equals;
   nsresult rv;
   nsCOMPtr<nsIURI> uri;
@@ -151,25 +135,20 @@ ResolveURI(nsIURI* aURI, nsAString& out)
   // have both spec and uri variables identifying the same URI.
   if (NS_SUCCEEDED(aURI->SchemeIs("resource", &equals)) && equals) {
     nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     nsCOMPtr<nsIProtocolHandler> ph;
     rv = ioService->GetProtocolHandler("resource", getter_AddRefs(ph));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     nsCOMPtr<nsIResProtocolHandler> irph(do_QueryInterface(ph, &rv));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     rv = irph->ResolveURI(aURI, spec);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     rv = ioService->NewURI(spec, nullptr, nullptr, getter_AddRefs(uri));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
   } else if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &equals)) && equals) {
     // Going through the Chrome Registry may be prohibitively slow for many of
     // the well-known chrome:// URI packages, so check for a few of them here
@@ -177,65 +156,53 @@ ResolveURI(nsIURI* aURI, nsAString& out)
     // could have been provided by an add-on.
     nsAutoCString package;
     rv = aURI->GetHostPort(package);
-    if (NS_WARN_IF(NS_FAILED(rv)) ||
-        package.EqualsLiteral("branding") ||
-        package.EqualsLiteral("browser") ||
-        package.EqualsLiteral("branding") ||
+    if (NS_WARN_IF(NS_FAILED(rv)) || package.EqualsLiteral("branding") ||
+        package.EqualsLiteral("browser") || package.EqualsLiteral("branding") ||
         package.EqualsLiteral("global") ||
         package.EqualsLiteral("global-platform") ||
-        package.EqualsLiteral("mozapps") ||
-        package.EqualsLiteral("necko") ||
+        package.EqualsLiteral("mozapps") || package.EqualsLiteral("necko") ||
         package.EqualsLiteral("passwordmgr") ||
-        package.EqualsLiteral("pippki") ||
-        package.EqualsLiteral("pipnss")) {
+        package.EqualsLiteral("pippki") || package.EqualsLiteral("pipnss")) {
       // Returning a failure code means the URI isn't associated with an add-on
       // ID.
       return NS_ERROR_FAILURE;
     }
 
     nsCOMPtr<nsIChromeRegistry> chromeReg =
-      mozilla::services::GetChromeRegistryService();
-    if (NS_WARN_IF(!chromeReg))
-      return NS_ERROR_UNEXPECTED;
+        mozilla::services::GetChromeRegistryService();
+    if (NS_WARN_IF(!chromeReg)) return NS_ERROR_UNEXPECTED;
 
     rv = chromeReg->ConvertChromeURL(aURI, getter_AddRefs(uri));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
   } else {
     uri = aURI;
   }
 
   if (NS_SUCCEEDED(uri->SchemeIs("jar", &equals)) && equals) {
     nsCOMPtr<nsIJARURI> jarURI = do_QueryInterface(uri, &rv);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     nsCOMPtr<nsIURI> jarFileURI;
     rv = jarURI->GetJARFile(getter_AddRefs(jarFileURI));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     return ResolveURI(jarFileURI, out);
   }
 
   if (NS_SUCCEEDED(uri->SchemeIs("file", &equals)) && equals) {
     nsCOMPtr<nsIFileURL> baseFileURL = do_QueryInterface(uri, &rv);
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     nsCOMPtr<nsIFile> file;
     rv = baseFileURL->GetFile(getter_AddRefs(file));
-    if (NS_WARN_IF(NS_FAILED(rv)))
-      return rv;
+    if (NS_WARN_IF(NS_FAILED(rv))) return rv;
 
     return file->GetPath(out);
   }
   return NS_ERROR_FAILURE;
 }
 
-JSAddonId*
-MapURIToAddonID(nsIURI* aURI)
-{
+JSAddonId* MapURIToAddonID(nsIURI* aURI) {
   if (!NS_IsMainThread() || !XRE_IsParentProcess()) {
     return nullptr;
   }
@@ -243,12 +210,12 @@ MapURIToAddonID(nsIURI* aURI)
   bool equals;
   nsresult rv;
   if (NS_SUCCEEDED(aURI->SchemeIs("moz-extension", &equals)) && equals) {
-    nsCOMPtr<nsIAddonPolicyService> service = do_GetService("@mozilla.org/addons/policy-service;1");
+    nsCOMPtr<nsIAddonPolicyService> service =
+        do_GetService("@mozilla.org/addons/policy-service;1");
     if (service) {
       nsString addonId;
       rv = service->ExtensionURIToAddonId(aURI, addonId);
-      if (NS_FAILED(rv))
-        return nullptr;
+      if (NS_FAILED(rv)) return nullptr;
 
       return ConvertAddonId(addonId);
     }
@@ -256,14 +223,14 @@ MapURIToAddonID(nsIURI* aURI)
 
   nsAutoString filePath;
   rv = ResolveURI(aURI, filePath);
-  if (NS_FAILED(rv))
-    return nullptr;
+  if (NS_FAILED(rv)) return nullptr;
 
   nsCOMPtr<nsIFile> greJar = Omnijar::GetPath(Omnijar::GRE);
   nsCOMPtr<nsIFile> appJar = Omnijar::GetPath(Omnijar::APP);
   if (greJar && appJar) {
     nsAutoString greJarString, appJarString;
-    if (NS_FAILED(greJar->GetPath(greJarString)) || NS_FAILED(appJar->GetPath(appJarString)))
+    if (NS_FAILED(greJar->GetPath(greJarString)) ||
+        NS_FAILED(appJar->GetPath(appJarString)))
       return nullptr;
 
     // If |aURI| is part of either Omnijar, then it can't be part of an
@@ -277,4 +244,4 @@ MapURIToAddonID(nsIURI* aURI)
   return AddonPathService::FindAddonId(filePath);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

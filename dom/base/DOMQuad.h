@@ -23,11 +23,10 @@ class DOMRectReadOnly;
 class DOMPoint;
 struct DOMPointInit;
 
-class DOMQuad final : public nsWrapperCache
-{
+class DOMQuad final : public nsWrapperCache {
   ~DOMQuad();
 
-public:
+ public:
   DOMQuad(nsISupports* aParent, CSSPoint aPoints[4]);
   explicit DOMQuad(nsISupports* aParent);
 
@@ -35,18 +34,18 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMQuad)
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  static already_AddRefed<DOMQuad>
-  Constructor(const GlobalObject& aGlobal,
-              const DOMPointInit& aP1,
-              const DOMPointInit& aP2,
-              const DOMPointInit& aP3,
-              const DOMPointInit& aP4,
-              ErrorResult& aRV);
-  static already_AddRefed<DOMQuad>
-  Constructor(const GlobalObject& aGlobal, const DOMRectReadOnly& aRect,
-              ErrorResult& aRV);
+  static already_AddRefed<DOMQuad> Constructor(const GlobalObject& aGlobal,
+                                               const DOMPointInit& aP1,
+                                               const DOMPointInit& aP2,
+                                               const DOMPointInit& aP3,
+                                               const DOMPointInit& aP4,
+                                               ErrorResult& aRV);
+  static already_AddRefed<DOMQuad> Constructor(const GlobalObject& aGlobal,
+                                               const DOMRectReadOnly& aRect,
+                                               ErrorResult& aRV);
 
   DOMRectReadOnly* Bounds() const;
   DOMPoint* P1() const { return mPoints[0]; }
@@ -56,15 +55,15 @@ public:
 
   DOMPoint* Point(uint32_t aIndex) { return mPoints[aIndex]; }
 
-protected:
+ protected:
   class QuadBounds;
 
   nsCOMPtr<nsISupports> mParent;
   RefPtr<DOMPoint> mPoints[4];
-  mutable RefPtr<QuadBounds> mBounds; // allocated lazily
+  mutable RefPtr<QuadBounds> mBounds;  // allocated lazily
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /*MOZILLA_DOMRECT_H_*/

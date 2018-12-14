@@ -31,15 +31,15 @@ namespace mozilla {
 
 namespace ipc {
 class PrincipalInfo;
-} // namespace ipc
+}  // namespace ipc
 
 namespace dom {
 
 class WorkerPrivate;
 
-struct WorkerLoadInfo
-{
-  // All of these should be released in WorkerPrivateParent::ForgetMainThreadObjects.
+struct WorkerLoadInfo {
+  // All of these should be released in
+  // WorkerPrivateParent::ForgetMainThreadObjects.
   nsCOMPtr<nsIURI> mBaseURI;
   nsCOMPtr<nsIURI> mResolvedScriptURI;
 
@@ -62,17 +62,16 @@ struct WorkerLoadInfo
   // is guaranteed to be released on the main thread.
   nsCOMPtr<nsIRunnable> mLoadFailedAsyncRunnable;
 
-  class InterfaceRequestor final : public nsIInterfaceRequestor
-  {
+  class InterfaceRequestor final : public nsIInterfaceRequestor {
     NS_DECL_ISUPPORTS
 
-  public:
+   public:
     InterfaceRequestor(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
     void MaybeAddTabChild(nsILoadGroup* aLoadGroup);
     NS_IMETHOD GetInterface(const nsIID& aIID, void** aSink) override;
 
-  private:
-    ~InterfaceRequestor() { }
+   private:
+    ~InterfaceRequestor() {}
 
     already_AddRefed<nsITabChild> GetAnyLiveTabChild();
 
@@ -89,11 +88,12 @@ struct WorkerLoadInfo
 
   nsAutoPtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
   nsCString mDomain;
-  nsString mOrigin; // Derived from mPrincipal; can be used on worker thread.
+  nsString mOrigin;  // Derived from mPrincipal; can be used on worker thread.
 
   nsString mServiceWorkerCacheName;
   Maybe<ServiceWorkerDescriptor> mServiceWorkerDescriptor;
-  Maybe<ServiceWorkerRegistrationDescriptor> mServiceWorkerRegistrationDescriptor;
+  Maybe<ServiceWorkerRegistrationDescriptor>
+      mServiceWorkerRegistrationDescriptor;
 
   Maybe<ServiceWorkerDescriptor> mParentController;
 
@@ -117,37 +117,31 @@ struct WorkerLoadInfo
 
   void StealFrom(WorkerLoadInfo& aOther);
 
-  nsresult
-  SetPrincipalOnMainThread(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
+  nsresult SetPrincipalOnMainThread(nsIPrincipal* aPrincipal,
+                                    nsILoadGroup* aLoadGroup);
 
-  nsresult
-  GetPrincipalAndLoadGroupFromChannel(nsIChannel* aChannel,
-                                      nsIPrincipal** aPrincipalOut,
-                                      nsILoadGroup** aLoadGroupOut);
+  nsresult GetPrincipalAndLoadGroupFromChannel(nsIChannel* aChannel,
+                                               nsIPrincipal** aPrincipalOut,
+                                               nsILoadGroup** aLoadGroupOut);
 
-  nsresult
-  SetPrincipalFromChannel(nsIChannel* aChannel);
+  nsresult SetPrincipalFromChannel(nsIChannel* aChannel);
 
-  bool
-  FinalChannelPrincipalIsValid(nsIChannel* aChannel);
+  bool FinalChannelPrincipalIsValid(nsIChannel* aChannel);
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  bool
-  PrincipalIsValid() const;
+  bool PrincipalIsValid() const;
 
-  bool
-  PrincipalURIMatchesScriptURL();
+  bool PrincipalURIMatchesScriptURL();
 #endif
 
-  bool
-  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate);
+  bool ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate);
 
-  bool
-  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate,
-                                nsCOMPtr<nsILoadGroup>& aLoadGroupToCancel);
+  bool ProxyReleaseMainThreadObjects(
+      WorkerPrivate* aWorkerPrivate,
+      nsCOMPtr<nsILoadGroup>& aLoadGroupToCancel);
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_workers_WorkerLoadInfo_h
+#endif  // mozilla_dom_workers_WorkerLoadInfo_h

@@ -19,30 +19,24 @@ using namespace mozilla::dom;
 NS_IMPL_FRAMEARENA_HELPERS(DetailsFrame)
 
 NS_QUERYFRAME_HEAD(DetailsFrame)
-  NS_QUERYFRAME_ENTRY(DetailsFrame)
-  NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
+NS_QUERYFRAME_ENTRY(DetailsFrame)
+NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
 NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 
-nsBlockFrame*
-NS_NewDetailsFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsBlockFrame* NS_NewDetailsFrame(nsIPresShell* aPresShell,
+                                 nsStyleContext* aContext) {
   return new (aPresShell) DetailsFrame(aContext);
 }
 
 namespace mozilla {
 
 DetailsFrame::DetailsFrame(nsStyleContext* aContext)
-  : nsBlockFrame(aContext, kClassID)
-{
-}
+    : nsBlockFrame(aContext, kClassID) {}
 
-DetailsFrame::~DetailsFrame()
-{
-}
+DetailsFrame::~DetailsFrame() {}
 
-void
-DetailsFrame::SetInitialChildList(ChildListID aListID, nsFrameList& aChildList)
-{
+void DetailsFrame::SetInitialChildList(ChildListID aListID,
+                                       nsFrameList& aChildList) {
 #ifdef DEBUG
   if (aListID == kPrincipalList) {
     CheckValidMainSummary(aChildList);
@@ -53,12 +47,10 @@ DetailsFrame::SetInitialChildList(ChildListID aListID, nsFrameList& aChildList)
 }
 
 #ifdef DEBUG
-bool
-DetailsFrame::CheckValidMainSummary(const nsFrameList& aFrameList) const
-{
+bool DetailsFrame::CheckValidMainSummary(const nsFrameList& aFrameList) const {
   for (nsIFrame* child : aFrameList) {
     HTMLSummaryElement* summary =
-      HTMLSummaryElement::FromContent(child->GetContent());
+        HTMLSummaryElement::FromContent(child->GetContent());
 
     if (child == aFrameList.FirstChild()) {
       if (summary && summary->IsMainSummary()) {
@@ -81,16 +73,14 @@ DetailsFrame::CheckValidMainSummary(const nsFrameList& aFrameList) const
 }
 #endif
 
-void
-DetailsFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
-{
+void DetailsFrame::DestroyFrom(nsIFrame* aDestructRoot,
+                               PostDestroyData& aPostDestroyData) {
   aPostDestroyData.AddAnonymousContent(mDefaultSummary.forget());
   nsBlockFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
-nsresult
-DetailsFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
-{
+nsresult DetailsFrame::CreateAnonymousContent(
+    nsTArray<ContentInfo>& aElements) {
   auto* details = HTMLDetailsElement::FromContent(GetContent());
   if (details->GetFirstSummary()) {
     return NS_OK;
@@ -99,11 +89,10 @@ DetailsFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   // The <details> element lacks any direct <summary> child. Create a default
   // <summary> element as an anonymous content.
   nsNodeInfoManager* nodeInfoManager =
-    GetContent()->NodeInfo()->NodeInfoManager();
+      GetContent()->NodeInfo()->NodeInfoManager();
 
-  already_AddRefed<NodeInfo> nodeInfo =
-    nodeInfoManager->GetNodeInfo(nsGkAtoms::summary, nullptr, kNameSpaceID_XHTML,
-                                 nsINode::ELEMENT_NODE);
+  already_AddRefed<NodeInfo> nodeInfo = nodeInfoManager->GetNodeInfo(
+      nsGkAtoms::summary, nullptr, kNameSpaceID_XHTML, nsINode::ELEMENT_NODE);
   mDefaultSummary = new HTMLSummaryElement(nodeInfo);
 
   nsAutoString defaultSummaryText;
@@ -118,22 +107,18 @@ DetailsFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   return NS_OK;
 }
 
-void
-DetailsFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
-                                       uint32_t aFilter)
-{
+void DetailsFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
+                                            uint32_t aFilter) {
   if (mDefaultSummary) {
     aElements.AppendElement(mDefaultSummary);
   }
 }
 
-bool
-DetailsFrame::HasMainSummaryFrame(nsIFrame* aSummaryFrame)
-{
+bool DetailsFrame::HasMainSummaryFrame(nsIFrame* aSummaryFrame) {
   nsIFrame* firstChild =
-    nsPlaceholderFrame::GetRealFrameFor(mFrames.FirstChild());
+      nsPlaceholderFrame::GetRealFrameFor(mFrames.FirstChild());
 
   return aSummaryFrame == firstChild;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

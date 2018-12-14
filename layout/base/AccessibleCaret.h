@@ -41,9 +41,8 @@ namespace mozilla {
 // Please see the wiki page for more information.
 // https://wiki.mozilla.org/AccessibleCaret
 //
-class AccessibleCaret
-{
-public:
+class AccessibleCaret {
+ public:
   explicit AccessibleCaret(nsIPresShell* aPresShell);
   virtual ~AccessibleCaret();
 
@@ -76,23 +75,16 @@ public:
   friend std::ostream& operator<<(std::ostream& aStream,
                                   const Appearance& aAppearance);
 
-  Appearance GetAppearance() const
-  {
-    return mAppearance;
-  }
+  Appearance GetAppearance() const { return mAppearance; }
 
   virtual void SetAppearance(Appearance aAppearance);
 
   // Return true if current appearance is either Normal, NormalNotShown, Left,
   // or Right.
-  bool IsLogicallyVisible() const
-  {
-      return mAppearance != Appearance::None;
-  }
+  bool IsLogicallyVisible() const { return mAppearance != Appearance::None; }
 
   // Return true if current appearance is either Normal, Left, or Right.
-  bool IsVisuallyVisible() const
-  {
+  bool IsVisuallyVisible() const {
     return (mAppearance != Appearance::None) &&
            (mAppearance != Appearance::NormalNotShown);
   }
@@ -124,21 +116,17 @@ public:
   // Is the point within the caret's rect? The point should be relative to root
   // frame.
   enum class TouchArea {
-    Full, // Contains both text overlay and caret image.
+    Full,  // Contains both text overlay and caret image.
     CaretImage
   };
   bool Contains(const nsPoint& aPoint, TouchArea aTouchArea) const;
 
   // The geometry center of the imaginary caret (nsCaret) to which this
   // AccessibleCaret is attached. It is needed when dragging the caret.
-  nsPoint LogicalPosition() const
-  {
-    return mImaginaryCaretRect.Center();
-  }
+  nsPoint LogicalPosition() const { return mImaginaryCaretRect.Center(); }
 
   // Element for 'Intersects' test. Container of image and bar elements.
-  dom::Element* CaretElement() const
-  {
+  dom::Element* CaretElement() const {
     return mCaretElementHolder->GetContentNode();
   }
 
@@ -146,7 +134,7 @@ public:
   // doesn't scroll the page when the user is trying to drag the caret.
   void EnsureApzAware();
 
-protected:
+ protected:
   // Argument aRect should be relative to CustomContentContainerFrame().
   void SetCaretElementStyle(const nsRect& aRect, float aZoomLevel);
   void SetTextOverlayElementStyle(const nsRect& aRect, float aZoomLevel);
@@ -157,34 +145,29 @@ protected:
   float GetZoomLevel();
 
   // Element which contains the text overly for the 'Contains' test.
-  dom::Element* TextOverlayElement() const
-  {
+  dom::Element* TextOverlayElement() const {
     return mCaretElementHolder->GetElementById(sTextOverlayElementId);
   }
 
   // Element which contains the caret image for 'Contains' test.
-  dom::Element* CaretImageElement() const
-  {
+  dom::Element* CaretImageElement() const {
     return mCaretElementHolder->GetElementById(sCaretImageElementId);
   }
 
   // Element which represents the text selection bar.
-  dom::Element* SelectionBarElement() const
-  {
+  dom::Element* SelectionBarElement() const {
     return mCaretElementHolder->GetElementById(sSelectionBarElementId);
   }
 
-  nsIFrame* RootFrame() const
-  {
-    return mPresShell->GetRootFrame();
-  }
+  nsIFrame* RootFrame() const { return mPresShell->GetRootFrame(); }
 
   nsIFrame* CustomContentContainerFrame() const;
 
   // Transform Appearance to CSS id used in ua.css.
   static nsAutoString AppearanceString(Appearance aAppearance);
 
-  already_AddRefed<dom::Element> CreateCaretElement(nsIDocument* aDocument) const;
+  already_AddRefed<dom::Element> CreateCaretElement(
+      nsIDocument* aDocument) const;
 
   // Inject caret element into custom content container.
   void InjectCaretElement(nsIDocument* aDocument);
@@ -194,22 +177,17 @@ protected:
 
   // The top-center of the imaginary caret to which this AccessibleCaret is
   // attached.
-  static nsPoint CaretElementPosition(const nsRect& aRect)
-  {
+  static nsPoint CaretElementPosition(const nsRect& aRect) {
     return aRect.TopLeft() + nsPoint(aRect.width / 2, 0);
   }
 
-  class DummyTouchListener final : public nsIDOMEventListener
-  {
-  public:
+  class DummyTouchListener final : public nsIDOMEventListener {
+   public:
     NS_DECL_ISUPPORTS
-    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override
-    {
-      return NS_OK;
-    }
+    NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override { return NS_OK; }
 
-  private:
-    virtual ~DummyTouchListener() {};
+   private:
+    virtual ~DummyTouchListener(){};
   };
 
   // Member variables
@@ -244,7 +222,7 @@ protected:
   static const nsLiteralString sCaretImageElementId;
   static const nsLiteralString sSelectionBarElementId;
 
-}; // class AccessibleCaret
+};  // class AccessibleCaret
 
 std::ostream& operator<<(std::ostream& aStream,
                          const AccessibleCaret::Appearance& aAppearance);
@@ -252,6 +230,6 @@ std::ostream& operator<<(std::ostream& aStream,
 std::ostream& operator<<(std::ostream& aStream,
                          const AccessibleCaret::PositionChangedResult& aResult);
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // AccessibleCaret_h__
+#endif  // AccessibleCaret_h__

@@ -9,20 +9,13 @@
 namespace mozilla {
 namespace gfx {
 
-
 extern BYTE sSystemTextQuality;
 
-static BYTE
-GetSystemTextQuality()
-{
-  return sSystemTextQuality;
-}
+static BYTE GetSystemTextQuality() { return sSystemTextQuality; }
 
-// Cleartype can be dynamically enabled/disabled, so we have to allow for dynamically
-// updating it.
-static void
-UpdateSystemTextQuality()
-{
+// Cleartype can be dynamically enabled/disabled, so we have to allow for
+// dynamically updating it.
+static void UpdateSystemTextQuality() {
   BOOL font_smoothing;
   UINT smoothing_type;
 
@@ -32,46 +25,44 @@ UpdateSystemTextQuality()
   }
 
   if (font_smoothing) {
-      if (!SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE,
-                                0, &smoothing_type, 0)) {
-        sSystemTextQuality = DEFAULT_QUALITY;
-        return;
-      }
-
-      if (smoothing_type == FE_FONTSMOOTHINGCLEARTYPE) {
-        sSystemTextQuality = CLEARTYPE_QUALITY;
-        return;
-      }
-
-      sSystemTextQuality = ANTIALIASED_QUALITY;
+    if (!SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &smoothing_type,
+                              0)) {
+      sSystemTextQuality = DEFAULT_QUALITY;
       return;
+    }
+
+    if (smoothing_type == FE_FONTSMOOTHINGCLEARTYPE) {
+      sSystemTextQuality = CLEARTYPE_QUALITY;
+      return;
+    }
+
+    sSystemTextQuality = ANTIALIASED_QUALITY;
+    return;
   }
 
   sSystemTextQuality = DEFAULT_QUALITY;
 }
 
-static AntialiasMode
-GetSystemDefaultAAMode()
-{
+static AntialiasMode GetSystemDefaultAAMode() {
   AntialiasMode defaultMode = AntialiasMode::SUBPIXEL;
   if (gfxPrefs::DisableAllTextAA()) {
     return AntialiasMode::NONE;
   }
 
   switch (GetSystemTextQuality()) {
-  case CLEARTYPE_QUALITY:
-    defaultMode = AntialiasMode::SUBPIXEL;
-    break;
-  case ANTIALIASED_QUALITY:
-    defaultMode = AntialiasMode::GRAY;
-    break;
-  case DEFAULT_QUALITY:
-    defaultMode = AntialiasMode::NONE;
-    break;
+    case CLEARTYPE_QUALITY:
+      defaultMode = AntialiasMode::SUBPIXEL;
+      break;
+    case ANTIALIASED_QUALITY:
+      defaultMode = AntialiasMode::GRAY;
+      break;
+    case DEFAULT_QUALITY:
+      defaultMode = AntialiasMode::NONE;
+      break;
   }
 
   return defaultMode;
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

@@ -7,16 +7,13 @@
 #ifndef mozilla_ContextInlines_h
 #define mozilla_ContextInlines_h
 
-
 #include "nsStyleStruct.h"
 #include "ServoBindings.h"
 #include "mozilla/ServoStyleContext.h"
 
 namespace mozilla {
 
-void
-ServoStyleContext::ResolveSameStructsAs(const ServoStyleContext* aOther)
-{
+void ServoStyleContext::ResolveSameStructsAs(const ServoStyleContext* aOther) {
   // Only resolve structs that are not already resolved in this struct.
   uint64_t ourBits = mBits & NS_STYLE_INHERIT_MASK;
   uint64_t otherBits = aOther->mBits & NS_STYLE_INHERIT_MASK;
@@ -35,6 +32,6 @@ ServoStyleContext::ResolveSameStructsAs(const ServoStyleContext* aOther)
   mBits |= newBits;
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ContextInlines_h
+#endif  // mozilla_ContextInlines_h

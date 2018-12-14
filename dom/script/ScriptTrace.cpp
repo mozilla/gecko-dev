@@ -10,17 +10,14 @@ namespace mozilla {
 namespace dom {
 namespace script {
 
-static nsresult
-TestingDispatchEvent(nsIScriptElement* aScriptElement,
-                     const nsAString& aEventType)
-{
+static nsresult TestingDispatchEvent(nsIScriptElement* aScriptElement,
+                                     const nsAString& aEventType) {
   static bool sExposeTestInterfaceEnabled = false;
   static bool sExposeTestInterfacePrefCached = false;
   if (!sExposeTestInterfacePrefCached) {
     sExposeTestInterfacePrefCached = true;
     Preferences::AddBoolVarCache(&sExposeTestInterfaceEnabled,
-                                 "dom.expose_test_interfaces",
-                                 false);
+                                 "dom.expose_test_interfaces", false);
   }
   if (!sExposeTestInterfaceEnabled) {
     return NS_OK;
@@ -32,10 +29,10 @@ TestingDispatchEvent(nsIScriptElement* aScriptElement,
   }
 
   RefPtr<AsyncEventDispatcher> dispatcher =
-    new AsyncEventDispatcher(target, aEventType, true, false);
+      new AsyncEventDispatcher(target, aEventType, true, false);
   return dispatcher->PostDOMEvent();
 }
 
-} // script namespace
-} // dom namespace
-} // mozilla namespace
+}  // namespace script
+}  // namespace dom
+}  // namespace mozilla

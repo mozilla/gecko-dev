@@ -62,7 +62,7 @@ class xptiInterfaceInfo;
 class xptiInterfaceEntry;
 class xptiTypelibGuts;
 
-extern XPTArena* gXPTIStructArena;
+extern XPTArena *gXPTIStructArena;
 
 /***************************************************************************/
 
@@ -72,32 +72,28 @@ extern XPTArena* gXPTIStructArena;
 // These are always constructed in the struct arena using placement new.
 // dtor need not be called.
 
-class xptiTypelibGuts
-{
-public:
-    static xptiTypelibGuts* Create(const XPTHeader* aHeader);
+class xptiTypelibGuts {
+ public:
+  static xptiTypelibGuts *Create(const XPTHeader *aHeader);
 
-    uint16_t GetEntryCount() const {return mHeader->mNumInterfaces;}
+  uint16_t GetEntryCount() const { return mHeader->mNumInterfaces; }
 
-    void                SetEntryAt(uint16_t i, xptiInterfaceEntry* ptr)
-    {
-        NS_ASSERTION(mHeader,"bad state!");
-        NS_ASSERTION(i < GetEntryCount(),"bad param!");
-        mEntryArray[i] = ptr;
-    }
+  void SetEntryAt(uint16_t i, xptiInterfaceEntry *ptr) {
+    NS_ASSERTION(mHeader, "bad state!");
+    NS_ASSERTION(i < GetEntryCount(), "bad param!");
+    mEntryArray[i] = ptr;
+  }
 
-    xptiInterfaceEntry* GetEntryAt(uint16_t i);
-    const char* GetEntryNameAt(uint16_t i);
+  xptiInterfaceEntry *GetEntryAt(uint16_t i);
+  const char *GetEntryNameAt(uint16_t i);
 
-private:
-    explicit xptiTypelibGuts(const XPTHeader* aHeader)
-        : mHeader(aHeader)
-    { }
-    ~xptiTypelibGuts();
+ private:
+  explicit xptiTypelibGuts(const XPTHeader *aHeader) : mHeader(aHeader) {}
+  ~xptiTypelibGuts();
 
-private:
-    const XPTHeader*     mHeader;        // hold pointer into arena
-    xptiInterfaceEntry*  mEntryArray[1]; // Always last. Sized to fit.
+ private:
+  const XPTHeader *mHeader;            // hold pointer into arena
+  xptiInterfaceEntry *mEntryArray[1];  // Always last. Sized to fit.
 };
 
 /***************************************************************************/
@@ -107,39 +103,37 @@ private:
 // This class exists to help xptiInterfaceInfo store a 4-state (2 bit) value
 // and a set of bitflags in one 8bit value. See below.
 
-class xptiInfoFlags
-{
-    enum {STATE_MASK = 3};
-public:
-    explicit xptiInfoFlags(uint8_t n) : mData(n) {}
-    xptiInfoFlags(const xptiInfoFlags& r) : mData(r.mData) {}
+class xptiInfoFlags {
+  enum { STATE_MASK = 3 };
 
-    static uint8_t GetStateMask()
-        {return uint8_t(STATE_MASK);}
+ public:
+  explicit xptiInfoFlags(uint8_t n) : mData(n) {}
+  xptiInfoFlags(const xptiInfoFlags &r) : mData(r.mData) {}
 
-    void Clear()
-        {mData = 0;}
+  static uint8_t GetStateMask() { return uint8_t(STATE_MASK); }
 
-    uint8_t GetData() const
-        {return mData;}
+  void Clear() { mData = 0; }
 
-    uint8_t GetState() const
-        {return mData & GetStateMask();}
+  uint8_t GetData() const { return mData; }
 
-    void SetState(uint8_t state)
-        {mData &= ~GetStateMask(); mData |= state;}
+  uint8_t GetState() const { return mData & GetStateMask(); }
 
-    void SetFlagBit(uint8_t flag, bool on)
-        {if(on)
-            mData |= ~GetStateMask() & flag;
-         else
-            mData &= GetStateMask() | ~flag;}
+  void SetState(uint8_t state) {
+    mData &= ~GetStateMask();
+    mData |= state;
+  }
 
-    bool GetFlagBit(uint8_t flag) const
-        {return (mData & flag) ? true : false;}
+  void SetFlagBit(uint8_t flag, bool on) {
+    if (on)
+      mData |= ~GetStateMask() & flag;
+    else
+      mData &= GetStateMask() | ~flag;
+  }
 
-private:
-    uint8_t mData;
+  bool GetFlagBit(uint8_t flag) const { return (mData & flag) ? true : false; }
+
+ private:
+  uint8_t mData;
 };
 
 /****************************************************/
@@ -148,227 +142,291 @@ private:
 // We always create in the struct arena and construct using "placement new".
 // No members need dtor calls.
 
-class xptiInterfaceEntry
-{
-public:
-    static xptiInterfaceEntry* Create(const char* aName,
-                                      const nsID& aIID,
-                                      const XPTInterfaceDescriptor* aDescriptor,
-                                      xptiTypelibGuts* aTypelib);
+class xptiInterfaceEntry {
+ public:
+  static xptiInterfaceEntry *Create(const char *aName, const nsID &aIID,
+                                    const XPTInterfaceDescriptor *aDescriptor,
+                                    xptiTypelibGuts *aTypelib);
 
-    enum {
-        PARTIALLY_RESOLVED    = 1,
-        FULLY_RESOLVED        = 2,
-        RESOLVE_FAILED        = 3
-    };
+  enum { PARTIALLY_RESOLVED = 1, FULLY_RESOLVED = 2, RESOLVE_FAILED = 3 };
 
-    // Additional bit flags...
-    enum {SCRIPTABLE = 4, BUILTINCLASS = 8, HASNOTXPCOM = 16,
-          MAIN_PROCESS_SCRIPTABLE_ONLY = 32};
+  // Additional bit flags...
+  enum {
+    SCRIPTABLE = 4,
+    BUILTINCLASS = 8,
+    HASNOTXPCOM = 16,
+    MAIN_PROCESS_SCRIPTABLE_ONLY = 32
+  };
 
-    uint8_t GetResolveState() const {return mFlags.GetState();}
+  uint8_t GetResolveState() const { return mFlags.GetState(); }
 
-    bool IsFullyResolved() const
-        {return GetResolveState() == (uint8_t) FULLY_RESOLVED;}
+  bool IsFullyResolved() const {
+    return GetResolveState() == (uint8_t)FULLY_RESOLVED;
+  }
 
-    void SetScriptableFlag(bool on)
-                {mFlags.SetFlagBit(uint8_t(SCRIPTABLE),on);}
-    bool GetScriptableFlag() const
-                {return mFlags.GetFlagBit(uint8_t(SCRIPTABLE));}
-    void SetBuiltinClassFlag(bool on)
-                {mFlags.SetFlagBit(uint8_t(BUILTINCLASS),on);}
-    bool GetBuiltinClassFlag() const
-                {return mFlags.GetFlagBit(uint8_t(BUILTINCLASS));}
-    void SetMainProcessScriptableOnlyFlag(bool on)
-                {mFlags.SetFlagBit(uint8_t(MAIN_PROCESS_SCRIPTABLE_ONLY),on);}
-    bool GetMainProcessScriptableOnlyFlag() const
-                {return mFlags.GetFlagBit(uint8_t(MAIN_PROCESS_SCRIPTABLE_ONLY));}
+  void SetScriptableFlag(bool on) {
+    mFlags.SetFlagBit(uint8_t(SCRIPTABLE), on);
+  }
+  bool GetScriptableFlag() const {
+    return mFlags.GetFlagBit(uint8_t(SCRIPTABLE));
+  }
+  void SetBuiltinClassFlag(bool on) {
+    mFlags.SetFlagBit(uint8_t(BUILTINCLASS), on);
+  }
+  bool GetBuiltinClassFlag() const {
+    return mFlags.GetFlagBit(uint8_t(BUILTINCLASS));
+  }
+  void SetMainProcessScriptableOnlyFlag(bool on) {
+    mFlags.SetFlagBit(uint8_t(MAIN_PROCESS_SCRIPTABLE_ONLY), on);
+  }
+  bool GetMainProcessScriptableOnlyFlag() const {
+    return mFlags.GetFlagBit(uint8_t(MAIN_PROCESS_SCRIPTABLE_ONLY));
+  }
 
+  // AddRef/Release are special and are not considered for the NOTXPCOM flag.
+  void SetHasNotXPCOMFlag() { mFlags.SetFlagBit(HASNOTXPCOM, true); }
+  bool GetHasNotXPCOMFlag() const { return mFlags.GetFlagBit(HASNOTXPCOM); }
 
-    // AddRef/Release are special and are not considered for the NOTXPCOM flag.
-    void SetHasNotXPCOMFlag()
-    {
-        mFlags.SetFlagBit(HASNOTXPCOM, true);
-    }
-    bool GetHasNotXPCOMFlag() const
-    {
-        return mFlags.GetFlagBit(HASNOTXPCOM);
-    }
+  const nsID *GetTheIID() const { return &mIID; }
+  const char *GetTheName() const { return mName; }
 
-    const nsID* GetTheIID()  const {return &mIID;}
-    const char* GetTheName() const {return mName;}
+  bool EnsureResolved() { return IsFullyResolved() ? true : Resolve(); }
 
-    bool EnsureResolved()
-        {return IsFullyResolved() ? true : Resolve();}
+  already_AddRefed<xptiInterfaceInfo> InterfaceInfo();
+  bool InterfaceInfoEquals(const xptiInterfaceInfo *info) const {
+    return info == mInfo;
+  }
 
-    already_AddRefed<xptiInterfaceInfo> InterfaceInfo();
-    bool     InterfaceInfoEquals(const xptiInterfaceInfo* info) const
-        {return info == mInfo;}
+  void LockedInvalidateInterfaceInfo();
+  void LockedInterfaceInfoDeathNotification() { mInfo = nullptr; }
 
-    void     LockedInvalidateInterfaceInfo();
-    void     LockedInterfaceInfoDeathNotification() {mInfo = nullptr;}
+  xptiInterfaceEntry *Parent() const {
+    NS_ASSERTION(IsFullyResolved(), "Parent() called while not resolved?");
+    return mParent;
+  }
 
-    xptiInterfaceEntry* Parent() const {
-        NS_ASSERTION(IsFullyResolved(), "Parent() called while not resolved?");
-        return mParent;
-    }
+  const nsID &IID() const { return mIID; }
 
-    const nsID& IID() const { return mIID; }
+  //////////////////////
+  // These non-virtual methods handle the delegated nsIInterfaceInfo methods.
 
-    //////////////////////
-    // These non-virtual methods handle the delegated nsIInterfaceInfo methods.
+  nsresult GetName(char **aName);
+  nsresult GetIID(nsIID **aIID);
+  nsresult IsScriptable(bool *_retval);
+  nsresult IsBuiltinClass(bool *_retval) {
+    *_retval = GetBuiltinClassFlag();
+    return NS_OK;
+  }
+  nsresult IsMainProcessScriptableOnly(bool *_retval) {
+    *_retval = GetMainProcessScriptableOnlyFlag();
+    return NS_OK;
+  }
+  // Except this one.
+  // nsresult GetParent(nsIInterfaceInfo * *aParent);
+  nsresult GetMethodCount(uint16_t *aMethodCount);
+  nsresult GetConstantCount(uint16_t *aConstantCount);
+  nsresult GetMethodInfo(uint16_t index, const nsXPTMethodInfo **info);
+  nsresult GetMethodInfoForName(const char *methodName, uint16_t *index,
+                                const nsXPTMethodInfo **info);
+  nsresult GetConstant(uint16_t index, JS::MutableHandleValue, char **constant);
+  nsresult GetInfoForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                           nsIInterfaceInfo **_retval);
+  nsresult GetIIDForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                          nsIID **_retval);
+  nsresult GetTypeForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                           uint16_t dimension, nsXPTType *_retval);
+  nsresult GetSizeIsArgNumberForParam(uint16_t methodIndex,
+                                      const nsXPTParamInfo *param,
+                                      uint16_t dimension, uint8_t *_retval);
+  nsresult GetInterfaceIsArgNumberForParam(uint16_t methodIndex,
+                                           const nsXPTParamInfo *param,
+                                           uint8_t *_retval);
+  nsresult IsIID(const nsIID *IID, bool *_retval);
+  nsresult GetNameShared(const char **name);
+  nsresult GetIIDShared(const nsIID **iid);
+  nsresult IsFunction(bool *_retval);
+  nsresult HasAncestor(const nsIID *iid, bool *_retval);
+  nsresult GetIIDForParamNoAlloc(uint16_t methodIndex,
+                                 const nsXPTParamInfo *param, nsIID *iid);
 
-    nsresult GetName(char * *aName);
-    nsresult GetIID(nsIID * *aIID);
-    nsresult IsScriptable(bool *_retval);
-    nsresult IsBuiltinClass(bool *_retval) {
-        *_retval = GetBuiltinClassFlag();
-        return NS_OK;
-    }
-    nsresult IsMainProcessScriptableOnly(bool *_retval) {
-        *_retval = GetMainProcessScriptableOnlyFlag();
-        return NS_OK;
-    }
-    // Except this one.
-    //nsresult GetParent(nsIInterfaceInfo * *aParent);
-    nsresult GetMethodCount(uint16_t *aMethodCount);
-    nsresult GetConstantCount(uint16_t *aConstantCount);
-    nsresult GetMethodInfo(uint16_t index, const nsXPTMethodInfo * *info);
-    nsresult GetMethodInfoForName(const char *methodName, uint16_t *index, const nsXPTMethodInfo * *info);
-    nsresult GetConstant(uint16_t index, JS::MutableHandleValue, char** constant);
-    nsresult GetInfoForParam(uint16_t methodIndex, const nsXPTParamInfo * param, nsIInterfaceInfo **_retval);
-    nsresult GetIIDForParam(uint16_t methodIndex, const nsXPTParamInfo * param, nsIID * *_retval);
-    nsresult GetTypeForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint16_t dimension, nsXPTType *_retval);
-    nsresult GetSizeIsArgNumberForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint16_t dimension, uint8_t *_retval);
-    nsresult GetInterfaceIsArgNumberForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint8_t *_retval);
-    nsresult IsIID(const nsIID * IID, bool *_retval);
-    nsresult GetNameShared(const char **name);
-    nsresult GetIIDShared(const nsIID * *iid);
-    nsresult IsFunction(bool *_retval);
-    nsresult HasAncestor(const nsIID * iid, bool *_retval);
-    nsresult GetIIDForParamNoAlloc(uint16_t methodIndex, const nsXPTParamInfo * param, nsIID *iid);
+ private:
+  xptiInterfaceEntry(const char *aName, const nsID &aIID,
+                     const XPTInterfaceDescriptor *aDescriptor,
+                     xptiTypelibGuts *aTypelib);
+  ~xptiInterfaceEntry();
 
-private:
-    xptiInterfaceEntry(const char* aName,
-                       const nsID& aIID,
-                       const XPTInterfaceDescriptor* aDescriptor,
-                       xptiTypelibGuts* aTypelib);
-    ~xptiInterfaceEntry();
+  void SetResolvedState(int state) { mFlags.SetState(uint8_t(state)); }
 
-    void SetResolvedState(int state)
-        {mFlags.SetState(uint8_t(state));}
+  bool Resolve();
 
-    bool Resolve();
+  // We only call these "*Locked" variants after locking. This is done to
+  // allow reentrace as files are loaded and various interfaces resolved
+  // without having to worry about the locked state.
 
-    // We only call these "*Locked" variants after locking. This is done to
-    // allow reentrace as files are loaded and various interfaces resolved
-    // without having to worry about the locked state.
+  bool EnsureResolvedLocked() {
+    return IsFullyResolved() ? true : ResolveLocked();
+  }
+  bool ResolveLocked();
 
-    bool EnsureResolvedLocked()
-        {return IsFullyResolved() ? true : ResolveLocked();}
-    bool ResolveLocked();
+  // private helpers
 
-    // private helpers
+  nsresult GetEntryForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                            xptiInterfaceEntry **entry);
 
-    nsresult GetEntryForParam(uint16_t methodIndex,
-                              const nsXPTParamInfo * param,
-                              xptiInterfaceEntry** entry);
+  nsresult GetTypeInArray(const nsXPTParamInfo *param, uint16_t dimension,
+                          const XPTTypeDescriptor **type);
 
-    nsresult GetTypeInArray(const nsXPTParamInfo* param,
-                            uint16_t dimension,
-                            const XPTTypeDescriptor** type);
+  nsresult GetInterfaceIndexForParam(uint16_t methodIndex,
+                                     const nsXPTParamInfo *param,
+                                     uint16_t *interfaceIndex);
 
-    nsresult GetInterfaceIndexForParam(uint16_t methodIndex,
-                                       const nsXPTParamInfo* param,
-                                       uint16_t* interfaceIndex);
+  already_AddRefed<ShimInterfaceInfo> GetShimForParam(
+      uint16_t methodIndex, const nsXPTParamInfo *param);
 
-    already_AddRefed<ShimInterfaceInfo>
-    GetShimForParam(uint16_t methodIndex, const nsXPTParamInfo* param);
+ private:
+  nsID mIID;
+  const XPTInterfaceDescriptor *mDescriptor;
 
-private:
-    nsID                    mIID;
-    const XPTInterfaceDescriptor* mDescriptor;
+  xptiTypelibGuts *mTypelib;
 
-    xptiTypelibGuts* mTypelib;
+  xptiInterfaceEntry *mParent;  // Valid only when fully resolved
 
-    xptiInterfaceEntry*     mParent;      // Valid only when fully resolved
+  xptiInterfaceInfo *MOZ_UNSAFE_REF(
+      "The safety of this pointer is ensured "
+      "by the semantics of xptiWorkingSet.") mInfo;  // May come and go.
 
-    xptiInterfaceInfo* MOZ_UNSAFE_REF("The safety of this pointer is ensured "
-                                      "by the semantics of xptiWorkingSet.")
-                            mInfo;        // May come and go.
+  uint16_t mMethodBaseIndex;
+  uint16_t mConstantBaseIndex;
 
-    uint16_t mMethodBaseIndex;
-    uint16_t mConstantBaseIndex;
+  xptiInfoFlags mFlags;
 
-    xptiInfoFlags           mFlags;
-
-    const char*             mName;
+  const char *mName;
 };
 
-class xptiInterfaceInfo final : public nsIInterfaceInfo
-{
-public:
-    NS_DECL_THREADSAFE_ISUPPORTS
+class xptiInterfaceInfo final : public nsIInterfaceInfo {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
 
-    // Use delegation to implement (most!) of nsIInterfaceInfo.
-    NS_IMETHOD GetName(char * *aName) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetName(aName); }
-    NS_IMETHOD GetInterfaceIID(nsIID * *aIID) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIID(aIID); }
-    NS_IMETHOD IsScriptable(bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsScriptable(_retval); }
-    NS_IMETHOD IsBuiltinClass(bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsBuiltinClass(_retval); }
-    NS_IMETHOD IsMainProcessScriptableOnly(bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsMainProcessScriptableOnly(_retval); }
-    // Except this one.
-    NS_IMETHOD GetParent(nsIInterfaceInfo * *aParent) override
-    {
-        if(!EnsureResolved() || !EnsureParent())
-            return NS_ERROR_UNEXPECTED;
-        NS_IF_ADDREF(*aParent = mParent);
-        return NS_OK;
-    }
-    NS_IMETHOD GetMethodCount(uint16_t *aMethodCount) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetMethodCount(aMethodCount); }
-    NS_IMETHOD GetConstantCount(uint16_t *aConstantCount) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetConstantCount(aConstantCount); }
-    NS_IMETHOD GetMethodInfo(uint16_t index, const nsXPTMethodInfo * *info) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetMethodInfo(index, info); }
-    NS_IMETHOD GetMethodInfoForName(const char *methodName, uint16_t *index, const nsXPTMethodInfo * *info) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetMethodInfoForName(methodName, index, info); }
-    NS_IMETHOD GetConstant(uint16_t index, JS::MutableHandleValue constant, char** name) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetConstant(index, constant, name); }
-    NS_IMETHOD GetInfoForParam(uint16_t methodIndex, const nsXPTParamInfo * param, nsIInterfaceInfo **_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetInfoForParam(methodIndex, param, _retval); }
-    NS_IMETHOD GetIIDForParam(uint16_t methodIndex, const nsXPTParamInfo * param, nsIID * *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIIDForParam(methodIndex, param, _retval); }
-    NS_IMETHOD GetTypeForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint16_t dimension, nsXPTType *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetTypeForParam(methodIndex, param, dimension, _retval); }
-    NS_IMETHOD GetSizeIsArgNumberForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint16_t dimension, uint8_t *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetSizeIsArgNumberForParam(methodIndex, param, dimension, _retval); }
-    NS_IMETHOD GetInterfaceIsArgNumberForParam(uint16_t methodIndex, const nsXPTParamInfo * param, uint8_t *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetInterfaceIsArgNumberForParam(methodIndex, param, _retval); }
-    NS_IMETHOD IsIID(const nsIID * IID, bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsIID(IID, _retval); }
-    NS_IMETHOD GetNameShared(const char **name) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetNameShared(name); }
-    NS_IMETHOD GetIIDShared(const nsIID * *iid) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIIDShared(iid); }
-    NS_IMETHOD IsFunction(bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsFunction(_retval); }
-    NS_IMETHOD HasAncestor(const nsIID * iid, bool *_retval) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->HasAncestor(iid, _retval); }
-    NS_IMETHOD GetIIDForParamNoAlloc(uint16_t methodIndex, const nsXPTParamInfo * param, nsIID *iid) override { return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIIDForParamNoAlloc(methodIndex, param, iid); }
+  // Use delegation to implement (most!) of nsIInterfaceInfo.
+  NS_IMETHOD GetName(char **aName) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetName(aName);
+  }
+  NS_IMETHOD GetInterfaceIID(nsIID **aIID) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIID(aIID);
+  }
+  NS_IMETHOD IsScriptable(bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsScriptable(_retval);
+  }
+  NS_IMETHOD IsBuiltinClass(bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsBuiltinClass(_retval);
+  }
+  NS_IMETHOD IsMainProcessScriptableOnly(bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->IsMainProcessScriptableOnly(_retval);
+  }
+  // Except this one.
+  NS_IMETHOD GetParent(nsIInterfaceInfo **aParent) override {
+    if (!EnsureResolved() || !EnsureParent()) return NS_ERROR_UNEXPECTED;
+    NS_IF_ADDREF(*aParent = mParent);
+    return NS_OK;
+  }
+  NS_IMETHOD GetMethodCount(uint16_t *aMethodCount) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetMethodCount(aMethodCount);
+  }
+  NS_IMETHOD GetConstantCount(uint16_t *aConstantCount) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetConstantCount(aConstantCount);
+  }
+  NS_IMETHOD GetMethodInfo(uint16_t index,
+                           const nsXPTMethodInfo **info) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetMethodInfo(index, info);
+  }
+  NS_IMETHOD GetMethodInfoForName(const char *methodName, uint16_t *index,
+                                  const nsXPTMethodInfo **info) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetMethodInfoForName(methodName, index, info);
+  }
+  NS_IMETHOD GetConstant(uint16_t index, JS::MutableHandleValue constant,
+                         char **name) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetConstant(index, constant, name);
+  }
+  NS_IMETHOD GetInfoForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                             nsIInterfaceInfo **_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetInfoForParam(methodIndex, param, _retval);
+  }
+  NS_IMETHOD GetIIDForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                            nsIID **_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetIIDForParam(methodIndex, param, _retval);
+  }
+  NS_IMETHOD GetTypeForParam(uint16_t methodIndex, const nsXPTParamInfo *param,
+                             uint16_t dimension, nsXPTType *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetTypeForParam(methodIndex, param, dimension,
+                                             _retval);
+  }
+  NS_IMETHOD GetSizeIsArgNumberForParam(uint16_t methodIndex,
+                                        const nsXPTParamInfo *param,
+                                        uint16_t dimension,
+                                        uint8_t *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetSizeIsArgNumberForParam(methodIndex, param,
+                                                        dimension, _retval);
+  }
+  NS_IMETHOD GetInterfaceIsArgNumberForParam(uint16_t methodIndex,
+                                             const nsXPTParamInfo *param,
+                                             uint8_t *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetInterfaceIsArgNumberForParam(methodIndex, param,
+                                                             _retval);
+  }
+  NS_IMETHOD IsIID(const nsIID *IID, bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsIID(IID, _retval);
+  }
+  NS_IMETHOD GetNameShared(const char **name) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetNameShared(name);
+  }
+  NS_IMETHOD GetIIDShared(const nsIID **iid) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->GetIIDShared(iid);
+  }
+  NS_IMETHOD IsFunction(bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->IsFunction(_retval);
+  }
+  NS_IMETHOD HasAncestor(const nsIID *iid, bool *_retval) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED : mEntry->HasAncestor(iid, _retval);
+  }
+  NS_IMETHOD GetIIDForParamNoAlloc(uint16_t methodIndex,
+                                   const nsXPTParamInfo *param,
+                                   nsIID *iid) override {
+    return !mEntry ? NS_ERROR_UNEXPECTED
+                   : mEntry->GetIIDForParamNoAlloc(methodIndex, param, iid);
+  }
 
-public:
-    explicit xptiInterfaceInfo(xptiInterfaceEntry* entry);
+ public:
+  explicit xptiInterfaceInfo(xptiInterfaceEntry *entry);
 
-    void Invalidate();
+  void Invalidate();
 
-private:
+ private:
+  ~xptiInterfaceInfo();
 
-    ~xptiInterfaceInfo();
+  // Note that mParent might still end up as nullptr if we don't have one.
+  bool EnsureParent() {
+    NS_ASSERTION(mEntry && mEntry->IsFullyResolved(), "bad EnsureParent call");
+    return mParent || !mEntry->Parent() || BuildParent();
+  }
 
-    // Note that mParent might still end up as nullptr if we don't have one.
-    bool EnsureParent()
-    {
-        NS_ASSERTION(mEntry && mEntry->IsFullyResolved(), "bad EnsureParent call");
-        return mParent || !mEntry->Parent() || BuildParent();
-    }
+  bool EnsureResolved() { return mEntry && mEntry->EnsureResolved(); }
 
-    bool EnsureResolved()
-    {
-        return mEntry && mEntry->EnsureResolved();
-    }
+  bool BuildParent();
 
-    bool BuildParent();
+  xptiInterfaceInfo();  // not implemented
 
-    xptiInterfaceInfo();  // not implemented
-
-private:
-    xptiInterfaceEntry* mEntry;
-    RefPtr<xptiInterfaceInfo> mParent;
+ private:
+  xptiInterfaceEntry *mEntry;
+  RefPtr<xptiInterfaceInfo> mParent;
 };
 
 /***************************************************************************/

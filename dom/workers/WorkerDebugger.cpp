@@ -23,42 +23,34 @@ namespace dom {
 
 namespace {
 
-class DebuggerMessageEventRunnable : public WorkerDebuggerRunnable
-{
+class DebuggerMessageEventRunnable : public WorkerDebuggerRunnable {
   nsString mMessage;
 
-public:
+ public:
   DebuggerMessageEventRunnable(WorkerPrivate* aWorkerPrivate,
                                const nsAString& aMessage)
-  : WorkerDebuggerRunnable(aWorkerPrivate),
-    mMessage(aMessage)
-  {
-  }
+      : WorkerDebuggerRunnable(aWorkerPrivate), mMessage(aMessage) {}
 
-private:
-  virtual bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
-    WorkerDebuggerGlobalScope* globalScope = aWorkerPrivate->DebuggerGlobalScope();
+ private:
+  virtual bool WorkerRun(JSContext* aCx,
+                         WorkerPrivate* aWorkerPrivate) override {
+    WorkerDebuggerGlobalScope* globalScope =
+        aWorkerPrivate->DebuggerGlobalScope();
     MOZ_ASSERT(globalScope);
 
-    JS::Rooted<JSString*> message(aCx, JS_NewUCStringCopyN(aCx, mMessage.get(),
-                                                           mMessage.Length()));
+    JS::Rooted<JSString*> message(
+        aCx, JS_NewUCStringCopyN(aCx, mMessage.get(), mMessage.Length()));
     if (!message) {
       return false;
     }
     JS::Rooted<JS::Value> data(aCx, JS::StringValue(message));
 
-    RefPtr<MessageEvent> event = new MessageEvent(globalScope, nullptr,
-                                                  nullptr);
-    event->InitMessageEvent(nullptr,
-                            NS_LITERAL_STRING("message"),
-                            false, // canBubble
-                            true, // cancelable
-                            data,
-                            EmptyString(),
-                            EmptyString(),
-                            nullptr,
+    RefPtr<MessageEvent> event =
+        new MessageEvent(globalScope, nullptr, nullptr);
+    event->InitMessageEvent(nullptr, NS_LITERAL_STRING("message"),
+                            false,  // canBubble
+                            true,   // cancelable
+                            data, EmptyString(), EmptyString(), nullptr,
                             Sequence<OwningNonNull<MessagePort>>());
     event->SetTrusted(true);
 
@@ -69,25 +61,21 @@ private:
   }
 };
 
-class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable
-{
+class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable {
   nsString mScriptURL;
 
-public:
+ public:
   CompileDebuggerScriptRunnable(WorkerPrivate* aWorkerPrivate,
                                 const nsAString& aScriptURL)
-  : WorkerDebuggerRunnable(aWorkerPrivate),
-    mScriptURL(aScriptURL)
-  { }
+      : WorkerDebuggerRunnable(aWorkerPrivate), mScriptURL(aScriptURL) {}
 
-private:
-  virtual bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
+ private:
+  virtual bool WorkerRun(JSContext* aCx,
+                         WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
 
     WorkerDebuggerGlobalScope* globalScope =
-      aWorkerPrivate->CreateDebuggerGlobalScope(aCx);
+        aWorkerPrivate->CreateDebuggerGlobalScope(aCx);
     if (!globalScope) {
       NS_WARNING("Failed to make global!");
       return false;
@@ -101,8 +89,8 @@ private:
 
     ErrorResult rv;
     JSAutoCompartment ac(aCx, global);
-    workerinternals::LoadMainScript(aWorkerPrivate, mScriptURL,
-                                    DebuggerScript, rv);
+    workerinternals::LoadMainScript(aWorkerPrivate, mScriptURL, DebuggerScript,
+                                    rv);
     rv.WouldReportJSException();
     // Explicitly ignore NS_BINDING_ABORTED on rv.  Or more precisely, still
     // return false and don't SetWorkerScriptExecutedSuccessfully() in that
@@ -123,62 +111,51 @@ private:
   }
 };
 
-} // anonymous
+}  // namespace
 
-class WorkerDebugger::PostDebuggerMessageRunnable final : public Runnable
-{
-  WorkerDebugger *mDebugger;
+class WorkerDebugger::PostDebuggerMessageRunnable final : public Runnable {
+  WorkerDebugger* mDebugger;
   nsString mMessage;
 
-public:
+ public:
   PostDebuggerMessageRunnable(WorkerDebugger* aDebugger,
                               const nsAString& aMessage)
-    : mozilla::Runnable("PostDebuggerMessageRunnable")
-    , mDebugger(aDebugger)
-    , mMessage(aMessage)
-  {
-  }
+      : mozilla::Runnable("PostDebuggerMessageRunnable"),
+        mDebugger(aDebugger),
+        mMessage(aMessage) {}
 
-private:
-  ~PostDebuggerMessageRunnable()
-  { }
+ private:
+  ~PostDebuggerMessageRunnable() {}
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     mDebugger->PostMessageToDebuggerOnMainThread(mMessage);
 
     return NS_OK;
   }
 };
 
-class WorkerDebugger::ReportDebuggerErrorRunnable final : public Runnable
-{
-  WorkerDebugger *mDebugger;
+class WorkerDebugger::ReportDebuggerErrorRunnable final : public Runnable {
+  WorkerDebugger* mDebugger;
   nsString mFilename;
   uint32_t mLineno;
   nsString mMessage;
 
-public:
+ public:
   ReportDebuggerErrorRunnable(WorkerDebugger* aDebugger,
-                              const nsAString& aFilename,
-                              uint32_t aLineno,
+                              const nsAString& aFilename, uint32_t aLineno,
                               const nsAString& aMessage)
-    : Runnable("ReportDebuggerErrorRunnable")
-    , mDebugger(aDebugger)
-    , mFilename(aFilename)
-    , mLineno(aLineno)
-    , mMessage(aMessage)
-  {
-  }
+      : Runnable("ReportDebuggerErrorRunnable"),
+        mDebugger(aDebugger),
+        mFilename(aFilename),
+        mLineno(aLineno),
+        mMessage(aMessage) {}
 
-private:
-  ~ReportDebuggerErrorRunnable()
-  { }
+ private:
+  ~ReportDebuggerErrorRunnable() {}
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     mDebugger->ReportErrorToDebuggerOnMainThread(mFilename, mLineno, mMessage);
 
     return NS_OK;
@@ -186,20 +163,17 @@ private:
 };
 
 WorkerDebugger::WorkerDebugger(WorkerPrivate* aWorkerPrivate)
-: mWorkerPrivate(aWorkerPrivate),
-  mIsInitialized(false)
-{
+    : mWorkerPrivate(aWorkerPrivate), mIsInitialized(false) {
   AssertIsOnMainThread();
 }
 
-WorkerDebugger::~WorkerDebugger()
-{
+WorkerDebugger::~WorkerDebugger() {
   MOZ_ASSERT(!mWorkerPrivate);
 
   if (!NS_IsMainThread()) {
     for (size_t index = 0; index < mListeners.Length(); ++index) {
-      NS_ReleaseOnMainThreadSystemGroup(
-        "WorkerDebugger::mListeners", mListeners[index].forget());
+      NS_ReleaseOnMainThreadSystemGroup("WorkerDebugger::mListeners",
+                                        mListeners[index].forget());
     }
   }
 }
@@ -207,8 +181,7 @@ WorkerDebugger::~WorkerDebugger()
 NS_IMPL_ISUPPORTS(WorkerDebugger, nsIWorkerDebugger)
 
 NS_IMETHODIMP
-WorkerDebugger::GetIsClosed(bool* aResult)
-{
+WorkerDebugger::GetIsClosed(bool* aResult) {
   AssertIsOnMainThread();
 
   *aResult = !mWorkerPrivate;
@@ -216,8 +189,7 @@ WorkerDebugger::GetIsClosed(bool* aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetIsChrome(bool* aResult)
-{
+WorkerDebugger::GetIsChrome(bool* aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -229,8 +201,7 @@ WorkerDebugger::GetIsChrome(bool* aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetIsInitialized(bool* aResult)
-{
+WorkerDebugger::GetIsInitialized(bool* aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -242,8 +213,7 @@ WorkerDebugger::GetIsInitialized(bool* aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetParent(nsIWorkerDebugger** aResult)
-{
+WorkerDebugger::GetParent(nsIWorkerDebugger** aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -264,8 +234,7 @@ WorkerDebugger::GetParent(nsIWorkerDebugger** aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetType(uint32_t* aResult)
-{
+WorkerDebugger::GetType(uint32_t* aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -277,8 +246,7 @@ WorkerDebugger::GetType(uint32_t* aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetUrl(nsAString& aResult)
-{
+WorkerDebugger::GetUrl(nsAString& aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -290,8 +258,7 @@ WorkerDebugger::GetUrl(nsAString& aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetWindow(mozIDOMWindow** aResult)
-{
+WorkerDebugger::GetWindow(mozIDOMWindow** aResult) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -309,8 +276,7 @@ WorkerDebugger::GetWindow(mozIDOMWindow** aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetPrincipal(nsIPrincipal** aResult)
-{
+WorkerDebugger::GetPrincipal(nsIPrincipal** aResult) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aResult);
 
@@ -325,8 +291,7 @@ WorkerDebugger::GetPrincipal(nsIPrincipal** aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::GetServiceWorkerID(uint32_t* aResult)
-{
+WorkerDebugger::GetServiceWorkerID(uint32_t* aResult) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aResult);
 
@@ -339,8 +304,7 @@ WorkerDebugger::GetServiceWorkerID(uint32_t* aResult)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::Initialize(const nsAString& aURL)
-{
+WorkerDebugger::Initialize(const nsAString& aURL) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate) {
@@ -349,7 +313,7 @@ WorkerDebugger::Initialize(const nsAString& aURL)
 
   if (!mIsInitialized) {
     RefPtr<CompileDebuggerScriptRunnable> runnable =
-      new CompileDebuggerScriptRunnable(mWorkerPrivate, aURL);
+        new CompileDebuggerScriptRunnable(mWorkerPrivate, aURL);
     if (!runnable->Dispatch()) {
       return NS_ERROR_FAILURE;
     }
@@ -361,8 +325,7 @@ WorkerDebugger::Initialize(const nsAString& aURL)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::PostMessageMoz(const nsAString& aMessage)
-{
+WorkerDebugger::PostMessageMoz(const nsAString& aMessage) {
   AssertIsOnMainThread();
 
   if (!mWorkerPrivate || !mIsInitialized) {
@@ -370,7 +333,7 @@ WorkerDebugger::PostMessageMoz(const nsAString& aMessage)
   }
 
   RefPtr<DebuggerMessageEventRunnable> runnable =
-    new DebuggerMessageEventRunnable(mWorkerPrivate, aMessage);
+      new DebuggerMessageEventRunnable(mWorkerPrivate, aMessage);
   if (!runnable->Dispatch()) {
     return NS_ERROR_FAILURE;
   }
@@ -379,8 +342,7 @@ WorkerDebugger::PostMessageMoz(const nsAString& aMessage)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::AddListener(nsIWorkerDebuggerListener* aListener)
-{
+WorkerDebugger::AddListener(nsIWorkerDebuggerListener* aListener) {
   AssertIsOnMainThread();
 
   if (mListeners.Contains(aListener)) {
@@ -392,8 +354,7 @@ WorkerDebugger::AddListener(nsIWorkerDebuggerListener* aListener)
 }
 
 NS_IMETHODIMP
-WorkerDebugger::RemoveListener(nsIWorkerDebuggerListener* aListener)
-{
+WorkerDebugger::RemoveListener(nsIWorkerDebuggerListener* aListener) {
   AssertIsOnMainThread();
 
   if (!mListeners.Contains(aListener)) {
@@ -404,33 +365,28 @@ WorkerDebugger::RemoveListener(nsIWorkerDebuggerListener* aListener)
   return NS_OK;
 }
 
-void
-WorkerDebugger::Close()
-{
+void WorkerDebugger::Close() {
   MOZ_ASSERT(mWorkerPrivate);
   mWorkerPrivate = nullptr;
 
   nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
   for (size_t index = 0; index < listeners.Length(); ++index) {
-      listeners[index]->OnClose();
+    listeners[index]->OnClose();
   }
 }
 
-void
-WorkerDebugger::PostMessageToDebugger(const nsAString& aMessage)
-{
+void WorkerDebugger::PostMessageToDebugger(const nsAString& aMessage) {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   RefPtr<PostDebuggerMessageRunnable> runnable =
-    new PostDebuggerMessageRunnable(this, aMessage);
+      new PostDebuggerMessageRunnable(this, aMessage);
   if (NS_FAILED(mWorkerPrivate->DispatchToMainThread(runnable.forget()))) {
     NS_WARNING("Failed to post message to debugger on main thread!");
   }
 }
 
-void
-WorkerDebugger::PostMessageToDebuggerOnMainThread(const nsAString& aMessage)
-{
+void WorkerDebugger::PostMessageToDebuggerOnMainThread(
+    const nsAString& aMessage) {
   AssertIsOnMainThread();
 
   nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
@@ -439,25 +395,20 @@ WorkerDebugger::PostMessageToDebuggerOnMainThread(const nsAString& aMessage)
   }
 }
 
-void
-WorkerDebugger::ReportErrorToDebugger(const nsAString& aFilename,
-                                      uint32_t aLineno,
-                                      const nsAString& aMessage)
-{
+void WorkerDebugger::ReportErrorToDebugger(const nsAString& aFilename,
+                                           uint32_t aLineno,
+                                           const nsAString& aMessage) {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   RefPtr<ReportDebuggerErrorRunnable> runnable =
-    new ReportDebuggerErrorRunnable(this, aFilename, aLineno, aMessage);
+      new ReportDebuggerErrorRunnable(this, aFilename, aLineno, aMessage);
   if (NS_FAILED(mWorkerPrivate->DispatchToMainThread(runnable.forget()))) {
     NS_WARNING("Failed to report error to debugger on main thread!");
   }
 }
 
-void
-WorkerDebugger::ReportErrorToDebuggerOnMainThread(const nsAString& aFilename,
-                                                  uint32_t aLineno,
-                                                  const nsAString& aMessage)
-{
+void WorkerDebugger::ReportErrorToDebuggerOnMainThread(
+    const nsAString& aFilename, uint32_t aLineno, const nsAString& aMessage) {
   AssertIsOnMainThread();
 
   nsTArray<nsCOMPtr<nsIWorkerDebuggerListener>> listeners(mListeners);
@@ -471,6 +422,5 @@ WorkerDebugger::ReportErrorToDebuggerOnMainThread(const nsAString& aFilename,
   WorkerErrorReport::LogErrorToConsole(report, 0);
 }
 
-
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

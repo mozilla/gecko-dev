@@ -16,15 +16,14 @@
 class nsIWidget;
 class nsIFile;
 
-class nsFilePicker : public nsBaseFilePicker
-{
-public:
+class nsFilePicker : public nsBaseFilePicker {
+ public:
   nsFilePicker();
 
   NS_DECL_ISUPPORTS
 
   // nsIFilePicker (less what's in nsBaseFilePicker)
-  NS_IMETHOD Open(nsIFilePickerShownCallback *aCallback) override;
+  NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
   NS_IMETHOD AppendFilters(int32_t aFilterMask) override;
   NS_IMETHOD AppendFilter(const nsAString& aTitle,
                           const nsAString& aFilter) override;
@@ -32,50 +31,49 @@ public:
   NS_IMETHOD GetDefaultString(nsAString& aString) override;
   NS_IMETHOD SetDefaultExtension(const nsAString& aExtension) override;
   NS_IMETHOD GetDefaultExtension(nsAString& aExtension) override;
-  NS_IMETHOD GetFilterIndex(int32_t *aFilterIndex) override;
+  NS_IMETHOD GetFilterIndex(int32_t* aFilterIndex) override;
   NS_IMETHOD SetFilterIndex(int32_t aFilterIndex) override;
-  NS_IMETHOD GetFile(nsIFile **aFile) override;
-  NS_IMETHOD GetFileURL(nsIURI **aFileURL) override;
-  NS_IMETHOD GetFiles(nsISimpleEnumerator **aFiles) override;
+  NS_IMETHOD GetFile(nsIFile** aFile) override;
+  NS_IMETHOD GetFileURL(nsIURI** aFileURL) override;
+  NS_IMETHOD GetFiles(nsISimpleEnumerator** aFiles) override;
 
   // nsBaseFilePicker
-  virtual void InitNative(nsIWidget *aParent,
-                          const nsAString& aTitle) override;
+  virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) override;
 
   static void Shutdown();
 
-protected:
+ protected:
   virtual ~nsFilePicker();
 
-  nsresult Show(int16_t *aReturn) override;
-  void ReadValuesFromFileChooser(GtkWidget *file_chooser);
+  nsresult Show(int16_t* aReturn) override;
+  void ReadValuesFromFileChooser(GtkWidget* file_chooser);
 
   static void OnResponse(GtkWidget* dialog, gint response_id,
                          gpointer user_data);
   static void OnDestroy(GtkWidget* dialog, gpointer user_data);
   void Done(GtkWidget* dialog, gint response_id);
 
-  nsCOMPtr<nsIWidget>    mParentWidget;
+  nsCOMPtr<nsIWidget> mParentWidget;
   nsCOMPtr<nsIFilePickerShownCallback> mCallback;
   nsCOMArray<nsIFile> mFiles;
 
-  int16_t   mSelectedType;
-  int16_t   mResult;
-  bool      mRunning;
-  bool      mAllowURLs;
+  int16_t mSelectedType;
+  int16_t mResult;
+  bool mRunning;
+  bool mAllowURLs;
   nsCString mFileURL;
-  nsString  mTitle;
-  nsString  mDefault;
-  nsString  mDefaultExtension;
+  nsString mTitle;
+  nsString mDefault;
+  nsString mDefaultExtension;
 
   nsTArray<nsCString> mFilters;
   nsTArray<nsCString> mFilterNames;
 
-private:
-  static nsIFile *mPrevDisplayDirectory;
+ private:
+  static nsIFile* mPrevDisplayDirectory;
 
 #ifdef MOZ_WIDGET_GTK
-  GtkFileChooserWidget *mFileChooserDelegate;
+  GtkFileChooserWidget* mFileChooserDelegate;
 #endif
 };
 

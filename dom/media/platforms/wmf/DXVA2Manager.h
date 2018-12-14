@@ -19,21 +19,17 @@ namespace layers {
 class Image;
 class ImageContainer;
 class KnowsCompositor;
-}
+}  // namespace layers
 
-class DXVA2Manager
-{
-public:
-
+class DXVA2Manager {
+ public:
   // Creates and initializes a DXVA2Manager. We can use DXVA2 via either
   // D3D9Ex or D3D11.
-  static DXVA2Manager* CreateD3D9DXVA(
-    layers::KnowsCompositor* aKnowsCompositor,
-    nsACString& aFailureReason);
+  static DXVA2Manager* CreateD3D9DXVA(layers::KnowsCompositor* aKnowsCompositor,
+                                      nsACString& aFailureReason);
   static DXVA2Manager* CreateD3D11DXVA(
-    layers::KnowsCompositor* aKnowsCompositor,
-    nsACString& aFailureReason,
-    ID3D11Device* aDevice = nullptr);
+      layers::KnowsCompositor* aKnowsCompositor, nsACString& aFailureReason,
+      ID3D11Device* aDevice = nullptr);
 
   // Returns a pointer to the D3D device manager responsible for managing the
   // device we're using for hardware accelerated video decoding. If we're using
@@ -46,16 +42,14 @@ public:
                               const gfx::IntRect& aRegion,
                               layers::Image** aOutImage) = 0;
 
-  virtual HRESULT CopyToBGRATexture(ID3D11Texture2D *aInTexture,
-                                    ID3D11Texture2D** aOutTexture)
-  {
+  virtual HRESULT CopyToBGRATexture(ID3D11Texture2D* aInTexture,
+                                    ID3D11Texture2D** aOutTexture) {
     // Not implemented!
     MOZ_CRASH("CopyToBGRATexture not implemented on this manager.");
     return E_FAIL;
   }
 
-  virtual HRESULT ConfigureForSize(uint32_t aWidth, uint32_t aHeight)
-  {
+  virtual HRESULT ConfigureForSize(uint32_t aWidth, uint32_t aHeight) {
     return S_OK;
   }
 
@@ -65,21 +59,19 @@ public:
 
   virtual bool SupportsConfig(IMFMediaType* aType, float aFramerate) = 0;
 
-  static bool IsNV12Supported(uint32_t aVendorID,
-                              uint32_t aDeviceID,
+  static bool IsNV12Supported(uint32_t aVendorID, uint32_t aDeviceID,
                               const nsAString& aDriverVersionString);
 
-protected:
+ protected:
   Mutex mLock;
   DXVA2Manager();
 
-  bool IsUnsupportedResolution(const uint32_t& aWidth,
-                               const uint32_t& aHeight,
+  bool IsUnsupportedResolution(const uint32_t& aWidth, const uint32_t& aHeight,
                                const float& aFramerate) const;
 
   bool mIsAMDPreUVD4 = false;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // DXVA2Manager_h_
+#endif  // DXVA2Manager_h_

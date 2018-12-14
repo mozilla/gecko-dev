@@ -13,33 +13,29 @@
 
 //-----------------------------------------------------------------------------
 
-class nsSyncStreamListener final : public nsISyncStreamListener
-                                 , public nsIInputStream
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIREQUESTOBSERVER
-    NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSISYNCSTREAMLISTENER
-    NS_DECL_NSIINPUTSTREAM
+class nsSyncStreamListener final : public nsISyncStreamListener,
+                                   public nsIInputStream {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSISYNCSTREAMLISTENER
+  NS_DECL_NSIINPUTSTREAM
 
-    nsSyncStreamListener()
-        : mStatus(NS_OK)
-        , mKeepWaiting(false)
-        , mDone(false) {}
+  nsSyncStreamListener() : mStatus(NS_OK), mKeepWaiting(false), mDone(false) {}
 
-    nsresult Init();
+  nsresult Init();
 
-private:
-    ~nsSyncStreamListener() {}
+ private:
+  ~nsSyncStreamListener() {}
 
-    nsresult WaitForData();
+  nsresult WaitForData();
 
-    nsCOMPtr<nsIInputStream>    mPipeIn;
-    nsCOMPtr<nsIOutputStream>   mPipeOut;
-    nsresult                    mStatus;
-    bool                        mKeepWaiting;
-    bool                        mDone;
+  nsCOMPtr<nsIInputStream> mPipeIn;
+  nsCOMPtr<nsIOutputStream> mPipeOut;
+  nsresult mStatus;
+  bool mKeepWaiting;
+  bool mDone;
 };
 
-#endif // nsSyncStreamListener_h__
+#endif  // nsSyncStreamListener_h__

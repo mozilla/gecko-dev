@@ -14,15 +14,13 @@ namespace mozilla {
 
 // This class implements a cubic MSD timing function and automatically
 // adapts the animation duration based on the scrolling rate.
-class ScrollAnimationMSDPhysics : public ScrollAnimationPhysics
-{
-public:
+class ScrollAnimationMSDPhysics : public ScrollAnimationPhysics {
+ public:
   typedef mozilla::layers::AxisPhysicsMSDModel AxisPhysicsMSDModel;
 
   explicit ScrollAnimationMSDPhysics(const nsPoint& aStartPos);
 
-  void Update(const TimeStamp& aTime,
-              const nsPoint& aDestination,
+  void Update(const TimeStamp& aTime, const nsPoint& aDestination,
               const nsSize& aCurrentVelocity) override;
 
   // Get the velocity at a point in time in nscoords/sec.
@@ -37,7 +35,7 @@ public:
     return mModelX.IsFinished(1) && mModelY.IsFinished(1);
   }
 
-protected:
+ protected:
   double ComputeSpringConstant(const TimeStamp& aTime);
   void SimulateUntil(const TimeStamp& aTime);
 
@@ -54,6 +52,6 @@ protected:
   bool mIsFirstIteration;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_layout_ScrollAnimationMSDPhysics_h_
+#endif  // mozilla_layout_ScrollAnimationMSDPhysics_h_

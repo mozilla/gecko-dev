@@ -14,25 +14,14 @@
 namespace mozilla {
 namespace gfx {
 
-class UnscaledFontFreeType : public UnscaledFont
-{
-public:
+class UnscaledFontFreeType : public UnscaledFont {
+ public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(UnscaledFontFreeType, override)
-  explicit UnscaledFontFreeType(FT_Face aFace,
-                                bool aOwnsFace = false)
-    : mFace(aFace)
-    , mOwnsFace(aOwnsFace)
-    , mIndex(0)
-  {}
-  explicit UnscaledFontFreeType(const char* aFile,
-                                uint32_t aIndex = 0)
-    : mFace(nullptr)
-    , mOwnsFace(false)
-    , mFile(aFile)
-    , mIndex(aIndex)
-  {}
-  ~UnscaledFontFreeType()
-  {
+  explicit UnscaledFontFreeType(FT_Face aFace, bool aOwnsFace = false)
+      : mFace(aFace), mOwnsFace(aOwnsFace), mIndex(0) {}
+  explicit UnscaledFontFreeType(const char* aFile, uint32_t aIndex = 0)
+      : mFace(nullptr), mOwnsFace(false), mFile(aFile), mIndex(aIndex) {}
+  ~UnscaledFontFreeType() {
     if (mOwnsFace) {
       Factory::ReleaseFTFace(mFace);
     }
@@ -48,7 +37,7 @@ public:
 
   bool GetFontDescriptor(FontDescriptorOutput aCb, void* aBaton) override;
 
-protected:
+ protected:
   FT_Face mFace;
   bool mOwnsFace;
   std::string mFile;
@@ -56,45 +45,35 @@ protected:
 };
 
 #ifdef MOZ_WIDGET_GTK
-class UnscaledFontFontconfig : public UnscaledFontFreeType
-{
-public:
+class UnscaledFontFontconfig : public UnscaledFontFreeType {
+ public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(UnscaledFontFontconfig, override)
-  explicit UnscaledFontFontconfig(FT_Face aFace,
-                                  bool aOwnsFace = false)
-    : UnscaledFontFreeType(aFace, aOwnsFace)
-  {}
-  explicit UnscaledFontFontconfig(const char* aFile,
-                                  uint32_t aIndex = 0)
-    : UnscaledFontFreeType(aFile, aIndex)
-  {}
-  UnscaledFontFontconfig(FT_Face aFace,
-                         NativeFontResource* aNativeFontResource)
-    : UnscaledFontFreeType(aFace, false)
-    , mNativeFontResource(aNativeFontResource)
-  {}
+  explicit UnscaledFontFontconfig(FT_Face aFace, bool aOwnsFace = false)
+      : UnscaledFontFreeType(aFace, aOwnsFace) {}
+  explicit UnscaledFontFontconfig(const char* aFile, uint32_t aIndex = 0)
+      : UnscaledFontFreeType(aFile, aIndex) {}
+  UnscaledFontFontconfig(FT_Face aFace, NativeFontResource* aNativeFontResource)
+      : UnscaledFontFreeType(aFace, false),
+        mNativeFontResource(aNativeFontResource) {}
 
   FontType GetType() const override { return FontType::FONTCONFIG; }
 
-  static already_AddRefed<UnscaledFont>
-    CreateFromFontDescriptor(const uint8_t* aData, uint32_t aDataLength, uint32_t aIndex);
+  static already_AddRefed<UnscaledFont> CreateFromFontDescriptor(
+      const uint8_t* aData, uint32_t aDataLength, uint32_t aIndex);
 
-  already_AddRefed<ScaledFont>
-    CreateScaledFont(Float aGlyphSize,
-                     const uint8_t* aInstanceData,
-                     uint32_t aInstanceDataLength,
-                     const FontVariation* aVariations,
-                     uint32_t aNumVariations) override;
+  already_AddRefed<ScaledFont> CreateScaledFont(
+      Float aGlyphSize, const uint8_t* aInstanceData,
+      uint32_t aInstanceDataLength, const FontVariation* aVariations,
+      uint32_t aNumVariations) override;
 
   bool GetWRFontDescriptor(WRFontDescriptorOutput aCb, void* aBaton) override;
 
-private:
+ private:
   RefPtr<NativeFontResource> mNativeFontResource;
 };
 #endif
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_UNSCALEDFONTFREETYPE_H_ */
-

@@ -81,16 +81,14 @@ namespace mozilla {
 //          |########|
 //          +--------+
 
-class DashedCornerFinder
-{
+class DashedCornerFinder {
   typedef mozilla::gfx::Bezier Bezier;
   typedef mozilla::gfx::Float Float;
   typedef mozilla::gfx::Point Point;
   typedef mozilla::gfx::Size Size;
 
-public:
-  struct Result
-  {
+ public:
+  struct Result {
     // Control points for the outer curve and the inner curve.
     //
     //   outerSectionBezier
@@ -111,11 +109,9 @@ public:
     Bezier outerSectionBezier;
     Bezier innerSectionBezier;
 
-    Result(const Bezier& aOuterSectionBezier,
-           const Bezier& aInnerSectionBezier)
-     : outerSectionBezier(aOuterSectionBezier),
-       innerSectionBezier(aInnerSectionBezier)
-    {}
+    Result(const Bezier& aOuterSectionBezier, const Bezier& aInnerSectionBezier)
+        : outerSectionBezier(aOuterSectionBezier),
+          innerSectionBezier(aInnerSectionBezier) {}
   };
 
   //                       aCornerDim.width
@@ -147,7 +143,7 @@ public:
   bool HasMore(void) const;
   Result Next(void);
 
-private:
+ private:
   static const size_t MAX_LOOP = 32;
 
   // Bezier control points for the outer curve and the inner curve.
@@ -269,10 +265,10 @@ private:
 
   // Fill corner with dashes with given dash length, and return the number of
   // segments and last segment's dash length.
-  bool GetCountAndLastDashLength(Float aDashLength,
-                                 size_t* aCount, Float* aActualDashLength);
+  bool GetCountAndLastDashLength(Float aDashLength, size_t* aCount,
+                                 Float* aActualDashLength);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_DashedCornerFinder_h_ */

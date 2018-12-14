@@ -37,9 +37,8 @@ class VideoStreamTrack;
  *  to the MediaStreamGraph way.
  */
 
-class ImageCapture final : public DOMEventTargetHelper
-{
-public:
+class ImageCapture final : public DOMEventTargetHelper {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ImageCapture, DOMEventTargetHelper)
 
@@ -53,8 +52,8 @@ public:
   VideoStreamTrack* GetVideoStreamTrack() const;
 
   // nsWrapperCache member
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
-  {
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override {
     return ImageCaptureBinding::Wrap(aCx, this, aGivenProto);
   }
 
@@ -73,22 +72,23 @@ public:
 
   // Post an error event to script.
   // aErrorCode should be one of error codes defined in ImageCaptureError.h.
-  // aReason is the nsresult which maps to a error string in dom/base/domerr.msg.
+  // aReason is the nsresult which maps to a error string in
+  // dom/base/domerr.msg.
   nsresult PostErrorEvent(uint16_t aErrorCode, nsresult aReason = NS_OK);
 
   bool CheckPrincipal();
 
-protected:
+ protected:
   virtual ~ImageCapture();
 
-  // Capture image by MediaEngine. If it's not support taking photo, this function
-  // should return NS_ERROR_NOT_IMPLEMENTED.
+  // Capture image by MediaEngine. If it's not support taking photo, this
+  // function should return NS_ERROR_NOT_IMPLEMENTED.
   nsresult TakePhotoByMediaEngine();
 
   RefPtr<VideoStreamTrack> mVideoStreamTrack;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // IMAGECAPTURE_H
+#endif  // IMAGECAPTURE_H

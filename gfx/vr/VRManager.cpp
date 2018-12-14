@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 #include "VRManager.h"
 #include "VRManagerParent.h"
 #include "VRThread.h"
@@ -21,13 +20,14 @@
 #if defined(XP_WIN)
 #include "gfxVROculus.h"
 #endif
-#if defined(XP_WIN) || defined(XP_MACOSX) || (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
+#if defined(XP_WIN) || defined(XP_MACOSX) || \
+    (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
 #include "gfxVROpenVR.h"
 #include "gfxVROSVR.h"
 #endif
 #if defined(MOZ_ANDROID_GOOGLE_VR)
 #include "gfxVRGVR.h"
-#endif // MOZ_ANDROID_GOOGLE_VR
+#endif  // MOZ_ANDROID_GOOGLE_VR
 
 #include "gfxVRPuppet.h"
 #include "ipc/VRLayerParent.h"
@@ -42,9 +42,7 @@ namespace gfx {
 
 static StaticRefPtr<VRManager> sVRManagerSingleton;
 
-/*static*/ void
-VRManager::ManagerInit()
-{
+/*static*/ void VRManager::ManagerInit() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (sVRManagerSingleton == nullptr) {
@@ -54,10 +52,9 @@ VRManager::ManagerInit()
 }
 
 VRManager::VRManager()
-  : mInitialized(false)
-  , mVRDisplaysRequested(false)
-  , mVRControllersRequested(false)
-{
+    : mInitialized(false),
+      mVRDisplaysRequested(false),
+      mVRControllersRequested(false) {
   MOZ_COUNT_CTOR(VRManager);
   MOZ_ASSERT(sVRManagerSingleton == nullptr);
 
@@ -85,7 +82,8 @@ VRManager::VRManager()
   }
 #endif
 
-#if defined(XP_WIN) || defined(XP_MACOSX) || (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
+#if defined(XP_WIN) || defined(XP_MACOSX) || \
+    (defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID))
   // OpenVR is cross platform compatible
   mgr = VRSystemManagerOpenVR::Create();
   if (mgr) {
@@ -95,16 +93,16 @@ VRManager::VRManager()
   // OSVR is cross platform compatible
   mgr = VRSystemManagerOSVR::Create();
   if (mgr) {
-      mManagers.AppendElement(mgr);
+    mManagers.AppendElement(mgr);
   }
 #endif
 
 #if defined(MOZ_ANDROID_GOOGLE_VR)
-   mgr = VRSystemManagerGVR::Create();
-   if (mgr) {
-     mManagers.AppendElement(mgr);
-   }
-#endif // defined(MOZ_ANDROID_GOOGLE_VR)
+  mgr = VRSystemManagerGVR::Create();
+  if (mgr) {
+    mManagers.AppendElement(mgr);
+  }
+#endif  // defined(MOZ_ANDROID_GOOGLE_VR)
 
   // Enable gamepad extensions while VR is enabled.
   // Preference only can be set at the Parent process.
@@ -113,16 +111,13 @@ VRManager::VRManager()
   }
 }
 
-VRManager::~VRManager()
-{
+VRManager::~VRManager() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mInitialized);
   MOZ_COUNT_DTOR(VRManager);
 }
 
-void
-VRManager::Destroy()
-{
+void VRManager::Destroy() {
   mVRDisplays.Clear();
   mVRControllers.Clear();
   for (uint32_t i = 0; i < mManagers.Length(); ++i) {
@@ -132,9 +127,7 @@ VRManager::Destroy()
   mInitialized = false;
 }
 
-void
-VRManager::Shutdown()
-{
+void VRManager::Shutdown() {
   mVRDisplays.Clear();
   mVRControllers.Clear();
   for (uint32_t i = 0; i < mManagers.Length(); ++i) {
@@ -142,46 +135,34 @@ VRManager::Shutdown()
   }
 }
 
-void
-VRManager::Init()
-{
-  mInitialized = true;
-}
+void VRManager::Init() { mInitialized = true; }
 
-/* static */VRManager*
-VRManager::Get()
-{
+/* static */ VRManager* VRManager::Get() {
   MOZ_ASSERT(sVRManagerSingleton != nullptr);
 
   return sVRManagerSingleton;
 }
 
-void
-VRManager::AddVRManagerParent(VRManagerParent* aVRManagerParent)
-{
+void VRManager::AddVRManagerParent(VRManagerParent* aVRManagerParent) {
   if (mVRManagerParents.IsEmpty()) {
     Init();
   }
   mVRManagerParents.PutEntry(aVRManagerParent);
 }
 
-void
-VRManager::RemoveVRManagerParent(VRManagerParent* aVRManagerParent)
-{
+void VRManager::RemoveVRManagerParent(VRManagerParent* aVRManagerParent) {
   mVRManagerParents.RemoveEntry(aVRManagerParent);
   if (mVRManagerParents.IsEmpty()) {
     Destroy();
   }
 }
 
-void
-VRManager::UpdateRequestedDevices()
-{
+void VRManager::UpdateRequestedDevices() {
   bool bHaveEventListener = false;
   bool bHaveControllerListener = false;
 
   for (auto iter = mVRManagerParents.Iter(); !iter.Done(); iter.Next()) {
-    VRManagerParent *vmp = iter.Get()->GetKey();
+    VRManagerParent* vmp = iter.Get()->GetKey();
     bHaveEventListener |= vmp->HaveEventListener();
     bHaveControllerListener |= vmp->HaveControllerListener();
   }
@@ -198,9 +179,7 @@ VRManager::UpdateRequestedDevices()
  * If we don't have a 2d display attached to the system, we can call this
  * at the VR display's native refresh rate.
  **/
-void
-VRManager::NotifyVsync(const TimeStamp& aVsyncTimestamp)
-{
+void VRManager::NotifyVsync(const TimeStamp& aVsyncTimestamp) {
   MOZ_ASSERT(VRListenerThreadHolder::IsInVRListenerThread());
   UpdateRequestedDevices();
 
@@ -221,18 +200,14 @@ VRManager::NotifyVsync(const TimeStamp& aVsyncTimestamp)
   CheckForInactiveTimeout();
 }
 
-void
-VRManager::CheckForInactiveTimeout()
-{
+void VRManager::CheckForInactiveTimeout() {
   // Shut down the VR devices when not in use
   if (mVRDisplaysRequested || mVRControllersRequested) {
     // We are using a VR device, keep it alive
     mLastActiveTime = TimeStamp::Now();
-  }
-  else if (mLastActiveTime.IsNull()) {
+  } else if (mLastActiveTime.IsNull()) {
     Shutdown();
-  }
-  else {
+  } else {
     TimeDuration duration = TimeStamp::Now() - mLastActiveTime;
     if (duration.ToMilliseconds() > gfxPrefs::VRInactiveTimeout()) {
       Shutdown();
@@ -240,11 +215,9 @@ VRManager::CheckForInactiveTimeout()
   }
 }
 
-void
-VRManager::NotifyVRVsync(const uint32_t& aDisplayID)
-{
+void VRManager::NotifyVRVsync(const uint32_t& aDisplayID) {
   MOZ_ASSERT(VRListenerThreadHolder::IsInVRListenerThread());
-  for (const auto& manager: mManagers) {
+  for (const auto& manager : mManagers) {
     if (manager->GetIsPresenting()) {
       manager->HandleInput();
     }
@@ -258,9 +231,7 @@ VRManager::NotifyVRVsync(const uint32_t& aDisplayID)
   RefreshVRDisplays();
 }
 
-void
-VRManager::EnumerateVRDisplays()
-{
+void VRManager::EnumerateVRDisplays() {
   /**
    * Throttle the rate of enumeration to the interval set in
    * VRDisplayEnumerateInterval
@@ -311,14 +282,12 @@ VRManager::EnumerateVRDisplays()
   }
 }
 
-void
-VRManager::RefreshVRDisplays(bool aMustDispatch)
-{
+void VRManager::RefreshVRDisplays(bool aMustDispatch) {
   /**
-  * If we aren't viewing WebVR content, don't enumerate
-  * new hardware, as it will cause some devices to power on
-  * or interrupt other VR activities.
-  */
+   * If we aren't viewing WebVR content, don't enumerate
+   * new hardware, as it will cause some devices to power on
+   * or interrupt other VR activities.
+   */
   if (mVRDisplaysRequested || aMustDispatch) {
     EnumerateVRDisplays();
   }
@@ -329,8 +298,8 @@ VRManager::RefreshVRDisplays(bool aMustDispatch)
    * We can call it even when suppressing enumeration to get
    * the already-enumerated displays.
    */
-  nsTArray<RefPtr<gfx::VRDisplayHost> > displays;
-  for (const auto& manager: mManagers) {
+  nsTArray<RefPtr<gfx::VRDisplayHost>> displays;
+  for (const auto& manager : mManagers) {
     manager->GetHMDs(displays);
   }
 
@@ -342,7 +311,7 @@ VRManager::RefreshVRDisplays(bool aMustDispatch)
     displaySetChanged = true;
   }
 
-  for (const auto& display: displays) {
+  for (const auto& display : displays) {
     if (!GetDisplay(display->GetDisplayInfo().GetDisplayID())) {
       // This is a new display
       displaySetChanged = true;
@@ -359,7 +328,7 @@ VRManager::RefreshVRDisplays(bool aMustDispatch)
   // Rebuild the HashMap if there are additions or removals
   if (displaySetChanged) {
     mVRDisplays.Clear();
-    for (const auto& display: displays) {
+    for (const auto& display : displays) {
       mVRDisplays.Put(display->GetDisplayInfo().GetDisplayID(), display);
     }
   }
@@ -369,9 +338,7 @@ VRManager::RefreshVRDisplays(bool aMustDispatch)
   }
 }
 
-void
-VRManager::DispatchVRDisplayInfoUpdate()
-{
+void VRManager::DispatchVRDisplayInfoUpdate() {
   nsTArray<VRDisplayInfo> update;
   GetVRDisplayInfo(update);
 
@@ -380,14 +347,11 @@ VRManager::DispatchVRDisplayInfoUpdate()
   }
 }
 
-
 /**
  * Get any VR displays that have already been enumerated without
  * activating any new devices.
  */
-void
-VRManager::GetVRDisplayInfo(nsTArray<VRDisplayInfo>& aDisplayInfo)
-{
+void VRManager::GetVRDisplayInfo(nsTArray<VRDisplayInfo>& aDisplayInfo) {
   aDisplayInfo.Clear();
   for (auto iter = mVRDisplays.Iter(); !iter.Done(); iter.Next()) {
     gfx::VRDisplayHost* display = iter.UserData();
@@ -395,9 +359,7 @@ VRManager::GetVRDisplayInfo(nsTArray<VRDisplayInfo>& aDisplayInfo)
   }
 }
 
-RefPtr<gfx::VRDisplayHost>
-VRManager::GetDisplay(const uint32_t& aDisplayID)
-{
+RefPtr<gfx::VRDisplayHost> VRManager::GetDisplay(const uint32_t& aDisplayID) {
   RefPtr<gfx::VRDisplayHost> display;
   if (mVRDisplays.Get(aDisplayID, getter_AddRefs(display))) {
     return display;
@@ -405,9 +367,8 @@ VRManager::GetDisplay(const uint32_t& aDisplayID)
   return nullptr;
 }
 
-RefPtr<gfx::VRControllerHost>
-VRManager::GetController(const uint32_t& aControllerID)
-{
+RefPtr<gfx::VRControllerHost> VRManager::GetController(
+    const uint32_t& aControllerID) {
   RefPtr<gfx::VRControllerHost> controller;
   if (mVRControllers.Get(aControllerID, getter_AddRefs(controller))) {
     return controller;
@@ -415,25 +376,23 @@ VRManager::GetController(const uint32_t& aControllerID)
   return nullptr;
 }
 
-void
-VRManager::GetVRControllerInfo(nsTArray<VRControllerInfo>& aControllerInfo)
-{
+void VRManager::GetVRControllerInfo(
+    nsTArray<VRControllerInfo>& aControllerInfo) {
   aControllerInfo.Clear();
   for (auto iter = mVRControllers.Iter(); !iter.Done(); iter.Next()) {
     gfx::VRControllerHost* controller = iter.UserData();
-    aControllerInfo.AppendElement(VRControllerInfo(controller->GetControllerInfo()));
+    aControllerInfo.AppendElement(
+        VRControllerInfo(controller->GetControllerInfo()));
   }
 }
 
-void
-VRManager::RefreshVRControllers()
-{
+void VRManager::RefreshVRControllers() {
   ScanForControllers();
 
   nsTArray<RefPtr<gfx::VRControllerHost>> controllers;
 
-  for (uint32_t i = 0; i < mManagers.Length()
-      && controllers.Length() == 0; ++i) {
+  for (uint32_t i = 0; i < mManagers.Length() && controllers.Length() == 0;
+       ++i) {
     mManagers[i]->GetControllers(controllers);
   }
 
@@ -444,7 +403,7 @@ VRManager::RefreshVRControllers()
     controllerInfoChanged = true;
   }
 
-  for (const auto& controller: controllers) {
+  for (const auto& controller : controllers) {
     if (!GetController(controller->GetControllerInfo().GetControllerID())) {
       // This is a new controller
       controllerInfoChanged = true;
@@ -454,16 +413,14 @@ VRManager::RefreshVRControllers()
 
   if (controllerInfoChanged) {
     mVRControllers.Clear();
-    for (const auto& controller: controllers) {
+    for (const auto& controller : controllers) {
       mVRControllers.Put(controller->GetControllerInfo().GetControllerID(),
                          controller);
     }
   }
 }
 
-void
-VRManager::ScanForControllers()
-{
+void VRManager::ScanForControllers() {
   // We don't have to do this every frame, so check if we
   // have enumerated recently
   if (!mLastControllerEnumerationTime.IsNull()) {
@@ -485,18 +442,14 @@ VRManager::ScanForControllers()
   mLastControllerEnumerationTime = TimeStamp::Now();
 }
 
-void
-VRManager::RemoveControllers()
-{
+void VRManager::RemoveControllers() {
   for (uint32_t i = 0; i < mManagers.Length(); ++i) {
     mManagers[i]->RemoveControllers();
   }
   mVRControllers.Clear();
 }
 
-void
-VRManager::CreateVRTestSystem()
-{
+void VRManager::CreateVRTestSystem() {
   if (mPuppetManager) {
     mPuppetManager->ClearTestDisplays();
     return;
@@ -506,17 +459,13 @@ VRManager::CreateVRTestSystem()
   mManagers.AppendElement(mPuppetManager);
 }
 
-VRSystemManagerPuppet*
-VRManager::GetPuppetManager()
-{
+VRSystemManagerPuppet* VRManager::GetPuppetManager() {
   MOZ_ASSERT(mPuppetManager);
   return mPuppetManager;
 }
 
-template<class T>
-void
-VRManager::NotifyGamepadChange(uint32_t aIndex, const T& aInfo)
-{
+template <class T>
+void VRManager::NotifyGamepadChange(uint32_t aIndex, const T& aInfo) {
   dom::GamepadChangeEventBody body(aInfo);
   dom::GamepadChangeEvent e(aIndex, dom::GamepadServiceType::VR, body);
 
@@ -525,39 +474,34 @@ VRManager::NotifyGamepadChange(uint32_t aIndex, const T& aInfo)
   }
 }
 
-void
-VRManager::VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
-                         double aIntensity, double aDuration,
-                         const VRManagerPromise& aPromise)
+void VRManager::VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
+                              double aIntensity, double aDuration,
+                              const VRManagerPromise& aPromise)
 
 {
   for (uint32_t i = 0; i < mManagers.Length(); ++i) {
-    mManagers[i]->VibrateHaptic(aControllerIdx, aHapticIndex,
-                                aIntensity, aDuration, aPromise);
+    mManagers[i]->VibrateHaptic(aControllerIdx, aHapticIndex, aIntensity,
+                                aDuration, aPromise);
   }
 }
 
-void
-VRManager::StopVibrateHaptic(uint32_t aControllerIdx)
-{
-  for (const auto& manager: mManagers) {
+void VRManager::StopVibrateHaptic(uint32_t aControllerIdx) {
+  for (const auto& manager : mManagers) {
     manager->StopVibrateHaptic(aControllerIdx);
   }
 }
 
-void
-VRManager::NotifyVibrateHapticCompleted(const VRManagerPromise& aPromise)
-{
+void VRManager::NotifyVibrateHapticCompleted(const VRManagerPromise& aPromise) {
   aPromise.mParent->SendReplyGamepadVibrateHaptic(aPromise.mPromiseID);
 }
 
-void
-VRManager::DispatchSubmitFrameResult(uint32_t aDisplayID, const VRSubmitFrameResultInfo& aResult)
-{
+void VRManager::DispatchSubmitFrameResult(
+    uint32_t aDisplayID, const VRSubmitFrameResultInfo& aResult) {
   for (auto iter = mVRManagerParents.Iter(); !iter.Done(); iter.Next()) {
-    Unused << iter.Get()->GetKey()->SendDispatchSubmitFrameResult(aDisplayID, aResult);
+    Unused << iter.Get()->GetKey()->SendDispatchSubmitFrameResult(aDisplayID,
+                                                                  aResult);
   }
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

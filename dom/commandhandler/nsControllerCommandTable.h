@@ -13,17 +13,15 @@
 
 class nsIControllerCommand;
 
-class nsControllerCommandTable final
-  : public nsIControllerCommandTable
-  , public nsSupportsWeakReference
-{
-public:
+class nsControllerCommandTable final : public nsIControllerCommandTable,
+                                       public nsSupportsWeakReference {
+ public:
   nsControllerCommandTable();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSICONTROLLERCOMMANDTABLE
 
-protected:
+ protected:
   virtual ~nsControllerCommandTable();
 
   // Hash table of nsIControllerCommands, keyed by command name.
@@ -33,4 +31,4 @@ protected:
   bool mMutable;
 };
 
-#endif // nsControllerCommandTable_h_
+#endif  // nsControllerCommandTable_h_

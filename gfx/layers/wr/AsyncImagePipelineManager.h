@@ -22,7 +22,7 @@ namespace mozilla {
 namespace wr {
 class DisplayListBuilder;
 class WebRenderAPI;
-}
+}  // namespace wr
 
 namespace layers {
 
@@ -31,29 +31,30 @@ class CompositorVsyncScheduler;
 class WebRenderImageHost;
 class WebRenderTextureHost;
 
-class AsyncImagePipelineManager final
-{
-public:
+class AsyncImagePipelineManager final {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncImagePipelineManager)
 
   explicit AsyncImagePipelineManager(already_AddRefed<wr::WebRenderAPI>&& aApi);
 
-protected:
+ protected:
   ~AsyncImagePipelineManager();
 
-public:
+ public:
   void Destroy();
 
   void AddPipeline(const wr::PipelineId& aPipelineId);
-  void RemovePipeline(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch);
+  void RemovePipeline(const wr::PipelineId& aPipelineId,
+                      const wr::Epoch& aEpoch);
 
-  void HoldExternalImage(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch, WebRenderTextureHost* aTexture);
-  void PipelineRendered(const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch);
+  void HoldExternalImage(const wr::PipelineId& aPipelineId,
+                         const wr::Epoch& aEpoch,
+                         WebRenderTextureHost* aTexture);
+  void PipelineRendered(const wr::PipelineId& aPipelineId,
+                        const wr::Epoch& aEpoch);
   void PipelineRemoved(const wr::PipelineId& aPipelineId);
 
-  TimeStamp GetCompositionTime() const {
-    return mCompositionTime;
-  }
+  TimeStamp GetCompositionTime() const { return mCompositionTime; }
   void SetCompositionTime(TimeStamp aTimeStamp) {
     mCompositionTime = aTimeStamp;
     if (!mCompositionTime.IsNull() && !mCompositeUntilTime.IsNull() &&
@@ -62,17 +63,16 @@ public:
     }
   }
   void CompositeUntil(TimeStamp aTimeStamp) {
-    if (mCompositeUntilTime.IsNull() ||
-        mCompositeUntilTime < aTimeStamp) {
+    if (mCompositeUntilTime.IsNull() || mCompositeUntilTime < aTimeStamp) {
       mCompositeUntilTime = aTimeStamp;
     }
   }
-  TimeStamp GetCompositeUntilTime() const {
-    return mCompositeUntilTime;
-  }
+  TimeStamp GetCompositeUntilTime() const { return mCompositeUntilTime; }
 
-  void AddAsyncImagePipeline(const wr::PipelineId& aPipelineId, WebRenderImageHost* aImageHost);
-  void RemoveAsyncImagePipeline(const wr::PipelineId& aPipelineId, wr::TransactionBuilder& aTxn);
+  void AddAsyncImagePipeline(const wr::PipelineId& aPipelineId,
+                             WebRenderImageHost* aImageHost);
+  void RemoveAsyncImagePipeline(const wr::PipelineId& aPipelineId,
+                                wr::TransactionBuilder& aTxn);
 
   void UpdateAsyncImagePipeline(const wr::PipelineId& aPipelineId,
                                 const LayoutDeviceRect& aScBounds,
@@ -82,25 +82,23 @@ public:
                                 const wr::MixBlendMode& aMixBlendMode);
   void ApplyAsyncImages();
 
-  void AppendImageCompositeNotification(const ImageCompositeNotificationInfo& aNotification)
-  {
+  void AppendImageCompositeNotification(
+      const ImageCompositeNotificationInfo& aNotification) {
     mImageCompositeNotifications.AppendElement(aNotification);
   }
 
-  void FlushImageNotifications(nsTArray<ImageCompositeNotificationInfo>* aNotifications)
-  {
+  void FlushImageNotifications(
+      nsTArray<ImageCompositeNotificationInfo>* aNotifications) {
     aNotifications->AppendElements(Move(mImageCompositeNotifications));
   }
 
   void SetWillGenerateFrame();
   bool GetAndResetWillGenerateFrame();
 
-private:
-
+ private:
   uint32_t GetNextResourceId() { return ++mResourceId; }
   wr::IdNamespace GetNamespace() { return mIdNamespace; }
-  wr::ImageKey GenerateImageKey()
-  {
+  wr::ImageKey GenerateImageKey() {
     wr::ImageKey key;
     key.mNamespace = GetNamespace();
     key.mHandle = GetNextResourceId();
@@ -109,9 +107,7 @@ private:
 
   struct ForwardingTextureHost {
     ForwardingTextureHost(const wr::Epoch& aEpoch, TextureHost* aTexture)
-      : mEpoch(aEpoch)
-      , mTexture(aTexture)
-    {}
+        : mEpoch(aEpoch), mTexture(aTexture) {}
     wr::Epoch mEpoch;
     CompositableTextureHostRef mTexture;
   };
@@ -128,12 +124,10 @@ private:
                 const gfx::Matrix4x4& aScTransform,
                 const gfx::MaybeIntSize& aScaleToSize,
                 const wr::ImageRendering& aFilter,
-                const wr::MixBlendMode& aMixBlendMode)
-    {
+                const wr::MixBlendMode& aMixBlendMode) {
       mIsChanged |= !mScBounds.IsEqualEdges(aScBounds) ||
                     mScTransform != aScTransform ||
-                    mScaleToSize != aScaleToSize ||
-                    mFilter != aFilter ||
+                    mScaleToSize != aScaleToSize || mFilter != aFilter ||
                     mMixBlendMode != aMixBlendMode;
       mScBounds = aScBounds;
       mScTransform = aScTransform;
@@ -155,21 +149,19 @@ private:
     nsTArray<wr::ImageKey> mKeys;
   };
 
-  Maybe<TextureHost::ResourceUpdateOp>
-  UpdateImageKeys(wr::TransactionBuilder& aResourceUpdates,
-                  AsyncImagePipeline* aPipeline,
-                  nsTArray<wr::ImageKey>& aKeys);
-  Maybe<TextureHost::ResourceUpdateOp>
-  UpdateWithoutExternalImage(wr::TransactionBuilder& aResources,
-                             TextureHost* aTexture,
-                             wr::ImageKey aKey,
-                             TextureHost::ResourceUpdateOp);
+  Maybe<TextureHost::ResourceUpdateOp> UpdateImageKeys(
+      wr::TransactionBuilder& aResourceUpdates, AsyncImagePipeline* aPipeline,
+      nsTArray<wr::ImageKey>& aKeys);
+  Maybe<TextureHost::ResourceUpdateOp> UpdateWithoutExternalImage(
+      wr::TransactionBuilder& aResources, TextureHost* aTexture,
+      wr::ImageKey aKey, TextureHost::ResourceUpdateOp);
 
   RefPtr<wr::WebRenderAPI> mApi;
   wr::IdNamespace mIdNamespace;
   uint32_t mResourceId;
 
-  nsClassHashtable<nsUint64HashKey, PipelineTexturesHolder> mPipelineTexturesHolders;
+  nsClassHashtable<nsUint64HashKey, PipelineTexturesHolder>
+      mPipelineTexturesHolders;
   nsClassHashtable<nsUint64HashKey, AsyncImagePipeline> mAsyncImagePipelines;
   uint32_t mAsyncImageEpoch;
   bool mWillGenerateFrame;
@@ -186,7 +178,7 @@ private:
   nsTArray<ImageCompositeNotificationInfo> mImageCompositeNotifications;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_WEBRENDERCOMPOSITABLE_HOLDER_H */

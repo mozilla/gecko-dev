@@ -31,85 +31,82 @@ class nsInputStreamPump;
 
 //-----------------------------------------------------------------------------
 
-class nsJARChannel final : public nsIJARChannel
-                         , public mozilla::net::MemoryDownloader::IObserver
-                         , public nsIStreamListener
-                         , public nsIThreadRetargetableRequest
-                         , public nsIThreadRetargetableStreamListener
-                         , public nsHashPropertyBag
-{
-public:
-    NS_DECL_ISUPPORTS_INHERITED
-    NS_DECL_NSIREQUEST
-    NS_DECL_NSICHANNEL
-    NS_DECL_NSIJARCHANNEL
-    NS_DECL_NSIREQUESTOBSERVER
-    NS_DECL_NSISTREAMLISTENER
-    NS_DECL_NSITHREADRETARGETABLEREQUEST
-    NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
+class nsJARChannel final : public nsIJARChannel,
+                           public mozilla::net::MemoryDownloader::IObserver,
+                           public nsIStreamListener,
+                           public nsIThreadRetargetableRequest,
+                           public nsIThreadRetargetableStreamListener,
+                           public nsHashPropertyBag {
+ public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIREQUEST
+  NS_DECL_NSICHANNEL
+  NS_DECL_NSIJARCHANNEL
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSITHREADRETARGETABLEREQUEST
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
-    nsJARChannel();
+  nsJARChannel();
 
-    nsresult Init(nsIURI *uri);
+  nsresult Init(nsIURI *uri);
 
-    void SetFile(nsIFile *file);
+  void SetFile(nsIFile *file);
 
-private:
-    virtual ~nsJARChannel();
+ private:
+  virtual ~nsJARChannel();
 
-    nsresult CreateJarInput(nsIZipReaderCache *, nsJARInputThunk **);
-    nsresult LookupFile(bool aAllowAsync);
-    nsresult OpenLocalFile();
-    void NotifyError(nsresult aError);
-    void FireOnProgress(uint64_t aProgress);
-    virtual void OnDownloadComplete(mozilla::net::MemoryDownloader* aDownloader,
-                                    nsIRequest* aRequest,
-                                    nsISupports* aCtxt,
-                                    nsresult aStatus,
-                                    mozilla::net::MemoryDownloader::Data aData)
-        override;
+  nsresult CreateJarInput(nsIZipReaderCache *, nsJARInputThunk **);
+  nsresult LookupFile(bool aAllowAsync);
+  nsresult OpenLocalFile();
+  void NotifyError(nsresult aError);
+  void FireOnProgress(uint64_t aProgress);
+  virtual void OnDownloadComplete(
+      mozilla::net::MemoryDownloader *aDownloader, nsIRequest *aRequest,
+      nsISupports *aCtxt, nsresult aStatus,
+      mozilla::net::MemoryDownloader::Data aData) override;
 
-    nsCString                       mSpec;
+  nsCString mSpec;
 
-    bool                            mOpened;
+  bool mOpened;
 
-    RefPtr<nsJARProtocolHandler>    mJarHandler;
-    nsCOMPtr<nsIJARURI>             mJarURI;
-    nsCOMPtr<nsIURI>                mOriginalURI;
-    nsCOMPtr<nsISupports>           mOwner;
-    nsCOMPtr<nsILoadInfo>           mLoadInfo;
-    nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
-    nsCOMPtr<nsISupports>           mSecurityInfo;
-    nsCOMPtr<nsIProgressEventSink>  mProgressSink;
-    nsCOMPtr<nsILoadGroup>          mLoadGroup;
-    nsCOMPtr<nsIStreamListener>     mListener;
-    nsCOMPtr<nsISupports>           mListenerContext;
-    nsCString                       mContentType;
-    nsCString                       mContentCharset;
-    nsCString                       mContentDispositionHeader;
-    /* mContentDisposition is uninitialized if mContentDispositionHeader is
-     * empty */
-    uint32_t                        mContentDisposition;
-    int64_t                         mContentLength;
-    uint32_t                        mLoadFlags;
-    nsresult                        mStatus;
-    bool                            mIsPending;
-    bool                            mIsUnsafe;
+  RefPtr<nsJARProtocolHandler> mJarHandler;
+  nsCOMPtr<nsIJARURI> mJarURI;
+  nsCOMPtr<nsIURI> mOriginalURI;
+  nsCOMPtr<nsISupports> mOwner;
+  nsCOMPtr<nsILoadInfo> mLoadInfo;
+  nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
+  nsCOMPtr<nsISupports> mSecurityInfo;
+  nsCOMPtr<nsIProgressEventSink> mProgressSink;
+  nsCOMPtr<nsILoadGroup> mLoadGroup;
+  nsCOMPtr<nsIStreamListener> mListener;
+  nsCOMPtr<nsISupports> mListenerContext;
+  nsCString mContentType;
+  nsCString mContentCharset;
+  nsCString mContentDispositionHeader;
+  /* mContentDisposition is uninitialized if mContentDispositionHeader is
+   * empty */
+  uint32_t mContentDisposition;
+  int64_t mContentLength;
+  uint32_t mLoadFlags;
+  nsresult mStatus;
+  bool mIsPending;
+  bool mIsUnsafe;
 
-    mozilla::net::MemoryDownloader::Data mTempMem;
-    nsCOMPtr<nsIInputStreamPump>    mPump;
-    // mRequest is only non-null during OnStartRequest, so we'll have a pointer
-    // to the request if we get called back via RetargetDeliveryTo.
-    nsCOMPtr<nsIRequest>            mRequest;
-    nsCOMPtr<nsIFile>               mJarFile;
-    nsCOMPtr<nsIFile>               mJarFileOverride;
-    nsCOMPtr<nsIZipReader>          mPreCachedJarReader;
-    nsCOMPtr<nsIURI>                mJarBaseURI;
-    nsCString                       mJarEntry;
-    nsCString                       mInnerJarEntry;
+  mozilla::net::MemoryDownloader::Data mTempMem;
+  nsCOMPtr<nsIInputStreamPump> mPump;
+  // mRequest is only non-null during OnStartRequest, so we'll have a pointer
+  // to the request if we get called back via RetargetDeliveryTo.
+  nsCOMPtr<nsIRequest> mRequest;
+  nsCOMPtr<nsIFile> mJarFile;
+  nsCOMPtr<nsIFile> mJarFileOverride;
+  nsCOMPtr<nsIZipReader> mPreCachedJarReader;
+  nsCOMPtr<nsIURI> mJarBaseURI;
+  nsCString mJarEntry;
+  nsCString mInnerJarEntry;
 
-    // True if this channel should not download any remote files.
-    bool                            mBlockRemoteFiles;
+  // True if this channel should not download any remote files.
+  bool mBlockRemoteFiles;
 };
 
-#endif // nsJARChannel_h__
+#endif  // nsJARChannel_h__

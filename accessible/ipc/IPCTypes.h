@@ -17,13 +17,13 @@
 // So that we don't include a bunch of other Windows junk.
 #if !defined(COM_NO_WINDOWS_H)
 #define COM_NO_WINDOWS_H
-#endif // !defined(COM_NO_WINDOWS_H)
+#endif  // !defined(COM_NO_WINDOWS_H)
 
 // COM headers pull in MSXML which conflicts with our own XMLDocument class.
 // This define excludes those conflicting definitions.
 #if !defined(__XMLDocument_FWD_DEFINED__)
 #define __XMLDocument_FWD_DEFINED__
-#endif // !defined(__XMLDocument_FWD_DEFINED__)
+#endif  // !defined(__XMLDocument_FWD_DEFINED__)
 
 #include <combaseapi.h>
 
@@ -33,7 +33,7 @@
 // COMPtrTypes.h has been included.
 #if defined(small)
 #undef small
-#endif // defined(small)
+#endif  // defined(small)
 
 #else
 
@@ -44,10 +44,9 @@ typedef uint32_t IAccessibleHolder;
 typedef uint32_t IDispatchHolder;
 typedef uint32_t IHandlerControlHolder;
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
-#endif // defined(XP_WIN) && defined(ACCESSIBILITY)
+#endif  // defined(XP_WIN) && defined(ACCESSIBILITY)
 
-#endif // mozilla_a11y_IPCTypes_h
-
+#endif  // mozilla_a11y_IPCTypes_h

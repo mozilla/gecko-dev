@@ -21,31 +21,23 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(TableCell)
 namespace mozilla {
 namespace dom {
 
-HTMLTableCellElement::~HTMLTableCellElement()
-{
-}
+HTMLTableCellElement::~HTMLTableCellElement() {}
 
-JSObject*
-HTMLTableCellElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLTableCellElement::WrapNode(JSContext* aCx,
+                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableCellElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMPL_ELEMENT_CLONE(HTMLTableCellElement)
 
-
 // protected method
-HTMLTableRowElement*
-HTMLTableCellElement::GetRow() const
-{
+HTMLTableRowElement* HTMLTableCellElement::GetRow() const {
   return HTMLTableRowElement::FromContentOrNull(GetParent());
 }
 
 // protected method
-HTMLTableElement*
-HTMLTableCellElement::GetTable() const
-{
-  nsIContent *parent = GetParent();
+HTMLTableElement* HTMLTableCellElement::GetTable() const {
+  nsIContent* parent = GetParent();
   if (!parent) {
     return nullptr;
   }
@@ -70,9 +62,7 @@ HTMLTableCellElement::GetTable() const
   return nullptr;
 }
 
-int32_t
-HTMLTableCellElement::CellIndex() const
-{
+int32_t HTMLTableCellElement::CellIndex() const {
   HTMLTableRowElement* row = GetRow();
   if (!row) {
     return -1;
@@ -95,12 +85,12 @@ HTMLTableCellElement::CellIndex() const
 
 #ifdef MOZ_OLD_STYLE
 NS_IMETHODIMP
-HTMLTableCellElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
-{
+HTMLTableCellElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker) {
   nsresult rv = nsGenericHTMLElement::WalkContentStyleRules(aRuleWalker);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (nsMappedAttributes* tableInheritedAttributes = GetMappedAttributesInheritedFromTable()) {
+  if (nsMappedAttributes* tableInheritedAttributes =
+          GetMappedAttributesInheritedFromTable()) {
     if (tableInheritedAttributes) {
       aRuleWalker->Forward(tableInheritedAttributes);
     }
@@ -110,8 +100,7 @@ HTMLTableCellElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
 #endif
 
 nsMappedAttributes*
-HTMLTableCellElement::GetMappedAttributesInheritedFromTable() const
-{
+HTMLTableCellElement::GetMappedAttributesInheritedFromTable() const {
   if (HTMLTableElement* table = GetTable()) {
     return table->GetAttributesMappedForCell();
   }
@@ -119,9 +108,7 @@ HTMLTableCellElement::GetMappedAttributesInheritedFromTable() const
   return nullptr;
 }
 
-void
-HTMLTableCellElement::GetAlign(DOMString& aValue)
-{
+void HTMLTableCellElement::GetAlign(DOMString& aValue) {
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::align, aValue)) {
     // There's no align attribute, ask the row for the alignment.
     HTMLTableRowElement* row = GetRow();
@@ -132,26 +119,21 @@ HTMLTableCellElement::GetAlign(DOMString& aValue)
 }
 
 static const nsAttrValue::EnumTable kCellScopeTable[] = {
-  { "row",      NS_STYLE_CELL_SCOPE_ROW },
-  { "col",      NS_STYLE_CELL_SCOPE_COL },
-  { "rowgroup", NS_STYLE_CELL_SCOPE_ROWGROUP },
-  { "colgroup", NS_STYLE_CELL_SCOPE_COLGROUP },
-  { nullptr,    0 }
-};
+    {"row", NS_STYLE_CELL_SCOPE_ROW},
+    {"col", NS_STYLE_CELL_SCOPE_COL},
+    {"rowgroup", NS_STYLE_CELL_SCOPE_ROWGROUP},
+    {"colgroup", NS_STYLE_CELL_SCOPE_COLGROUP},
+    {nullptr, 0}};
 
-void
-HTMLTableCellElement::GetScope(DOMString& aScope)
-{
+void HTMLTableCellElement::GetScope(DOMString& aScope) {
   GetEnumAttr(nsGkAtoms::scope, nullptr, aScope);
 }
 
-bool
-HTMLTableCellElement::ParseAttribute(int32_t aNamespaceID,
-                                     nsAtom* aAttribute,
-                                     const nsAString& aValue,
-                                     nsIPrincipal* aMaybeScriptedPrincipal,
-                                     nsAttrValue& aResult)
-{
+bool HTMLTableCellElement::ParseAttribute(int32_t aNamespaceID,
+                                          nsAtom* aAttribute,
+                                          const nsAString& aValue,
+                                          nsIPrincipal* aMaybeScriptedPrincipal,
+                                          nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     /* ignore these attributes, stored simply as strings
        abbr, axis, ch, headers
@@ -192,27 +174,24 @@ HTMLTableCellElement::ParseAttribute(int32_t aNamespaceID,
     }
   }
 
-  return nsGenericHTMLElement::ParseBackgroundAttribute(aNamespaceID,
-                                                        aAttribute, aValue,
-                                                        aResult) ||
+  return nsGenericHTMLElement::ParseBackgroundAttribute(
+             aNamespaceID, aAttribute, aValue, aResult) ||
          nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
                                               aMaybeScriptedPrincipal, aResult);
 }
 
-void
-HTMLTableCellElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                            GenericSpecifiedValues* aData)
-{
+void HTMLTableCellElement::MapAttributesIntoRule(
+    const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData) {
   if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(Position))) {
     // width: value
     if (!aData->PropertyIsSet(eCSSProperty_width)) {
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
       if (value && value->Type() == nsAttrValue::eInteger) {
         if (value->GetIntegerValue() > 0)
-          aData->SetPixelValue(eCSSProperty_width, (float)value->GetIntegerValue());
+          aData->SetPixelValue(eCSSProperty_width,
+                               (float)value->GetIntegerValue());
         // else 0 implies auto for compatibility.
-      }
-      else if (value && value->Type() == nsAttrValue::ePercent) {
+      } else if (value && value->Type() == nsAttrValue::ePercent) {
         if (value->GetPercentValue() > 0.0f)
           aData->SetPercentValue(eCSSProperty_width, value->GetPercentValue());
         // else 0 implies auto for compatibility
@@ -223,10 +202,10 @@ HTMLTableCellElement::MapAttributesIntoRule(const nsMappedAttributes* aAttribute
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::height);
       if (value && value->Type() == nsAttrValue::eInteger) {
         if (value->GetIntegerValue() > 0)
-          aData->SetPixelValue(eCSSProperty_height, (float)value->GetIntegerValue());
+          aData->SetPixelValue(eCSSProperty_height,
+                               (float)value->GetIntegerValue());
         // else 0 implies auto for compatibility.
-      }
-      else if (value && value->Type() == nsAttrValue::ePercent) {
+      } else if (value && value->Type() == nsAttrValue::ePercent) {
         if (value->GetPercentValue() > 0.0f)
           aData->SetPercentValue(eCSSProperty_height, value->GetPercentValue());
         // else 0 implies auto for compatibility
@@ -241,9 +220,9 @@ HTMLTableCellElement::MapAttributesIntoRule(const nsMappedAttributes* aAttribute
         const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
         nsCompatibility mode = aData->Document()->GetCompatibilityMode();
         if (!value || value->Type() != nsAttrValue::eInteger ||
-            value->GetIntegerValue() == 0 ||
-            eCompatibility_NavQuirks != mode) {
-          aData->SetKeywordValue(eCSSProperty_white_space, StyleWhiteSpace::Nowrap);
+            value->GetIntegerValue() == 0 || eCompatibility_NavQuirks != mode) {
+          aData->SetKeywordValue(eCSSProperty_white_space,
+                                 StyleWhiteSpace::Nowrap);
         }
       }
     }
@@ -256,12 +235,11 @@ HTMLTableCellElement::MapAttributesIntoRule(const nsMappedAttributes* aAttribute
 }
 
 NS_IMETHODIMP_(bool)
-HTMLTableCellElement::IsAttributeMapped(const nsAtom* aAttribute) const
-{
+HTMLTableCellElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   static const MappedAttributeEntry attributes[] = {
-    { &nsGkAtoms::align },
-    { &nsGkAtoms::valign },
-    { &nsGkAtoms::nowrap },
+    {&nsGkAtoms::align},
+    {&nsGkAtoms::valign},
+    {&nsGkAtoms::nowrap},
 #if 0
     // XXXldb If these are implemented, they might need to move to
     // GetAttributeChangeHint (depending on how, and preferably not).
@@ -270,25 +248,24 @@ HTMLTableCellElement::IsAttributeMapped(const nsAtom* aAttribute) const
     { &nsGkAtoms::headers },
     { &nsGkAtoms::scope },
 #endif
-    { &nsGkAtoms::width },
-    { &nsGkAtoms::height },
-    { nullptr }
+    {&nsGkAtoms::width},
+    {&nsGkAtoms::height},
+    {nullptr}
   };
 
   static const MappedAttributeEntry* const map[] = {
-    attributes,
-    sCommonAttributeMap,
-    sBackgroundAttributeMap,
+      attributes,
+      sCommonAttributeMap,
+      sBackgroundAttributeMap,
   };
 
   return FindAttributeDependence(aAttribute, map);
 }
 
-nsMapRuleToAttributesFunc
-HTMLTableCellElement::GetAttributeMappingFunction() const
-{
+nsMapRuleToAttributesFunc HTMLTableCellElement::GetAttributeMappingFunction()
+    const {
   return &MapAttributesIntoRule;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

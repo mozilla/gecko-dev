@@ -19,10 +19,10 @@ namespace dom {
 
 class HTMLStyleElement final : public nsGenericHTMLElement,
                                public nsStyleLinkElement,
-                               public nsStubMutationObserver
-{
-public:
-  explicit HTMLStyleElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+                               public nsStubMutationObserver {
+ public:
+  explicit HTMLStyleElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
@@ -51,7 +51,7 @@ public:
                                 nsIPrincipal* aSubjectPrincipal,
                                 bool aNotify) override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   // nsIMutationObserver
@@ -62,42 +62,29 @@ public:
 
   bool Disabled();
   void SetDisabled(bool aDisabled);
-  void GetMedia(nsAString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::media, aValue);
-  }
-  void SetMedia(const nsAString& aMedia, ErrorResult& aError)
-  {
+  void GetMedia(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::media, aValue); }
+  void SetMedia(const nsAString& aMedia, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::media, aMedia, aError);
   }
-  void GetType(nsAString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::type, aValue);
-  }
-  void SetType(const nsAString& aType, ErrorResult& aError)
-  {
+  void GetType(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::type, aValue); }
+  void SetType(const nsAString& aType, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::type, aType, aError);
   }
-  bool Scoped()
-  {
-    return GetBoolAttr(nsGkAtoms::scoped);
-  }
-  void SetScoped(bool aScoped, ErrorResult& aError)
-  {
+  bool Scoped() { return GetBoolAttr(nsGkAtoms::scoped); }
+  void SetScoped(bool aScoped, ErrorResult& aError) {
     SetHTMLBoolAttr(nsGkAtoms::scoped, aScoped, aError);
   }
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-protected:
+ protected:
   virtual ~HTMLStyleElement();
 
-  already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline, nsIPrincipal** aTriggeringPrincipal) override;
-  void GetStyleSheetInfo(nsAString& aTitle,
-                         nsAString& aType,
-                         nsAString& aMedia,
-                         bool* aIsScoped,
-                         bool* aIsAlternate) override;
+  already_AddRefed<nsIURI> GetStyleSheetURL(
+      bool* aIsInline, nsIPrincipal** aTriggeringPrincipal) override;
+  void GetStyleSheetInfo(nsAString& aTitle, nsAString& aType, nsAString& aMedia,
+                         bool* aIsScoped, bool* aIsAlternate) override;
   /**
    * Common method to call from the various mutation observer methods.
    * aContent is a content node that's either the one that changed or its
@@ -106,8 +93,7 @@ protected:
   void ContentChanged(nsIContent* aContent);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif
-

@@ -12,17 +12,15 @@ namespace mozilla {
 namespace dom {
 
 Timeout::Timeout()
-  : mTimeoutId(0),
-    mFiringId(TimeoutManager::InvalidFiringId),
-    mPopupState(openAllowed),
-    mReason(Reason::eTimeoutOrInterval),
-    mNestingLevel(0),
-    mCleared(false),
-    mRunning(false),
-    mIsInterval(false),
-    mIsTracking(false)
-{
-}
+    : mTimeoutId(0),
+      mFiringId(TimeoutManager::InvalidFiringId),
+      mPopupState(openAllowed),
+      mReason(Reason::eTimeoutOrInterval),
+      mNestingLevel(0),
+      mCleared(false),
+      mRunning(false),
+      mIsInterval(false),
+      mIsTracking(false) {}
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(Timeout)
 
@@ -42,10 +40,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(Timeout, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(Timeout, Release)
 
-void
-Timeout::SetWhenOrTimeRemaining(const TimeStamp& aBaseTime,
-                                const TimeDuration& aDelay)
-{
+void Timeout::SetWhenOrTimeRemaining(const TimeStamp& aBaseTime,
+                                     const TimeDuration& aDelay) {
   MOZ_DIAGNOSTIC_ASSERT(mWindow);
 
   // If we are frozen simply set mTimeRemaining to be the "time remaining" in
@@ -65,23 +61,19 @@ Timeout::SetWhenOrTimeRemaining(const TimeStamp& aBaseTime,
   mTimeRemaining = TimeDuration(0);
 }
 
-const TimeStamp&
-Timeout::When() const
-{
+const TimeStamp& Timeout::When() const {
   MOZ_DIAGNOSTIC_ASSERT(!mWhen.IsNull());
   // Note, mWindow->IsFrozen() can be true here.  The Freeze() method calls
   // When() to calculate the delay to populate mTimeRemaining.
   return mWhen;
 }
 
-const TimeDuration&
-Timeout::TimeRemaining() const
-{
+const TimeDuration& Timeout::TimeRemaining() const {
   MOZ_DIAGNOSTIC_ASSERT(mWhen.IsNull());
   // Note, mWindow->IsFrozen() can be false here.  The Thaw() method calls
   // TimeRemaining() to calculate the new When() value.
   return mTimeRemaining;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

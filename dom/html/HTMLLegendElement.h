@@ -14,13 +14,11 @@
 namespace mozilla {
 namespace dom {
 
-class HTMLLegendElement final : public nsGenericHTMLElement
-{
-public:
-  explicit HTMLLegendElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsGenericHTMLElement(aNodeInfo)
-  {
-  }
+class HTMLLegendElement final : public nsGenericHTMLElement {
+ public:
+  explicit HTMLLegendElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : nsGenericHTMLElement(aNodeInfo) {}
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLLegendElement, legend)
 
@@ -36,19 +34,17 @@ public:
                               bool aCompileEventHandlers) override;
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) override;
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult) override;
+  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsIPrincipal* aMaybeScriptedPrincipal,
+                              nsAttrValue& aResult) override;
   virtual nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
                                               int32_t aModType) const override;
 
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
-  Element* GetFormElement() const
-  {
+  Element* GetFormElement() const {
     nsCOMPtr<nsIFormControl> fieldsetControl = do_QueryInterface(GetFieldSet());
 
     return fieldsetControl ? fieldsetControl->GetFormElement() : nullptr;
@@ -60,26 +56,22 @@ public:
 
   already_AddRefed<HTMLFormElement> GetForm();
 
-  void GetAlign(DOMString& aAlign)
-  {
-    GetHTMLAttr(nsGkAtoms::align, aAlign);
-  }
+  void GetAlign(DOMString& aAlign) { GetHTMLAttr(nsGkAtoms::align, aAlign); }
 
-  void SetAlign(const nsAString& aAlign, ErrorResult& aError)
-  {
+  void SetAlign(const nsAString& aAlign, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
   }
 
-  nsINode* GetScopeChainParent() const override
-  {
+  nsINode* GetScopeChainParent() const override {
     Element* form = GetFormElement();
     return form ? form : nsGenericHTMLElement::GetScopeChainParent();
   }
 
-protected:
+ protected:
   virtual ~HTMLLegendElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   /**
    * Get the fieldset content element that contains this legend.
@@ -88,7 +80,7 @@ protected:
   nsIContent* GetFieldSet() const;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_HTMLLegendElement_h */

@@ -21,46 +21,46 @@ class nsIRDFDate;
 class BlobImpl;
 
 class RDFServiceImpl final : public nsIRDFService,
-                             public nsSupportsWeakReference
-{
-protected:
-    PLHashTable* mNamedDataSources;
-    PLDHashTable mResources;
-    PLDHashTable mLiterals;
-    PLDHashTable mInts;
-    PLDHashTable mDates;
-    PLDHashTable mBlobs;
+                             public nsSupportsWeakReference {
+ protected:
+  PLHashTable* mNamedDataSources;
+  PLDHashTable mResources;
+  PLDHashTable mLiterals;
+  PLDHashTable mInts;
+  PLDHashTable mDates;
+  PLDHashTable mBlobs;
 
-    nsCString mLastURIPrefix;
-    nsCOMPtr<nsIFactory> mLastFactory;
-    nsCOMPtr<nsIFactory> mDefaultResourceFactory;
+  nsCString mLastURIPrefix;
+  nsCOMPtr<nsIFactory> mLastFactory;
+  nsCOMPtr<nsIFactory> mDefaultResourceFactory;
 
-    RDFServiceImpl();
-    nsresult Init();
-    virtual ~RDFServiceImpl();
+  RDFServiceImpl();
+  nsresult Init();
+  virtual ~RDFServiceImpl();
 
-public:
-    static RDFServiceImpl *gRDFService NS_VISIBILITY_HIDDEN;
-    static nsresult CreateSingleton(nsISupports* aOuter,
-                                    const nsIID& aIID, void **aResult);
+ public:
+  static RDFServiceImpl* gRDFService NS_VISIBILITY_HIDDEN;
+  static nsresult CreateSingleton(nsISupports* aOuter, const nsIID& aIID,
+                                  void** aResult);
 
-    // nsISupports
-    NS_DECL_ISUPPORTS
+  // nsISupports
+  NS_DECL_ISUPPORTS
 
-    // nsIRDFService
-    NS_DECL_NSIRDFSERVICE
+  // nsIRDFService
+  NS_DECL_NSIRDFSERVICE
 
-    // Implementation methods
-    nsresult RegisterLiteral(nsIRDFLiteral* aLiteral);
-    nsresult UnregisterLiteral(nsIRDFLiteral* aLiteral);
-    nsresult RegisterInt(nsIRDFInt* aInt);
-    nsresult UnregisterInt(nsIRDFInt* aInt);
-    nsresult RegisterDate(nsIRDFDate* aDate);
-    nsresult UnregisterDate(nsIRDFDate* aDate);
-    nsresult RegisterBlob(BlobImpl* aBlob);
-    nsresult UnregisterBlob(BlobImpl* aBlob);
+  // Implementation methods
+  nsresult RegisterLiteral(nsIRDFLiteral* aLiteral);
+  nsresult UnregisterLiteral(nsIRDFLiteral* aLiteral);
+  nsresult RegisterInt(nsIRDFInt* aInt);
+  nsresult UnregisterInt(nsIRDFInt* aInt);
+  nsresult RegisterDate(nsIRDFDate* aDate);
+  nsresult UnregisterDate(nsIRDFDate* aDate);
+  nsresult RegisterBlob(BlobImpl* aBlob);
+  nsresult UnregisterBlob(BlobImpl* aBlob);
 
-    nsresult GetDataSource(const char *aURI, bool aBlock, nsIRDFDataSource **aDataSource );
+  nsresult GetDataSource(const char* aURI, bool aBlock,
+                         nsIRDFDataSource** aDataSource);
 };
 
-#endif // nsRDFService_h__
+#endif  // nsRDFService_h__

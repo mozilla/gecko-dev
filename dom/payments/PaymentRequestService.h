@@ -19,9 +19,8 @@ namespace dom {
 
 // The implmentation of nsIPaymentRequestService
 
-class PaymentRequestService final : public nsIPaymentRequestService
-{
-public:
+class PaymentRequestService final : public nsIPaymentRequestService {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPAYMENTREQUESTSERVICE
 
@@ -29,40 +28,36 @@ public:
 
   static already_AddRefed<PaymentRequestService> GetSingleton();
 
-  already_AddRefed<nsIPaymentRequest>
-  GetPaymentRequestByIndex(const uint32_t index);
+  already_AddRefed<nsIPaymentRequest> GetPaymentRequestByIndex(
+      const uint32_t index);
 
   uint32_t NumPayments() const;
 
-private:
+ private:
   ~PaymentRequestService() = default;
 
-  nsresult
-  SetActionCallback(const nsAString& aRequestId,
-                    nsIPaymentActionCallback* aCallback);
-  nsresult
-  RemoveActionCallback(const nsAString& aRequestId);
+  nsresult SetActionCallback(const nsAString& aRequestId,
+                             nsIPaymentActionCallback* aCallback);
+  nsresult RemoveActionCallback(const nsAString& aRequestId);
 
   // this method is only used for testing
-  nsresult
-  LaunchUIAction(const nsAString& aRequestId, uint32_t aActionType);
+  nsresult LaunchUIAction(const nsAString& aRequestId, uint32_t aActionType);
 
-  bool
-  CanMakePayment(const nsAString& aRequestId);
+  bool CanMakePayment(const nsAString& aRequestId);
 
-  bool
-  IsBasicCardPayment(const nsAString& aRequestId);
+  bool IsBasicCardPayment(const nsAString& aRequestId);
 
   FallibleTArray<nsCOMPtr<nsIPaymentRequest>> mRequestQueue;
 
-  nsInterfaceHashtable<nsStringHashKey, nsIPaymentActionCallback> mCallbackHashtable;
+  nsInterfaceHashtable<nsStringHashKey, nsIPaymentActionCallback>
+      mCallbackHashtable;
 
   nsCOMPtr<nsIPaymentUIService> mTestingUIService;
 
   nsCOMPtr<nsIPaymentRequest> mShowingRequest;
 };
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla
 
 #endif

@@ -25,7 +25,7 @@ class GLContext;
 namespace layers {
 class CompositorBridgeParentBase;
 class SyncObjectHost;
-}
+}  // namespace layers
 
 namespace widget {
 class CompositorWidget;
@@ -41,12 +41,14 @@ class RenderTextureHost;
 /// There is one renderer per window, all owned by the render thread.
 /// This class is a similar abstraction to CompositorOGL except that it is used
 /// on the render thread instead of the compositor thread.
-class RendererOGL
-{
-  friend wr::WrExternalImage LockExternalImage(void* aObj, wr::WrExternalImageId aId, uint8_t aChannelIndex);
-  friend void UnlockExternalImage(void* aObj, wr::WrExternalImageId aId, uint8_t aChannelIndex);
+class RendererOGL {
+  friend wr::WrExternalImage LockExternalImage(void* aObj,
+                                               wr::WrExternalImageId aId,
+                                               uint8_t aChannelIndex);
+  friend void UnlockExternalImage(void* aObj, wr::WrExternalImageId aId,
+                                  uint8_t aChannelIndex);
 
-public:
+ public:
   wr::WrExternalImageHandler GetExternalImageHandler();
 
   /// This can be called on the render thread only.
@@ -69,8 +71,7 @@ public:
 
   /// This can be called on the render thread only.
   RendererOGL(RefPtr<RenderThread>&& aThread,
-              UniquePtr<RenderCompositor> aCompositor,
-              wr::WindowId aWindowId,
+              UniquePtr<RenderCompositor> aCompositor, wr::WindowId aWindowId,
               wr::Renderer* aRenderer,
               layers::CompositorBridgeParentBase* aBridge);
 
@@ -92,7 +93,7 @@ public:
 
   gl::GLContext* gl() const;
 
-protected:
+ protected:
   void NotifyWebRenderError(WebRenderError aError);
 
   RefPtr<RenderThread> mThread;
@@ -104,7 +105,7 @@ protected:
   wr::DebugFlags mDebugFlags;
 };
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
 #endif

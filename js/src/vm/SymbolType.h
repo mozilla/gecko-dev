@@ -25,78 +25,78 @@
 
 namespace js {
 class AutoLockForExclusiveAccess;
-} // namespace js
+}  // namespace js
 
 namespace JS {
 
-class Symbol : public js::gc::TenuredCell
-{
-  private:
-    SymbolCode code_;
+class Symbol : public js::gc::TenuredCell {
+ private:
+  SymbolCode code_;
 
-    // Each Symbol gets its own hash code so that we don't have to use
-    // addresses as hash codes (a security hazard).
-    js::HashNumber hash_;
+  // Each Symbol gets its own hash code so that we don't have to use
+  // addresses as hash codes (a security hazard).
+  js::HashNumber hash_;
 
-    JSAtom* description_;
+  JSAtom* description_;
 
-    // The minimum allocation size is sizeof(JSString): 16 bytes on 32-bit
-    // architectures and 24 bytes on 64-bit.  A size_t of padding makes Symbol
-    // the minimum size on both.
-    size_t unused_;
+  // The minimum allocation size is sizeof(JSString): 16 bytes on 32-bit
+  // architectures and 24 bytes on 64-bit.  A size_t of padding makes Symbol
+  // the minimum size on both.
+  size_t unused_;
 
-    Symbol(SymbolCode code, js::HashNumber hash, JSAtom* desc)
-        : code_(code), hash_(hash), description_(desc)
-    {
-        // Silence warnings about unused_ being... unused.
-        (void)unused_;
-    }
+  Symbol(SymbolCode code, js::HashNumber hash, JSAtom* desc)
+      : code_(code), hash_(hash), description_(desc) {
+    // Silence warnings about unused_ being... unused.
+    (void)unused_;
+  }
 
-    Symbol(const Symbol&) = delete;
-    void operator=(const Symbol&) = delete;
+  Symbol(const Symbol&) = delete;
+  void operator=(const Symbol&) = delete;
 
-    static Symbol*
-    newInternal(JSContext* cx, SymbolCode code, js::HashNumber hash,
-                JSAtom* description, js::AutoLockForExclusiveAccess& lock);
+  static Symbol* newInternal(JSContext* cx, SymbolCode code,
+                             js::HashNumber hash, JSAtom* description,
+                             js::AutoLockForExclusiveAccess& lock);
 
-  public:
-    static Symbol* new_(JSContext* cx, SymbolCode code, JSString* description);
-    static Symbol* for_(JSContext* cx, js::HandleString description);
+ public:
+  static Symbol* new_(JSContext* cx, SymbolCode code, JSString* description);
+  static Symbol* for_(JSContext* cx, js::HandleString description);
 
-    JSAtom* description() const { return description_; }
-    SymbolCode code() const { return code_; }
-    js::HashNumber hash() const { return hash_; }
+  JSAtom* description() const { return description_; }
+  SymbolCode code() const { return code_; }
+  js::HashNumber hash() const { return hash_; }
 
-    bool isWellKnownSymbol() const { return uint32_t(code_) < WellKnownSymbolLimit; }
+  bool isWellKnownSymbol() const {
+    return uint32_t(code_) < WellKnownSymbolLimit;
+  }
 
-    // An "interesting symbol" is a well-known symbol, like @@toStringTag,
-    // that's often looked up on random objects but is usually not present. We
-    // optimize this by setting a flag on the object's BaseShape when such
-    // symbol properties are added, so we can optimize lookups on objects that
-    // don't have the BaseShape flag.
-    bool isInterestingSymbol() const {
-        return code_ == SymbolCode::toStringTag || code_ == SymbolCode::toPrimitive;
-    }
+  // An "interesting symbol" is a well-known symbol, like @@toStringTag,
+  // that's often looked up on random objects but is usually not present. We
+  // optimize this by setting a flag on the object's BaseShape when such
+  // symbol properties are added, so we can optimize lookups on objects that
+  // don't have the BaseShape flag.
+  bool isInterestingSymbol() const {
+    return code_ == SymbolCode::toStringTag || code_ == SymbolCode::toPrimitive;
+  }
 
-    static const JS::TraceKind TraceKind = JS::TraceKind::Symbol;
-    inline void traceChildren(JSTracer* trc) {
-        if (description_)
-            js::TraceManuallyBarrieredEdge(trc, &description_, "description");
-    }
-    inline void finalize(js::FreeOp*) {}
+  static const JS::TraceKind TraceKind = JS::TraceKind::Symbol;
+  inline void traceChildren(JSTracer* trc) {
+    if (description_)
+      js::TraceManuallyBarrieredEdge(trc, &description_, "description");
+  }
+  inline void finalize(js::FreeOp*) {}
 
-    static MOZ_ALWAYS_INLINE void writeBarrierPre(Symbol* thing) {
-        if (thing && !thing->isWellKnownSymbol())
-            thing->asTenured().writeBarrierPre(thing);
-    }
+  static MOZ_ALWAYS_INLINE void writeBarrierPre(Symbol* thing) {
+    if (thing && !thing->isWellKnownSymbol())
+      thing->asTenured().writeBarrierPre(thing);
+  }
 
-    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
-        return mallocSizeOf(this);
-    }
+  size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+    return mallocSizeOf(this);
+  }
 
 #ifdef DEBUG
-    void dump(); // Debugger-friendly stderr dump.
-    void dump(js::GenericPrinter& out);
+  void dump();  // Debugger-friendly stderr dump.
+  void dump(js::GenericPrinter& out);
 #endif
 };
 
@@ -105,17 +105,12 @@ class Symbol : public js::gc::TenuredCell
 namespace js {
 
 /* Hash policy used by the SymbolRegistry. */
-struct HashSymbolsByDescription
-{
-    typedef JS::Symbol* Key;
-    typedef JSAtom* Lookup;
+struct HashSymbolsByDescription {
+  typedef JS::Symbol* Key;
+  typedef JSAtom* Lookup;
 
-    static HashNumber hash(Lookup l) {
-        return HashNumber(l->hash());
-    }
-    static bool match(Key sym, Lookup l) {
-        return sym->description() == l;
-    }
+  static HashNumber hash(Lookup l) { return HashNumber(l->hash()); }
+  static bool match(Key sym, Lookup l) { return sym->description() == l; }
 };
 
 /*
@@ -133,17 +128,16 @@ struct HashSymbolsByDescription
  * nondeterminism is exposed to scripts, because there is no API for
  * enumerating the symbol registry, querying its size, etc.
  */
-class SymbolRegistry : public GCHashSet<ReadBarrieredSymbol,
-                                        HashSymbolsByDescription,
-                                        SystemAllocPolicy>
-{
-  public:
-    SymbolRegistry() {}
+class SymbolRegistry
+    : public GCHashSet<ReadBarrieredSymbol, HashSymbolsByDescription,
+                       SystemAllocPolicy> {
+ public:
+  SymbolRegistry() {}
 };
 
 // ES6 rev 27 (2014 Aug 24) 19.4.3.3
-bool
-SymbolDescriptiveString(JSContext* cx, JS::Symbol* sym, JS::MutableHandleValue result);
+bool SymbolDescriptiveString(JSContext* cx, JS::Symbol* sym,
+                             JS::MutableHandleValue result);
 
 } /* namespace js */
 

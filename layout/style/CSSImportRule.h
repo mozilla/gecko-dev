@@ -12,19 +12,18 @@
 namespace mozilla {
 namespace dom {
 
-class CSSImportRule : public css::Rule
-{
-protected:
+class CSSImportRule : public css::Rule {
+ protected:
   using Rule::Rule;
   virtual ~CSSImportRule() {}
 
-public:
+ public:
   bool IsCCLeaf() const final;
 
   int32_t GetType() const final { return css::Rule::IMPORT_RULE; }
 
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const override = 0;
+  size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override = 0;
 
   // WebIDL interface
   uint16_t Type() const final { return CSSRuleBinding::IMPORT_RULE; }
@@ -36,7 +35,7 @@ public:
                        JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSImportRule_h
+#endif  // mozilla_dom_CSSImportRule_h

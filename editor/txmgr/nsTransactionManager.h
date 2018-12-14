@@ -22,26 +22,23 @@ class nsITransactionListener;
 /** implementation of a transaction manager object.
  *
  */
-class nsTransactionManager final : public nsITransactionManager
-                                 , public nsSupportsWeakReference
-{
-private:
-
-  int32_t                mMaxTransactionCount;
-  nsTransactionStack     mDoStack;
-  nsTransactionStack     mUndoStack;
-  nsTransactionStack     mRedoStack;
+class nsTransactionManager final : public nsITransactionManager,
+                                   public nsSupportsWeakReference {
+ private:
+  int32_t mMaxTransactionCount;
+  nsTransactionStack mDoStack;
+  nsTransactionStack mUndoStack;
+  nsTransactionStack mRedoStack;
   nsCOMArray<nsITransactionListener> mListeners;
 
   /** The default destructor.
    */
   virtual ~nsTransactionManager();
 
-public:
-
+ public:
   /** The default constructor.
    */
-  explicit nsTransactionManager(int32_t aMaxTransactionCount=-1);
+  explicit nsTransactionManager(int32_t aMaxTransactionCount = -1);
 
   /* Macro for AddRef(), Release(), and QueryInterface() */
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -55,11 +52,16 @@ public:
   already_AddRefed<nsITransaction> PeekRedoStack();
 
   virtual nsresult WillDoNotify(nsITransaction *aTransaction, bool *aInterrupt);
-  virtual nsresult DidDoNotify(nsITransaction *aTransaction, nsresult aExecuteResult);
-  virtual nsresult WillUndoNotify(nsITransaction *aTransaction, bool *aInterrupt);
-  virtual nsresult DidUndoNotify(nsITransaction *aTransaction, nsresult aUndoResult);
-  virtual nsresult WillRedoNotify(nsITransaction *aTransaction, bool *aInterrupt);
-  virtual nsresult DidRedoNotify(nsITransaction *aTransaction, nsresult aRedoResult);
+  virtual nsresult DidDoNotify(nsITransaction *aTransaction,
+                               nsresult aExecuteResult);
+  virtual nsresult WillUndoNotify(nsITransaction *aTransaction,
+                                  bool *aInterrupt);
+  virtual nsresult DidUndoNotify(nsITransaction *aTransaction,
+                                 nsresult aUndoResult);
+  virtual nsresult WillRedoNotify(nsITransaction *aTransaction,
+                                  bool *aInterrupt);
+  virtual nsresult DidRedoNotify(nsITransaction *aTransaction,
+                                 nsresult aRedoResult);
   virtual nsresult WillBeginBatchNotify(bool *aInterrupt);
   virtual nsresult DidBeginBatchNotify(nsresult aResult);
   virtual nsresult WillEndBatchNotify(bool *aInterrupt);
@@ -68,16 +70,14 @@ public:
                                    nsITransaction *aTransaction,
                                    bool *aInterrupt);
   virtual nsresult DidMergeNotify(nsITransaction *aTop,
-                                  nsITransaction *aTransaction,
-                                  bool aDidMerge,
+                                  nsITransaction *aTransaction, bool aDidMerge,
                                   nsresult aMergeResult);
 
-private:
-
+ private:
   /* nsTransactionManager specific private methods. */
   virtual nsresult BeginTransaction(nsITransaction *aTransaction,
                                     nsISupports *aData);
   virtual nsresult EndTransaction(bool aAllowEmpty);
 };
 
-#endif // nsTransactionManager_h__
+#endif  // nsTransactionManager_h__

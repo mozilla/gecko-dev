@@ -13,36 +13,39 @@
 #include <string>
 #include <vector>
 
-namespace CSF
-{
-    DECLARE_NS_PTR(VideoControlWrapper)
-    typedef void *VideoWindowHandle;
+namespace CSF {
+DECLARE_NS_PTR(VideoControlWrapper)
+typedef void* VideoWindowHandle;
 
-	class ECC_API VideoControlWrapper : public VideoControl
-	{
-	public:
-		explicit VideoControlWrapper(VideoControl * videoControl){_realVideoControl = videoControl;};
+class ECC_API VideoControlWrapper : public VideoControl {
+ public:
+  explicit VideoControlWrapper(VideoControl* videoControl) {
+    _realVideoControl = videoControl;
+  };
 
-		virtual void setVideoMode( bool enable );
+  virtual void setVideoMode(bool enable);
 
-		// window type is platform-specific
-		virtual void setPreviewWindow( VideoWindowHandle window, int top, int left, int bottom, int right, RenderScaling style );
-		virtual void showPreviewWindow( bool show );
+  // window type is platform-specific
+  virtual void setPreviewWindow(VideoWindowHandle window, int top, int left,
+                                int bottom, int right, RenderScaling style);
+  virtual void showPreviewWindow(bool show);
 
-		// device names are in UTF-8 encoding
-		virtual std::vector<std::string> getCaptureDevices();
+  // device names are in UTF-8 encoding
+  virtual std::vector<std::string> getCaptureDevices();
 
-		virtual std::string getCaptureDevice();
-		virtual bool setCaptureDevice( const std::string& name );
+  virtual std::string getCaptureDevice();
+  virtual bool setCaptureDevice(const std::string& name);
 
-		virtual void setVideoControl( VideoControl * videoControl ){_realVideoControl = videoControl;};
+  virtual void setVideoControl(VideoControl* videoControl) {
+    _realVideoControl = videoControl;
+  };
 
-	private:
-		VideoControl * _realVideoControl;
-	};
+ private:
+  VideoControl* _realVideoControl;
+};
 
-} // namespace
+}  // namespace CSF
 
-#endif // __cplusplus
+#endif  // __cplusplus
 
 #endif /* CSFVIDEOCONTROLWRAPPER_H_ */

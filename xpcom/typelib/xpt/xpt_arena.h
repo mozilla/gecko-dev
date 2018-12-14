@@ -22,23 +22,21 @@
 
 struct XPTArena;
 
-XPTArena*
-XPT_NewArena(size_t block_size8, size_t block_size1);
+XPTArena *XPT_NewArena(size_t block_size8, size_t block_size1);
 
-void
-XPT_DestroyArena(XPTArena *arena);
+void XPT_DestroyArena(XPTArena *arena);
 
-void*
-XPT_ArenaCalloc(XPTArena *arena, size_t size, size_t alignment);
+void *XPT_ArenaCalloc(XPTArena *arena, size_t size, size_t alignment);
 
-size_t
-XPT_SizeOfArenaIncludingThis(XPTArena *arena, MozMallocSizeOf mallocSizeOf);
+size_t XPT_SizeOfArenaIncludingThis(XPTArena *arena,
+                                    MozMallocSizeOf mallocSizeOf);
 
 /* --------------------------------------------------------- */
 
 #define XPT_CALLOC8(_arena, _bytes) XPT_ArenaCalloc((_arena), (_bytes), 8)
 #define XPT_CALLOC1(_arena, _bytes) XPT_ArenaCalloc((_arena), (_bytes), 1)
-#define XPT_NEWZAP(_arena, _struct) ((_struct *) XPT_CALLOC8((_arena), sizeof(_struct)))
+#define XPT_NEWZAP(_arena, _struct) \
+  ((_struct *)XPT_CALLOC8((_arena), sizeof(_struct)))
 
 /* --------------------------------------------------------- */
 

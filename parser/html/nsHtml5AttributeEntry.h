@@ -7,15 +7,11 @@
 
 #include "nsHtml5AttributeName.h"
 
-class nsHtml5AttributeEntry final
-{
-public:
-  nsHtml5AttributeEntry(nsHtml5AttributeName* aName,
-                        nsHtml5String aValue,
+class nsHtml5AttributeEntry final {
+ public:
+  nsHtml5AttributeEntry(nsHtml5AttributeName* aName, nsHtml5String aValue,
                         int32_t aLine)
-    : mLine(aLine)
-    , mValue(aValue)
-  {
+      : mLine(aLine), mValue(aValue) {
     // Let's hope the compiler coalesces the following as appropriate.
     mLocals[0] = aName->getLocal(0);
     mLocals[1] = aName->getLocal(1);
@@ -30,9 +26,7 @@ public:
 
   // Isindex-only so doesn't need to deal with SVG and MathML
   nsHtml5AttributeEntry(nsAtom* aName, nsHtml5String aValue, int32_t aLine)
-    : mLine(aLine)
-    , mValue(aValue)
-  {
+      : mLine(aLine), mValue(aValue) {
     // Let's hope the compiler coalesces the following as appropriate.
     mLocals[0] = aName;
     mLocals[1] = aName;
@@ -57,8 +51,7 @@ public:
 
   inline void ReleaseValue() { mValue.Release(); }
 
-  inline nsHtml5AttributeEntry Clone(nsHtml5AtomTable* aInterner)
-  {
+  inline nsHtml5AttributeEntry Clone(nsHtml5AtomTable* aInterner) {
     // Copy the memory
     nsHtml5AttributeEntry clone(*this);
     // Increment refcount for value
@@ -80,7 +73,7 @@ public:
     return clone;
   }
 
-private:
+ private:
   nsAtom* mLocals[3];
   nsAtom* mPrefixes[3];
   int32_t mUris[3];
@@ -88,4 +81,4 @@ private:
   nsHtml5String mValue;
 };
 
-#endif // nsHtml5AttributeEntry_h
+#endif  // nsHtml5AttributeEntry_h

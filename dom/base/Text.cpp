@@ -10,9 +10,7 @@
 namespace mozilla {
 namespace dom {
 
-already_AddRefed<Text>
-Text::SplitText(uint32_t aOffset, ErrorResult& rv)
-{
+already_AddRefed<Text> Text::SplitText(uint32_t aOffset, ErrorResult& rv) {
   nsCOMPtr<nsIContent> newChild;
   rv = SplitData(aOffset, getter_AddRefs(newChild));
   if (rv.Failed()) {
@@ -21,11 +19,10 @@ Text::SplitText(uint32_t aOffset, ErrorResult& rv)
   return newChild.forget().downcast<Text>();
 }
 
-/* static */ already_AddRefed<Text>
-Text::Constructor(const GlobalObject& aGlobal,
-                  const nsAString& aData, ErrorResult& aRv)
-{
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal.GetAsSupports());
+/* static */ already_AddRefed<Text> Text::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aData, ErrorResult& aRv) {
+  nsCOMPtr<nsPIDOMWindowInner> window =
+      do_QueryInterface(aGlobal.GetAsSupports());
   if (!window || !window->GetDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -34,5 +31,5 @@ Text::Constructor(const GlobalObject& aGlobal,
   return window->GetDoc()->CreateTextNode(aData);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

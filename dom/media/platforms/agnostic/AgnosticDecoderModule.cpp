@@ -18,28 +18,24 @@
 
 namespace mozilla {
 
-bool
-AgnosticDecoderModule::SupportsMimeType(
-  const nsACString& aMimeType,
-  DecoderDoctorDiagnostics* aDiagnostics) const
-{
-  bool supports =
-    VPXDecoder::IsVPX(aMimeType) ||
+bool AgnosticDecoderModule::SupportsMimeType(
+    const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
+  bool supports = VPXDecoder::IsVPX(aMimeType) ||
 #ifdef MOZ_AV1
-    AOMDecoder::IsAV1(aMimeType) ||
+                  AOMDecoder::IsAV1(aMimeType) ||
 #endif
-    OpusDataDecoder::IsOpus(aMimeType) ||
-    VorbisDataDecoder::IsVorbis(aMimeType) ||
-    WaveDataDecoder::IsWave(aMimeType) ||
-    TheoraDecoder::IsTheora(aMimeType);
-  MOZ_LOG(sPDMLog, LogLevel::Debug, ("Agnostic decoder %s requested type",
-        supports ? "supports" : "rejects"));
+                  OpusDataDecoder::IsOpus(aMimeType) ||
+                  VorbisDataDecoder::IsVorbis(aMimeType) ||
+                  WaveDataDecoder::IsWave(aMimeType) ||
+                  TheoraDecoder::IsTheora(aMimeType);
+  MOZ_LOG(sPDMLog, LogLevel::Debug,
+          ("Agnostic decoder %s requested type",
+           supports ? "supports" : "rejects"));
   return supports;
 }
 
-already_AddRefed<MediaDataDecoder>
-AgnosticDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
-{
+already_AddRefed<MediaDataDecoder> AgnosticDecoderModule::CreateVideoDecoder(
+    const CreateDecoderParams& aParams) {
   RefPtr<MediaDataDecoder> m;
 
   if (VPXDecoder::IsVPX(aParams.mConfig.mMimeType)) {
@@ -57,9 +53,8 @@ AgnosticDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
   return m.forget();
 }
 
-already_AddRefed<MediaDataDecoder>
-AgnosticDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
-{
+already_AddRefed<MediaDataDecoder> AgnosticDecoderModule::CreateAudioDecoder(
+    const CreateDecoderParams& aParams) {
   RefPtr<MediaDataDecoder> m;
 
   const TrackInfo& config = aParams.mConfig;
@@ -74,4 +69,4 @@ AgnosticDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
   return m.forget();
 }
 
-} // namespace mozilla
+}  // namespace mozilla

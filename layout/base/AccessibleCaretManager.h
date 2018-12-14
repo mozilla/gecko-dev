@@ -30,7 +30,7 @@ namespace mozilla {
 namespace dom {
 class Element;
 class Selection;
-} // namespace dom
+}  // namespace dom
 
 // -----------------------------------------------------------------------------
 // AccessibleCaretManager does not deal with events or callbacks directly. It
@@ -45,9 +45,8 @@ class Selection;
 // Please see the wiki page for more information.
 // https://wiki.mozilla.org/AccessibleCaret
 //
-class AccessibleCaretManager
-{
-public:
+class AccessibleCaretManager {
+ public:
   explicit AccessibleCaretManager(nsIPresShell* aPresShell);
   virtual ~AccessibleCaretManager();
 
@@ -93,8 +92,7 @@ public:
   virtual void OnBlur();
 
   // Handle NotifySelectionChanged event from nsISelectionListener.
-  virtual nsresult OnSelectionChanged(nsIDOMDocument* aDoc,
-                                      nsISelection* aSel,
+  virtual nsresult OnSelectionChanged(nsIDOMDocument* aDoc, nsISelection* aSel,
                                       int16_t aReason);
   // Handle key event.
   virtual void OnKeyboardEvent();
@@ -107,7 +105,7 @@ public:
   // is used in part to determine if the carets should be shown or hidden.
   void SetLastInputSource(uint16_t aInputSource);
 
-protected:
+ protected:
   // This enum representing the number of AccessibleCarets on the screen.
   enum class CaretMode : uint8_t {
     // No caret on the screen.
@@ -145,7 +143,8 @@ protected:
   // Update carets based on current selection status. This function will flush
   // layout, so caller must ensure the PresShell is still valid after calling
   // this method.
-  void UpdateCarets(const UpdateCaretsHintSet& aHints = UpdateCaretsHint::Default);
+  void UpdateCarets(
+      const UpdateCaretsHintSet& aHints = UpdateCaretsHint::Default);
 
   // Force hiding all carets regardless of the current selection status.
   void HideCarets();
@@ -184,10 +183,9 @@ protected:
   // well as the range start content and the content offset. Otherwise, get the
   // frame and the offset for the range end in the last range instead.
   nsIFrame* GetFrameForFirstRangeStartOrLastRangeEnd(
-    nsDirection aDirection,
-    int32_t* aOutOffset,
-    nsIContent** aOutContent = nullptr,
-    int32_t* aOutContentOffset = nullptr) const;
+      nsDirection aDirection, int32_t* aOutOffset,
+      nsIContent** aOutContent = nullptr,
+      int32_t* aOutContentOffset = nullptr) const;
 
   nsresult DragCaretInternal(const nsPoint& aPoint);
   nsPoint AdjustDragBoundary(const nsPoint& aPoint) const;
@@ -254,8 +252,8 @@ protected:
   // Check whether AccessibleCaret is displayable in cursor mode or not.
   // @param aOutFrame returns frame of the cursor if it's displayable.
   // @param aOutOffset returns frame offset as well.
-  virtual bool IsCaretDisplayableInCursorMode(nsIFrame** aOutFrame = nullptr,
-                                              int32_t* aOutOffset = nullptr) const;
+  virtual bool IsCaretDisplayableInCursorMode(
+      nsIFrame** aOutFrame = nullptr, int32_t* aOutOffset = nullptr) const;
 
   virtual bool HasNonEmptyTextContent(nsINode* aNode) const;
 
@@ -292,9 +290,9 @@ protected:
   // Store the appearance of the carets when calling OnScrollStart() so that it
   // can be restored in OnScrollEnd().
   AccessibleCaret::Appearance mFirstCaretAppearanceOnScrollStart =
-                                 AccessibleCaret::Appearance::None;
+      AccessibleCaret::Appearance::None;
   AccessibleCaret::Appearance mSecondCaretAppearanceOnScrollStart =
-                                 AccessibleCaret::Appearance::None;
+      AccessibleCaret::Appearance::None;
 
   // The last input source that the event hub saw. We use this to decide whether
   // or not show the carets when the selection is updated, as we want to hide
@@ -339,9 +337,9 @@ protected:
   // and show again after the user lifts the finger off the screen.
   static bool sCaretsAlwaysShowWhenScrolling;
 
-  // By default, javascript content selection changes closes AccessibleCarets and
-  // UI interactions. Optionally, we can try to maintain the active UI, keeping
-  // carets and ActionBar available.
+  // By default, javascript content selection changes closes AccessibleCarets
+  // and UI interactions. Optionally, we can try to maintain the active UI,
+  // keeping carets and ActionBar available.
   static bool sCaretsScriptUpdates;
 
   // Preference to allow one caret to be dragged across the other caret without
@@ -360,9 +358,10 @@ protected:
 std::ostream& operator<<(std::ostream& aStream,
                          const AccessibleCaretManager::CaretMode& aCaretMode);
 
-std::ostream& operator<<(std::ostream& aStream,
-                         const AccessibleCaretManager::UpdateCaretsHint& aResult);
+std::ostream& operator<<(
+    std::ostream& aStream,
+    const AccessibleCaretManager::UpdateCaretsHint& aResult);
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // AccessibleCaretManager_h
+#endif  // AccessibleCaretManager_h

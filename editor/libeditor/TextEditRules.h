@@ -27,7 +27,7 @@ class RulesInfo;
 class TextEditor;
 namespace dom {
 class Selection;
-} // namespace dom
+}  // namespace dom
 
 /**
  * Object that encapsulates HTML text-specific editing rules.
@@ -41,14 +41,13 @@ class Selection;
  * 2. Selection must not be explicitly set by the rule method.
  *    Any manipulation of Selection must be done by the editor.
  */
-class TextEditRules : public nsITimerCallback
-                    , public nsINamed
-{
-public:
+class TextEditRules : public nsITimerCallback, public nsINamed {
+ public:
   typedef dom::Element Element;
   typedef dom::Selection Selection;
   typedef dom::Text Text;
-  template<typename T> using OwningNonNull = OwningNonNull<T>;
+  template <typename T>
+  using OwningNonNull = OwningNonNull<T>;
 
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSINAMED
@@ -67,20 +66,17 @@ public:
                               nsIEditor::EDirection aDirection);
   virtual nsresult AfterEdit(EditAction aAction,
                              nsIEditor::EDirection aDirection);
-  virtual nsresult WillDoAction(Selection* aSelection,
-                                RulesInfo* aInfo,
-                                bool* aCancel,
-                                bool* aHandled);
-  virtual nsresult DidDoAction(Selection* aSelection,
-                               RulesInfo* aInfo,
+  virtual nsresult WillDoAction(Selection* aSelection, RulesInfo* aInfo,
+                                bool* aCancel, bool* aHandled);
+  virtual nsresult DidDoAction(Selection* aSelection, RulesInfo* aInfo,
                                nsresult aResult);
   virtual bool DocumentIsEmpty();
   virtual nsresult DocumentModified();
 
-protected:
+ protected:
   virtual ~TextEditRules();
 
-public:
+ public:
   void ResetIMETextPWBuf();
 
   /**
@@ -119,34 +115,24 @@ public:
    */
   static void FillBufWithPWChars(nsAString* aOutString, int32_t aLength);
 
-  bool HasBogusNode()
-  {
-    return !!mBogusNode;
-  }
+  bool HasBogusNode() { return !!mBogusNode; }
 
-protected:
-
+ protected:
   void InitFields();
 
   // TextEditRules implementation methods
-  nsresult WillInsertText(EditAction aAction,
-                          Selection* aSelection,
-                          bool* aCancel,
-                          bool* aHandled,
-                          const nsAString* inString,
-                          nsAString* outString,
+  nsresult WillInsertText(EditAction aAction, Selection* aSelection,
+                          bool* aCancel, bool* aHandled,
+                          const nsAString* inString, nsAString* outString,
                           int32_t aMaxLength);
   nsresult DidInsertText(Selection* aSelection, nsresult aResult);
 
-  nsresult WillInsertBreak(Selection* aSelection, bool* aCancel,
-                           bool* aHandled, int32_t aMaxLength);
+  nsresult WillInsertBreak(Selection* aSelection, bool* aCancel, bool* aHandled,
+                           int32_t aMaxLength);
   nsresult DidInsertBreak(Selection* aSelection, nsresult aResult);
 
-  nsresult WillSetText(Selection& aSelection,
-                       bool* aCancel,
-                       bool* aHandled,
-                       const nsAString* inString,
-                       int32_t aMaxLength);
+  nsresult WillSetText(Selection& aSelection, bool* aCancel, bool* aHandled,
+                       const nsAString* inString, int32_t aMaxLength);
   nsresult DidSetText(Selection& aSelection, nsresult aResult);
 
   void WillInsert(Selection& aSelection, bool* aCancel);
@@ -154,8 +140,7 @@ protected:
 
   nsresult WillDeleteSelection(Selection* aSelection,
                                nsIEditor::EDirection aCollapsedAction,
-                               bool* aCancel,
-                               bool* aHandled);
+                               bool* aCancel, bool* aHandled);
   nsresult DidDeleteSelection(Selection* aSelection,
                               nsIEditor::EDirection aCollapsedAction,
                               nsresult aResult);
@@ -182,12 +167,9 @@ protected:
    * @param aOutCancel If set to true, the caller should cancel the operation
    *                   and use aOutText as the result.
    */
-  nsresult WillOutputText(Selection* aSelection,
-                          const nsAString* aInFormat,
-                          nsAString* aOutText,
-                          uint32_t aFlags,
-                          bool* aOutCancel,
-                          bool* aHandled);
+  nsresult WillOutputText(Selection* aSelection, const nsAString* aInFormat,
+                          nsAString* aOutText, uint32_t aFlags,
+                          bool* aOutCancel, bool* aHandled);
 
   nsresult DidOutputText(Selection* aSelection, nsresult aResult);
 
@@ -212,8 +194,7 @@ protected:
    */
   nsresult TruncateInsertionIfNeeded(Selection* aSelection,
                                      const nsAString* aInString,
-                                     nsAString* aOutString,
-                                     int32_t aMaxLength,
+                                     nsAString* aOutString, int32_t aMaxLength,
                                      bool* aTruncated);
 
   /**
@@ -228,8 +209,7 @@ protected:
    *                        inserted.
    * @return                Returns created <br> element.
    */
-  already_AddRefed<Element> CreateBR(const EditorRawDOMPoint& aPointToInsert)
-  {
+  already_AddRefed<Element> CreateBR(const EditorRawDOMPoint& aPointToInsert) {
     return CreateBRInternal(aPointToInsert, false);
   }
 
@@ -240,8 +220,8 @@ protected:
    *                        inserted.
    * @return                Returns created moz-<br> element.
    */
-  already_AddRefed<Element> CreateMozBR(const EditorRawDOMPoint& aPointToInsert)
-  {
+  already_AddRefed<Element> CreateMozBR(
+      const EditorRawDOMPoint& aPointToInsert) {
     return CreateBRInternal(aPointToInsert, true);
   }
 
@@ -255,14 +235,12 @@ protected:
    *                            element.  Otherwise, false.
    * @return                    Returns created <br> element.
    */
-  already_AddRefed<Element>
-  CreateBRInternal(const EditorRawDOMPoint& aPointToInsert,
-                   bool aCreateMozBR);
+  already_AddRefed<Element> CreateBRInternal(
+      const EditorRawDOMPoint& aPointToInsert, bool aCreateMozBR);
 
   void UndefineCaretBidiLevel(Selection* aSelection);
 
-  nsresult CheckBidiLevelForDeletion(Selection* aSelection,
-                                     nsINode* aSelNode,
+  nsresult CheckBidiLevelForDeletion(Selection* aSelection, nsINode* aSelNode,
                                      int32_t aSelOffset,
                                      nsIEditor::EDirection aAction,
                                      bool* aCancel);
@@ -279,11 +257,11 @@ protected:
   bool IsMailEditor() const;
   bool DontEchoPassword() const;
 
-private:
+ private:
   // Note that we do not refcount the editor.
   TextEditor* mTextEditor;
 
-protected:
+ protected:
   // A buffer we use to store the real value of password editors.
   nsString mPasswordText;
   // A buffer we use to track the IME composition string.
@@ -318,24 +296,22 @@ protected:
  * TODO: This class (almost struct, though) is ugly and its size isn't
  *       optimized.  Should be refined later.
  */
-class RulesInfo final
-{
-public:
+class RulesInfo final {
+ public:
   explicit RulesInfo(EditAction aAction)
-    : action(aAction)
-    , inString(nullptr)
-    , outString(nullptr)
-    , outputFormat(nullptr)
-    , maxLength(-1)
-    , flags(0)
-    , collapsedAction(nsIEditor::eNext)
-    , stripWrappers(nsIEditor::eStrip)
-    , bOrdered(false)
-    , entireList(false)
-    , bulletType(nullptr)
-    , alignType(nullptr)
-    , blockType(nullptr)
-  {}
+      : action(aAction),
+        inString(nullptr),
+        outString(nullptr),
+        outputFormat(nullptr),
+        maxLength(-1),
+        flags(0),
+        collapsedAction(nsIEditor::eNext),
+        stripWrappers(nsIEditor::eStrip),
+        bOrdered(false),
+        entireList(false),
+        bulletType(nullptr),
+        alignType(nullptr),
+        blockType(nullptr) {}
 
   EditAction action;
 
@@ -371,56 +347,48 @@ public:
  * This class sets a bool letting us know to ignore any rules sniffing
  * that tries to occur reentrantly.
  */
-class MOZ_STACK_CLASS AutoLockRulesSniffing final
-{
-public:
-  explicit AutoLockRulesSniffing(TextEditRules* aRules)
-    : mRules(aRules)
-  {
+class MOZ_STACK_CLASS AutoLockRulesSniffing final {
+ public:
+  explicit AutoLockRulesSniffing(TextEditRules* aRules) : mRules(aRules) {
     if (mRules) {
       mRules->mLockRulesSniffing = true;
     }
   }
 
-  ~AutoLockRulesSniffing()
-  {
+  ~AutoLockRulesSniffing() {
     if (mRules) {
       mRules->mLockRulesSniffing = false;
     }
   }
 
-protected:
+ protected:
   TextEditRules* mRules;
 };
 
 /**
  * Stack based helper class for turning on/off the edit listener.
  */
-class MOZ_STACK_CLASS AutoLockListener final
-{
-public:
+class MOZ_STACK_CLASS AutoLockListener final {
+ public:
   explicit AutoLockListener(bool* aEnabled)
-    : mEnabled(aEnabled)
-    , mOldState(false)
-  {
+      : mEnabled(aEnabled), mOldState(false) {
     if (mEnabled) {
       mOldState = *mEnabled;
       *mEnabled = false;
     }
   }
 
-  ~AutoLockListener()
-  {
+  ~AutoLockListener() {
     if (mEnabled) {
       *mEnabled = mOldState;
     }
   }
 
-protected:
+ protected:
   bool* mEnabled;
   bool mOldState;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef mozilla_TextEditRules_h
+#endif  // #ifndef mozilla_TextEditRules_h

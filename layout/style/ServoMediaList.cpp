@@ -13,65 +13,48 @@
 
 namespace mozilla {
 
-already_AddRefed<dom::MediaList>
-ServoMediaList::Clone()
-{
+already_AddRefed<dom::MediaList> ServoMediaList::Clone() {
   RefPtr<ServoMediaList> clone =
-    new ServoMediaList(Servo_MediaList_DeepClone(mRawList).Consume());
+      new ServoMediaList(Servo_MediaList_DeepClone(mRawList).Consume());
   return clone.forget();
 }
 
 ServoMediaList::ServoMediaList()
-  : mRawList(Servo_MediaList_Create().Consume())
-{
-}
+    : mRawList(Servo_MediaList_Create().Consume()) {}
 
 ServoMediaList::ServoMediaList(const nsAString& aMedia,
                                dom::CallerType aCallerType)
-  : ServoMediaList()
-{
+    : ServoMediaList() {
   SetTextInternal(aMedia, aCallerType);
 }
 
-void
-ServoMediaList::GetText(nsAString& aMediaText)
-{
+void ServoMediaList::GetText(nsAString& aMediaText) {
   Servo_MediaList_GetText(mRawList, &aMediaText);
 }
 
-void
-ServoMediaList::SetText(const nsAString& aMediaText)
-{
+void ServoMediaList::SetText(const nsAString& aMediaText) {
   SetTextInternal(aMediaText, dom::CallerType::NonSystem);
 }
 
-void
-ServoMediaList::SetTextInternal(const nsAString& aMediaText,
-                                dom::CallerType aCallerType)
-{
+void ServoMediaList::SetTextInternal(const nsAString& aMediaText,
+                                     dom::CallerType aCallerType) {
   NS_ConvertUTF16toUTF8 mediaText(aMediaText);
   Servo_MediaList_SetText(mRawList, &mediaText, aCallerType);
 }
 
-uint32_t
-ServoMediaList::Length()
-{
+uint32_t ServoMediaList::Length() {
   return Servo_MediaList_GetLength(mRawList);
 }
 
-void
-ServoMediaList::IndexedGetter(uint32_t aIndex, bool& aFound,
-                              nsAString& aReturn)
-{
+void ServoMediaList::IndexedGetter(uint32_t aIndex, bool& aFound,
+                                   nsAString& aReturn) {
   aFound = Servo_MediaList_GetMediumAt(mRawList, aIndex, &aReturn);
   if (!aFound) {
     SetDOMStringToNull(aReturn);
   }
 }
 
-nsresult
-ServoMediaList::Append(const nsAString& aNewMedium)
-{
+nsresult ServoMediaList::Append(const nsAString& aNewMedium) {
   if (aNewMedium.IsEmpty()) {
     return NS_ERROR_DOM_NOT_FOUND_ERR;
   }
@@ -80,9 +63,7 @@ ServoMediaList::Append(const nsAString& aNewMedium)
   return NS_OK;
 }
 
-nsresult
-ServoMediaList::Delete(const nsAString& aOldMedium)
-{
+nsresult ServoMediaList::Delete(const nsAString& aOldMedium) {
   NS_ConvertUTF16toUTF8 oldMedium(aOldMedium);
   if (Servo_MediaList_DeleteMedium(mRawList, &oldMedium)) {
     return NS_OK;
@@ -90,13 +71,11 @@ ServoMediaList::Delete(const nsAString& aOldMedium)
   return NS_ERROR_DOM_NOT_FOUND_ERR;
 }
 
-bool
-ServoMediaList::Matches(nsPresContext* aPresContext) const
-{
+bool ServoMediaList::Matches(nsPresContext* aPresContext) const {
   const RawServoStyleSet* rawSet =
-    aPresContext->StyleSet()->AsServo()->RawSet();
+      aPresContext->StyleSet()->AsServo()->RawSet();
   MOZ_ASSERT(rawSet, "The RawServoStyleSet should be valid!");
   return Servo_MediaList_Matches(mRawList, rawSet);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

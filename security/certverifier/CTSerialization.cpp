@@ -13,7 +13,8 @@
 #include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
@@ -55,9 +56,7 @@ enum class SignatureType {
 // The integer is expected to be in big-endian order, which is used by TLS.
 // Note: does not check if the output parameter overflows while reading.
 // |length| indicates the size (in bytes) of the serialized integer.
-static Result
-UncheckedReadUint(size_t length, Reader& in, uint64_t& out)
-{
+static Result UncheckedReadUint(size_t length, Reader& in, uint64_t& out) {
   uint64_t result = 0;
   for (size_t i = 0; i < length; ++i) {
     uint8_t value;
@@ -73,9 +72,7 @@ UncheckedReadUint(size_t length, Reader& in, uint64_t& out)
 
 // Performs overflow sanity checks and calls UncheckedReadUint.
 template <size_t length, typename T>
-Result
-ReadUint(Reader& in, T& out)
-{
+Result ReadUint(Reader& in, T& out) {
   uint64_t value;
   static_assert(mozilla::IsUnsigned<T>::value, "T must be unsigned");
   static_assert(length <= 8, "At most 8 byte integers can be read");
@@ -89,9 +86,7 @@ ReadUint(Reader& in, T& out)
 }
 
 // Reads |length| bytes from |in|.
-static Result
-ReadFixedBytes(size_t length, Reader& in, Input& out)
-{
+static Result ReadFixedBytes(size_t length, Reader& in, Input& out) {
   return in.Skip(length, out);
 }
 
@@ -99,9 +94,7 @@ ReadFixedBytes(size_t length, Reader& in, Input& out)
 // on success. |prefixLength| indicates the number of bytes needed to represent
 // the length.
 template <size_t prefixLength>
-Result
-ReadVariableBytes(Reader& in, Input& out)
-{
+Result ReadVariableBytes(Reader& in, Input& out) {
   size_t length;
   Result rv = ReadUint<prefixLength>(in, length);
   if (rv != Success) {
@@ -111,16 +104,15 @@ ReadVariableBytes(Reader& in, Input& out)
 }
 
 // Reads a serialized hash algorithm.
-static Result
-ReadHashAlgorithm(Reader& in, DigitallySigned::HashAlgorithm& out)
-{
+static Result ReadHashAlgorithm(Reader& in,
+                                DigitallySigned::HashAlgorithm& out) {
   unsigned int value;
   Result rv = ReadUint<kHashAlgorithmLength>(in, value);
   if (rv != Success) {
     return rv;
   }
   DigitallySigned::HashAlgorithm algo =
-    static_cast<DigitallySigned::HashAlgorithm>(value);
+      static_cast<DigitallySigned::HashAlgorithm>(value);
   switch (algo) {
     case DigitallySigned::HashAlgorithm::None:
     case DigitallySigned::HashAlgorithm::MD5:
@@ -136,16 +128,15 @@ ReadHashAlgorithm(Reader& in, DigitallySigned::HashAlgorithm& out)
 }
 
 // Reads a serialized signature algorithm.
-static Result
-ReadSignatureAlgorithm(Reader& in, DigitallySigned::SignatureAlgorithm& out)
-{
+static Result ReadSignatureAlgorithm(Reader& in,
+                                     DigitallySigned::SignatureAlgorithm& out) {
   unsigned int value;
   Result rv = ReadUint<kSigAlgorithmLength>(in, value);
   if (rv != Success) {
     return rv;
   }
   DigitallySigned::SignatureAlgorithm algo =
-    static_cast<DigitallySigned::SignatureAlgorithm>(value);
+      static_cast<DigitallySigned::SignatureAlgorithm>(value);
   switch (algo) {
     case DigitallySigned::SignatureAlgorithm::Anonymous:
     case DigitallySigned::SignatureAlgorithm::RSA:
@@ -158,16 +149,15 @@ ReadSignatureAlgorithm(Reader& in, DigitallySigned::SignatureAlgorithm& out)
 }
 
 // Reads a serialized version enum.
-static Result
-ReadVersion(Reader& in, SignedCertificateTimestamp::Version& out)
-{
+static Result ReadVersion(Reader& in,
+                          SignedCertificateTimestamp::Version& out) {
   unsigned int value;
   Result rv = ReadUint<kVersionLength>(in, value);
   if (rv != Success) {
     return rv;
   }
   SignedCertificateTimestamp::Version version =
-    static_cast<SignedCertificateTimestamp::Version>(value);
+      static_cast<SignedCertificateTimestamp::Version>(value);
   switch (version) {
     case SignedCertificateTimestamp::Version::V1:
       out = version;
@@ -180,9 +170,8 @@ ReadVersion(Reader& in, SignedCertificateTimestamp::Version& out)
 // Note: range/overflow checks are not performed on the input parameters.
 // |length| indicates the size (in bytes) of the integer to be written.
 // |value| the value itself to be written.
-static Result
-UncheckedWriteUint(size_t length, uint64_t value, Buffer& output)
-{
+static Result UncheckedWriteUint(size_t length, uint64_t value,
+                                 Buffer& output) {
   if (!output.reserve(length + output.length())) {
     return Result::FATAL_ERROR_NO_MEMORY;
   }
@@ -195,9 +184,7 @@ UncheckedWriteUint(size_t length, uint64_t value, Buffer& output)
 
 // Performs sanity checks on T and calls UncheckedWriteUint.
 template <size_t length, typename T>
-static inline Result
-WriteUint(T value, Buffer& output)
-{
+static inline Result WriteUint(T value, Buffer& output) {
   static_assert(length <= 8, "At most 8 byte integers can be written");
   static_assert(sizeof(T) >= length, "T must be able to hold <length> bytes");
   if (mozilla::IsSigned<T>::value) {
@@ -226,9 +213,7 @@ WriteUint(T value, Buffer& output)
 // length when reading.
 // If the length of |input| is dynamic and data is expected to follow it,
 // WriteVariableBytes must be used.
-static Result
-WriteEncodedBytes(Input input, Buffer& output)
-{
+static Result WriteEncodedBytes(Input input, Buffer& output) {
   if (!output.append(input.UnsafeGetData(), input.GetLength())) {
     return Result::FATAL_ERROR_NO_MEMORY;
   }
@@ -236,9 +221,7 @@ WriteEncodedBytes(Input input, Buffer& output)
 }
 
 // Same as above, but the source data is in a Buffer.
-static Result
-WriteEncodedBytes(const Buffer& source, Buffer& output)
-{
+static Result WriteEncodedBytes(const Buffer& source, Buffer& output) {
   if (!output.appendAll(source)) {
     return Result::FATAL_ERROR_NO_MEMORY;
   }
@@ -251,11 +234,9 @@ WriteEncodedBytes(const Buffer& source, Buffer& output)
 // |dataLength| is the length of the byte array following the prefix.
 // Fails if |dataLength| is more than 2^|prefixLength| - 1.
 template <size_t prefixLength>
-static Result
-WriteVariableBytesPrefix(size_t dataLength, Buffer& output)
-{
+static Result WriteVariableBytesPrefix(size_t dataLength, Buffer& output) {
   const size_t maxAllowedInputSize =
-    static_cast<size_t>(((1 << (prefixLength * 8)) - 1));
+      static_cast<size_t>(((1 << (prefixLength * 8)) - 1));
   if (dataLength > maxAllowedInputSize) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
@@ -268,9 +249,7 @@ WriteVariableBytesPrefix(size_t dataLength, Buffer& output)
 // |input| is the array itself.
 // Fails if the size of |input| is more than 2^|prefixLength| - 1.
 template <size_t prefixLength>
-static Result
-WriteVariableBytes(Input input, Buffer& output)
-{
+static Result WriteVariableBytes(Input input, Buffer& output) {
   Result rv = WriteVariableBytesPrefix<prefixLength>(input.GetLength(), output);
   if (rv != Success) {
     return rv;
@@ -280,9 +259,7 @@ WriteVariableBytes(Input input, Buffer& output)
 
 // Same as above, but the source data is in a Buffer.
 template <size_t prefixLength>
-static Result
-WriteVariableBytes(const Buffer& source, Buffer& output)
-{
+static Result WriteVariableBytes(const Buffer& source, Buffer& output) {
   Input input;
   Result rv = BufferToInput(source, input);
   if (rv != Success) {
@@ -293,18 +270,14 @@ WriteVariableBytes(const Buffer& source, Buffer& output)
 
 // Writes a LogEntry of type X.509 cert to |output|.
 // |input| is the LogEntry containing the certificate.
-static Result
-EncodeAsn1CertLogEntry(const LogEntry& entry, Buffer& output)
-{
+static Result EncodeAsn1CertLogEntry(const LogEntry& entry, Buffer& output) {
   return WriteVariableBytes<kAsn1CertificateLengthBytes>(entry.leafCertificate,
                                                          output);
 }
 
 // Writes a LogEntry of type PreCertificate to |output|.
 // |input| is the LogEntry containing the TBSCertificate and issuer key hash.
-static Result
-EncodePrecertLogEntry(const LogEntry& entry, Buffer& output)
-{
+static Result EncodePrecertLogEntry(const LogEntry& entry, Buffer& output) {
   if (entry.issuerKeyHash.length() != kLogIdLength) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
@@ -316,26 +289,21 @@ EncodePrecertLogEntry(const LogEntry& entry, Buffer& output)
                                                         output);
 }
 
-
-Result
-EncodeDigitallySigned(const DigitallySigned& data, Buffer& output)
-{
+Result EncodeDigitallySigned(const DigitallySigned& data, Buffer& output) {
   Result rv = WriteUint<kHashAlgorithmLength>(
-    static_cast<unsigned int>(data.hashAlgorithm), output);
+      static_cast<unsigned int>(data.hashAlgorithm), output);
   if (rv != Success) {
     return rv;
   }
   rv = WriteUint<kSigAlgorithmLength>(
-    static_cast<unsigned int>(data.signatureAlgorithm), output);
+      static_cast<unsigned int>(data.signatureAlgorithm), output);
   if (rv != Success) {
     return rv;
   }
   return WriteVariableBytes<kSignatureLengthBytes>(data.signatureData, output);
 }
 
-Result
-DecodeDigitallySigned(Reader& reader, DigitallySigned& output)
-{
+Result DecodeDigitallySigned(Reader& reader, DigitallySigned& output) {
   DigitallySigned result;
 
   Result rv = ReadHashAlgorithm(reader, result.hashAlgorithm);
@@ -361,11 +329,9 @@ DecodeDigitallySigned(Reader& reader, DigitallySigned& output)
   return Success;
 }
 
-Result
-EncodeLogEntry(const LogEntry& entry, Buffer& output)
-{
+Result EncodeLogEntry(const LogEntry& entry, Buffer& output) {
   Result rv = WriteUint<kLogEntryTypeLength>(
-    static_cast<unsigned int>(entry.type), output);
+      static_cast<unsigned int>(entry.type), output);
   if (rv != Success) {
     return rv;
   }
@@ -380,23 +346,20 @@ EncodeLogEntry(const LogEntry& entry, Buffer& output)
   return Result::ERROR_BAD_DER;
 }
 
-static Result
-WriteTimeSinceEpoch(uint64_t timestamp, Buffer& output)
-{
+static Result WriteTimeSinceEpoch(uint64_t timestamp, Buffer& output) {
   return WriteUint<kTimestampLength>(timestamp, output);
 }
 
-Result
-EncodeV1SCTSignedData(uint64_t timestamp, Input serializedLogEntry,
-                      Input extensions, Buffer& output)
-{
-  Result rv = WriteUint<kVersionLength>(static_cast<unsigned int>(
-    SignedCertificateTimestamp::Version::V1), output);
+Result EncodeV1SCTSignedData(uint64_t timestamp, Input serializedLogEntry,
+                             Input extensions, Buffer& output) {
+  Result rv = WriteUint<kVersionLength>(
+      static_cast<unsigned int>(SignedCertificateTimestamp::Version::V1),
+      output);
   if (rv != Success) {
     return rv;
   }
-  rv = WriteUint<kSignatureTypeLength>(static_cast<unsigned int>(
-    SignatureType::CertificateTimestamp), output);
+  rv = WriteUint<kSignatureTypeLength>(
+      static_cast<unsigned int>(SignatureType::CertificateTimestamp), output);
   if (rv != Success) {
     return rv;
   }
@@ -413,17 +376,15 @@ EncodeV1SCTSignedData(uint64_t timestamp, Input serializedLogEntry,
   return WriteVariableBytes<kExtensionsLengthBytes>(extensions, output);
 }
 
-Result
-EncodeTreeHeadSignature(const SignedTreeHead& signedTreeHead,
-                        Buffer& output)
-{
+Result EncodeTreeHeadSignature(const SignedTreeHead& signedTreeHead,
+                               Buffer& output) {
   Result rv = WriteUint<kVersionLength>(
-    static_cast<unsigned int>(signedTreeHead.version), output);
+      static_cast<unsigned int>(signedTreeHead.version), output);
   if (rv != Success) {
     return rv;
   }
   rv = WriteUint<kSignatureTypeLength>(
-    static_cast<unsigned int>(SignatureType::TreeHash), output);
+      static_cast<unsigned int>(SignatureType::TreeHash), output);
   if (rv != Success) {
     return rv;
   }
@@ -441,9 +402,7 @@ EncodeTreeHeadSignature(const SignedTreeHead& signedTreeHead,
   return WriteEncodedBytes(signedTreeHead.sha256RootHash, output);
 }
 
-Result
-DecodeSCTList(Input input, Reader& listReader)
-{
+Result DecodeSCTList(Input input, Reader& listReader) {
   Reader inputReader(input);
   Input listData;
   Result rv = ReadVariableBytes<kSCTListLengthBytes>(inputReader, listData);
@@ -453,9 +412,7 @@ DecodeSCTList(Input input, Reader& listReader)
   return listReader.Init(listData);
 }
 
-Result
-ReadSCTListItem(Reader& listReader, Input& output)
-{
+Result ReadSCTListItem(Reader& listReader, Input& output) {
   if (listReader.AtEnd()) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
@@ -470,10 +427,8 @@ ReadSCTListItem(Reader& listReader, Input& output)
   return Success;
 }
 
-Result
-DecodeSignedCertificateTimestamp(Reader& reader,
-                                 SignedCertificateTimestamp& output)
-{
+Result DecodeSignedCertificateTimestamp(Reader& reader,
+                                        SignedCertificateTimestamp& output) {
   SignedCertificateTimestamp result;
 
   Result rv = ReadVersion(reader, result.version);
@@ -516,16 +471,14 @@ DecodeSignedCertificateTimestamp(Reader& reader,
   return Success;
 }
 
-Result
-EncodeSCTList(const Vector<pkix::Input>& scts, Buffer& output)
-{
+Result EncodeSCTList(const Vector<pkix::Input>& scts, Buffer& output) {
   // Find out the total size of the SCT list to be written so we can
   // write the prefix for the list before writing its contents.
   size_t sctListLength = 0;
   for (auto& sct : scts) {
     sctListLength +=
-      /* data size */ sct.GetLength() +
-      /* length prefix size */ kSerializedSCTLengthBytes;
+        /* data size */ sct.GetLength() +
+        /* length prefix size */ kSerializedSCTLengthBytes;
   }
 
   if (!output.reserve(kSCTListLengthBytes + sctListLength)) {
@@ -533,8 +486,8 @@ EncodeSCTList(const Vector<pkix::Input>& scts, Buffer& output)
   }
 
   // Write the prefix for the SCT list.
-  Result rv = WriteVariableBytesPrefix<kSCTListLengthBytes>(sctListLength,
-                                                            output);
+  Result rv =
+      WriteVariableBytesPrefix<kSCTListLengthBytes>(sctListLength, output);
   if (rv != Success) {
     return rv;
   }
@@ -548,4 +501,5 @@ EncodeSCTList(const Vector<pkix::Input>& scts, Buffer& output)
   return Success;
 }
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

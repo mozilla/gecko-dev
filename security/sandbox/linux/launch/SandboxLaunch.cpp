@@ -59,13 +59,11 @@ namespace mozilla {
 //
 // (Longer-term we intend to either proxy or remove X11 access from
 // content processes, at which point this will stop being an issue.)
-static bool
-IsDisplayLocal()
-{
-  // For X11, check whether the parent's connection is a Unix-domain
-  // socket.  This is done instead of trying to parse the display name
-  // because an empty hostname (e.g., ":0") will fall back to TCP in
-  // case of failure to connect using Unix-domain sockets.
+static bool IsDisplayLocal() {
+// For X11, check whether the parent's connection is a Unix-domain
+// socket.  This is done instead of trying to parse the display name
+// because an empty hostname (e.g., ":0") will fall back to TCP in
+// case of failure to connect using Unix-domain sockets.
 #ifdef MOZ_X11
   // First, ensure that the parent process's graphics are initialized.
   Unused << gfxPlatform::GetPlatform();
@@ -107,8 +105,9 @@ IsDisplayLocal()
     // exist in a container with a private /tmp that isn't running its
     // own X server.
     if (access("/tmp/.X11-unix", X_OK) != 0) {
-      NS_ERROR("/tmp/.X11-unix is inaccessible; can't isolate network"
-               " namespace in content processes");
+      NS_ERROR(
+          "/tmp/.X11-unix is inaccessible; can't isolate network"
+          " namespace in content processes");
       return false;
     }
   }
@@ -119,13 +118,12 @@ IsDisplayLocal()
   return true;
 }
 
-bool HasAtiDrivers()
-{
+bool HasAtiDrivers() {
   nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
   nsAutoString vendorID;
   static const Array<nsresult (nsIGfxInfo::*)(nsAString&), 2> kMethods = {
-    &nsIGfxInfo::GetAdapterVendorID,
-    &nsIGfxInfo::GetAdapterVendorID2,
+      &nsIGfxInfo::GetAdapterVendorID,
+      &nsIGfxInfo::GetAdapterVendorID2,
   };
   for (const auto method : kMethods) {
     if (NS_SUCCEEDED((gfxInfo->*method)(vendorID))) {
@@ -146,11 +144,9 @@ bool HasAtiDrivers()
 
 // Content processes may need direct access to SysV IPC in certain
 // uncommon use cases.
-static bool
-ContentNeedsSysVIPC()
-{
-  // The ALSA dmix plugin uses SysV semaphores and shared memory to
-  // coordinate software mixing.
+static bool ContentNeedsSysVIPC() {
+// The ALSA dmix plugin uses SysV semaphores and shared memory to
+// coordinate software mixing.
 #ifdef MOZ_ALSA
   if (!Preferences::GetBool("media.cubeb.sandbox")) {
     return true;
@@ -170,9 +166,7 @@ ContentNeedsSysVIPC()
   return false;
 }
 
-static void
-PreloadSandboxLib(base::environment_map* aEnv)
-{
+static void PreloadSandboxLib(base::environment_map* aEnv) {
   // Preload libmozsandbox.so so that sandbox-related interpositions
   // can be defined there instead of in the executable.
   // (This could be made conditional on intent to use sandboxing, but
@@ -191,24 +185,21 @@ PreloadSandboxLib(base::environment_map* aEnv)
   (*aEnv)["LD_PRELOAD"] = preload.get();
 }
 
-static void
-AttachSandboxReporter(base::file_handle_mapping_vector* aFdMap)
-{
+static void AttachSandboxReporter(base::file_handle_mapping_vector* aFdMap) {
   int srcFd, dstFd;
-  SandboxReporter::Singleton()
-    ->GetClientFileDescriptorMapping(&srcFd, &dstFd);
+  SandboxReporter::Singleton()->GetClientFileDescriptorMapping(&srcFd, &dstFd);
   aFdMap->push_back({srcFd, dstFd});
 }
 
 class SandboxFork : public base::LaunchOptions::ForkDelegate {
-public:
+ public:
   explicit SandboxFork(int aFlags, bool aChroot);
   virtual ~SandboxFork();
 
   void PrepareMapping(base::file_handle_mapping_vector* aMap);
   pid_t Fork() override;
 
-private:
+ private:
   int mFlags;
   int mChrootServer;
   int mChrootClient;
@@ -220,36 +211,32 @@ private:
   SandboxFork& operator=(const SandboxFork&) = delete;
 };
 
-static int
-GetEffectiveSandboxLevel(GeckoProcessType aType)
-{
+static int GetEffectiveSandboxLevel(GeckoProcessType aType) {
   auto info = SandboxInfo::Get();
   switch (aType) {
 #ifdef MOZ_GMP_SANDBOX
-  case GeckoProcessType_GMPlugin:
-    if (info.Test(SandboxInfo::kEnabledForMedia)) {
-      return 1;
-    }
-    return 0;
+    case GeckoProcessType_GMPlugin:
+      if (info.Test(SandboxInfo::kEnabledForMedia)) {
+        return 1;
+      }
+      return 0;
 #endif
 #ifdef MOZ_CONTENT_SANDBOX
-  case GeckoProcessType_Content:
-    // GetEffectiveContentSandboxLevel is main-thread-only due to prefs.
-    MOZ_ASSERT(NS_IsMainThread());
-    if (info.Test(SandboxInfo::kEnabledForContent)) {
-      return GetEffectiveContentSandboxLevel();
-    }
-    return 0;
+    case GeckoProcessType_Content:
+      // GetEffectiveContentSandboxLevel is main-thread-only due to prefs.
+      MOZ_ASSERT(NS_IsMainThread());
+      if (info.Test(SandboxInfo::kEnabledForContent)) {
+        return GetEffectiveContentSandboxLevel();
+      }
+      return 0;
 #endif
-  default:
-    return 0;
+    default:
+      return 0;
   }
 }
 
-void
-SandboxLaunchPrepare(GeckoProcessType aType,
-		     base::LaunchOptions* aOptions)
-{
+void SandboxLaunchPrepare(GeckoProcessType aType,
+                          base::LaunchOptions* aOptions) {
   auto info = SandboxInfo::Get();
 
   // We won't try any kind of sandboxing without seccomp-bpf.
@@ -274,14 +261,14 @@ SandboxLaunchPrepare(GeckoProcessType aType,
   int flags = 0;
 
   if (aType == GeckoProcessType_Content && level >= 1) {
-      static const bool needSysV = ContentNeedsSysVIPC();
-      if (needSysV) {
-        // Tell the child process so it can adjust its seccomp-bpf
-        // policy.
-        aOptions->env_map["MOZ_SANDBOX_ALLOW_SYSV"] = "1";
-      } else {
-        flags |= CLONE_NEWIPC;
-      }
+    static const bool needSysV = ContentNeedsSysVIPC();
+    if (needSysV) {
+      // Tell the child process so it can adjust its seccomp-bpf
+      // policy.
+      aOptions->env_map["MOZ_SANDBOX_ALLOW_SYSV"] = "1";
+    } else {
+      flags |= CLONE_NEWIPC;
+    }
   }
 
   // Anything below this requires unprivileged user namespaces.
@@ -291,35 +278,36 @@ SandboxLaunchPrepare(GeckoProcessType aType,
 
   switch (aType) {
 #ifdef MOZ_GMP_SANDBOX
-  case GeckoProcessType_GMPlugin:
-    if (level >= 1) {
-      canChroot = true;
-      flags |= CLONE_NEWNET | CLONE_NEWIPC;
-    }
-    break;
+    case GeckoProcessType_GMPlugin:
+      if (level >= 1) {
+        canChroot = true;
+        flags |= CLONE_NEWNET | CLONE_NEWIPC;
+      }
+      break;
 #endif
 #ifdef MOZ_CONTENT_SANDBOX
-  case GeckoProcessType_Content:
-    if (level >= 4) {
-      canChroot = true;
-      // Unshare network namespace if allowed by graphics; see
-      // function definition above for details.  (The display
-      // local-ness is cached because it won't change.)
-      static const bool isDisplayLocal = IsDisplayLocal();
-      if (isDisplayLocal) {
-        flags |= CLONE_NEWNET;
+    case GeckoProcessType_Content:
+      if (level >= 4) {
+        canChroot = true;
+        // Unshare network namespace if allowed by graphics; see
+        // function definition above for details.  (The display
+        // local-ness is cached because it won't change.)
+        static const bool isDisplayLocal = IsDisplayLocal();
+        if (isDisplayLocal) {
+          flags |= CLONE_NEWNET;
+        }
       }
-    }
-    // Hidden pref to allow testing user namespaces separately, even
-    // if there's nothing that would require them.
-    if (Preferences::GetBool("security.sandbox.content.force-namespace", false)) {
-      flags |= CLONE_NEWUSER;
-    }
-    break;
+      // Hidden pref to allow testing user namespaces separately, even
+      // if there's nothing that would require them.
+      if (Preferences::GetBool("security.sandbox.content.force-namespace",
+                               false)) {
+        flags |= CLONE_NEWUSER;
+      }
+      break;
 #endif
-  default:
-    // Nothing yet.
-    break;
+    default:
+      // Nothing yet.
+      break;
   }
 
   if (canChroot || flags != 0) {
@@ -333,10 +321,7 @@ SandboxLaunchPrepare(GeckoProcessType aType,
 }
 
 SandboxFork::SandboxFork(int aFlags, bool aChroot)
-: mFlags(aFlags)
-, mChrootServer(-1)
-, mChrootClient(-1)
-{
+    : mFlags(aFlags), mChrootServer(-1), mChrootClient(-1) {
   if (aChroot) {
     int fds[2];
     int rv = socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, fds);
@@ -347,22 +332,18 @@ SandboxFork::SandboxFork(int aFlags, bool aChroot)
     mChrootClient = fds[0];
     mChrootServer = fds[1];
     // Do this here because the child process won't be able to malloc.
-    mChrootMap.push_back(base::InjectionArc(mChrootServer,
-                                            mChrootServer,
-                                            false));
+    mChrootMap.push_back(
+        base::InjectionArc(mChrootServer, mChrootServer, false));
   }
 }
 
-void
-SandboxFork::PrepareMapping(base::file_handle_mapping_vector* aMap)
-{
+void SandboxFork::PrepareMapping(base::file_handle_mapping_vector* aMap) {
   if (mChrootClient >= 0) {
-    aMap->push_back({ mChrootClient, kSandboxChrootClientFd });
+    aMap->push_back({mChrootClient, kSandboxChrootClientFd});
   }
 }
 
-SandboxFork::~SandboxFork()
-{
+SandboxFork::~SandboxFork() {
   if (mChrootClient >= 0) {
     close(mChrootClient);
   }
@@ -371,9 +352,7 @@ SandboxFork::~SandboxFork()
   }
 }
 
-static void
-BlockAllSignals(sigset_t* aOldSigs)
-{
+static void BlockAllSignals(sigset_t* aOldSigs) {
   sigset_t allSigs;
   int rv = sigfillset(&allSigs);
   MOZ_RELEASE_ASSERT(rv == 0);
@@ -384,9 +363,7 @@ BlockAllSignals(sigset_t* aOldSigs)
   }
 }
 
-static void
-RestoreSignals(const sigset_t* aOldSigs)
-{
+static void RestoreSignals(const sigset_t* aOldSigs) {
   // Assuming that pthread_sigmask is a thin layer over rt_sigprocmask
   // and doesn't try to touch TLS, which may be in an "interesting"
   // state right now:
@@ -397,9 +374,7 @@ RestoreSignals(const sigset_t* aOldSigs)
   }
 }
 
-static void
-ResetSignalHandlers()
-{
+static void ResetSignalHandlers() {
   for (int signum = 1; signum <= SIGRTMAX; ++signum) {
     if (signal(signum, SIG_DFL) == SIG_ERR) {
       MOZ_DIAGNOSTIC_ASSERT(errno == EINVAL);
@@ -419,9 +394,7 @@ namespace {
 // that functions like raise() are never used in the child, including
 // by inherited signal handlers, but the longjmp approach isn't much
 // extra code and avoids a class of potential bugs.
-static int
-CloneCallee(void* aPtr)
-{
+static int CloneCallee(void* aPtr) {
   auto ctxPtr = reinterpret_cast<jmp_buf*>(aPtr);
   longjmp(*ctxPtr, 1);
   MOZ_CRASH("unreachable");
@@ -442,10 +415,8 @@ CloneCallee(void* aPtr)
 // Valgrind would disapprove of using clone() without CLONE_VM;
 // Chromium uses the raw syscall as a workaround in that case, but
 // we don't currently support sandboxing under valgrind.
-MOZ_NEVER_INLINE MOZ_ASAN_BLACKLIST
-static pid_t
-DoClone(int aFlags, jmp_buf* aCtx)
-{
+MOZ_NEVER_INLINE MOZ_ASAN_BLACKLIST static pid_t DoClone(int aFlags,
+                                                         jmp_buf* aCtx) {
   uint8_t miniStack[PTHREAD_STACK_MIN];
 #ifdef __hppa__
   void* stackPtr = miniStack;
@@ -455,17 +426,16 @@ DoClone(int aFlags, jmp_buf* aCtx)
   return clone(CloneCallee, stackPtr, aFlags, aCtx);
 }
 
-} // namespace
+}  // namespace
 
 // Similar to fork(), but allows passing flags to clone() and does not
 // run pthread_atfork hooks.
-static pid_t
-ForkWithFlags(int aFlags)
-{
+static pid_t ForkWithFlags(int aFlags) {
   // Don't allow flags that would share the address space, or
   // require clone() arguments we're not passing:
-  static const int kBadFlags = CLONE_VM | CLONE_VFORK | CLONE_SETTLS
-    | CLONE_PARENT_SETTID | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
+  static const int kBadFlags = CLONE_VM | CLONE_VFORK | CLONE_SETTLS |
+                               CLONE_PARENT_SETTID | CLONE_CHILD_SETTID |
+                               CLONE_CHILD_CLEARTID;
   MOZ_RELEASE_ASSERT((aFlags & kBadFlags) == 0);
 
   jmp_buf ctx;
@@ -477,9 +447,8 @@ ForkWithFlags(int aFlags)
   return 0;
 }
 
-static bool
-WriteStringToFile(const char* aPath, const char* aStr, const size_t aLen)
-{
+static bool WriteStringToFile(const char* aPath, const char* aStr,
+                              const size_t aLen) {
   int fd = open(aPath, O_WRONLY);
   if (fd < 0) {
     return false;
@@ -496,9 +465,7 @@ WriteStringToFile(const char* aPath, const char* aStr, const size_t aLen)
 // necessary in order to nest user namespaces (not currently being
 // used, but could be useful), and leaving the ids unchanged is
 // likely to minimize unexpected side-effects.
-static void
-ConfigureUserNamespace(uid_t uid, gid_t gid)
-{
+static void ConfigureUserNamespace(uid_t uid, gid_t gid) {
   using base::strings::SafeSPrintf;
   char buf[sizeof("18446744073709551615 18446744073709551615 1")];
   size_t len;
@@ -522,16 +489,13 @@ ConfigureUserNamespace(uid_t uid, gid_t gid)
   }
 }
 
-static void
-DropAllCaps()
-{
+static void DropAllCaps() {
   if (!LinuxCapabilities().SetCurrent()) {
     SANDBOX_LOG_ERROR("capset (drop all): %s", strerror(errno));
   }
 }
 
-pid_t
-SandboxFork::Fork() {
+pid_t SandboxFork::Fork() {
   if (mFlags == 0) {
     MOZ_ASSERT(mChrootServer < 0);
     return fork();
@@ -575,9 +539,7 @@ SandboxFork::Fork() {
   return 0;
 }
 
-void
-SandboxFork::StartChrootServer()
-{
+void SandboxFork::StartChrootServer() {
   // Run the rest of this function in a separate process that can
   // chroot() on behalf of this process after it's sandboxed.
   pid_t pid = ForkWithFlags(CLONE_FS);
@@ -630,4 +592,4 @@ SandboxFork::StartChrootServer()
   _exit(0);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

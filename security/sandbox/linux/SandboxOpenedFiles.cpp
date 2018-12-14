@@ -17,15 +17,13 @@ namespace mozilla {
 // The default move constructor almost works, but Atomic isn't
 // move-constructable and the fd needs some special handling.
 SandboxOpenedFile::SandboxOpenedFile(SandboxOpenedFile&& aMoved)
-: mPath(Move(aMoved.mPath))
-, mMaybeFd(aMoved.TakeDesc())
-, mDup(aMoved.mDup)
-, mExpectError(aMoved.mExpectError)
-{ }
+    : mPath(Move(aMoved.mPath)),
+      mMaybeFd(aMoved.TakeDesc()),
+      mDup(aMoved.mDup),
+      mExpectError(aMoved.mExpectError) {}
 
 SandboxOpenedFile::SandboxOpenedFile(const char* aPath, bool aDup)
-  : mPath(aPath), mDup(aDup), mExpectError(false)
-{
+    : mPath(aPath), mDup(aDup), mExpectError(false) {
   MOZ_ASSERT(aPath[0] == '/', "path should be absolute");
 
   int fd = open(aPath, O_RDONLY | O_CLOEXEC);
@@ -35,9 +33,7 @@ SandboxOpenedFile::SandboxOpenedFile(const char* aPath, bool aDup)
   mMaybeFd = fd;
 }
 
-int
-SandboxOpenedFile::GetDesc() const
-{
+int SandboxOpenedFile::GetDesc() const {
   int fd = -1;
   if (mDup) {
     fd = mMaybeFd;
@@ -56,17 +52,14 @@ SandboxOpenedFile::GetDesc() const
   return fd;
 }
 
-SandboxOpenedFile::~SandboxOpenedFile()
-{
+SandboxOpenedFile::~SandboxOpenedFile() {
   int fd = TakeDesc();
   if (fd >= 0) {
     close(fd);
   }
 }
 
-int
-SandboxOpenedFiles::GetDesc(const char* aPath) const
-{
+int SandboxOpenedFiles::GetDesc(const char* aPath) const {
   for (const auto& file : mFiles) {
     if (strcmp(file.Path(), aPath) == 0) {
       return file.GetDesc();
@@ -76,4 +69,4 @@ SandboxOpenedFiles::GetDesc(const char* aPath) const
   return -1;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

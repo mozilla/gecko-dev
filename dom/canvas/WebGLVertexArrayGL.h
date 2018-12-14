@@ -10,28 +10,26 @@
 
 namespace mozilla {
 
-class WebGLVertexArrayGL
-    : public WebGLVertexArray
-{
-    friend class WebGLVertexArray;
+class WebGLVertexArrayGL : public WebGLVertexArray {
+  friend class WebGLVertexArray;
 
-public:
-    virtual void DeleteImpl() override;
-    virtual void BindVertexArrayImpl() override;
-    virtual void GenVertexArray() override;
-    virtual bool IsVertexArrayImpl() const override;
+ public:
+  virtual void DeleteImpl() override;
+  virtual void BindVertexArrayImpl() override;
+  virtual void GenVertexArray() override;
+  virtual bool IsVertexArrayImpl() const override;
 
-protected:
-    explicit WebGLVertexArrayGL(WebGLContext* webgl);
-    ~WebGLVertexArrayGL();
+ protected:
+  explicit WebGLVertexArrayGL(WebGLContext* webgl);
+  ~WebGLVertexArrayGL();
 
-    // Bug 1140459: Some drivers (including our test slaves!) don't
-    // give reasonable answers for IsVertexArray, maybe others.
-    //
-    // So we track the `is a VAO` state ourselves.
-    bool mIsVAO;
+  // Bug 1140459: Some drivers (including our test slaves!) don't
+  // give reasonable answers for IsVertexArray, maybe others.
+  //
+  // So we track the `is a VAO` state ourselves.
+  bool mIsVAO;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WEBGL_VERTEX_ARRAY_GL_H_
+#endif  // WEBGL_VERTEX_ARRAY_GL_H_

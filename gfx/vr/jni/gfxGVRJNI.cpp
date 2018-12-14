@@ -7,38 +7,26 @@
 
 extern "C" __attribute__((visibility("default"))) jlong
 Java_com_google_vr_cardboard_DisplaySynchronizer_nativeCreate(
-    JNIEnv* env,
-    jobject jcaller,
-    jclass classLoader,
-    jobject appContext);
+    JNIEnv* env, jobject jcaller, jclass classLoader, jobject appContext);
 
 // Step 2: method stubs.
 extern "C" __attribute__((visibility("default"))) void
 Java_com_google_vr_cardboard_DisplaySynchronizer_nativeDestroy(
-    JNIEnv* env,
-    jobject jcaller,
-    jlong nativeDisplaySynchronizer);
+    JNIEnv* env, jobject jcaller, jlong nativeDisplaySynchronizer);
 
 extern "C" __attribute__((visibility("default"))) void
 Java_com_google_vr_cardboard_DisplaySynchronizer_nativeReset(
-    JNIEnv* env,
-    jobject jcaller,
-    jlong nativeDisplaySynchronizer,
-    jlong expectedInterval,
-    jlong vsyncOffset);
+    JNIEnv* env, jobject jcaller, jlong nativeDisplaySynchronizer,
+    jlong expectedInterval, jlong vsyncOffset);
 
 extern "C" __attribute__((visibility("default"))) void
 Java_com_google_vr_cardboard_DisplaySynchronizer_nativeUpdate(
-    JNIEnv* env,
-    jobject jcaller,
-    jlong nativeDisplaySynchronizer,
-    jlong syncTime,
-    jint currentRotation);
+    JNIEnv* env, jobject jcaller, jlong nativeDisplaySynchronizer,
+    jlong syncTime, jint currentRotation);
 
 namespace {
 
-bool
-check(JNIEnv* env) {
+bool check(JNIEnv* env) {
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
@@ -47,7 +35,8 @@ check(JNIEnv* env) {
   return true;
 }
 
-const char kDisplaySynchronizerClassPath[] = "com/google/vr/cardboard/DisplaySynchronizer";
+const char kDisplaySynchronizerClassPath[] =
+    "com/google/vr/cardboard/DisplaySynchronizer";
 
 static const JNINativeMethod kMethodsDisplaySynchronizer[] = {
     {"nativeCreate",
@@ -84,21 +73,27 @@ static const JNINativeMethod kMethodsDisplaySynchronizer[] = {
      reinterpret_cast<void*>(
          Java_com_google_vr_cardboard_DisplaySynchronizer_nativeUpdate)},
 };
-}
+}  // namespace
 
-bool
-SetupGVRJNI(JNIEnv* env)
-{
-  jclass displaySynchronizerClazz = env->FindClass(kDisplaySynchronizerClassPath);
-  if (!check(env)) { return false; }
+bool SetupGVRJNI(JNIEnv* env) {
+  jclass displaySynchronizerClazz =
+      env->FindClass(kDisplaySynchronizerClassPath);
+  if (!check(env)) {
+    return false;
+  }
   if (displaySynchronizerClazz == nullptr) {
     return false;
   }
-  env->RegisterNatives(displaySynchronizerClazz, kMethodsDisplaySynchronizer, sizeof(kMethodsDisplaySynchronizer) / sizeof(kMethodsDisplaySynchronizer[0]));
-  if (!check(env)) { return false; }
+  env->RegisterNatives(displaySynchronizerClazz, kMethodsDisplaySynchronizer,
+                       sizeof(kMethodsDisplaySynchronizer) /
+                           sizeof(kMethodsDisplaySynchronizer[0]));
+  if (!check(env)) {
+    return false;
+  }
   env->DeleteLocalRef(displaySynchronizerClazz);
-  if (!check(env)) { return false; }
+  if (!check(env)) {
+    return false;
+  }
 
   return true;
 }
-

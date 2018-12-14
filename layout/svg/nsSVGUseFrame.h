@@ -11,38 +11,31 @@
 #include "nsIAnonymousContentCreator.h"
 #include "nsSVGGFrame.h"
 
-class nsSVGUseFrame final
-  : public nsSVGGFrame
-  , public nsIAnonymousContentCreator
-{
+class nsSVGUseFrame final : public nsSVGGFrame,
+                            public nsIAnonymousContentCreator {
   friend nsIFrame* NS_NewSVGUseFrame(nsIPresShell* aPresShell,
                                      nsStyleContext* aContext);
 
-protected:
+ protected:
   explicit nsSVGUseFrame(nsStyleContext* aContext)
-    : nsSVGGFrame(aContext, kClassID)
-    , mHasValidDimensions(true)
-  {
-  }
+      : nsSVGGFrame(aContext, kClassID), mHasValidDimensions(true) {}
 
-public:
+ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsSVGUseFrame)
 
   // nsIFrame interface:
-  void Init(nsIContent* aContent,
-            nsContainerFrame* aParent,
+  void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
 
-  nsresult AttributeChanged(int32_t aNameSpaceID,
-                            nsAtom* aAttribute,
+  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
-  void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  void DestroyFrom(nsIFrame* aDestructRoot,
+                   PostDestroyData& aPostDestroyData) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  nsresult GetFrameName(nsAString& aResult) const override
-  {
+  nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("SVGUse"), aResult);
   }
 #endif
@@ -58,9 +51,9 @@ public:
 
   nsIContent* GetContentClone() { return mContentClone.get(); }
 
-private:
+ private:
   bool mHasValidDimensions;
   nsCOMPtr<nsIContent> mContentClone;
 };
 
-#endif // __NS_SVGUSEFRAME_H__
+#endif  // __NS_SVGUSEFRAME_H__

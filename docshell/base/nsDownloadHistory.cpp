@@ -15,15 +15,12 @@
 NS_IMPL_ISUPPORTS(nsDownloadHistory, nsIDownloadHistory)
 
 NS_IMETHODIMP
-nsDownloadHistory::AddDownload(nsIURI* aSource,
-                               nsIURI* aReferrer,
-                               PRTime aStartTime,
-                               nsIURI* aDestination)
-{
+nsDownloadHistory::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
+                               PRTime aStartTime, nsIURI* aDestination) {
   NS_ENSURE_ARG_POINTER(aSource);
 
   nsCOMPtr<nsIGlobalHistory2> history =
-    do_GetService("@mozilla.org/browser/global-history;2");
+      do_GetService("@mozilla.org/browser/global-history;2");
   if (!history) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -46,7 +43,4 @@ nsDownloadHistory::AddDownload(nsIURI* aSource,
 }
 
 NS_IMETHODIMP
-nsDownloadHistory::RemoveAllDownloads()
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
+nsDownloadHistory::RemoveAllDownloads() { return NS_ERROR_NOT_IMPLEMENTED; }

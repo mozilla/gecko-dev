@@ -11,16 +11,15 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Move.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
 // Note: this moves |verifiedSct| to the target list in |result|.
-static Result
-StoreVerifiedSct(CTVerifyResult& result,
-                 VerifiedSCT&& verifiedSct,
-                 VerifiedSCT::Status status)
-{
+static Result StoreVerifiedSct(CTVerifyResult& result,
+                               VerifiedSCT&& verifiedSct,
+                               VerifiedSCT::Status status) {
   verifiedSct.status = status;
   if (!result.verifiedScts.append(Move(verifiedSct))) {
     return Result::FATAL_ERROR_NO_MEMORY;
@@ -28,24 +27,18 @@ StoreVerifiedSct(CTVerifyResult& result,
   return Success;
 }
 
-Result
-MultiLogCTVerifier::AddLog(CTLogVerifier&& log)
-{
+Result MultiLogCTVerifier::AddLog(CTLogVerifier&& log) {
   if (!mLogs.append(Move(log))) {
     return Result::FATAL_ERROR_NO_MEMORY;
   }
   return Success;
 }
 
-Result
-MultiLogCTVerifier::Verify(Input cert,
-                           Input issuerSubjectPublicKeyInfo,
-                           Input sctListFromCert,
-                           Input sctListFromOCSPResponse,
-                           Input sctListFromTLSExtension,
-                           Time time,
-                           CTVerifyResult& result)
-{
+Result MultiLogCTVerifier::Verify(Input cert, Input issuerSubjectPublicKeyInfo,
+                                  Input sctListFromCert,
+                                  Input sctListFromOCSPResponse,
+                                  Input sctListFromTLSExtension, Time time,
+                                  CTVerifyResult& result) {
   MOZ_ASSERT(cert.GetLength() > 0);
   result.Reset();
 
@@ -92,13 +85,10 @@ MultiLogCTVerifier::Verify(Input cert,
   return Success;
 }
 
-Result
-MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
-                               const LogEntry& expectedEntry,
-                               VerifiedSCT::Origin origin,
-                               Time time,
-                               CTVerifyResult& result)
-{
+Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
+                                      const LogEntry& expectedEntry,
+                                      VerifiedSCT::Origin origin, Time time,
+                                      CTVerifyResult& result) {
   Reader listReader;
   Result rv = DecodeSCTList(encodedSctList, listReader);
   if (rv != Success) {
@@ -130,13 +120,10 @@ MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
   return Success;
 }
 
-Result
-MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
-                                    const LogEntry& expectedEntry,
-                                    VerifiedSCT::Origin origin,
-                                    Time time,
-                                    CTVerifyResult& result)
-{
+Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
+                                           const LogEntry& expectedEntry,
+                                           VerifiedSCT::Origin origin,
+                                           Time time, CTVerifyResult& result) {
   VerifiedSCT verifiedSct;
   verifiedSct.origin = origin;
   verifiedSct.sct = Move(sct);
@@ -179,7 +166,7 @@ MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
   // (towards the future) is more "secure", although practically
   // it does not matter.
   Time sctTime =
-    TimeFromEpochInSeconds((verifiedSct.sct.timestamp + 999u) / 1000u);
+      TimeFromEpochInSeconds((verifiedSct.sct.timestamp + 999u) / 1000u);
   if (sctTime > time) {
     return StoreVerifiedSct(result, Move(verifiedSct),
                             VerifiedSCT::Status::InvalidTimestamp);
@@ -198,4 +185,5 @@ MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
                           VerifiedSCT::Status::Valid);
 }
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

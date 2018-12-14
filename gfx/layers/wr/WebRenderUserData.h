@@ -7,7 +7,7 @@
 #ifndef GFX_WEBRENDERUSERDATA_H
 #define GFX_WEBRENDERUSERDATA_H
 
-#include "BasicLayers.h"                // for BasicLayerManager
+#include "BasicLayers.h"  // for BasicLayerManager
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/layers/AnimationInfo.h"
@@ -31,10 +31,10 @@ class WebRenderImageData;
 class WebRenderFallbackData;
 class WebRenderLayerManager;
 
-class WebRenderUserData
-{
-public:
-  typedef nsTHashtable<nsRefPtrHashKey<WebRenderUserData> > WebRenderUserDataRefTable;
+class WebRenderUserData {
+ public:
+  typedef nsTHashtable<nsRefPtrHashKey<WebRenderUserData> >
+      WebRenderUserDataRefTable;
 
   static bool SupportsAsyncUpdate(nsIFrame* aFrame);
 
@@ -60,9 +60,10 @@ public:
   nsIFrame* GetFrame() { return mFrame; }
   uint32_t GetDisplayItemKey() { return mDisplayItemKey; }
   void RemoveFromTable();
-  virtual void ClearCachedResources() {};
+  virtual void ClearCachedResources(){};
   virtual nsDisplayItemGeometry* GetGeometry() { return nullptr; }
-protected:
+
+ protected:
   virtual ~WebRenderUserData();
 
   WebRenderBridgeChild* WrBridge() const;
@@ -74,10 +75,10 @@ protected:
   bool mUsed;
 };
 
-class WebRenderImageData : public WebRenderUserData
-{
-public:
-  explicit WebRenderImageData(WebRenderLayerManager* aWRManager, nsDisplayItem* aItem);
+class WebRenderImageData : public WebRenderUserData {
+ public:
+  explicit WebRenderImageData(WebRenderLayerManager* aWRManager,
+                              nsDisplayItem* aItem);
   virtual ~WebRenderImageData();
 
   virtual WebRenderImageData* AsImageData() override { return this; }
@@ -91,26 +92,19 @@ public:
                                      wr::IpcResourceUpdateQueue& aResources,
                                      bool aFallback = false);
 
-  void CreateAsyncImageWebRenderCommands(mozilla::wr::DisplayListBuilder& aBuilder,
-                                         ImageContainer* aContainer,
-                                         const StackingContextHelper& aSc,
-                                         const LayoutDeviceRect& aBounds,
-                                         const LayoutDeviceRect& aSCBounds,
-                                         const gfx::Matrix4x4& aSCTransform,
-                                         const gfx::MaybeIntSize& aScaleToSize,
-                                         const wr::ImageRendering& aFilter,
-                                         const wr::MixBlendMode& aMixBlendMode,
-                                         bool aIsBackfaceVisible);
+  void CreateAsyncImageWebRenderCommands(
+      mozilla::wr::DisplayListBuilder& aBuilder, ImageContainer* aContainer,
+      const StackingContextHelper& aSc, const LayoutDeviceRect& aBounds,
+      const LayoutDeviceRect& aSCBounds, const gfx::Matrix4x4& aSCTransform,
+      const gfx::MaybeIntSize& aScaleToSize, const wr::ImageRendering& aFilter,
+      const wr::MixBlendMode& aMixBlendMode, bool aIsBackfaceVisible);
 
   void CreateImageClientIfNeeded();
   void ClearCachedResources() override;
 
-  bool IsAsync()
-  {
-    return mPipelineId.isSome();
-  }
+  bool IsAsync() { return mPipelineId.isSome(); }
 
-protected:
+ protected:
   void ClearImageKey();
   void CreateExternalImageIfNeeded();
   void DoClearCachedResources();
@@ -123,10 +117,10 @@ protected:
   bool mOwnsKey;
 };
 
-class WebRenderFallbackData : public WebRenderImageData
-{
-public:
-  explicit WebRenderFallbackData(WebRenderLayerManager* aWRManager, nsDisplayItem* aItem);
+class WebRenderFallbackData : public WebRenderImageData {
+ public:
+  explicit WebRenderFallbackData(WebRenderLayerManager* aWRManager,
+                                 nsDisplayItem* aItem);
   virtual ~WebRenderFallbackData();
 
   virtual WebRenderFallbackData* AsFallbackData() override { return this; }
@@ -143,31 +137,32 @@ public:
   bool IsInvalid() { return mInvalid; }
 
   RefPtr<BasicLayerManager> mBasicLayerManager;
-protected:
+
+ protected:
   nsAutoPtr<nsDisplayItemGeometry> mGeometry;
   nsRect mBounds;
   bool mInvalid;
   gfx::Size mScale;
 };
 
-class WebRenderAnimationData : public WebRenderUserData
-{
-public:
-  explicit WebRenderAnimationData(WebRenderLayerManager* aWRManager, nsDisplayItem* aItem);
+class WebRenderAnimationData : public WebRenderUserData {
+ public:
+  explicit WebRenderAnimationData(WebRenderLayerManager* aWRManager,
+                                  nsDisplayItem* aItem);
   virtual ~WebRenderAnimationData();
 
   virtual UserDataType GetType() override { return UserDataType::eAnimation; }
   static UserDataType Type() { return UserDataType::eAnimation; }
   AnimationInfo& GetAnimationInfo() { return mAnimationInfo; }
 
-protected:
+ protected:
   AnimationInfo mAnimationInfo;
 };
 
-class WebRenderCanvasData : public WebRenderUserData
-{
-public:
-  explicit WebRenderCanvasData(WebRenderLayerManager* aWRManager, nsDisplayItem* aItem);
+class WebRenderCanvasData : public WebRenderUserData {
+ public:
+  explicit WebRenderCanvasData(WebRenderLayerManager* aWRManager,
+                               nsDisplayItem* aItem);
   virtual ~WebRenderCanvasData();
 
   virtual WebRenderCanvasData* AsCanvasData() override { return this; }
@@ -178,13 +173,14 @@ public:
   WebRenderCanvasRendererAsync* GetCanvasRenderer();
   WebRenderCanvasRendererAsync* CreateCanvasRenderer();
   void ClearCachedResources() override;
-protected:
+
+ protected:
   void DoClearCachedResources();
 
   UniquePtr<WebRenderCanvasRendererAsync> mCanvasRenderer;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif /* GFX_WEBRENDERUSERDATA_H */

@@ -14,9 +14,12 @@
 #define XPCVARIANT_CONTRACTID "@mozilla.org/xpcvariant;1"
 
 // {FE4F7592-C1FC-4662-AC83-538841318803}
-#define SCRIPTABLE_INTERFACES_CID                                             \
-    {0xfe4f7592, 0xc1fc, 0x4662,                                              \
-      { 0xac, 0x83, 0x53, 0x88, 0x41, 0x31, 0x88, 0x3 } }
+#define SCRIPTABLE_INTERFACES_CID                   \
+  {                                                 \
+    0xfe4f7592, 0xc1fc, 0x4662, {                   \
+      0xac, 0x83, 0x53, 0x88, 0x41, 0x31, 0x88, 0x3 \
+    }                                               \
+  }
 
 #define MOZJSSUBSCRIPTLOADER_CONTRACTID "@mozilla.org/moz/jssubscript-loader;1"
 
@@ -33,21 +36,23 @@ NS_DEFINE_NAMED_CID(NS_XPCONNECT_CID);
 NS_DEFINE_NAMED_CID(MOZJSCOMPONENTLOADER_CID);
 NS_DEFINE_NAMED_CID(MOZ_JSSUBSCRIPTLOADER_CID);
 
-#define XPCONNECT_CIDENTRIES                                                  \
-  { &kNS_JS_ID_CID, false, nullptr,  nsJSIDConstructor },                     \
-  { &kNS_XPCONNECT_CID, false, nullptr,  nsIXPConnectConstructor },           \
-  { &kMOZJSCOMPONENTLOADER_CID, false, nullptr, mozJSComponentLoaderConstructor },\
-  { &kMOZ_JSSUBSCRIPTLOADER_CID, false, nullptr, mozJSSubScriptLoaderConstructor },
+#define XPCONNECT_CIDENTRIES                                         \
+  {&kNS_JS_ID_CID, false, nullptr, nsJSIDConstructor},               \
+      {&kNS_XPCONNECT_CID, false, nullptr, nsIXPConnectConstructor}, \
+      {&kMOZJSCOMPONENTLOADER_CID, false, nullptr,                   \
+       mozJSComponentLoaderConstructor},                             \
+      {&kMOZ_JSSUBSCRIPTLOADER_CID, false, nullptr,                  \
+       mozJSSubScriptLoaderConstructor},
 
-#define XPCONNECT_CONTRACTS                                                   \
-  { XPC_ID_CONTRACTID, &kNS_JS_ID_CID },                                      \
-  { XPC_XPCONNECT_CONTRACTID, &kNS_XPCONNECT_CID },                           \
-  { XPC_CONTEXT_STACK_CONTRACTID, &kNS_XPCONNECT_CID },                       \
-  { MOZJSCOMPONENTLOADER_CONTRACTID, &kMOZJSCOMPONENTLOADER_CID },            \
-  { MOZJSSUBSCRIPTLOADER_CONTRACTID, &kMOZ_JSSUBSCRIPTLOADER_CID },
+#define XPCONNECT_CONTRACTS                                          \
+  {XPC_ID_CONTRACTID, &kNS_JS_ID_CID},                               \
+      {XPC_XPCONNECT_CONTRACTID, &kNS_XPCONNECT_CID},                \
+      {XPC_CONTEXT_STACK_CONTRACTID, &kNS_XPCONNECT_CID},            \
+      {MOZJSCOMPONENTLOADER_CONTRACTID, &kMOZJSCOMPONENTLOADER_CID}, \
+      {MOZJSSUBSCRIPTLOADER_CONTRACTID, &kMOZ_JSSUBSCRIPTLOADER_CID},
 
 #define XPCONNECT_CATEGORIES \
-  { "module-loader", "js", MOZJSCOMPONENTLOADER_CONTRACTID },
+  {"module-loader", "js", MOZJSCOMPONENTLOADER_CONTRACTID},
 
 nsresult xpcModuleCtor();
 void xpcModuleDtor();

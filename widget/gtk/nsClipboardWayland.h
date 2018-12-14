@@ -17,101 +17,101 @@
 
 struct FastTrackClipboard;
 
-class DataOffer
-{
-public:
-    void AddMIMEType(const char *aMimeType);
+class DataOffer {
+ public:
+  void AddMIMEType(const char* aMimeType);
 
-    GdkAtom* GetTargets(int* aTargetNum);
-    bool  HasTarget(const char *aMimeType);
+  GdkAtom* GetTargets(int* aTargetNum);
+  bool HasTarget(const char* aMimeType);
 
-    char* GetData(wl_display* aDisplay, const char* aMimeType,
-                  uint32_t* aContentLength);
+  char* GetData(wl_display* aDisplay, const char* aMimeType,
+                uint32_t* aContentLength);
 
-    virtual ~DataOffer() {};
-private:
-    virtual bool RequestDataTransfer(const char* aMimeType, int fd) = 0;
+  virtual ~DataOffer(){};
 
-    nsTArray<GdkAtom> mTargetMIMETypes;
+ private:
+  virtual bool RequestDataTransfer(const char* aMimeType, int fd) = 0;
+
+  nsTArray<GdkAtom> mTargetMIMETypes;
 };
 
-class WaylandDataOffer : public DataOffer
-{
-public:
-    WaylandDataOffer(wl_data_offer* aWaylandDataOffer);
+class WaylandDataOffer : public DataOffer {
+ public:
+  WaylandDataOffer(wl_data_offer* aWaylandDataOffer);
 
-private:
-    virtual ~WaylandDataOffer();
-    bool RequestDataTransfer(const char* aMimeType, int fd) override;
+ private:
+  virtual ~WaylandDataOffer();
+  bool RequestDataTransfer(const char* aMimeType, int fd) override;
 
-    wl_data_offer* mWaylandDataOffer;
+  wl_data_offer* mWaylandDataOffer;
 };
 
-class PrimaryDataOffer : public DataOffer
-{
-public:
-    PrimaryDataOffer(gtk_primary_selection_offer* aPrimaryDataOffer);
+class PrimaryDataOffer : public DataOffer {
+ public:
+  PrimaryDataOffer(gtk_primary_selection_offer* aPrimaryDataOffer);
 
-private:
-    virtual ~PrimaryDataOffer();
-    bool RequestDataTransfer(const char* aMimeType, int fd) override;
+ private:
+  virtual ~PrimaryDataOffer();
+  bool RequestDataTransfer(const char* aMimeType, int fd) override;
 
-    gtk_primary_selection_offer* mPrimaryDataOffer;
+  gtk_primary_selection_offer* mPrimaryDataOffer;
 };
 
-class nsRetrievalContextWayland : public nsRetrievalContext
-{
-public:
-    nsRetrievalContextWayland();
+class nsRetrievalContextWayland : public nsRetrievalContext {
+ public:
+  nsRetrievalContextWayland();
 
-    virtual const char* GetClipboardData(const char* aMimeType,
-                                         int32_t aWhichClipboard,
-                                         uint32_t* aContentLength) override;
-    virtual const char* GetClipboardText(int32_t aWhichClipboard) override;
-    virtual void ReleaseClipboardData(const char* aClipboardData) override;
+  virtual const char* GetClipboardData(const char* aMimeType,
+                                       int32_t aWhichClipboard,
+                                       uint32_t* aContentLength) override;
+  virtual const char* GetClipboardText(int32_t aWhichClipboard) override;
+  virtual void ReleaseClipboardData(const char* aClipboardData) override;
 
-    virtual GdkAtom* GetTargets(int32_t aWhichClipboard,
-                                int* aTargetNum) override;
-    virtual bool HasSelectionSupport(void) override;
+  virtual GdkAtom* GetTargets(int32_t aWhichClipboard,
+                              int* aTargetNum) override;
+  virtual bool HasSelectionSupport(void) override;
 
-    void RegisterDataOffer(wl_data_offer *aWaylandDataOffer);
-    void RegisterDataOffer(gtk_primary_selection_offer *aPrimaryDataOffer);
+  void RegisterDataOffer(wl_data_offer* aWaylandDataOffer);
+  void RegisterDataOffer(gtk_primary_selection_offer* aPrimaryDataOffer);
 
-    void SetClipboardDataOffer(wl_data_offer *aWaylandDataOffer);
-    void SetPrimaryDataOffer(gtk_primary_selection_offer *aPrimaryDataOffer);
+  void SetClipboardDataOffer(wl_data_offer* aWaylandDataOffer);
+  void SetPrimaryDataOffer(gtk_primary_selection_offer* aPrimaryDataOffer);
 
-    void ClearDataOffers();
+  void ClearDataOffers();
 
-    void ConfigureKeyboard(wl_seat_capability caps);
-    void TransferFastTrackClipboard(int aClipboardRequestNumber,
-                                    GtkSelectionData *aSelectionData);
+  void ConfigureKeyboard(wl_seat_capability caps);
+  void TransferFastTrackClipboard(int aClipboardRequestNumber,
+                                  GtkSelectionData* aSelectionData);
 
-    void InitDataDeviceManager(wl_registry *registry, uint32_t id, uint32_t version);
-    void InitPrimarySelectionDataDeviceManager(wl_registry *registry, uint32_t id);
-    void InitSeat(wl_registry *registry, uint32_t id, uint32_t version, void *data);
-    virtual ~nsRetrievalContextWayland() override;
+  void InitDataDeviceManager(wl_registry* registry, uint32_t id,
+                             uint32_t version);
+  void InitPrimarySelectionDataDeviceManager(wl_registry* registry,
+                                             uint32_t id);
+  void InitSeat(wl_registry* registry, uint32_t id, uint32_t version,
+                void* data);
+  virtual ~nsRetrievalContextWayland() override;
 
-private:
-    bool                        mInitialized;
-    wl_display                 *mDisplay;
-    wl_seat                    *mSeat;
-    wl_data_device_manager     *mDataDeviceManager;
-    gtk_primary_selection_device_manager *mPrimarySelectionDataDeviceManager;
-    wl_keyboard                *mKeyboard;
+ private:
+  bool mInitialized;
+  wl_display* mDisplay;
+  wl_seat* mSeat;
+  wl_data_device_manager* mDataDeviceManager;
+  gtk_primary_selection_device_manager* mPrimarySelectionDataDeviceManager;
+  wl_keyboard* mKeyboard;
 
-    // Data offers provided by Wayland data device
-    GHashTable*                 mActiveOffers;
-    nsAutoPtr<DataOffer>        mClipboardOffer;
-    nsAutoPtr<DataOffer>        mPrimaryOffer;
+  // Data offers provided by Wayland data device
+  GHashTable* mActiveOffers;
+  nsAutoPtr<DataOffer> mClipboardOffer;
+  nsAutoPtr<DataOffer> mPrimaryOffer;
 
-    int                         mClipboardRequestNumber;
-    char*                       mClipboardData;
-    uint32_t                    mClipboardDataLength;
+  int mClipboardRequestNumber;
+  char* mClipboardData;
+  uint32_t mClipboardDataLength;
 
-    // Mime types used for text data at Gtk+, see request_text_received_func()
-    // at gtkclipboard.c.
-    #define TEXT_MIME_TYPES_NUM 3
-    static const char* sTextMimeTypes[TEXT_MIME_TYPES_NUM];
+// Mime types used for text data at Gtk+, see request_text_received_func()
+// at gtkclipboard.c.
+#define TEXT_MIME_TYPES_NUM 3
+  static const char* sTextMimeTypes[TEXT_MIME_TYPES_NUM];
 };
 
 #endif /* __nsClipboardWayland_h_ */

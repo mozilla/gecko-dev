@@ -30,28 +30,25 @@
 #include "vr/gvr/capi/include/gvr_controller.h"
 #pragma GCC visibility pop
 
-
 namespace mozilla {
 namespace gl {
 class GLContextEGL;
-} // namespace gl
+}  // namespace gl
 namespace layers {
 class EGLImageDescriptor;
-} // namespace layers
+}  // namespace layers
 namespace gfx {
 namespace impl {
 
-class VRControllerGVR : public VRControllerHost
-{
-public:
+class VRControllerGVR : public VRControllerHost {
+ public:
   explicit VRControllerGVR(dom::GamepadHand aHand, uint32_t aDisplayID);
   virtual ~VRControllerGVR();
   void Update(gvr_controller_state* aState, VRSystemManager* aManager);
 };
 
-class VRDisplayGVR : public VRDisplayHost
-{
-public:
+class VRDisplayGVR : public VRDisplayHost {
+ public:
   VRDisplayGVR();
 
   // BEGIN VRDisplayHost interface
@@ -61,18 +58,19 @@ public:
   bool SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor,
                    const gfx::Rect& aLeftEyeRect,
                    const gfx::Rect& aRightEyeRect) override;
-protected:
+
+ protected:
   virtual VRHMDSensorState GetSensorState() override;
   // END VRDisplayHost interface
 
-public:
+ public:
   void SetPaused(const bool aPaused);
   void SetPresentingContext(void* aGVRPresentingContext);
   void EnableControllers(const bool aEnable, VRSystemManager* aManager);
   void UpdateControllers(VRSystemManager* aManager);
-  void GetControllers(nsTArray<RefPtr<VRControllerHost> >& aControllerResult);
+  void GetControllers(nsTArray<RefPtr<VRControllerHost>>& aControllerResult);
 
-protected:
+ protected:
   virtual ~VRDisplayGVR();
   void UpdateHeadToEye(gvr_context* aContext);
   void UpdateViewport();
@@ -95,12 +93,10 @@ protected:
   RefPtr<VRControllerGVR> mController;
 };
 
+}  // namespace impl
 
-} // namespace impl
-
-class VRSystemManagerGVR : public VRSystemManager
-{
-public:
+class VRSystemManagerGVR : public VRSystemManager {
+ public:
   static already_AddRefed<VRSystemManagerGVR> Create();
 
   void Destroy() override;
@@ -110,27 +106,24 @@ public:
   void GetHMDs(nsTArray<RefPtr<VRDisplayHost>>& aHMDResult) override;
   bool GetIsPresenting() override;
   void HandleInput() override;
-  void GetControllers(nsTArray<RefPtr<VRControllerHost>>&
-                      aControllerResult) override;
+  void GetControllers(
+      nsTArray<RefPtr<VRControllerHost>>& aControllerResult) override;
   void ScanForControllers() override;
   void RemoveControllers() override;
-  void VibrateHaptic(uint32_t aControllerIdx,
-                     uint32_t aHapticIndex,
-                     double aIntensity,
-                     double aDuration,
+  void VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
+                     double aIntensity, double aDuration,
                      const VRManagerPromise& aPromise) override;
   void StopVibrateHaptic(uint32_t aControllerIdx) override;
 
-protected:
+ protected:
   VRSystemManagerGVR();
   virtual ~VRSystemManagerGVR();
 
-private:
+ private:
   RefPtr<impl::VRDisplayGVR> mGVRHMD;
 };
 
-} // namespace gfx
-} // namespace mozilla
-
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* GFX_VR_GVR_H */

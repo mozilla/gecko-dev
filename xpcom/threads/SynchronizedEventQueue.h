@@ -30,9 +30,8 @@ namespace mozilla {
 // different synchronized queue on the main thread, SchedulerEventQueue, which
 // will handle the cooperative threading model.
 
-class ThreadTargetSink
-{
-public:
+class ThreadTargetSink {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ThreadTargetSink)
 
   virtual bool PutEvent(already_AddRefed<nsIRunnable>&& aEvent,
@@ -41,13 +40,12 @@ public:
   // After this method is called, no more events can be posted.
   virtual void Disconnect(const MutexAutoLock& aProofOfLock) = 0;
 
-protected:
+ protected:
   virtual ~ThreadTargetSink() {}
 };
 
-class SynchronizedEventQueue : public ThreadTargetSink
-{
-public:
+class SynchronizedEventQueue : public ThreadTargetSink {
+ public:
   virtual already_AddRefed<nsIRunnable> GetEvent(bool aMayWait,
                                                  EventPriority* aPriority) = 0;
   virtual bool HasPendingEvent() = 0;
@@ -75,13 +73,13 @@ public:
   virtual void SuspendInputEventPrioritization() = 0;
   virtual void ResumeInputEventPrioritization() = 0;
 
-protected:
+ protected:
   virtual ~SynchronizedEventQueue() {}
 
-private:
+ private:
   nsTObserverArray<nsCOMPtr<nsIThreadObserver>> mEventObservers;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_SynchronizedEventQueue_h
+#endif  // mozilla_SynchronizedEventQueue_h

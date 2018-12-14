@@ -33,20 +33,17 @@ namespace dom {
 //     directly. We may want to determine in the future whether the
 //     above is correct.
 
-class MediaList : public nsISupports
-                , public nsWrapperCache
-{
-public:
+class MediaList : public nsISupports, public nsWrapperCache {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(MediaList)
 
   /**
    * Creates a MediaList backed by the given StyleBackendType.
    */
-  static already_AddRefed<MediaList> Create(StyleBackendType,
-                                            const nsAString& aMedia,
-                                            CallerType aCallerType =
-                                              CallerType::NonSystem);
+  static already_AddRefed<MediaList> Create(
+      StyleBackendType, const nsAString& aMedia,
+      CallerType aCallerType = CallerType::NonSystem);
 
   virtual already_AddRefed<MediaList> Clone() = 0;
 
@@ -73,7 +70,7 @@ public:
   void DeleteMedium(const nsAString& aMedium, ErrorResult& aRv);
   void AppendMedium(const nsAString& aMedium, ErrorResult& aRv);
 
-protected:
+ protected:
   virtual nsresult Delete(const nsAString& aOldMedium) = 0;
   virtual nsresult Append(const nsAString& aNewMedium) = 0;
 
@@ -86,12 +83,12 @@ protected:
   // medialist changes
   StyleSheet* mStyleSheet = nullptr;
 
-private:
-  template<typename Func>
+ private:
+  template <typename Func>
   inline nsresult DoMediaChange(Func aCallback);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_MediaList_h
+#endif  // mozilla_dom_MediaList_h

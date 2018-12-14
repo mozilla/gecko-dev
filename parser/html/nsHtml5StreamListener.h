@@ -18,9 +18,9 @@
  * so nsHtml5StreamParser being an nsIThreadRetargetableStreamListener was
  * a memory corruption problem.
  *
- * mDelegate is an nsHtml5StreamParserPtr, which releases the object that it points
- * to from a runnable on the main thread. DropDelegate() is only called on
- * the main thread. This call will finish before the main-thread derefs the
+ * mDelegate is an nsHtml5StreamParserPtr, which releases the object that it
+ * points to from a runnable on the main thread. DropDelegate() is only called
+ * on the main thread. This call will finish before the main-thread derefs the
  * nsHtml5StreamListener itself, so there is no risk of another thread making
  * the refcount of nsHtml5StreamListener go to zero and running the destructor
  * concurrently. Other than that, the thread-safe nsISupports implementation
@@ -29,9 +29,8 @@
  * prevent it from double-releasing nsHtml5StreamParser.
  */
 class nsHtml5StreamListener : public nsIStreamListener,
-                              public nsIThreadRetargetableStreamListener
-{
-public:
+                              public nsIThreadRetargetableStreamListener {
+ public:
   explicit nsHtml5StreamListener(nsHtml5StreamParser* aDelegate);
 
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -39,17 +38,14 @@ public:
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
-  inline nsHtml5StreamParser* GetDelegate()
-  {
-    return mDelegate;
-  }
+  inline nsHtml5StreamParser* GetDelegate() { return mDelegate; }
 
   void DropDelegate();
 
-private:
+ private:
   virtual ~nsHtml5StreamListener();
 
   nsHtml5StreamParserPtr mDelegate;
 };
 
-#endif // nsHtml5StreamListener_h
+#endif  // nsHtml5StreamListener_h

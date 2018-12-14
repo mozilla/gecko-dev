@@ -15,16 +15,15 @@ namespace mozilla {
 namespace dom {
 
 MIDIInput::MIDIInput(nsPIDOMWindowInner* aWindow, MIDIAccess* aMIDIAccessParent)
-  : MIDIPort(aWindow, aMIDIAccessParent)
-{
-}
+    : MIDIPort(aWindow, aMIDIAccessParent) {}
 
-//static
-MIDIInput*
-MIDIInput::Create(nsPIDOMWindowInner* aWindow, MIDIAccess* aMIDIAccessParent,
-                  const MIDIPortInfo& aPortInfo, const bool aSysexEnabled)
-{
-  MOZ_ASSERT(static_cast<MIDIPortType>(aPortInfo.type()) == MIDIPortType::Input);
+// static
+MIDIInput* MIDIInput::Create(nsPIDOMWindowInner* aWindow,
+                             MIDIAccess* aMIDIAccessParent,
+                             const MIDIPortInfo& aPortInfo,
+                             const bool aSysexEnabled) {
+  MOZ_ASSERT(static_cast<MIDIPortType>(aPortInfo.type()) ==
+             MIDIPortType::Input);
   auto port = new MIDIInput(aWindow, aMIDIAccessParent);
   if (!port->Initialize(aPortInfo, aSysexEnabled)) {
     return nullptr;
@@ -32,39 +31,32 @@ MIDIInput::Create(nsPIDOMWindowInner* aWindow, MIDIAccess* aMIDIAccessParent,
   return port;
 }
 
-JSObject*
-MIDIInput::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* MIDIInput::WrapObject(JSContext* aCx,
+                                JS::Handle<JSObject*> aGivenProto) {
   return MIDIInputBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-MIDIInput::Receive(const nsTArray<MIDIMessage>& aMsgs)
-{
+void MIDIInput::Receive(const nsTArray<MIDIMessage>& aMsgs) {
   nsCOMPtr<nsIDocument> doc = GetOwner()->GetDoc();
   if (!doc) {
     NS_WARNING("No document available to send MIDIMessageEvent to!");
     return;
   }
-  for (auto& msg:aMsgs) {
+  for (auto& msg : aMsgs) {
     RefPtr<MIDIMessageEvent> event(
-      MIDIMessageEvent::Constructor(this, msg.timestamp(), msg.data()));
+        MIDIMessageEvent::Constructor(this, msg.timestamp(), msg.data()));
     DispatchTrustedEvent(event);
   }
 }
 
-EventHandlerNonNull*
-MIDIInput::GetOnmidimessage()
-{
+EventHandlerNonNull* MIDIInput::GetOnmidimessage() {
   if (NS_IsMainThread()) {
     return GetEventHandler(nsGkAtoms::onmidimessage, EmptyString());
   }
   return GetEventHandler(nullptr, NS_LITERAL_STRING("midimessage"));
 }
 
-void
-MIDIInput::SetOnmidimessage(EventHandlerNonNull* aCallback)
-{
+void MIDIInput::SetOnmidimessage(EventHandlerNonNull* aCallback) {
   if (NS_IsMainThread()) {
     SetEventHandler(nsGkAtoms::onmidimessage, EmptyString(), aCallback);
   } else {
@@ -75,6 +67,5 @@ MIDIInput::SetOnmidimessage(EventHandlerNonNull* aCallback)
   }
 }
 
-
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

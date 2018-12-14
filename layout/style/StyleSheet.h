@@ -34,29 +34,25 @@ class CSSImportRule;
 class CSSRuleList;
 class MediaList;
 class SRIMetadata;
-} // namespace dom
+}  // namespace dom
 
 namespace css {
 class GroupRule;
 class Rule;
-}
+}  // namespace css
 
 /**
  * Superclass for data common to CSSStyleSheet and ServoStyleSheet.
  */
-class StyleSheet : public nsICSSLoaderObserver
-                 , public nsWrapperCache
-{
-protected:
+class StyleSheet : public nsICSSLoaderObserver, public nsWrapperCache {
+ protected:
   StyleSheet(StyleBackendType aType, css::SheetParsingMode aParsingMode);
-  StyleSheet(const StyleSheet& aCopy,
-             StyleSheet* aParentToUse,
-             dom::CSSImportRule* aOwnerRuleToUse,
-             nsIDocument* aDocumentToUse,
+  StyleSheet(const StyleSheet& aCopy, StyleSheet* aParentToUse,
+             dom::CSSImportRule* aOwnerRuleToUse, nsIDocument* aDocumentToUse,
              nsINode* aOwningNodeToUse);
   virtual ~StyleSheet();
 
-public:
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(StyleSheet)
 
@@ -75,10 +71,7 @@ public:
     RuleChanged,
   };
 
-  void SetOwningNode(nsINode* aOwningNode)
-  {
-    mOwningNode = aOwningNode;
-  }
+  void SetOwningNode(nsINode* aOwningNode) { mOwningNode = aOwningNode; }
 
   css::SheetParsingMode ParsingMode() const { return mParsingMode; }
   mozilla::dom::CSSStyleSheetParsingMode ParsingModeDOM();
@@ -127,25 +120,17 @@ public:
   inline bool IsApplicable() const;
   inline bool HasRules() const;
 
-  virtual already_AddRefed<StyleSheet> Clone(StyleSheet* aCloneParent,
-                                             dom::CSSImportRule* aCloneOwnerRule,
-                                             nsIDocument* aCloneDocument,
-                                             nsINode* aCloneOwningNode) const = 0;
+  virtual already_AddRefed<StyleSheet> Clone(
+      StyleSheet* aCloneParent, dom::CSSImportRule* aCloneOwnerRule,
+      nsIDocument* aCloneDocument, nsINode* aCloneOwningNode) const = 0;
 
-  bool HasForcedUniqueInner() const
-  {
+  bool HasForcedUniqueInner() const {
     return mDirtyFlags & FORCED_UNIQUE_INNER;
   }
 
-  bool HasModifiedRules() const
-  {
-    return mDirtyFlags & MODIFIED_RULES;
-  }
+  bool HasModifiedRules() const { return mDirtyFlags & MODIFIED_RULES; }
 
-  void ClearModifiedRules()
-  {
-    mDirtyFlags &= ~MODIFIED_RULES;
-  }
+  void ClearModifiedRules() { mDirtyFlags &= ~MODIFIED_RULES; }
 
   inline bool HasUniqueInner() const;
   void EnsureUniqueInner();
@@ -237,16 +222,13 @@ public:
   dom::CSSRuleList* GetCssRules(nsIPrincipal& aSubjectPrincipal,
                                 ErrorResult& aRv);
   uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
-                      nsIPrincipal& aSubjectPrincipal,
-                      ErrorResult& aRv);
-  void DeleteRule(uint32_t aIndex,
-                  nsIPrincipal& aSubjectPrincipal,
+                      nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
+  void DeleteRule(uint32_t aIndex, nsIPrincipal& aSubjectPrincipal,
                   ErrorResult& aRv);
 
   // WebIDL miscellaneous bits
   inline dom::ParentObject GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
-                       JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   // Changes to sheets should be inside of a WillDirty-DidDirty pair.
   // However, the calls do not need to be matched; it's ok to call
@@ -264,20 +246,20 @@ public:
   void DropStyleSet(const StyleSetHandle& aStyleSet);
 
   nsresult DeleteRuleFromGroup(css::GroupRule* aGroup, uint32_t aIndex);
-  nsresult InsertRuleIntoGroup(const nsAString& aRule,
-                               css::GroupRule* aGroup, uint32_t aIndex);
+  nsresult InsertRuleIntoGroup(const nsAString& aRule, css::GroupRule* aGroup,
+                               uint32_t aIndex);
 
   // Find the ID of the owner inner window.
   uint64_t FindOwningWindowInnerID() const;
 
-  template<typename Func>
+  template <typename Func>
   void EnumerateChildSheets(Func aCallback) {
     for (StyleSheet* child = GetFirstChild(); child; child = child->mNext) {
       aCallback(child);
     }
   }
 
-private:
+ private:
   // Get a handle to the various stylesheet bits which live on the 'inner' for
   // gecko stylesheets and live on the StyleSheet for Servo stylesheets.
   inline StyleSheetInfo& SheetInfo();
@@ -287,10 +269,9 @@ private:
   // It does the security check as well as whether the rules have been
   // completely loaded. aRv will have an exception set if this function
   // returns false.
-  bool AreRulesAvailable(nsIPrincipal& aSubjectPrincipal,
-                         ErrorResult& aRv);
+  bool AreRulesAvailable(nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
 
-protected:
+ protected:
   // Called when a rule is removed from the sheet from CSSOM.
   void RuleAdded(css::Rule&);
 
@@ -327,17 +308,17 @@ protected:
   // Unlink our inner, if needed, for cycle collection
   virtual void UnlinkInner();
   // Traverse our inner, if needed, for cycle collection
-  virtual void TraverseInner(nsCycleCollectionTraversalCallback &);
+  virtual void TraverseInner(nsCycleCollectionTraversalCallback&);
 
   // Return whether the given @import rule has pending child sheet.
   static bool RuleHasPendingChildSheet(css::Rule* aRule);
 
-  StyleSheet*           mParent;    // weak ref
+  StyleSheet* mParent;  // weak ref
 
-  nsString              mTitle;
-  nsIDocument*          mDocument; // weak ref; parents maintain this for their children
-  nsINode*              mOwningNode; // weak ref
-  dom::CSSImportRule*   mOwnerRule; // weak ref
+  nsString mTitle;
+  nsIDocument* mDocument;  // weak ref; parents maintain this for their children
+  nsINode* mOwningNode;    // weak ref
+  dom::CSSImportRule* mOwnerRule;  // weak ref
 
   RefPtr<dom::MediaList> mMedia;
 
@@ -349,13 +330,13 @@ protected:
   css::SheetParsingMode mParsingMode;
 
   const StyleBackendType mType;
-  bool                  mDisabled;
+  bool mDisabled;
 
   enum dirtyFlagAttributes {
     FORCED_UNIQUE_INNER = 0x1,
     MODIFIED_RULES = 0x2,
   };
-  uint8_t mDirtyFlags; // has been modified
+  uint8_t mDirtyFlags;  // has been modified
 
   // mDocumentAssociationMode determines whether mDocument directly owns us (in
   // the sense that if it's known-live then we're known-live).  Always
@@ -382,6 +363,6 @@ protected:
   friend struct mozilla::CSSStyleSheetInner;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_StyleSheet_h
+#endif  // mozilla_StyleSheet_h

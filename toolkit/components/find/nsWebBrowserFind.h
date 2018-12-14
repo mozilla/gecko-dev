@@ -18,8 +18,12 @@
 
 #define NS_WEB_BROWSER_FIND_CONTRACTID "@mozilla.org/embedcomp/find;1"
 
-#define NS_WEB_BROWSER_FIND_CID \
-  {0x57cf9383, 0x3405, 0x11d5, {0xbe, 0x5b, 0xaa, 0x20, 0xfa, 0x2c, 0xf3, 0x7c}}
+#define NS_WEB_BROWSER_FIND_CID                      \
+  {                                                  \
+    0x57cf9383, 0x3405, 0x11d5, {                    \
+      0xbe, 0x5b, 0xaa, 0x20, 0xfa, 0x2c, 0xf3, 0x7c \
+    }                                                \
+  }
 
 class nsISelection;
 class nsIDOMWindow;
@@ -30,11 +34,9 @@ class nsIDocShell;
 // class nsWebBrowserFind
 //*****************************************************************************
 
-class nsWebBrowserFind
-  : public nsIWebBrowserFind
-  , public nsIWebBrowserFindInFrames
-{
-public:
+class nsWebBrowserFind : public nsIWebBrowserFind,
+                         public nsIWebBrowserFindInFrames {
+ public:
   nsWebBrowserFind();
 
   // nsISupports
@@ -46,7 +48,7 @@ public:
   // nsIWebBrowserFindInFrames
   NS_DECL_NSIWEBBROWSERFINDINFRAMES
 
-protected:
+ protected:
   virtual ~nsWebBrowserFind();
 
   bool CanFindNext() { return mSearchString.Length() != 0; }
@@ -65,16 +67,14 @@ protected:
   void SetSelectionAndScroll(nsPIDOMWindowOuter* aWindow, nsIDOMRange* aRange);
 
   nsresult GetRootNode(nsIDOMDocument* aDomDoc, nsIDOMNode** aNode);
-  nsresult GetSearchLimits(nsIDOMRange* aRange,
-                           nsIDOMRange* aStartPt, nsIDOMRange* aEndPt,
-                           nsIDOMDocument* aDoc, nsISelection* aSel,
-                           bool aWrap);
+  nsresult GetSearchLimits(nsIDOMRange* aRange, nsIDOMRange* aStartPt,
+                           nsIDOMRange* aEndPt, nsIDOMDocument* aDoc,
+                           nsISelection* aSel, bool aWrap);
   nsresult SetRangeAroundDocument(nsIDOMRange* aSearchRange,
                                   nsIDOMRange* aStartPoint,
-                                  nsIDOMRange* aEndPoint,
-                                  nsIDOMDocument* aDoc);
+                                  nsIDOMRange* aEndPoint, nsIDOMDocument* aDoc);
 
-protected:
+ protected:
   nsString mSearchString;
 
   bool mFindBackwards;

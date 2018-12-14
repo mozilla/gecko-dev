@@ -30,17 +30,19 @@ namespace js {
 #define JS_HAS_PROTECTED_DATA_CHECKS
 #endif
 
-#define DECLARE_ONE_BOOL_OPERATOR(OP, T)        \
-    template <typename U>                       \
-    bool operator OP(const U& other) const { return ref() OP static_cast<T>(other); }
+#define DECLARE_ONE_BOOL_OPERATOR(OP, T)   \
+  template <typename U>                    \
+  bool operator OP(const U& other) const { \
+    return ref() OP static_cast<T>(other); \
+  }
 
-#define DECLARE_BOOL_OPERATORS(T)               \
-    DECLARE_ONE_BOOL_OPERATOR(==, T)            \
-    DECLARE_ONE_BOOL_OPERATOR(!=, T)            \
-    DECLARE_ONE_BOOL_OPERATOR(<=, T)            \
-    DECLARE_ONE_BOOL_OPERATOR(>=, T)            \
-    DECLARE_ONE_BOOL_OPERATOR(<, T)             \
-    DECLARE_ONE_BOOL_OPERATOR(>, T)
+#define DECLARE_BOOL_OPERATORS(T)  \
+  DECLARE_ONE_BOOL_OPERATOR(==, T) \
+  DECLARE_ONE_BOOL_OPERATOR(!=, T) \
+  DECLARE_ONE_BOOL_OPERATOR(<=, T) \
+  DECLARE_ONE_BOOL_OPERATOR(>=, T) \
+  DECLARE_ONE_BOOL_OPERATOR(<, T)  \
+  DECLARE_ONE_BOOL_OPERATOR(>, T)
 
 // Mark a region of code that should be treated as single threaded and suppress
 // any ProtectedData checks.
@@ -48,118 +50,141 @@ namespace js {
 // Note that in practice there may be multiple threads running when this class
 // is used, due to the presence of multiple runtimes in the process. When each
 // process has only a single runtime this will no longer be a concern.
-class MOZ_RAII AutoNoteSingleThreadedRegion
-{
-  public:
+class MOZ_RAII AutoNoteSingleThreadedRegion {
+ public:
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-    static mozilla::Atomic<size_t> count;
-    AutoNoteSingleThreadedRegion() { count++; }
-    ~AutoNoteSingleThreadedRegion() { count--; }
+  static mozilla::Atomic<size_t> count;
+  AutoNoteSingleThreadedRegion() { count++; }
+  ~AutoNoteSingleThreadedRegion() { count--; }
 #else
-    AutoNoteSingleThreadedRegion() {}
+  AutoNoteSingleThreadedRegion() {}
 #endif
 };
 
 // Class for protected data that may be written to any number of times. Checks
 // occur when the data is both read from and written to.
 template <typename Check, typename T>
-class ProtectedData
-{
-    typedef ProtectedData<Check, T> ThisType;
+class ProtectedData {
+  typedef ProtectedData<Check, T> ThisType;
 
-  public:
-    template <typename... Args>
-    explicit ProtectedData(const Check& check, Args&&... args)
+ public:
+  template <typename... Args>
+  explicit ProtectedData(const Check& check, Args&&... args)
       : value(mozilla::Forward<Args>(args)...)
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-      , check(check)
+        ,
+        check(check)
 #endif
-    {}
+  {
+  }
 
-    DECLARE_BOOL_OPERATORS(T)
+  DECLARE_BOOL_OPERATORS(T)
 
-    operator const T&() const { return ref(); }
-    const T& operator->() const { return ref(); }
+  operator const T&() const { return ref(); }
+  const T& operator->() const { return ref(); }
 
-    template <typename U>
-    ThisType& operator=(const U& p) { this->ref() = p; return *this; }
+  template <typename U>
+  ThisType& operator=(const U& p) {
+    this->ref() = p;
+    return *this;
+  }
 
-    template <typename U> T& operator +=(const U& rhs) { return ref() += rhs; }
-    template <typename U> T& operator -=(const U& rhs) { return ref() -= rhs; }
-    template <typename U> T& operator *=(const U& rhs) { return ref() *= rhs; }
-    template <typename U> T& operator /=(const U& rhs) { return ref() /= rhs; }
-    template <typename U> T& operator &=(const U& rhs) { return ref() &= rhs; }
-    template <typename U> T& operator |=(const U& rhs) { return ref() |= rhs; }
-    T& operator ++() { return ++ref(); }
-    T& operator --() { return --ref(); }
-    T operator ++(int) { return ref()++; }
-    T operator --(int) { return ref()--; }
+  template <typename U>
+  T& operator+=(const U& rhs) {
+    return ref() += rhs;
+  }
+  template <typename U>
+  T& operator-=(const U& rhs) {
+    return ref() -= rhs;
+  }
+  template <typename U>
+  T& operator*=(const U& rhs) {
+    return ref() *= rhs;
+  }
+  template <typename U>
+  T& operator/=(const U& rhs) {
+    return ref() /= rhs;
+  }
+  template <typename U>
+  T& operator&=(const U& rhs) {
+    return ref() &= rhs;
+  }
+  template <typename U>
+  T& operator|=(const U& rhs) {
+    return ref() |= rhs;
+  }
+  T& operator++() { return ++ref(); }
+  T& operator--() { return --ref(); }
+  T operator++(int) { return ref()++; }
+  T operator--(int) { return ref()--; }
 
-    T& ref() {
+  T& ref() {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-        if (!AutoNoteSingleThreadedRegion::count)
-            check.check();
+    if (!AutoNoteSingleThreadedRegion::count) check.check();
 #endif
-        return value;
-    }
+    return value;
+  }
 
-    const T& ref() const {
+  const T& ref() const {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-        if (!AutoNoteSingleThreadedRegion::count)
-            check.check();
+    if (!AutoNoteSingleThreadedRegion::count) check.check();
 #endif
-        return value;
-    }
+    return value;
+  }
 
-    T& refNoCheck() { return value; }
-    const T& refNoCheck() const { return value; }
+  T& refNoCheck() { return value; }
+  const T& refNoCheck() const { return value; }
 
-  private:
-    T value;
+ private:
+  T value;
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-    Check check;
+  Check check;
 #endif
 };
 
-// Intermediate class for protected data whose checks take no constructor arguments.
+// Intermediate class for protected data whose checks take no constructor
+// arguments.
 template <typename Check, typename T>
-class ProtectedDataNoCheckArgs : public ProtectedData<Check, T>
-{
-    typedef ProtectedDataNoCheckArgs<Check, T> ThisType;
+class ProtectedDataNoCheckArgs : public ProtectedData<Check, T> {
+  typedef ProtectedDataNoCheckArgs<Check, T> ThisType;
 
-  public:
-    template <typename... Args>
-    explicit ProtectedDataNoCheckArgs(Args&&... args)
-      : ProtectedData<Check, T>(Check(), mozilla::Forward<Args>(args)...)
-    {}
+ public:
+  template <typename... Args>
+  explicit ProtectedDataNoCheckArgs(Args&&... args)
+      : ProtectedData<Check, T>(Check(), mozilla::Forward<Args>(args)...) {}
 
-    template <typename U>
-    ThisType& operator=(const U& p) { this->ref() = p; return *this; }
+  template <typename U>
+  ThisType& operator=(const U& p) {
+    this->ref() = p;
+    return *this;
+  }
 };
 
 class ZoneGroup;
 
-// Intermediate class for protected data whose checks take a ZoneGroup constructor argument.
+// Intermediate class for protected data whose checks take a ZoneGroup
+// constructor argument.
 template <typename Check, typename T>
-class ProtectedDataZoneGroupArg : public ProtectedData<Check, T>
-{
-    typedef ProtectedDataZoneGroupArg<Check, T> ThisType;
+class ProtectedDataZoneGroupArg : public ProtectedData<Check, T> {
+  typedef ProtectedDataZoneGroupArg<Check, T> ThisType;
 
-  public:
-    template <typename... Args>
-    explicit ProtectedDataZoneGroupArg(ZoneGroup* group, Args&&... args)
-      : ProtectedData<Check, T>(Check(group), mozilla::Forward<Args>(args)...)
-    {}
+ public:
+  template <typename... Args>
+  explicit ProtectedDataZoneGroupArg(ZoneGroup* group, Args&&... args)
+      : ProtectedData<Check, T>(Check(group), mozilla::Forward<Args>(args)...) {
+  }
 
-    template <typename U>
-    ThisType& operator=(const U& p) { this->ref() = p; return *this; }
+  template <typename U>
+  ThisType& operator=(const U& p) {
+    this->ref() = p;
+    return *this;
+  }
 };
 
-class CheckUnprotected
-{
+class CheckUnprotected {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-  public:
-    inline void check() const {}
+ public:
+  inline void check() const {}
 #endif
 };
 
@@ -169,17 +194,14 @@ class CheckUnprotected
 template <typename T>
 using UnprotectedData = ProtectedDataNoCheckArgs<CheckUnprotected, T>;
 
-class CheckThreadLocal
-{
+class CheckThreadLocal {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-    Thread::Id id;
+  Thread::Id id;
 
-  public:
-    CheckThreadLocal()
-      : id(ThisThread::GetId())
-    {}
+ public:
+  CheckThreadLocal() : id(ThisThread::GetId()) {}
 
-    void check() const;
+  void check() const;
 #endif
 };
 
@@ -189,19 +211,12 @@ using ThreadLocalData = ProtectedDataNoCheckArgs<CheckThreadLocal, T>;
 
 // Enum describing which helper threads (GC tasks or Ion compilations) may
 // access data even though they do not have exclusive access to any zone group.
-enum class AllowedHelperThread
-{
-    None,
-    GCTask,
-    IonCompile,
-    GCTaskOrIonCompile
-};
+enum class AllowedHelperThread { None, GCTask, IonCompile, GCTaskOrIonCompile };
 
 template <AllowedHelperThread Helper>
-class CheckActiveThread
-{
-  public:
-    void check() const;
+class CheckActiveThread {
+ public:
+  void check() const;
 };
 
 // Data which may only be accessed by the runtime's cooperatively scheduled
@@ -217,20 +232,20 @@ using ActiveThreadOrGCTaskData =
     ProtectedDataNoCheckArgs<CheckActiveThread<AllowedHelperThread::GCTask>, T>;
 template <typename T>
 using ActiveThreadOrIonCompileData =
-    ProtectedDataNoCheckArgs<CheckActiveThread<AllowedHelperThread::IonCompile>, T>;
+    ProtectedDataNoCheckArgs<CheckActiveThread<AllowedHelperThread::IonCompile>,
+                             T>;
 
 template <AllowedHelperThread Helper>
-class CheckZoneGroup
-{
+class CheckZoneGroup {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-    ZoneGroup* group;
+  ZoneGroup* group;
 
-  public:
-    explicit CheckZoneGroup(ZoneGroup* group) : group(group) {}
-    void check() const;
+ public:
+  explicit CheckZoneGroup(ZoneGroup* group) : group(group) {}
+  void check() const;
 #else
-  public:
-    explicit CheckZoneGroup(ZoneGroup* group) {}
+ public:
+  explicit CheckZoneGroup(ZoneGroup* group) {}
 #endif
 };
 
@@ -248,55 +263,58 @@ using ZoneGroupOrGCTaskData =
     ProtectedDataZoneGroupArg<CheckZoneGroup<AllowedHelperThread::GCTask>, T>;
 template <typename T>
 using ZoneGroupOrIonCompileData =
-    ProtectedDataZoneGroupArg<CheckZoneGroup<AllowedHelperThread::IonCompile>, T>;
+    ProtectedDataZoneGroupArg<CheckZoneGroup<AllowedHelperThread::IonCompile>,
+                              T>;
 template <typename T>
-using ZoneGroupOrGCTaskOrIonCompileData =
-    ProtectedDataZoneGroupArg<CheckZoneGroup<AllowedHelperThread::GCTaskOrIonCompile>, T>;
+using ZoneGroupOrGCTaskOrIonCompileData = ProtectedDataZoneGroupArg<
+    CheckZoneGroup<AllowedHelperThread::GCTaskOrIonCompile>, T>;
 
 // Runtime wide locks which might protect some data.
-enum class GlobalLock
-{
-    GCLock,
-    ExclusiveAccessLock,
-    ScriptDataLock,
-    HelperThreadLock
+enum class GlobalLock {
+  GCLock,
+  ExclusiveAccessLock,
+  ScriptDataLock,
+  HelperThreadLock
 };
 
 template <GlobalLock Lock, AllowedHelperThread Helper>
-class CheckGlobalLock
-{
+class CheckGlobalLock {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-  public:
-    void check() const;
+ public:
+  void check() const;
 #endif
 };
 
 // Data which may only be accessed while holding the GC lock.
 template <typename T>
-using GCLockData =
-    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::GCLock, AllowedHelperThread::None>, T>;
+using GCLockData = ProtectedDataNoCheckArgs<
+    CheckGlobalLock<GlobalLock::GCLock, AllowedHelperThread::None>, T>;
 
 // Data which may only be accessed while holding the exclusive access lock.
 template <typename T>
-using ExclusiveAccessLockData =
-    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::ExclusiveAccessLock, AllowedHelperThread::None>, T>;
+using ExclusiveAccessLockData = ProtectedDataNoCheckArgs<
+    CheckGlobalLock<GlobalLock::ExclusiveAccessLock, AllowedHelperThread::None>,
+    T>;
 
 // Data which may only be accessed while holding the exclusive access lock or
 // by GC helper thread tasks (at which point a foreground thread should be
 // holding the exclusive access lock, though we do not check this).
 template <typename T>
 using ExclusiveAccessLockOrGCTaskData =
-    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::ExclusiveAccessLock, AllowedHelperThread::GCTask>, T>;
+    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::ExclusiveAccessLock,
+                                             AllowedHelperThread::GCTask>,
+                             T>;
 
 // Data which may only be accessed while holding the script data lock.
 template <typename T>
-using ScriptDataLockData =
-    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::ScriptDataLock, AllowedHelperThread::None>, T>;
+using ScriptDataLockData = ProtectedDataNoCheckArgs<
+    CheckGlobalLock<GlobalLock::ScriptDataLock, AllowedHelperThread::None>, T>;
 
 // Data which may only be accessed while holding the helper thread lock.
 template <typename T>
-using HelperThreadLockData =
-    ProtectedDataNoCheckArgs<CheckGlobalLock<GlobalLock::HelperThreadLock, AllowedHelperThread::None>, T>;
+using HelperThreadLockData = ProtectedDataNoCheckArgs<
+    CheckGlobalLock<GlobalLock::HelperThreadLock, AllowedHelperThread::None>,
+    T>;
 
 // Class for protected data that is only written to once. 'const' may sometimes
 // be usable instead of this class, but in cases where the data cannot be set
@@ -305,49 +323,48 @@ using HelperThreadLockData =
 // be taken to ensure that reads do not occur until the written value is fully
 // initialized, as such guarantees are not provided by this class.
 template <typename Check, typename T>
-class ProtectedDataWriteOnce
-{
-    typedef ProtectedDataWriteOnce<Check, T> ThisType;
+class ProtectedDataWriteOnce {
+  typedef ProtectedDataWriteOnce<Check, T> ThisType;
 
-  public:
-    template <typename... Args>
-    explicit ProtectedDataWriteOnce(Args&&... args)
+ public:
+  template <typename... Args>
+  explicit ProtectedDataWriteOnce(Args&&... args)
       : value(mozilla::Forward<Args>(args)...)
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-      , nwrites(0)
+        ,
+        nwrites(0)
 #endif
-    {}
+  {
+  }
 
-    DECLARE_BOOL_OPERATORS(T)
+  DECLARE_BOOL_OPERATORS(T)
 
-    operator const T&() const { return ref(); }
-    const T& operator->() const { return ref(); }
+  operator const T&() const { return ref(); }
+  const T& operator->() const { return ref(); }
 
-    template <typename U>
-    ThisType& operator=(const U& p) {
-        if (ref() != p)
-            this->writeRef() = p;
-        return *this;
-    }
+  template <typename U>
+  ThisType& operator=(const U& p) {
+    if (ref() != p) this->writeRef() = p;
+    return *this;
+  }
 
-    const T& ref() const { return value; }
+  const T& ref() const { return value; }
 
-    T& writeRef() {
+  T& writeRef() {
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-        if (!AutoNoteSingleThreadedRegion::count)
-            check.check();
-        // Despite the WriteOnce name, actually allow two writes to accommodate
-        // data that is cleared during teardown.
-        MOZ_ASSERT(++nwrites <= 2);
+    if (!AutoNoteSingleThreadedRegion::count) check.check();
+    // Despite the WriteOnce name, actually allow two writes to accommodate
+    // data that is cleared during teardown.
+    MOZ_ASSERT(++nwrites <= 2);
 #endif
-        return value;
-    }
+    return value;
+  }
 
-  private:
-    T value;
+ private:
+  T value;
 #ifdef JS_HAS_PROTECTED_DATA_CHECKS
-    Check check;
-    size_t nwrites;
+  Check check;
+  size_t nwrites;
 #endif
 };
 
@@ -358,13 +375,14 @@ using WriteOnceData = ProtectedDataWriteOnce<CheckUnprotected, T>;
 
 // Data that is written once, and only while holding the exclusive access lock.
 template <typename T>
-using ExclusiveAccessLockWriteOnceData =
-    ProtectedDataWriteOnce<CheckGlobalLock<GlobalLock::ExclusiveAccessLock, AllowedHelperThread::None>, T>;
+using ExclusiveAccessLockWriteOnceData = ProtectedDataWriteOnce<
+    CheckGlobalLock<GlobalLock::ExclusiveAccessLock, AllowedHelperThread::None>,
+    T>;
 
 #undef DECLARE_ASSIGNMENT_OPERATOR
 #undef DECLARE_ONE_BOOL_OPERATOR
 #undef DECLARE_BOOL_OPERATORS
 
-} // namespace js
+}  // namespace js
 
-#endif // threading_ProtectedData_h
+#endif  // threading_ProtectedData_h

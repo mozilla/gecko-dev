@@ -18,12 +18,10 @@ namespace mozilla {
 class Encoding;
 }
 
-class nsMozIconURI final
-  : public nsIMozIconURI
-  , public nsIIPCSerializableURI
-  , public nsINestedURI
-{
-public:
+class nsMozIconURI final : public nsIMozIconURI,
+                           public nsIIPCSerializableURI,
+                           public nsINestedURI {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURI
   NS_DECL_NSIMOZICONURI
@@ -33,22 +31,22 @@ public:
   // nsMozIconURI
   nsMozIconURI();
 
-protected:
+ protected:
   virtual ~nsMozIconURI();
-  nsCOMPtr<nsIURL> mIconURL; // a URL that we want the icon for
-  uint32_t mSize; // the # of pixels in a row that we want for this image.
-                  // Typically 16, 32, 128, etc.
-  nsCString mContentType; // optional field explicitly specifying the content
-                          // type
-  nsCString mFileName; // for if we don't have an actual file path, we're just
-                       // given a filename with an extension
+  nsCOMPtr<nsIURL> mIconURL;  // a URL that we want the icon for
+  uint32_t mSize;  // the # of pixels in a row that we want for this image.
+                   // Typically 16, 32, 128, etc.
+  nsCString mContentType;  // optional field explicitly specifying the content
+                           // type
+  nsCString mFileName;  // for if we don't have an actual file path, we're just
+                        // given a filename with an extension
   nsCString mStockIcon;
   int32_t mIconSize;   // -1 if not specified, otherwise index into
                        // kSizeStrings
   int32_t mIconState;  // -1 if not specified, otherwise index into
                        // kStateStrings
 
-private:
+ private:
   nsresult SetSpecInternal(const nsACString &input);
   nsresult SetScheme(const nsACString &input);
   nsresult SetUserPass(const nsACString &input);
@@ -61,35 +59,31 @@ private:
   nsresult SetRef(const nsACString &input);
   nsresult SetFilePath(const nsACString &input);
   nsresult SetQuery(const nsACString &input);
-  nsresult SetQueryWithEncoding(const nsACString &input, const mozilla::Encoding* encoding);
-  bool Deserialize(const mozilla::ipc::URIParams&);
+  nsresult SetQueryWithEncoding(const nsACString &input,
+                                const mozilla::Encoding *encoding);
+  bool Deserialize(const mozilla::ipc::URIParams &);
 
-public:
-  class Mutator final
-      : public nsIURIMutator
-      , public BaseURIMutator<nsMozIconURI>
-  {
+ public:
+  class Mutator final : public nsIURIMutator,
+                        public BaseURIMutator<nsMozIconURI> {
     NS_DECL_ISUPPORTS
     NS_FORWARD_SAFE_NSIURISETTERS_RET(mURI)
 
-    NS_IMETHOD Deserialize(const mozilla::ipc::URIParams& aParams) override
-    {
+    NS_IMETHOD Deserialize(const mozilla::ipc::URIParams &aParams) override {
       return InitFromIPCParams(aParams);
     }
 
-    NS_IMETHOD Read(nsIObjectInputStream* aStream) override
-    {
+    NS_IMETHOD Read(nsIObjectInputStream *aStream) override {
       return NS_ERROR_NOT_IMPLEMENTED;
     }
 
-    NS_IMETHOD Finalize(nsIURI** aURI) override
-    {
+    NS_IMETHOD Finalize(nsIURI **aURI) override {
       mURI.forget(aURI);
       return NS_OK;
     }
 
-    NS_IMETHOD SetSpec(const nsACString & aSpec, nsIURIMutator** aMutator) override
-    {
+    NS_IMETHOD SetSpec(const nsACString &aSpec,
+                       nsIURIMutator **aMutator) override {
       if (aMutator) {
         nsCOMPtr<nsIURIMutator> mutator = this;
         mutator.forget(aMutator);
@@ -97,9 +91,10 @@ public:
       return InitFromSpec(aSpec);
     }
 
-    explicit Mutator() { }
-  private:
-    virtual ~Mutator() { }
+    explicit Mutator() {}
+
+   private:
+    virtual ~Mutator() {}
 
     friend class nsMozIconURI;
   };
@@ -107,4 +102,4 @@ public:
   friend BaseURIMutator<nsMozIconURI>;
 };
 
-#endif // mozilla_image_decoders_icon_nsIconURI_h
+#endif  // mozilla_image_decoders_icon_nsIconURI_h

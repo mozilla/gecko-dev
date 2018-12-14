@@ -12,35 +12,30 @@ NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(Symbol)
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGSymbolElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGSymbolElement::WrapNode(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return SVGSymbolElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
 //----------------------------------------------------------------------
 // nsISupports methods
 
-NS_IMPL_ISUPPORTS_INHERITED(SVGSymbolElement, SVGSymbolElementBase,
-                            nsIDOMNode, nsIDOMElement,
-                            mozilla::dom::SVGTests)
+NS_IMPL_ISUPPORTS_INHERITED(SVGSymbolElement, SVGSymbolElementBase, nsIDOMNode,
+                            nsIDOMElement, mozilla::dom::SVGTests)
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGSymbolElement::SVGSymbolElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGSymbolElementBase(aNodeInfo)
-{
-}
+SVGSymbolElement::SVGSymbolElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : SVGSymbolElementBase(aNodeInfo) {}
 
-SVGSymbolElement::~SVGSymbolElement()
-{
-}
+SVGSymbolElement::~SVGSymbolElement() {}
 
 //----------------------------------------------------------------------
 // nsIDOMNode methods
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGSymbolElement)
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

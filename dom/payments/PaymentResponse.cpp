@@ -13,8 +13,8 @@
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(PaymentResponse, mOwner,
-                                      mShippingAddress, mPromise)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(PaymentResponse, mOwner, mShippingAddress,
+                                      mPromise)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(PaymentResponse)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(PaymentResponse)
@@ -24,58 +24,44 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PaymentResponse)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-PaymentResponse::PaymentResponse(nsPIDOMWindowInner* aWindow,
-                                 const nsAString& aInternalId,
-                                 const nsAString& aRequestId,
-                                 const nsAString& aMethodName,
-                                 const nsAString& aShippingOption,
-                                 RefPtr<PaymentAddress> aShippingAddress,
-                                 const nsAString& aDetails,
-                                 const nsAString& aPayerName,
-                                 const nsAString& aPayerEmail,
-                                 const nsAString& aPayerPhone)
-  : mOwner(aWindow)
-  , mCompleteCalled(false)
-  , mInternalId(aInternalId)
-  , mRequestId(aRequestId)
-  , mMethodName(aMethodName)
-  , mDetails(aDetails)
-  , mShippingOption(aShippingOption)
-  , mPayerName(aPayerName)
-  , mPayerEmail(aPayerEmail)
-  , mPayerPhone(aPayerPhone)
-  , mShippingAddress(aShippingAddress)
-{
-
+PaymentResponse::PaymentResponse(
+    nsPIDOMWindowInner* aWindow, const nsAString& aInternalId,
+    const nsAString& aRequestId, const nsAString& aMethodName,
+    const nsAString& aShippingOption, RefPtr<PaymentAddress> aShippingAddress,
+    const nsAString& aDetails, const nsAString& aPayerName,
+    const nsAString& aPayerEmail, const nsAString& aPayerPhone)
+    : mOwner(aWindow),
+      mCompleteCalled(false),
+      mInternalId(aInternalId),
+      mRequestId(aRequestId),
+      mMethodName(aMethodName),
+      mDetails(aDetails),
+      mShippingOption(aShippingOption),
+      mPayerName(aPayerName),
+      mPayerEmail(aPayerEmail),
+      mPayerPhone(aPayerPhone),
+      mShippingAddress(aShippingAddress) {
   // TODO: from https://github.com/w3c/browser-payment-api/issues/480
   // Add payerGivenName + payerFamilyName to PaymentAddress
 }
 
-PaymentResponse::~PaymentResponse()
-{
-}
+PaymentResponse::~PaymentResponse() {}
 
-JSObject*
-PaymentResponse::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* PaymentResponse::WrapObject(JSContext* aCx,
+                                      JS::Handle<JSObject*> aGivenProto) {
   return PaymentResponseBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-PaymentResponse::GetRequestId(nsString& aRetVal) const
-{
+void PaymentResponse::GetRequestId(nsString& aRetVal) const {
   aRetVal = mRequestId;
 }
 
-void
-PaymentResponse::GetMethodName(nsString& aRetVal) const
-{
+void PaymentResponse::GetMethodName(nsString& aRetVal) const {
   aRetVal = mMethodName;
 }
 
-void
-PaymentResponse::GetDetails(JSContext* aCx, JS::MutableHandle<JSObject*> aRetVal) const
-{
+void PaymentResponse::GetDetails(JSContext* aCx,
+                                 JS::MutableHandle<JSObject*> aRetVal) const {
   RefPtr<BasicCardService> service = BasicCardService::GetService();
   MOZ_ASSERT(service);
   if (!service->IsBasicCardPayment(mMethodName)) {
@@ -96,41 +82,32 @@ PaymentResponse::GetDetails(JSContext* aCx, JS::MutableHandle<JSObject*> aRetVal
   }
 }
 
-void
-PaymentResponse::GetShippingOption(nsString& aRetVal) const
-{
+void PaymentResponse::GetShippingOption(nsString& aRetVal) const {
   aRetVal = mShippingOption;
 }
 
-void
-PaymentResponse::GetPayerName(nsString& aRetVal) const
-{
+void PaymentResponse::GetPayerName(nsString& aRetVal) const {
   aRetVal = mPayerName;
 }
 
-void PaymentResponse::GetPayerEmail(nsString& aRetVal) const
-{
+void PaymentResponse::GetPayerEmail(nsString& aRetVal) const {
   aRetVal = mPayerEmail;
 }
 
-void PaymentResponse::GetPayerPhone(nsString& aRetVal) const
-{
+void PaymentResponse::GetPayerPhone(nsString& aRetVal) const {
   aRetVal = mPayerPhone;
 }
 
 // TODO:
 // Return a raw pointer here to avoid refcounting, but make sure it's safe
 // (the object should be kept alive by the callee).
-already_AddRefed<PaymentAddress>
-PaymentResponse::GetShippingAddress() const
-{
+already_AddRefed<PaymentAddress> PaymentResponse::GetShippingAddress() const {
   RefPtr<PaymentAddress> address = mShippingAddress;
   return address.forget();
 }
 
-already_AddRefed<Promise>
-PaymentResponse::Complete(PaymentComplete result, ErrorResult& aRv)
-{
+already_AddRefed<Promise> PaymentResponse::Complete(PaymentComplete result,
+                                                    ErrorResult& aRv) {
   if (mCompleteCalled) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
@@ -161,14 +138,12 @@ PaymentResponse::Complete(PaymentComplete result, ErrorResult& aRv)
   return promise.forget();
 }
 
-void
-PaymentResponse::RespondComplete()
-{
+void PaymentResponse::RespondComplete() {
   MOZ_ASSERT(mPromise);
 
   mPromise->MaybeResolve(JS::UndefinedHandleValue);
   mPromise = nullptr;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

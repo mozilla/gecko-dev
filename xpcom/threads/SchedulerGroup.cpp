@@ -25,56 +25,54 @@ using namespace mozilla;
 
 namespace {
 
-#define NS_DISPATCHEREVENTTARGET_IID \
-{ 0xbf4e36c8, 0x7d04, 0x4ef4, \
-  { 0xbb, 0xd8, 0x11, 0x09, 0x0a, 0xdb, 0x4d, 0xf7 } }
+#define NS_DISPATCHEREVENTTARGET_IID                 \
+  {                                                  \
+    0xbf4e36c8, 0x7d04, 0x4ef4, {                    \
+      0xbb, 0xd8, 0x11, 0x09, 0x0a, 0xdb, 0x4d, 0xf7 \
+    }                                                \
+  }
 
-class SchedulerEventTarget final : public nsISerialEventTarget
-{
+class SchedulerEventTarget final : public nsISerialEventTarget {
   RefPtr<SchedulerGroup> mDispatcher;
   TaskCategory mCategory;
 
-public:
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_DISPATCHEREVENTTARGET_IID)
 
   SchedulerEventTarget(SchedulerGroup* aDispatcher, TaskCategory aCategory)
-   : mDispatcher(aDispatcher)
-   , mCategory(aCategory)
-  {}
+      : mDispatcher(aDispatcher), mCategory(aCategory) {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIEVENTTARGET_FULL
 
   SchedulerGroup* Dispatcher() const { return mDispatcher; }
 
-private:
+ private:
   ~SchedulerEventTarget() {}
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(SchedulerEventTarget, NS_DISPATCHEREVENTTARGET_IID)
+NS_DEFINE_STATIC_IID_ACCESSOR(SchedulerEventTarget,
+                              NS_DISPATCHEREVENTTARGET_IID)
 
 static Atomic<uint64_t> gEarliestUnprocessedVsync(0);
 
 #ifdef EARLY_BETA_OR_EARLIER
-class MOZ_RAII AutoCollectVsyncTelemetry final
-{
-public:
-  explicit AutoCollectVsyncTelemetry(SchedulerGroup::Runnable* aRunnable
-                                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : mIsBackground(aRunnable->IsBackground())
-  {
+class MOZ_RAII AutoCollectVsyncTelemetry final {
+ public:
+  explicit AutoCollectVsyncTelemetry(
+      SchedulerGroup::Runnable* aRunnable MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mIsBackground(aRunnable->IsBackground()) {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     aRunnable->GetName(mKey);
     mStart = TimeStamp::Now();
   }
-  ~AutoCollectVsyncTelemetry()
-  {
+  ~AutoCollectVsyncTelemetry() {
     if (Telemetry::CanRecordBase()) {
       CollectTelemetry();
     }
   }
 
-private:
+ private:
   void CollectTelemetry();
 
   bool mIsBackground;
@@ -83,17 +81,15 @@ private:
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-void
-AutoCollectVsyncTelemetry::CollectTelemetry()
-{
+void AutoCollectVsyncTelemetry::CollectTelemetry() {
   TimeStamp now = TimeStamp::Now();
 
   mozilla::Telemetry::HistogramID eventsId =
-    mIsBackground ? Telemetry::CONTENT_JS_BACKGROUND_TICK_DELAY_EVENTS_MS
-                  : Telemetry::CONTENT_JS_FOREGROUND_TICK_DELAY_EVENTS_MS;
+      mIsBackground ? Telemetry::CONTENT_JS_BACKGROUND_TICK_DELAY_EVENTS_MS
+                    : Telemetry::CONTENT_JS_FOREGROUND_TICK_DELAY_EVENTS_MS;
   mozilla::Telemetry::HistogramID totalId =
-    mIsBackground ? Telemetry::CONTENT_JS_BACKGROUND_TICK_DELAY_TOTAL_MS
-                  : Telemetry::CONTENT_JS_FOREGROUND_TICK_DELAY_TOTAL_MS;
+      mIsBackground ? Telemetry::CONTENT_JS_BACKGROUND_TICK_DELAY_TOTAL_MS
+                    : Telemetry::CONTENT_JS_FOREGROUND_TICK_DELAY_TOTAL_MS;
 
   uint64_t lastSeenVsync = gEarliestUnprocessedVsync;
   if (!lastSeenVsync) {
@@ -107,14 +103,14 @@ AutoCollectVsyncTelemetry::CollectTelemetry()
   }
 
   TimeStamp pendingVsync =
-    creation + TimeDuration::FromMicroseconds(lastSeenVsync);
+      creation + TimeDuration::FromMicroseconds(lastSeenVsync);
 
   if (pendingVsync > now) {
     return;
   }
 
   uint32_t duration =
-    static_cast<uint32_t>((now - pendingVsync).ToMilliseconds());
+      static_cast<uint32_t>((now - pendingVsync).ToMilliseconds());
 
   Telemetry::Accumulate(eventsId, mKey, duration);
   Telemetry::Accumulate(totalId, duration);
@@ -127,22 +123,20 @@ AutoCollectVsyncTelemetry::CollectTelemetry()
 }
 #endif
 
-} // namespace
+}  // namespace
 
-NS_IMPL_ISUPPORTS(SchedulerEventTarget,
-                  SchedulerEventTarget,
-                  nsIEventTarget,
+NS_IMPL_ISUPPORTS(SchedulerEventTarget, SchedulerEventTarget, nsIEventTarget,
                   nsISerialEventTarget)
 
 NS_IMETHODIMP
-SchedulerEventTarget::DispatchFromScript(nsIRunnable* aRunnable, uint32_t aFlags)
-{
+SchedulerEventTarget::DispatchFromScript(nsIRunnable* aRunnable,
+                                         uint32_t aFlags) {
   return Dispatch(do_AddRef(aRunnable), aFlags);
 }
 
 NS_IMETHODIMP
-SchedulerEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable, uint32_t aFlags)
-{
+SchedulerEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
+                               uint32_t aFlags) {
   if (NS_WARN_IF(aFlags != NS_DISPATCH_NORMAL)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -150,28 +144,23 @@ SchedulerEventTarget::Dispatch(already_AddRefed<nsIRunnable> aRunnable, uint32_t
 }
 
 NS_IMETHODIMP
-SchedulerEventTarget::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t)
-{
+SchedulerEventTarget::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-SchedulerEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread)
-{
+SchedulerEventTarget::IsOnCurrentThread(bool* aIsOnCurrentThread) {
   *aIsOnCurrentThread = NS_IsMainThread();
   return NS_OK;
 }
 
 NS_IMETHODIMP_(bool)
-SchedulerEventTarget::IsOnCurrentThreadInfallible()
-{
+SchedulerEventTarget::IsOnCurrentThreadInfallible() {
   return NS_IsMainThread();
 }
 
-/* static */ nsresult
-SchedulerGroup::UnlabeledDispatch(TaskCategory aCategory,
-                                  already_AddRefed<nsIRunnable>&& aRunnable)
-{
+/* static */ nsresult SchedulerGroup::UnlabeledDispatch(
+    TaskCategory aCategory, already_AddRefed<nsIRunnable>&& aRunnable) {
   if (NS_IsMainThread()) {
     return NS_DispatchToCurrentThread(Move(aRunnable));
   } else {
@@ -179,9 +168,7 @@ SchedulerGroup::UnlabeledDispatch(TaskCategory aCategory,
   }
 }
 
-/* static */ void
-SchedulerGroup::MarkVsyncReceived()
-{
+/* static */ void SchedulerGroup::MarkVsyncReceived() {
   if (gEarliestUnprocessedVsync) {
     // If we've seen a vsync already, but haven't handled it, keep the
     // older one.
@@ -198,71 +185,58 @@ SchedulerGroup::MarkVsyncReceived()
   gEarliestUnprocessedVsync = (TimeStamp::Now() - creation).ToMicroseconds();
 }
 
-/* static */ void
-SchedulerGroup::MarkVsyncRan()
-{
+/* static */ void SchedulerGroup::MarkVsyncRan() {
   gEarliestUnprocessedVsync = 0;
 }
 
 MOZ_THREAD_LOCAL(bool) SchedulerGroup::sTlsValidatingAccess;
 
-SchedulerGroup::SchedulerGroup()
- : mIsRunning(false)
-{
+SchedulerGroup::SchedulerGroup() : mIsRunning(false) {
   if (NS_IsMainThread()) {
     sTlsValidatingAccess.infallibleInit();
   }
 }
 
-nsresult
-SchedulerGroup::DispatchWithDocGroup(TaskCategory aCategory,
-                                     already_AddRefed<nsIRunnable>&& aRunnable,
-                                     dom::DocGroup* aDocGroup)
-{
+nsresult SchedulerGroup::DispatchWithDocGroup(
+    TaskCategory aCategory, already_AddRefed<nsIRunnable>&& aRunnable,
+    dom::DocGroup* aDocGroup) {
   return LabeledDispatch(aCategory, Move(aRunnable), aDocGroup);
 }
 
-nsresult
-SchedulerGroup::Dispatch(TaskCategory aCategory,
-                         already_AddRefed<nsIRunnable>&& aRunnable)
-{
+nsresult SchedulerGroup::Dispatch(TaskCategory aCategory,
+                                  already_AddRefed<nsIRunnable>&& aRunnable) {
   return LabeledDispatch(aCategory, Move(aRunnable), nullptr);
 }
 
-nsISerialEventTarget*
-SchedulerGroup::EventTargetFor(TaskCategory aCategory) const
-{
+nsISerialEventTarget* SchedulerGroup::EventTargetFor(
+    TaskCategory aCategory) const {
   MOZ_ASSERT(aCategory != TaskCategory::Count);
   MOZ_ASSERT(mEventTargets[size_t(aCategory)]);
   return mEventTargets[size_t(aCategory)];
 }
 
-AbstractThread*
-SchedulerGroup::AbstractMainThreadFor(TaskCategory aCategory)
-{
+AbstractThread* SchedulerGroup::AbstractMainThreadFor(TaskCategory aCategory) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   return AbstractMainThreadForImpl(aCategory);
 }
 
-AbstractThread*
-SchedulerGroup::AbstractMainThreadForImpl(TaskCategory aCategory)
-{
+AbstractThread* SchedulerGroup::AbstractMainThreadForImpl(
+    TaskCategory aCategory) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aCategory != TaskCategory::Count);
   MOZ_ASSERT(mEventTargets[size_t(aCategory)]);
 
   if (!mAbstractThreads[size_t(aCategory)]) {
     mAbstractThreads[size_t(aCategory)] =
-      AbstractThread::CreateEventTargetWrapper(mEventTargets[size_t(aCategory)],
-                                               /* aDrainDirectTasks = */ true);
+        AbstractThread::CreateEventTargetWrapper(
+            mEventTargets[size_t(aCategory)],
+            /* aDrainDirectTasks = */ true);
   }
 
   return mAbstractThreads[size_t(aCategory)];
 }
 
-void
-SchedulerGroup::CreateEventTargets(bool aNeedValidation)
-{
+void SchedulerGroup::CreateEventTargets(bool aNeedValidation) {
   for (size_t i = 0; i < size_t(TaskCategory::Count); i++) {
     TaskCategory category = static_cast<TaskCategory>(i);
     if (!aNeedValidation) {
@@ -276,30 +250,27 @@ SchedulerGroup::CreateEventTargets(bool aNeedValidation)
   }
 }
 
-void
-SchedulerGroup::Shutdown(bool aXPCOMShutdown)
-{
+void SchedulerGroup::Shutdown(bool aXPCOMShutdown) {
   // There is a RefPtr cycle TabGroup -> SchedulerEventTarget -> TabGroup. To
   // avoid leaks, we need to break the chain somewhere. We shouldn't be using
   // the ThrottledEventQueue for this TabGroup when no windows belong to it,
   // so it's safe to null out the queue here.
   for (size_t i = 0; i < size_t(TaskCategory::Count); i++) {
-    mEventTargets[i] = aXPCOMShutdown ? nullptr : GetMainThreadSerialEventTarget();
+    mEventTargets[i] =
+        aXPCOMShutdown ? nullptr : GetMainThreadSerialEventTarget();
     mAbstractThreads[i] = nullptr;
   }
 }
 
-already_AddRefed<nsISerialEventTarget>
-SchedulerGroup::CreateEventTargetFor(TaskCategory aCategory)
-{
+already_AddRefed<nsISerialEventTarget> SchedulerGroup::CreateEventTargetFor(
+    TaskCategory aCategory) {
   RefPtr<SchedulerEventTarget> target =
-    new SchedulerEventTarget(this, aCategory);
+      new SchedulerEventTarget(this, aCategory);
   return target.forget();
 }
 
-/* static */ SchedulerGroup*
-SchedulerGroup::FromEventTarget(nsIEventTarget* aEventTarget)
-{
+/* static */ SchedulerGroup* SchedulerGroup::FromEventTarget(
+    nsIEventTarget* aEventTarget) {
   RefPtr<SchedulerEventTarget> target = do_QueryObject(aEventTarget);
   if (!target) {
     return nullptr;
@@ -307,23 +278,20 @@ SchedulerGroup::FromEventTarget(nsIEventTarget* aEventTarget)
   return target->Dispatcher();
 }
 
-nsresult
-SchedulerGroup::LabeledDispatch(TaskCategory aCategory,
-                                already_AddRefed<nsIRunnable>&& aRunnable,
-                                dom::DocGroup* aDocGroup)
-{
+nsresult SchedulerGroup::LabeledDispatch(
+    TaskCategory aCategory, already_AddRefed<nsIRunnable>&& aRunnable,
+    dom::DocGroup* aDocGroup) {
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
   if (XRE_IsContentProcess()) {
-    RefPtr<Runnable> internalRunnable = new Runnable(runnable.forget(), this, aDocGroup);
+    RefPtr<Runnable> internalRunnable =
+        new Runnable(runnable.forget(), this, aDocGroup);
     return InternalUnlabeledDispatch(aCategory, internalRunnable.forget());
   }
   return UnlabeledDispatch(aCategory, runnable.forget());
 }
 
-/*static*/ nsresult
-SchedulerGroup::InternalUnlabeledDispatch(TaskCategory aCategory,
-                                          already_AddRefed<Runnable>&& aRunnable)
-{
+/*static*/ nsresult SchedulerGroup::InternalUnlabeledDispatch(
+    TaskCategory aCategory, already_AddRefed<Runnable>&& aRunnable) {
   if (NS_IsMainThread()) {
     // NS_DispatchToCurrentThread will not leak the passed in runnable
     // when it fails, so we don't need to do anything special.
@@ -349,9 +317,7 @@ SchedulerGroup::InternalUnlabeledDispatch(TaskCategory aCategory,
   return rv;
 }
 
-/* static */ void
-SchedulerGroup::SetValidatingAccess(ValidationType aType)
-{
+/* static */ void SchedulerGroup::SetValidatingAccess(ValidationType aType) {
   bool validating = aType == StartValidation;
   sTlsValidatingAccess.set(validating);
 
@@ -363,30 +329,22 @@ SchedulerGroup::SetValidatingAccess(ValidationType aType)
 SchedulerGroup::Runnable::Runnable(already_AddRefed<nsIRunnable>&& aRunnable,
                                    SchedulerGroup* aGroup,
                                    dom::DocGroup* aDocGroup)
-  : mozilla::Runnable("SchedulerGroup::Runnable")
-  , mRunnable(Move(aRunnable))
-  , mGroup(aGroup)
-  , mDocGroup(aDocGroup)
-{
-}
+    : mozilla::Runnable("SchedulerGroup::Runnable"),
+      mRunnable(Move(aRunnable)),
+      mGroup(aGroup),
+      mDocGroup(aDocGroup) {}
 
-bool
-SchedulerGroup::Runnable::GetAffectedSchedulerGroups(SchedulerGroupSet& aGroups)
-{
+bool SchedulerGroup::Runnable::GetAffectedSchedulerGroups(
+    SchedulerGroupSet& aGroups) {
   aGroups.Clear();
   aGroups.Put(Group());
   return true;
 }
 
-dom::DocGroup*
-SchedulerGroup::Runnable::DocGroup() const
-{
-  return mDocGroup;
-}
+dom::DocGroup* SchedulerGroup::Runnable::DocGroup() const { return mDocGroup; }
 
 NS_IMETHODIMP
-SchedulerGroup::Runnable::GetName(nsACString& aName)
-{
+SchedulerGroup::Runnable::GetName(nsACString& aName) {
   // Try to get a name from the underlying runnable.
   nsCOMPtr<nsINamed> named = do_QueryInterface(mRunnable);
   if (named) {
@@ -400,8 +358,7 @@ SchedulerGroup::Runnable::GetName(nsACString& aName)
 }
 
 NS_IMETHODIMP
-SchedulerGroup::Runnable::Run()
-{
+SchedulerGroup::Runnable::Run() {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   nsresult result;
@@ -422,15 +379,12 @@ SchedulerGroup::Runnable::Run()
 }
 
 NS_IMETHODIMP
-SchedulerGroup::Runnable::GetPriority(uint32_t* aPriority)
-{
+SchedulerGroup::Runnable::GetPriority(uint32_t* aPriority) {
   *aPriority = nsIRunnablePriority::PRIORITY_NORMAL;
   nsCOMPtr<nsIRunnablePriority> runnablePrio = do_QueryInterface(mRunnable);
   return runnablePrio ? runnablePrio->GetPriority(aPriority) : NS_OK;
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(SchedulerGroup::Runnable,
-                            mozilla::Runnable,
-                            nsIRunnablePriority,
-                            nsILabelableRunnable,
+NS_IMPL_ISUPPORTS_INHERITED(SchedulerGroup::Runnable, mozilla::Runnable,
+                            nsIRunnablePriority, nsILabelableRunnable,
                             SchedulerGroup::Runnable)

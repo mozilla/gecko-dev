@@ -23,12 +23,9 @@ DDLoggedTypeDeclNameAndBase(H264Converter, MediaDataDecoder);
 // H264Converter will monitor the input data, and will delay creation of the
 // MediaDataDecoder until a SPS and PPS NALs have been extracted.
 
-class H264Converter
-  : public MediaDataDecoder
-  , public DecoderDoctorLifeLogger<H264Converter>
-{
-public:
-
+class H264Converter : public MediaDataDecoder,
+                      public DecoderDoctorLifeLogger<H264Converter> {
+ public:
   H264Converter(PlatformDecoderModule* aPDM,
                 const CreateDecoderParams& aParams);
   virtual ~H264Converter();
@@ -39,24 +36,21 @@ public:
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
   bool IsHardwareAccelerated(nsACString& aFailureReason) const override;
-  nsCString GetDescriptionName() const override
-  {
+  nsCString GetDescriptionName() const override {
     if (mDecoder) {
       return mDecoder->GetDescriptionName();
     }
     return NS_LITERAL_CSTRING("H264Converter decoder (pending)");
   }
   void SetSeekThreshold(const media::TimeUnit& aTime) override;
-  bool SupportDecoderRecycling() const override
-  {
+  bool SupportDecoderRecycling() const override {
     if (mDecoder) {
       return mDecoder->SupportDecoderRecycling();
     }
     return false;
   }
 
-  ConversionRequired NeedsConversion() const override
-  {
+  ConversionRequired NeedsConversion() const override {
     if (mDecoder) {
       return mDecoder->NeedsConversion();
     }
@@ -65,12 +59,12 @@ public:
   }
   MediaResult GetLastError() const { return mLastError; }
 
-private:
-  // Will create the required MediaDataDecoder if need AVCC and we have a SPS NAL.
-  // Returns NS_ERROR_FAILURE if error is permanent and can't be recovered and
-  // will set mError accordingly.
+ private:
+  // Will create the required MediaDataDecoder if need AVCC and we have a SPS
+  // NAL. Returns NS_ERROR_FAILURE if error is permanent and can't be recovered
+  // and will set mError accordingly.
   MediaResult CreateDecoder(const VideoInfo& aConfig,
-                         DecoderDoctorDiagnostics* aDiagnostics);
+                            DecoderDoctorDiagnostics* aDiagnostics);
   MediaResult CreateDecoderAndInit(MediaRawData* aSample);
   MediaResult CheckForSPSChange(MediaRawData* aSample);
   void UpdateConfigFromExtraData(MediaByteBuffer* aExtraData);
@@ -112,6 +106,6 @@ private:
   Maybe<bool> mCanRecycleDecoder;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_H264Converter_h
+#endif  // mozilla_H264Converter_h

@@ -16,9 +16,8 @@ namespace a11y {
 /**
  * Used for XUL menu, menuitem elements.
  */
-class XULMenuitemAccessible : public AccessibleWrap
-{
-public:
+class XULMenuitemAccessible : public AccessibleWrap {
+ public:
   enum { eAction_Click = 0 };
 
   XULMenuitemAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -42,7 +41,7 @@ public:
   virtual bool AreItemsOperable() const override;
   virtual Accessible* ContainerWidget() const override;
 
-protected:
+ protected:
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 };
@@ -50,9 +49,8 @@ protected:
 /**
  * Used for XUL menuseparator element.
  */
-class XULMenuSeparatorAccessible : public XULMenuitemAccessible
-{
-public:
+class XULMenuSeparatorAccessible : public XULMenuitemAccessible {
+ public:
   XULMenuSeparatorAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -64,18 +62,16 @@ public:
   virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
   virtual bool DoAction(uint8_t aIndex) override;
 
-protected:
+ protected:
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 };
 
-
 /**
  * Used for XUL menupopup and panel.
  */
-class XULMenupopupAccessible : public XULSelectControlAccessible
-{
-public:
+class XULMenupopupAccessible : public XULSelectControlAccessible {
+ public:
   XULMenupopupAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -89,7 +85,7 @@ public:
 
   virtual Accessible* ContainerWidget() const override;
 
-protected:
+ protected:
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 };
@@ -97,9 +93,8 @@ protected:
 /**
  * Used for XUL menubar element.
  */
-class XULMenubarAccessible : public AccessibleWrap
-{
-public:
+class XULMenubarAccessible : public AccessibleWrap {
+ public:
   XULMenubarAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -111,12 +106,12 @@ public:
   virtual Accessible* CurrentItem() override;
   virtual void SetCurrentItem(Accessible* aItem) override;
 
-protected:
+ protected:
   // Accessible
   virtual ENameValueFlag NativeName(nsString& aName) override;
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

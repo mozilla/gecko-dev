@@ -7,10 +7,10 @@
 #ifndef MOZILLA_LAYERS_COMPOSITABLETRANSACTIONPARENT_H
 #define MOZILLA_LAYERS_COMPOSITABLETRANSACTIONPARENT_H
 
-#include <vector>                       // for vector
-#include "mozilla/Attributes.h"         // for override
+#include <vector>                              // for vector
+#include "mozilla/Attributes.h"                // for override
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
-#include "mozilla/layers/LayersMessages.h"  // for EditReply, etc
+#include "mozilla/layers/LayersMessages.h"     // for EditReply, etc
 #include "mozilla/layers/TextureClient.h"
 #include "CompositableHost.h"
 
@@ -21,33 +21,30 @@ namespace layers {
 // the Manager() method usually generated when there's one manager protocol,
 // so both manager protocols implement this and we keep a reference to them
 // through this interface.
-class CompositableParentManager : public HostIPCAllocator
-{
-public:
+class CompositableParentManager : public HostIPCAllocator {
+ public:
   typedef InfallibleTArray<ReadLockInit> ReadLockArray;
 
   CompositableParentManager() {}
 
   void DestroyActor(const OpDestroy& aOp);
 
-  void UpdateFwdTransactionId(uint64_t aTransactionId)
-  {
+  void UpdateFwdTransactionId(uint64_t aTransactionId) {
     MOZ_ASSERT(mFwdTransactionId < aTransactionId);
     mFwdTransactionId = aTransactionId;
   }
 
   uint64_t GetFwdTransactionId() { return mFwdTransactionId; }
 
-  RefPtr<CompositableHost> AddCompositable(
-    const CompositableHandle& aHandle,
-    const TextureInfo& aInfo,
-    bool aUseWebRender);
+  RefPtr<CompositableHost> AddCompositable(const CompositableHandle& aHandle,
+                                           const TextureInfo& aInfo,
+                                           bool aUseWebRender);
   RefPtr<CompositableHost> FindCompositable(const CompositableHandle& aHandle);
 
   bool AddReadLocks(ReadLockArray&& aReadLocks);
   TextureReadLock* FindReadLock(const ReadLockHandle& aLockHandle);
 
-protected:
+ protected:
   /**
    * Handle the IPDL messages that affect PCompositable actors.
    */
@@ -62,24 +59,21 @@ protected:
    */
   std::map<uint64_t, RefPtr<CompositableHost>> mCompositables;
   std::map<uint64_t, RefPtr<TextureReadLock>> mReadLocks;
-
 };
 
 struct AutoClearReadLocks {
-  explicit AutoClearReadLocks(std::map<uint64_t, RefPtr<TextureReadLock>>& aReadLocks)
-    : mReadLocks(aReadLocks)
+  explicit AutoClearReadLocks(
+      std::map<uint64_t, RefPtr<TextureReadLock>>& aReadLocks)
+      : mReadLocks(aReadLocks)
 
   {}
 
-  ~AutoClearReadLocks()
-  {
-    mReadLocks.clear();
-  }
+  ~AutoClearReadLocks() { mReadLocks.clear(); }
 
   std::map<uint64_t, RefPtr<TextureReadLock>>& mReadLocks;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

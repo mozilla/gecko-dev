@@ -17,14 +17,10 @@ namespace mozilla {
 class EventChainPostVisitor;
 namespace dom {
 
-class HTMLLabelElement final : public nsGenericHTMLElement
-{
-public:
+class HTMLLabelElement final : public nsGenericHTMLElement {
+ public:
   explicit HTMLLabelElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsGenericHTMLElement(aNodeInfo),
-      mHandlingEvent(false)
-  {
-  }
+      : nsGenericHTMLElement(aNodeInfo), mHandlingEvent(false) {}
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLLabelElement, label)
 
@@ -32,41 +28,36 @@ public:
   NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLLabelElement, nsGenericHTMLElement)
 
   // Element
-  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override
-  {
+  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const override {
     return true;
   }
 
   HTMLFormElement* GetForm() const;
-  void GetHtmlFor(nsString& aHtmlFor)
-  {
+  void GetHtmlFor(nsString& aHtmlFor) {
     GetHTMLAttr(nsGkAtoms::_for, aHtmlFor);
   }
-  void SetHtmlFor(const nsAString& aHtmlFor)
-  {
+  void SetHtmlFor(const nsAString& aHtmlFor) {
     SetHTMLAttr(nsGkAtoms::_for, aHtmlFor);
   }
-  nsGenericHTMLElement* GetControl() const
-  {
-    return GetLabeledElement();
-  }
+  nsGenericHTMLElement* GetControl() const { return GetLabeledElement(); }
 
   using nsGenericHTMLElement::Focus;
   virtual void Focus(mozilla::ErrorResult& aError) override;
 
   // nsIContent
-  virtual nsresult PostHandleEvent(
-                     EventChainPostVisitor& aVisitor) override;
+  virtual nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) override;
   virtual bool PerformAccesskey(bool aKeyCausesActivation,
                                 bool aIsTrustedEvent) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   nsGenericHTMLElement* GetLabeledElement() const;
-protected:
+
+ protected:
   virtual ~HTMLLabelElement();
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   nsGenericHTMLElement* GetFirstLabelableDescendant() const;
 
@@ -74,7 +65,7 @@ protected:
   bool mHandlingEvent;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* HTMLLabelElement_h */

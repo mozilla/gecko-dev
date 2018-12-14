@@ -47,8 +47,9 @@ static LazyLogModule gGetAddrInfoLog("GetAddrInfo");
 
 // Ensure consistency of PR_* and AF_* constants to allow for legacy usage of
 // PR_* constants with this API.
-static_assert(PR_AF_INET == AF_INET && PR_AF_INET6 == AF_INET6
-    && PR_AF_UNSPEC == AF_UNSPEC, "PR_AF_* must match AF_*");
+static_assert(PR_AF_INET == AF_INET && PR_AF_INET6 == AF_INET6 &&
+                  PR_AF_UNSPEC == AF_UNSPEC,
+              "PR_AF_* must match AF_*");
 
 // We intentionally leak this mutex. This is because we can run into a
 // situation where the worker threads are still running until the process
@@ -56,27 +57,26 @@ static_assert(PR_AF_INET == AF_INET && PR_AF_INET6 == AF_INET6
 // threads can access gDnsapiInfoLock.
 static OffTheBooksMutex* gDnsapiInfoLock = nullptr;
 
-struct DnsapiInfo
-{
-public:
+struct DnsapiInfo {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DnsapiInfo);
 
   HMODULE mLibrary;
   decltype(&DnsQuery_A) mDnsQueryFunc;
   decltype(&DnsFree) mDnsFreeFunc;
 
-private:
+ private:
   // This will either be called during shutdown of the GetAddrInfo module, or
   // when a worker thread is done doing a lookup (ie: within
   // _GetAddrInfo_Windows). Note that the lock must be held when this is
   // called.
-  ~DnsapiInfo()
-  {
+  ~DnsapiInfo() {
     if (gDnsapiInfoLock) {
       gDnsapiInfoLock->AssertCurrentThreadOwns();
     } else {
-      MOZ_ASSERT_UNREACHABLE("No mutex available during GetAddrInfo "
-                             "shutdown.");
+      MOZ_ASSERT_UNREACHABLE(
+          "No mutex available during GetAddrInfo "
+          "shutdown.");
       return;
     }
 
@@ -89,9 +89,7 @@ private:
 
 static StaticRefPtr<DnsapiInfo> gDnsapiInfo;
 
-static MOZ_ALWAYS_INLINE nsresult
-_GetAddrInfoInit_Windows()
-{
+static MOZ_ALWAYS_INLINE nsresult _GetAddrInfoInit_Windows() {
   // This is necessary to ensure strict thread safety because if two threads
   // run this function at the same time they can potentially create two
   // mutexes.
@@ -123,16 +121,14 @@ _GetAddrInfoInit_Windows()
 
   DnsapiInfo* info = new DnsapiInfo;
   info->mLibrary = library;
-  info->mDnsQueryFunc = (decltype(info->mDnsQueryFunc)) dnsQueryFunc;
-  info->mDnsFreeFunc = (decltype(info->mDnsFreeFunc)) dnsFreeFunc;
+  info->mDnsQueryFunc = (decltype(info->mDnsQueryFunc))dnsQueryFunc;
+  info->mDnsFreeFunc = (decltype(info->mDnsFreeFunc))dnsFreeFunc;
   gDnsapiInfo = info;
 
   return NS_OK;
 }
 
-static MOZ_ALWAYS_INLINE nsresult
-_GetAddrInfoShutdown_Windows()
-{
+static MOZ_ALWAYS_INLINE nsresult _GetAddrInfoShutdown_Windows() {
   OffTheBooksMutexAutoLock lock(*gDnsapiInfoLock);
 
   if (NS_WARN_IF(!gDnsapiInfo) || NS_WARN_IF(!gDnsapiInfoLock)) {
@@ -150,34 +146,31 @@ _GetAddrInfoShutdown_Windows()
 // to dnsapi->mDnsQueryFunc and iterating through the returned
 // records to find the one with the smallest TTL value.
 static MOZ_ALWAYS_INLINE nsresult
-_GetMinTTLForRequestType_Windows(DnsapiInfo * dnsapi, const char* aHost,
-                                 uint16_t aRequestType, unsigned int* aResult)
-{
+_GetMinTTLForRequestType_Windows(DnsapiInfo* dnsapi, const char* aHost,
+                                 uint16_t aRequestType, unsigned int* aResult) {
   MOZ_ASSERT(dnsapi);
   MOZ_ASSERT(aHost);
   MOZ_ASSERT(aResult);
 
   PDNS_RECORDA dnsData = nullptr;
   DNS_STATUS status = dnsapi->mDnsQueryFunc(
-    aHost,
-    aRequestType,
-    (DNS_QUERY_STANDARD | DNS_QUERY_NO_NETBT | DNS_QUERY_NO_HOSTS_FILE
-      | DNS_QUERY_NO_MULTICAST | DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE
-      | DNS_QUERY_DONT_RESET_TTL_VALUES),
-    nullptr,
-    &dnsData,
-    nullptr);
-  if (status == DNS_INFO_NO_RECORDS || status == DNS_ERROR_RCODE_NAME_ERROR
-      || !dnsData) {
-    LOG("No DNS records found for %s. status=%X. aRequestType = %X\n",
-        aHost, status, aRequestType);
+      aHost, aRequestType,
+      (DNS_QUERY_STANDARD | DNS_QUERY_NO_NETBT | DNS_QUERY_NO_HOSTS_FILE |
+       DNS_QUERY_NO_MULTICAST | DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE |
+       DNS_QUERY_DONT_RESET_TTL_VALUES),
+      nullptr, &dnsData, nullptr);
+  if (status == DNS_INFO_NO_RECORDS || status == DNS_ERROR_RCODE_NAME_ERROR ||
+      !dnsData) {
+    LOG("No DNS records found for %s. status=%X. aRequestType = %X\n", aHost,
+        status, aRequestType);
     return NS_ERROR_FAILURE;
   } else if (status != NOERROR) {
     LOG_WARNING("DnsQuery_A failed with status %X.\n", status);
     return NS_ERROR_UNEXPECTED;
   }
 
-  for (PDNS_RECORDA curRecord = dnsData; curRecord; curRecord = curRecord->pNext) {
+  for (PDNS_RECORDA curRecord = dnsData; curRecord;
+       curRecord = curRecord->pNext) {
     // Only records in the answer section are important
     if (curRecord->Flags.S.Section != DnsSectionAnswer) {
       continue;
@@ -195,13 +188,12 @@ _GetMinTTLForRequestType_Windows(DnsapiInfo * dnsapi, const char* aHost,
   return NS_OK;
 }
 
-static MOZ_ALWAYS_INLINE nsresult
-_GetTTLData_Windows(const char* aHost, uint32_t* aResult, uint16_t aAddressFamily)
-{
+static MOZ_ALWAYS_INLINE nsresult _GetTTLData_Windows(const char* aHost,
+                                                      uint32_t* aResult,
+                                                      uint16_t aAddressFamily) {
   MOZ_ASSERT(aHost);
   MOZ_ASSERT(aResult);
-  if (aAddressFamily != PR_AF_UNSPEC &&
-      aAddressFamily != PR_AF_INET &&
+  if (aAddressFamily != PR_AF_UNSPEC && aAddressFamily != PR_AF_INET &&
       aAddressFamily != PR_AF_INET6) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -248,11 +240,9 @@ _GetTTLData_Windows(const char* aHost, uint32_t* aResult, uint16_t aAddressFamil
 // PORTABLE RUNTIME IMPLEMENTATION//
 ////////////////////////////////////
 
-static MOZ_ALWAYS_INLINE nsresult
-_GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
-                      uint16_t aFlags, const char* aNetworkInterface,
-                      AddrInfo** aAddrInfo)
-{
+static MOZ_ALWAYS_INLINE nsresult _GetAddrInfo_Portable(
+    const char* aCanonHost, uint16_t aAddressFamily, uint16_t aFlags,
+    const char* aNetworkInterface, AddrInfo** aAddrInfo) {
   MOZ_ASSERT(aCanonHost);
   MOZ_ASSERT(aAddrInfo);
 
@@ -282,7 +272,8 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
     canonName = PR_GetCanonNameFromAddrInfo(prai);
   }
 
-  bool filterNameCollision = !(aFlags & nsHostResolver::RES_ALLOW_NAME_COLLISION);
+  bool filterNameCollision =
+      !(aFlags & nsHostResolver::RES_ALLOW_NAME_COLLISION);
   nsAutoPtr<AddrInfo> ai(new AddrInfo(aCanonHost, prai, disableIPv4,
                                       filterNameCollision, canonName));
   PR_FreeAddrInfo(prai);
@@ -298,8 +289,7 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
 //////////////////////////////////////
 // COMMON/PLATFORM INDEPENDENT CODE //
 //////////////////////////////////////
-nsresult
-GetAddrInfoInit() {
+nsresult GetAddrInfoInit() {
   LOG("Initializing GetAddrInfo.\n");
 
 #ifdef DNSQUERY_AVAILABLE
@@ -309,8 +299,7 @@ GetAddrInfoInit() {
 #endif
 }
 
-nsresult
-GetAddrInfoShutdown() {
+nsresult GetAddrInfoShutdown() {
   LOG("Shutting down GetAddrInfo.\n");
 
 #ifdef DNSQUERY_AVAILABLE
@@ -320,10 +309,9 @@ GetAddrInfoShutdown() {
 #endif
 }
 
-nsresult
-GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
-            const char* aNetworkInterface, AddrInfo** aAddrInfo, bool aGetTtl)
-{
+nsresult GetAddrInfo(const char* aHost, uint16_t aAddressFamily,
+                     uint16_t aFlags, const char* aNetworkInterface,
+                     AddrInfo** aAddrInfo, bool aGetTtl) {
   if (NS_WARN_IF(!aHost) || NS_WARN_IF(!aAddrInfo)) {
     return NS_ERROR_NULL_POINTER;
   }
@@ -349,7 +337,7 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
   if (aGetTtl && NS_SUCCEEDED(rv)) {
     // Figure out the canonical name, or if that fails, just use the host name
     // we have.
-    const char *name = nullptr;
+    const char* name = nullptr;
     if (*aAddrInfo != nullptr && (*aAddrInfo)->mCanonicalName) {
       name = (*aAddrInfo)->mCanonicalName;
     } else {
@@ -371,5 +359,5 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
   return rv;
 }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

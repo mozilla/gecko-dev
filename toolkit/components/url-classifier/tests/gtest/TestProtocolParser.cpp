@@ -10,31 +10,23 @@ using namespace mozilla::safebrowsing;
 
 typedef FetchThreatListUpdatesResponse_ListUpdateResponse ListUpdateResponse;
 
-static bool
-InitUpdateResponse(ListUpdateResponse* aUpdateResponse,
-                   ThreatType aThreatType,
-                   const nsACString& aState,
-                   const nsACString& aChecksum,
-                   bool isFullUpdate,
-                   const nsTArray<uint32_t>& aFixedLengthPrefixes,
-                   bool aDoPrefixEncoding);
+static bool InitUpdateResponse(ListUpdateResponse* aUpdateResponse,
+                               ThreatType aThreatType, const nsACString& aState,
+                               const nsACString& aChecksum, bool isFullUpdate,
+                               const nsTArray<uint32_t>& aFixedLengthPrefixes,
+                               bool aDoPrefixEncoding);
 
-static void
-DumpBinary(const nsACString& aBinary);
+static void DumpBinary(const nsACString& aBinary);
 
-TEST(ProtocolParser, UpdateWait)
-{
+TEST(ProtocolParser, UpdateWait) {
   // Top level response which contains a list of update response
   // for different lists.
   FetchThreatListUpdatesResponse response;
 
   auto r = response.mutable_list_update_responses()->Add();
-  InitUpdateResponse(r, SOCIAL_ENGINEERING_PUBLIC,
-                        nsCString("sta\x00te", 6),
-                        nsCString("check\x0sum", 9),
-                        true,
-                        {0, 1, 2, 3},
-                        false /* aDoPrefixEncoding */ );
+  InitUpdateResponse(r, SOCIAL_ENGINEERING_PUBLIC, nsCString("sta\x00te", 6),
+                     nsCString("check\x0sum", 9), true, {0, 1, 2, 3},
+                     false /* aDoPrefixEncoding */);
 
   // Set min wait duration.
   auto minWaitDuration = response.mutable_minimum_wait_duration();
@@ -53,8 +45,7 @@ TEST(ProtocolParser, UpdateWait)
   delete p;
 }
 
-TEST(ProtocolParser, SingleValueEncoding)
-{
+TEST(ProtocolParser, SingleValueEncoding) {
   // Top level response which contains a list of update response
   // for different lists.
   FetchThreatListUpdatesResponse response;
@@ -62,14 +53,13 @@ TEST(ProtocolParser, SingleValueEncoding)
   auto r = response.mutable_list_update_responses()->Add();
 
   const char* expectedPrefix = "\x00\x01\x02\x00";
-  if (!InitUpdateResponse(r, SOCIAL_ENGINEERING_PUBLIC,
-                          nsCString("sta\x00te", 6),
-                          nsCString("check\x0sum", 9),
-                          true,
-                          // As per spec, we should interpret the prefix as uint32
-                          // in little endian before encoding.
-                          {LittleEndian::readUint32(expectedPrefix)},
-                          true /* aDoPrefixEncoding */ )) {
+  if (!InitUpdateResponse(
+          r, SOCIAL_ENGINEERING_PUBLIC, nsCString("sta\x00te", 6),
+          nsCString("check\x0sum", 9), true,
+          // As per spec, we should interpret the prefix as uint32
+          // in little endian before encoding.
+          {LittleEndian::readUint32(expectedPrefix)},
+          true /* aDoPrefixEncoding */)) {
     printf("Failed to initialize update response.");
     ASSERT_TRUE(false);
     return;
@@ -85,7 +75,7 @@ TEST(ProtocolParser, SingleValueEncoding)
 
   // Feed data to the protocol parser.
   ProtocolParser* p = new ProtocolParserProtobuf();
-  p->SetRequestedTables({ nsCString("googpub-phish-proto") });
+  p->SetRequestedTables({nsCString("googpub-phish-proto")});
   p->AppendStream(nsCString(s.c_str(), s.length()));
   p->End();
 
@@ -105,20 +95,18 @@ TEST(ProtocolParser, SingleValueEncoding)
   delete p;
 }
 
-static bool
-InitUpdateResponse(ListUpdateResponse* aUpdateResponse,
-                   ThreatType aThreatType,
-                   const nsACString& aState,
-                   const nsACString& aChecksum,
-                   bool isFullUpdate,
-                   const nsTArray<uint32_t>& aFixedLengthPrefixes,
-                   bool aDoPrefixEncoding)
-{
+static bool InitUpdateResponse(ListUpdateResponse* aUpdateResponse,
+                               ThreatType aThreatType, const nsACString& aState,
+                               const nsACString& aChecksum, bool isFullUpdate,
+                               const nsTArray<uint32_t>& aFixedLengthPrefixes,
+                               bool aDoPrefixEncoding) {
   aUpdateResponse->set_threat_type(aThreatType);
   aUpdateResponse->set_new_client_state(aState.BeginReading(), aState.Length());
-  aUpdateResponse->mutable_checksum()->set_sha256(aChecksum.BeginReading(), aChecksum.Length());
-  aUpdateResponse->set_response_type(isFullUpdate ? ListUpdateResponse::FULL_UPDATE
-                                                  : ListUpdateResponse::PARTIAL_UPDATE);
+  aUpdateResponse->mutable_checksum()->set_sha256(aChecksum.BeginReading(),
+                                                  aChecksum.Length());
+  aUpdateResponse->set_response_type(isFullUpdate
+                                         ? ListUpdateResponse::FULL_UPDATE
+                                         : ListUpdateResponse::PARTIAL_UPDATE);
 
   auto additions = aUpdateResponse->mutable_additions()->Add();
 
@@ -149,8 +137,7 @@ InitUpdateResponse(ListUpdateResponse* aUpdateResponse,
   return true;
 }
 
-static void DumpBinary(const nsACString& aBinary)
-{
+static void DumpBinary(const nsACString& aBinary) {
   nsCString s;
   for (size_t i = 0; i < aBinary.Length(); i++) {
     s.AppendPrintf("\\x%.2X", (uint8_t)aBinary[i]);

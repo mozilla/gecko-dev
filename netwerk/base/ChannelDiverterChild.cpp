@@ -15,13 +15,9 @@
 namespace mozilla {
 namespace net {
 
-ChannelDiverterChild::ChannelDiverterChild()
-{
-}
+ChannelDiverterChild::ChannelDiverterChild() {}
 
-ChannelDiverterChild::~ChannelDiverterChild()
-{
-}
+ChannelDiverterChild::~ChannelDiverterChild() {}
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

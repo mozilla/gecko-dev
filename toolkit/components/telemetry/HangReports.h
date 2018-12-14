@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,39 +18,37 @@
 namespace mozilla {
 namespace Telemetry {
 
-nsresult
-ComputeAnnotationsKey(const HangMonitor::HangAnnotations& aAnnotations, nsAString& aKeyOut);
+nsresult ComputeAnnotationsKey(const HangMonitor::HangAnnotations& aAnnotations,
+                               nsAString& aKeyOut);
 
 class HangReports {
-public:
+ public:
   /**
-   * This struct encapsulates information for an individual ChromeHang annotation.
-   * mHangIndex is the index of the corresponding ChromeHang.
+   * This struct encapsulates information for an individual ChromeHang
+   * annotation. mHangIndex is the index of the corresponding ChromeHang.
    */
   struct AnnotationInfo {
     AnnotationInfo(uint32_t aHangIndex,
                    HangMonitor::HangAnnotations&& aAnnotations)
-      : mAnnotations(Move(aAnnotations))
-    {
+        : mAnnotations(Move(aAnnotations)) {
       mHangIndices.AppendElement(aHangIndex);
     }
     AnnotationInfo(AnnotationInfo&& aOther)
-      : mHangIndices(aOther.mHangIndices)
-      , mAnnotations(Move(aOther.mAnnotations))
-    {}
+        : mHangIndices(aOther.mHangIndices),
+          mAnnotations(Move(aOther.mAnnotations)) {}
     ~AnnotationInfo() = default;
-    AnnotationInfo& operator=(AnnotationInfo&& aOther)
-    {
+    AnnotationInfo& operator=(AnnotationInfo&& aOther) {
       mHangIndices = aOther.mHangIndices;
       mAnnotations = Move(aOther.mAnnotations);
       return *this;
     }
-    // To save memory, a single AnnotationInfo can be associated to multiple chrome
-    // hangs. The following array holds the index of each related chrome hang.
+    // To save memory, a single AnnotationInfo can be associated to multiple
+    // chrome hangs. The following array holds the index of each related chrome
+    // hang.
     nsTArray<uint32_t> mHangIndices;
     HangMonitor::HangAnnotations mAnnotations;
 
-  private:
+   private:
     // Force move constructor
     AnnotationInfo(const AnnotationInfo& aOther) = delete;
     void operator=(const AnnotationInfo& aOther) = delete;
@@ -64,9 +63,11 @@ public:
   uint32_t GetDuration(unsigned aIndex) const;
   int32_t GetSystemUptime(unsigned aIndex) const;
   int32_t GetFirefoxUptime(unsigned aIndex) const;
-  const nsClassHashtable<nsStringHashKey, AnnotationInfo>& GetAnnotationInfo() const;
+  const nsClassHashtable<nsStringHashKey, AnnotationInfo>& GetAnnotationInfo()
+      const;
   const CombinedStacks& GetStacks() const;
-private:
+
+ private:
   /**
    * This struct encapsulates the data for an individual ChromeHang, excluding
    * annotations.
@@ -84,7 +85,7 @@ private:
   CombinedStacks mStacks;
 };
 
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Telemetry
+}  // namespace mozilla
 
-#endif // CombinedStacks_h__
+#endif  // CombinedStacks_h__

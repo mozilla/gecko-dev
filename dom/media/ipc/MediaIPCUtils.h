@@ -13,37 +13,35 @@
 #include "PlatformDecoderModule.h"
 
 namespace IPC {
-  template<>
-  struct ParamTraits<mozilla::VideoInfo>
-  {
-    typedef mozilla::VideoInfo paramType;
+template <>
+struct ParamTraits<mozilla::VideoInfo> {
+  typedef mozilla::VideoInfo paramType;
 
-    static void Write(Message* aMsg, const paramType& aParam)
-    {
-      // TrackInfo
-      WriteParam(aMsg, aParam.mMimeType);
+  static void Write(Message* aMsg, const paramType& aParam) {
+    // TrackInfo
+    WriteParam(aMsg, aParam.mMimeType);
 
-      // VideoInfo
-      WriteParam(aMsg, aParam.mDisplay);
-      WriteParam(aMsg, aParam.mStereoMode);
-      WriteParam(aMsg, aParam.mImage);
-      WriteParam(aMsg, aParam.ImageRect());
+    // VideoInfo
+    WriteParam(aMsg, aParam.mDisplay);
+    WriteParam(aMsg, aParam.mStereoMode);
+    WriteParam(aMsg, aParam.mImage);
+    WriteParam(aMsg, aParam.ImageRect());
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    mozilla::gfx::IntRect imageRect;
+    if (ReadParam(aMsg, aIter, &aResult->mMimeType) &&
+        ReadParam(aMsg, aIter, &aResult->mDisplay) &&
+        ReadParam(aMsg, aIter, &aResult->mStereoMode) &&
+        ReadParam(aMsg, aIter, &aResult->mImage) &&
+        ReadParam(aMsg, aIter, &imageRect)) {
+      aResult->SetImageRect(imageRect);
+      return true;
     }
+    return false;
+  }
+};
+}  // namespace IPC
 
-    static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
-    {
-      mozilla::gfx::IntRect imageRect;
-      if (ReadParam(aMsg, aIter, &aResult->mMimeType) &&
-          ReadParam(aMsg, aIter, &aResult->mDisplay) &&
-          ReadParam(aMsg, aIter, &aResult->mStereoMode) &&
-          ReadParam(aMsg, aIter, &aResult->mImage) &&
-          ReadParam(aMsg, aIter, &imageRect)) {
-        aResult->SetImageRect(imageRect);
-        return true;
-      }
-      return false;
-    }
-  };
-} // namespace IPC
-
-#endif // mozilla_dom_media_MediaIPCUtils_h
+#endif  // mozilla_dom_media_MediaIPCUtils_h

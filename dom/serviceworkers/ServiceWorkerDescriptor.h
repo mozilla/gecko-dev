@@ -15,7 +15,7 @@ namespace mozilla {
 
 namespace ipc {
 class PrincipalInfo;
-} // namespace ipc
+}  // namespace ipc
 
 namespace dom {
 
@@ -26,16 +26,14 @@ enum class ServiceWorkerState : uint8_t;
 // It is threadsafe and can be transferred across processes.  This is useful
 // because most of its values are immutable and can be relied upon to be
 // accurate. Currently the only variable field is the ServiceWorkerState.
-class ServiceWorkerDescriptor final
-{
+class ServiceWorkerDescriptor final {
   // This class is largely a wrapper around an IPDL generated struct.  We
   // need the wrapper class since IPDL generated code includes windows.h
   // which is in turn incompatible with bindings code.
   UniquePtr<IPCServiceWorkerDescriptor> mData;
 
-public:
-  ServiceWorkerDescriptor(uint64_t aId,
-                          nsIPrincipal* aPrincipal,
+ public:
+  ServiceWorkerDescriptor(uint64_t aId, nsIPrincipal* aPrincipal,
                           const nsACString& aScope,
                           const nsACString& aScriptURL,
                           ServiceWorkerState aState);
@@ -46,52 +44,42 @@ public:
                           const nsACString& aScriptURL,
                           ServiceWorkerState aState);
 
-  explicit ServiceWorkerDescriptor(const IPCServiceWorkerDescriptor& aDescriptor);
+  explicit ServiceWorkerDescriptor(
+      const IPCServiceWorkerDescriptor& aDescriptor);
 
   ServiceWorkerDescriptor(const ServiceWorkerDescriptor& aRight);
 
-  ServiceWorkerDescriptor&
-  operator=(const ServiceWorkerDescriptor& aRight);
+  ServiceWorkerDescriptor& operator=(const ServiceWorkerDescriptor& aRight);
 
   ServiceWorkerDescriptor(ServiceWorkerDescriptor&& aRight);
 
-  ServiceWorkerDescriptor&
-  operator=(ServiceWorkerDescriptor&& aRight);
+  ServiceWorkerDescriptor& operator=(ServiceWorkerDescriptor&& aRight);
 
   ~ServiceWorkerDescriptor();
 
-  bool
-  operator==(const ServiceWorkerDescriptor& aRight) const;
+  bool operator==(const ServiceWorkerDescriptor& aRight) const;
 
-  uint64_t
-  Id() const;
+  uint64_t Id() const;
 
-  const mozilla::ipc::PrincipalInfo&
-  PrincipalInfo() const;
+  const mozilla::ipc::PrincipalInfo& PrincipalInfo() const;
 
-  const nsCString&
-  Scope() const;
+  const nsCString& Scope() const;
 
-  const nsCString&
-  ScriptURL() const;
+  const nsCString& ScriptURL() const;
 
-  ServiceWorkerState
-  State() const;
+  ServiceWorkerState State() const;
 
-  void
-  SetState(ServiceWorkerState aState);
+  void SetState(ServiceWorkerState aState);
 
   // Try to determine if two workers match each other.  This is less strict
   // than an operator==() call since it ignores mutable values like State().
-  bool
-  Matches(const ServiceWorkerDescriptor& aDescriptor) const;
+  bool Matches(const ServiceWorkerDescriptor& aDescriptor) const;
 
   // Expose the underlying IPC type so that it can be passed via IPC.
-  const IPCServiceWorkerDescriptor&
-  ToIPC() const;
+  const IPCServiceWorkerDescriptor& ToIPC() const;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // _mozilla_dom_ServiceWorkerDescriptor_h
+#endif  // _mozilla_dom_ServiceWorkerDescriptor_h

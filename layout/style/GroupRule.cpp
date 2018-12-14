@@ -19,15 +19,15 @@ namespace mozilla {
 namespace css {
 
 #ifdef MOZ_OLD_STYLE
-#define CALL_INNER(inner_, call_)               \
-  ((inner_).is<GeckoGroupRuleRules>()           \
-    ? (inner_).as<GeckoGroupRuleRules>().call_  \
-    : (inner_).as<ServoGroupRuleRules>().call_)
+#define CALL_INNER(inner_, call_)                 \
+  ((inner_).is<GeckoGroupRuleRules>()             \
+       ? (inner_).as<GeckoGroupRuleRules>().call_ \
+       : (inner_).as<ServoGroupRuleRules>().call_)
 #else
-#define CALL_INNER(inner_, call_)               \
-  ((inner_).is<DummyGroupRuleRules>()           \
-    ? (inner_).as<DummyGroupRuleRules>().call_  \
-    : (inner_).as<ServoGroupRuleRules>().call_)
+#define CALL_INNER(inner_, call_)                 \
+  ((inner_).is<DummyGroupRuleRules>()             \
+       ? (inner_).as<DummyGroupRuleRules>().call_ \
+       : (inner_).as<ServoGroupRuleRules>().call_)
 #endif
 
 #ifdef MOZ_OLD_STYLE
@@ -35,41 +35,33 @@ namespace css {
 // Style Rule List for group rules
 //
 
-class GroupRuleRuleList final : public dom::CSSRuleList
-{
-public:
-  explicit GroupRuleRuleList(GroupRule *aGroupRule);
+class GroupRuleRuleList final : public dom::CSSRuleList {
+ public:
+  explicit GroupRuleRuleList(GroupRule* aGroupRule);
 
   virtual CSSStyleSheet* GetParentObject() override;
 
-  virtual Rule*
-  IndexedGetter(uint32_t aIndex, bool& aFound) override;
-  virtual uint32_t
-  Length() override;
+  virtual Rule* IndexedGetter(uint32_t aIndex, bool& aFound) override;
+  virtual uint32_t Length() override;
 
   void DropReference() { mGroupRule = nullptr; }
 
-private:
+ private:
   ~GroupRuleRuleList();
 
-private:
+ private:
   GroupRule* mGroupRule;
 };
 
-GroupRuleRuleList::GroupRuleRuleList(GroupRule *aGroupRule)
-{
+GroupRuleRuleList::GroupRuleRuleList(GroupRule* aGroupRule) {
   // Not reference counted to avoid circular references.
   // The rule will tell us when its going away.
   mGroupRule = aGroupRule;
 }
 
-GroupRuleRuleList::~GroupRuleRuleList()
-{
-}
+GroupRuleRuleList::~GroupRuleRuleList() {}
 
-CSSStyleSheet*
-GroupRuleRuleList::GetParentObject()
-{
+CSSStyleSheet* GroupRuleRuleList::GetParentObject() {
   if (!mGroupRule) {
     return nullptr;
   }
@@ -77,9 +69,7 @@ GroupRuleRuleList::GetParentObject()
   return sheet ? sheet->AsGecko() : nullptr;
 }
 
-uint32_t
-GroupRuleRuleList::Length()
-{
+uint32_t GroupRuleRuleList::Length() {
   if (!mGroupRule) {
     return 0;
   }
@@ -87,9 +77,7 @@ GroupRuleRuleList::Length()
   return AssertedCast<uint32_t>(mGroupRule->StyleRuleCount());
 }
 
-Rule*
-GroupRuleRuleList::IndexedGetter(uint32_t aIndex, bool& aFound)
-{
+Rule* GroupRuleRuleList::IndexedGetter(uint32_t aIndex, bool& aFound) {
   aFound = false;
 
   if (mGroupRule) {
@@ -107,26 +95,20 @@ GroupRuleRuleList::IndexedGetter(uint32_t aIndex, bool& aFound)
 // GeckoGroupRuleRules
 //
 
-GeckoGroupRuleRules::GeckoGroupRuleRules()
-{
-}
+GeckoGroupRuleRules::GeckoGroupRuleRules() {}
 
 GeckoGroupRuleRules::GeckoGroupRuleRules(GeckoGroupRuleRules&& aOther)
-  : mRules(Move(aOther.mRules))
-  , mRuleCollection(Move(aOther.mRuleCollection))
-{
-}
+    : mRules(Move(aOther.mRules)),
+      mRuleCollection(Move(aOther.mRuleCollection)) {}
 
-GeckoGroupRuleRules::GeckoGroupRuleRules(const GeckoGroupRuleRules& aCopy)
-{
+GeckoGroupRuleRules::GeckoGroupRuleRules(const GeckoGroupRuleRules& aCopy) {
   for (const Rule* rule : aCopy.mRules) {
     RefPtr<Rule> clone = rule->Clone();
     mRules.AppendObject(clone);
   }
 }
 
-GeckoGroupRuleRules::~GeckoGroupRuleRules()
-{
+GeckoGroupRuleRules::~GeckoGroupRuleRules() {
   for (Rule* rule : mRules) {
     rule->SetParentRule(nullptr);
   }
@@ -135,9 +117,7 @@ GeckoGroupRuleRules::~GeckoGroupRuleRules()
   }
 }
 
-void
-GeckoGroupRuleRules::Clear()
-{
+void GeckoGroupRuleRules::Clear() {
   mRules.Clear();
   if (mRuleCollection) {
     mRuleCollection->DropReference();
@@ -145,9 +125,7 @@ GeckoGroupRuleRules::Clear()
   }
 }
 
-void
-GeckoGroupRuleRules::Traverse(nsCycleCollectionTraversalCallback& cb)
-{
+void GeckoGroupRuleRules::Traverse(nsCycleCollectionTraversalCallback& cb) {
   IncrementalClearCOMRuleArray& rules = mRules;
   for (int32_t i = 0, count = rules.Count(); i < count; ++i) {
     if (!rules[i]->IsCCLeaf()) {
@@ -159,18 +137,14 @@ GeckoGroupRuleRules::Traverse(nsCycleCollectionTraversalCallback& cb)
 }
 
 #ifdef DEBUG
-void
-GeckoGroupRuleRules::List(FILE* out, int32_t aIndent) const
-{
+void GeckoGroupRuleRules::List(FILE* out, int32_t aIndent) const {
   for (const Rule* rule : mRules) {
     rule->List(out, aIndent + 1);
   }
 }
 #endif
 
-nsresult
-GeckoGroupRuleRules::DeleteStyleRuleAt(uint32_t aIndex)
-{
+nsresult GeckoGroupRuleRules::DeleteStyleRuleAt(uint32_t aIndex) {
   Rule* rule = mRules.SafeObjectAt(aIndex);
   if (rule) {
     rule->SetStyleSheet(nullptr);
@@ -179,18 +153,15 @@ GeckoGroupRuleRules::DeleteStyleRuleAt(uint32_t aIndex)
   return mRules.RemoveObjectAt(aIndex) ? NS_OK : NS_ERROR_ILLEGAL_VALUE;
 }
 
-CSSRuleList*
-GeckoGroupRuleRules::CssRules(GroupRule* aParentRule)
-{
+CSSRuleList* GeckoGroupRuleRules::CssRules(GroupRule* aParentRule) {
   if (!mRuleCollection) {
     mRuleCollection = new GroupRuleRuleList(aParentRule);
   }
   return mRuleCollection;
 }
 
-size_t
-GeckoGroupRuleRules::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
-{
+size_t GeckoGroupRuleRules::SizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   size_t n = mRules.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (const Rule* rule : mRules) {
     n += rule->SizeOfIncludingThis(aMallocSizeOf);
@@ -207,24 +178,20 @@ GeckoGroupRuleRules::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 // ServoGroupRuleRules
 //
 
-ServoGroupRuleRules::~ServoGroupRuleRules()
-{
+ServoGroupRuleRules::~ServoGroupRuleRules() {
   if (mRuleList) {
     mRuleList->DropReference();
   }
 }
 
 #ifdef DEBUG
-void
-ServoGroupRuleRules::List(FILE* out, int32_t aIndent) const
-{
+void ServoGroupRuleRules::List(FILE* out, int32_t aIndent) const {
   // TODO list something reasonable?
 }
 #endif
 
-size_t
-ServoGroupRuleRules::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
-{
+size_t ServoGroupRuleRules::SizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   // TODO how to implement?
   return 0;
 }
@@ -234,32 +201,30 @@ ServoGroupRuleRules::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
 //
 
 GroupRule::GroupRule(uint32_t aLineNumber, uint32_t aColumnNumber)
-  : Rule(aLineNumber, aColumnNumber)
+    : Rule(aLineNumber, aColumnNumber)
 #ifdef MOZ_OLD_STYLE
-  , mInner(GeckoGroupRuleRules())
+      ,
+      mInner(GeckoGroupRuleRules())
 #else
-  , mInner(DummyGroupRuleRules())
+      ,
+      mInner(DummyGroupRuleRules())
 #endif
 {
 }
 
 GroupRule::GroupRule(already_AddRefed<ServoCssRules> aRules,
                      uint32_t aLineNumber, uint32_t aColumnNumber)
-  : Rule(aLineNumber, aColumnNumber)
-  , mInner(ServoGroupRuleRules(Move(aRules)))
-{
+    : Rule(aLineNumber, aColumnNumber),
+      mInner(ServoGroupRuleRules(Move(aRules))) {
   mInner.as<ServoGroupRuleRules>().SetParentRule(this);
 }
 
 GroupRule::GroupRule(const GroupRule& aCopy)
-  : Rule(aCopy)
-  , mInner(aCopy.mInner)
-{
+    : Rule(aCopy), mInner(aCopy.mInner) {
   CALL_INNER(mInner, SetParentRule(this));
 }
 
-GroupRule::~GroupRule()
-{
+GroupRule::~GroupRule() {
   MOZ_ASSERT(!mSheet, "SetStyleSheet should have been called");
 }
 
@@ -269,9 +234,7 @@ NS_IMPL_RELEASE_INHERITED(GroupRule, Rule)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GroupRule)
 NS_INTERFACE_MAP_END_INHERITING(Rule)
 
-bool
-GroupRule::IsCCLeaf() const
-{
+bool GroupRule::IsCCLeaf() const {
   // Let's not worry for now about sorting out whether we're a leaf or not.
   return false;
 }
@@ -296,9 +259,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(GroupRule, Rule)
   CALL_INNER(tmp->mInner, Traverse(cb));
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-/* virtual */ void
-GroupRule::SetStyleSheet(StyleSheet* aSheet)
-{
+/* virtual */ void GroupRule::SetStyleSheet(StyleSheet* aSheet) {
   // Don't set the sheet on the kids if it's already the same as the sheet we
   // already have.  This is needed to avoid O(N^2) behavior in group nesting
   // depth when seting the sheet to null during unlink, if we happen to unlin in
@@ -310,9 +271,7 @@ GroupRule::SetStyleSheet(StyleSheet* aSheet)
 }
 
 #ifdef MOZ_OLD_STYLE
-void
-GroupRule::AppendStyleRule(Rule* aRule)
-{
+void GroupRule::AppendStyleRule(Rule* aRule) {
   GeckoRules().AppendObject(aRule);
   StyleSheet* sheet = GetStyleSheet();
   aRule->SetStyleSheet(sheet);
@@ -322,9 +281,7 @@ GroupRule::AppendStyleRule(Rule* aRule)
   }
 }
 
-bool
-GroupRule::EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const
-{
+bool GroupRule::EnumerateRulesForwards(RuleEnumFunc aFunc, void* aData) const {
   for (const Rule* rule : GeckoRules()) {
     if (!aFunc(const_cast<Rule*>(rule), aData)) {
       return false;
@@ -333,9 +290,7 @@ GroupRule::EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const
   return true;
 }
 
-nsresult
-GroupRule::InsertStyleRuleAt(uint32_t aIndex, Rule* aRule)
-{
+nsresult GroupRule::InsertStyleRuleAt(uint32_t aIndex, Rule* aRule) {
   aRule->SetStyleSheet(GetStyleSheet());
   aRule->SetParentRule(this);
   if (!GeckoRules().InsertObjectAt(aRule, aIndex)) {
@@ -344,9 +299,7 @@ GroupRule::InsertStyleRuleAt(uint32_t aIndex, Rule* aRule)
   return NS_OK;
 }
 
-void
-GroupRule::AppendRulesToCssText(nsAString& aCssText) const
-{
+void GroupRule::AppendRulesToCssText(nsAString& aCssText) const {
   aCssText.AppendLiteral(" {\n");
   for (const Rule* rule : GeckoRules()) {
     nsAutoString cssText;
@@ -359,15 +312,12 @@ GroupRule::AppendRulesToCssText(nsAString& aCssText) const
 }
 #endif
 
-CSSRuleList*
-GroupRule::CssRules()
-{
+CSSRuleList* GroupRule::CssRules() {
   return CALL_INNER(mInner, CssRules(this));
 }
 
-uint32_t
-GroupRule::InsertRule(const nsAString& aRule, uint32_t aIndex, ErrorResult& aRv)
-{
+uint32_t GroupRule::InsertRule(const nsAString& aRule, uint32_t aIndex,
+                               ErrorResult& aRv) {
   StyleSheet* sheet = GetStyleSheet();
   if (NS_WARN_IF(!sheet)) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -390,9 +340,7 @@ GroupRule::InsertRule(const nsAString& aRule, uint32_t aIndex, ErrorResult& aRv)
   return aIndex;
 }
 
-void
-GroupRule::DeleteRule(uint32_t aIndex, ErrorResult& aRv)
-{
+void GroupRule::DeleteRule(uint32_t aIndex, ErrorResult& aRv) {
   StyleSheet* sheet = GetStyleSheet();
   if (NS_WARN_IF(!sheet)) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -415,5 +363,5 @@ GroupRule::DeleteRule(uint32_t aIndex, ErrorResult& aRv)
 
 #undef CALL_INNER
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla

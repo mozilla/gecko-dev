@@ -15,9 +15,8 @@ namespace dom {
 
 AutoTArray<RefPtr<DocGroup>, 2>* DocGroup::sPendingDocGroups = nullptr;
 
-/* static */ nsresult
-DocGroup::GetKey(nsIPrincipal* aPrincipal, nsACString& aKey)
-{
+/* static */ nsresult DocGroup::GetKey(nsIPrincipal* aPrincipal,
+                                       nsACString& aKey) {
   // Use GetBaseDomain() to handle things like file URIs, IP address URIs,
   // etc. correctly.
   nsresult rv = aPrincipal->GetBaseDomain(aKey);
@@ -33,60 +32,46 @@ DocGroup::GetKey(nsIPrincipal* aPrincipal, nsACString& aKey)
   return rv;
 }
 
-void
-DocGroup::RemoveDocument(nsIDocument* aDocument)
-{
+void DocGroup::RemoveDocument(nsIDocument* aDocument) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mDocuments.Contains(aDocument));
   mDocuments.RemoveElement(aDocument);
 }
 
 DocGroup::DocGroup(TabGroup* aTabGroup, const nsACString& aKey)
-  : mKey(aKey), mTabGroup(aTabGroup)
-{
-  // This method does not add itself to mTabGroup->mDocGroups as the caller does it for us.
+    : mKey(aKey), mTabGroup(aTabGroup) {
+  // This method does not add itself to mTabGroup->mDocGroups as the caller does
+  // it for us.
 }
 
-DocGroup::~DocGroup()
-{
+DocGroup::~DocGroup() {
   MOZ_ASSERT(mDocuments.IsEmpty());
   if (!NS_IsMainThread()) {
     nsIEventTarget* target = EventTargetFor(TaskCategory::Other);
-    NS_ProxyRelease("DocGroup::mReactionsStack", target, mReactionsStack.forget());
+    NS_ProxyRelease("DocGroup::mReactionsStack", target,
+                    mReactionsStack.forget());
   }
 
   mTabGroup->mDocGroups.RemoveEntry(mKey);
 }
 
-nsresult
-DocGroup::Dispatch(TaskCategory aCategory,
-                   already_AddRefed<nsIRunnable>&& aRunnable)
-{
+nsresult DocGroup::Dispatch(TaskCategory aCategory,
+                            already_AddRefed<nsIRunnable>&& aRunnable) {
   return mTabGroup->DispatchWithDocGroup(aCategory, Move(aRunnable), this);
 }
 
-nsISerialEventTarget*
-DocGroup::EventTargetFor(TaskCategory aCategory) const
-{
+nsISerialEventTarget* DocGroup::EventTargetFor(TaskCategory aCategory) const {
   return mTabGroup->EventTargetFor(aCategory);
 }
 
-AbstractThread*
-DocGroup::AbstractMainThreadFor(TaskCategory aCategory)
-{
+AbstractThread* DocGroup::AbstractMainThreadFor(TaskCategory aCategory) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   return mTabGroup->AbstractMainThreadFor(aCategory);
 }
 
-bool*
-DocGroup::GetValidAccessPtr()
-{
-  return mTabGroup->GetValidAccessPtr();
-}
+bool* DocGroup::GetValidAccessPtr() { return mTabGroup->GetValidAccessPtr(); }
 
-void
-DocGroup::SignalSlotChange(const HTMLSlotElement* aSlot)
-{
+void DocGroup::SignalSlotChange(const HTMLSlotElement* aSlot) {
   if (mSignalSlotList.Contains(aSlot)) {
     return;
   }
@@ -102,5 +87,5 @@ DocGroup::SignalSlotChange(const HTMLSlotElement* aSlot)
   sPendingDocGroups->AppendElement(this);
 }
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla

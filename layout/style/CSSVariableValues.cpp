@@ -12,27 +12,19 @@
 
 namespace mozilla {
 
-CSSVariableValues::CSSVariableValues()
-{
-  MOZ_COUNT_CTOR(CSSVariableValues);
-}
+CSSVariableValues::CSSVariableValues() { MOZ_COUNT_CTOR(CSSVariableValues); }
 
-CSSVariableValues::CSSVariableValues(const CSSVariableValues& aOther)
-{
+CSSVariableValues::CSSVariableValues(const CSSVariableValues& aOther) {
   MOZ_COUNT_CTOR(CSSVariableValues);
   CopyVariablesFrom(aOther);
 }
 
 #ifdef DEBUG
-CSSVariableValues::~CSSVariableValues()
-{
-  MOZ_COUNT_DTOR(CSSVariableValues);
-}
+CSSVariableValues::~CSSVariableValues() { MOZ_COUNT_DTOR(CSSVariableValues); }
 #endif
 
-CSSVariableValues&
-CSSVariableValues::operator=(const CSSVariableValues& aOther)
-{
+CSSVariableValues& CSSVariableValues::operator=(
+    const CSSVariableValues& aOther) {
   if (this == &aOther) {
     return *this;
   }
@@ -43,9 +35,7 @@ CSSVariableValues::operator=(const CSSVariableValues& aOther)
   return *this;
 }
 
-bool
-CSSVariableValues::operator==(const CSSVariableValues& aOther) const
-{
+bool CSSVariableValues::operator==(const CSSVariableValues& aOther) const {
   if (mVariables.Length() != aOther.mVariables.Length()) {
     return false;
   }
@@ -65,15 +55,9 @@ CSSVariableValues::operator==(const CSSVariableValues& aOther) const
   return true;
 }
 
-size_t
-CSSVariableValues::Count() const
-{
-  return mVariables.Length();
-}
+size_t CSSVariableValues::Count() const { return mVariables.Length(); }
 
-bool
-CSSVariableValues::Get(const nsAString& aName, nsString& aValue) const
-{
+bool CSSVariableValues::Get(const nsAString& aName, nsString& aValue) const {
   size_t id;
   if (!mVariableIDs.Get(aName, &id)) {
     return false;
@@ -82,12 +66,9 @@ CSSVariableValues::Get(const nsAString& aName, nsString& aValue) const
   return true;
 }
 
-bool
-CSSVariableValues::Get(const nsAString& aName,
-                       nsString& aValue,
-                       nsCSSTokenSerializationType& aFirstToken,
-                       nsCSSTokenSerializationType& aLastToken) const
-{
+bool CSSVariableValues::Get(const nsAString& aName, nsString& aValue,
+                            nsCSSTokenSerializationType& aFirstToken,
+                            nsCSSTokenSerializationType& aLastToken) const {
   size_t id;
   if (!mVariableIDs.Get(aName, &id)) {
     return false;
@@ -98,18 +79,13 @@ CSSVariableValues::Get(const nsAString& aName,
   return true;
 }
 
-void
-CSSVariableValues::GetVariableAt(size_t aIndex, nsAString& aName) const
-{
+void CSSVariableValues::GetVariableAt(size_t aIndex, nsAString& aName) const {
   aName = mVariables[aIndex].mVariableName;
 }
 
-void
-CSSVariableValues::Put(const nsAString& aName,
-                       nsString aValue,
-                       nsCSSTokenSerializationType aFirstToken,
-                       nsCSSTokenSerializationType aLastToken)
-{
+void CSSVariableValues::Put(const nsAString& aName, nsString aValue,
+                            nsCSSTokenSerializationType aFirstToken,
+                            nsCSSTokenSerializationType aLastToken) {
   size_t id;
   if (mVariableIDs.Get(aName, &id)) {
     mVariables[id].mValue = aValue;
@@ -122,27 +98,19 @@ CSSVariableValues::Put(const nsAString& aName,
   }
 }
 
-void
-CSSVariableValues::CopyVariablesFrom(const CSSVariableValues& aOther)
-{
+void CSSVariableValues::CopyVariablesFrom(const CSSVariableValues& aOther) {
   for (size_t i = 0, n = aOther.mVariables.Length(); i < n; i++) {
-    Put(aOther.mVariables[i].mVariableName,
-        aOther.mVariables[i].mValue,
-        aOther.mVariables[i].mFirstToken,
-        aOther.mVariables[i].mLastToken);
+    Put(aOther.mVariables[i].mVariableName, aOther.mVariables[i].mValue,
+        aOther.mVariables[i].mFirstToken, aOther.mVariables[i].mLastToken);
   }
 }
 
-void
-CSSVariableValues::AddVariablesToResolver(CSSVariableResolver* aResolver) const
-{
+void CSSVariableValues::AddVariablesToResolver(
+    CSSVariableResolver* aResolver) const {
   for (size_t i = 0, n = mVariables.Length(); i < n; i++) {
-    aResolver->Put(mVariables[i].mVariableName,
-                   mVariables[i].mValue,
-                   mVariables[i].mFirstToken,
-                   mVariables[i].mLastToken,
-                   true);
+    aResolver->Put(mVariables[i].mVariableName, mVariables[i].mValue,
+                   mVariables[i].mFirstToken, mVariables[i].mLastToken, true);
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

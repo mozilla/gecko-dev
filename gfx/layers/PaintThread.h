@@ -21,7 +21,7 @@ namespace mozilla {
 namespace gfx {
 class DrawTarget;
 class DrawTargetCapture;
-};
+};  // namespace gfx
 
 namespace layers {
 
@@ -29,34 +29,28 @@ namespace layers {
 // required to draw the captured paint state
 class CapturedPaintState {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CapturedPaintState)
-public:
-  CapturedPaintState(nsIntRegion& aRegionToDraw,
-                     gfx::DrawTarget* aTargetDual,
-                     gfx::DrawTarget* aTarget,
-                     gfx::DrawTarget* aTargetOnWhite,
+ public:
+  CapturedPaintState(nsIntRegion& aRegionToDraw, gfx::DrawTarget* aTargetDual,
+                     gfx::DrawTarget* aTarget, gfx::DrawTarget* aTargetOnWhite,
                      const gfx::Matrix& aTargetTransform,
-                     SurfaceMode aSurfaceMode,
-                     gfxContentType aContentType)
-  : mRegionToDraw(aRegionToDraw)
-  , mTargetDual(aTargetDual)
-  , mTarget(aTarget)
-  , mTargetOnWhite(aTargetOnWhite)
-  , mTargetTransform(aTargetTransform)
-  , mSurfaceMode(aSurfaceMode)
-  , mContentType(aContentType)
-  {}
+                     SurfaceMode aSurfaceMode, gfxContentType aContentType)
+      : mRegionToDraw(aRegionToDraw),
+        mTargetDual(aTargetDual),
+        mTarget(aTarget),
+        mTargetOnWhite(aTargetOnWhite),
+        mTargetTransform(aTargetTransform),
+        mSurfaceMode(aSurfaceMode),
+        mContentType(aContentType) {}
 
-  template<typename F>
-  void ForEachTextureClient(F aClosure) const
-  {
+  template <typename F>
+  void ForEachTextureClient(F aClosure) const {
     aClosure(mTextureClient);
     if (mTextureClientOnWhite) {
       aClosure(mTextureClientOnWhite);
     }
   }
 
-  void DropTextureClients()
-  {
+  void DropTextureClients() {
     mTextureClient = nullptr;
     mTextureClientOnWhite = nullptr;
   }
@@ -72,7 +66,7 @@ public:
   SurfaceMode mSurfaceMode;
   gfxContentType mContentType;
 
-protected:
+ protected:
   virtual ~CapturedPaintState() {}
 };
 
@@ -80,15 +74,11 @@ protected:
 // its buffers for painting
 class CapturedBufferState final {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CapturedBufferState)
-public:
+ public:
   struct Copy {
-    Copy(RefPtr<RotatedBuffer> aSource,
-         RefPtr<RotatedBuffer> aDestination,
+    Copy(RefPtr<RotatedBuffer> aSource, RefPtr<RotatedBuffer> aDestination,
          gfx::IntRect aBounds)
-      : mSource(aSource)
-      , mDestination(aDestination)
-      , mBounds(aBounds)
-    {}
+        : mSource(aSource), mDestination(aDestination), mBounds(aBounds) {}
 
     bool CopyBuffer();
 
@@ -100,9 +90,7 @@ public:
   struct Unrotate {
     Unrotate(RotatedBuffer::Parameters aParameters,
              RefPtr<RotatedBuffer> aBuffer)
-      : mParameters(aParameters)
-      , mBuffer(aBuffer)
-    {}
+        : mParameters(aParameters), mBuffer(aBuffer) {}
 
     bool UnrotateBuffer();
 
@@ -118,25 +106,26 @@ public:
    */
   bool PrepareBuffer();
 
-  bool HasOperations() const
-  {
+  bool HasOperations() const {
     return mBufferFinalize || mBufferUnrotate || mBufferInitialize;
   }
 
-  template<typename F>
-  void ForEachTextureClient(F aClosure) const
-  {
+  template <typename F>
+  void ForEachTextureClient(F aClosure) const {
     if (mBufferFinalize) {
       if (TextureClient* source = mBufferFinalize->mSource->GetClient()) {
         aClosure(source);
       }
-      if (TextureClient* sourceOnWhite = mBufferFinalize->mSource->GetClientOnWhite()) {
+      if (TextureClient* sourceOnWhite =
+              mBufferFinalize->mSource->GetClientOnWhite()) {
         aClosure(sourceOnWhite);
       }
-      if (TextureClient* destination = mBufferFinalize->mDestination->GetClient()) {
+      if (TextureClient* destination =
+              mBufferFinalize->mDestination->GetClient()) {
         aClosure(destination);
       }
-      if (TextureClient* destinationOnWhite = mBufferFinalize->mDestination->GetClientOnWhite()) {
+      if (TextureClient* destinationOnWhite =
+              mBufferFinalize->mDestination->GetClientOnWhite()) {
         aClosure(destinationOnWhite);
       }
     }
@@ -145,7 +134,8 @@ public:
       if (TextureClient* client = mBufferUnrotate->mBuffer->GetClient()) {
         aClosure(client);
       }
-      if (TextureClient* clientOnWhite = mBufferUnrotate->mBuffer->GetClientOnWhite()) {
+      if (TextureClient* clientOnWhite =
+              mBufferUnrotate->mBuffer->GetClientOnWhite()) {
         aClosure(clientOnWhite);
       }
     }
@@ -154,20 +144,22 @@ public:
       if (TextureClient* source = mBufferInitialize->mSource->GetClient()) {
         aClosure(source);
       }
-      if (TextureClient* sourceOnWhite = mBufferInitialize->mSource->GetClientOnWhite()) {
+      if (TextureClient* sourceOnWhite =
+              mBufferInitialize->mSource->GetClientOnWhite()) {
         aClosure(sourceOnWhite);
       }
-      if (TextureClient* destination = mBufferInitialize->mDestination->GetClient()) {
+      if (TextureClient* destination =
+              mBufferInitialize->mDestination->GetClient()) {
         aClosure(destination);
       }
-      if (TextureClient* destinationOnWhite = mBufferInitialize->mDestination->GetClientOnWhite()) {
+      if (TextureClient* destinationOnWhite =
+              mBufferInitialize->mDestination->GetClientOnWhite()) {
         aClosure(destinationOnWhite);
       }
     }
   }
 
-  void DropTextureClients()
-  {
+  void DropTextureClients() {
     mBufferFinalize = Nothing();
     mBufferUnrotate = Nothing();
     mBufferInitialize = Nothing();
@@ -177,27 +169,25 @@ public:
   Maybe<Unrotate> mBufferUnrotate;
   Maybe<Copy> mBufferInitialize;
 
-protected:
+ protected:
   ~CapturedBufferState() {}
 };
 
-typedef bool (*PrepDrawTargetForPaintingCallback)(CapturedPaintState* aPaintState);
+typedef bool (*PrepDrawTargetForPaintingCallback)(
+    CapturedPaintState* aPaintState);
 
 // Holds the key operations needed to update a tiled content client on the
 // paint thread.
 class CapturedTiledPaintState {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CapturedPaintState)
-public:
+ public:
   struct Copy {
-    Copy(RefPtr<gfx::DrawTarget> aSource,
-         RefPtr<gfx::DrawTarget> aDestination,
-         gfx::IntRect aSourceBounds,
-         gfx::IntPoint aDestinationPoint)
-      : mSource(aSource)
-      , mDestination(aDestination)
-      , mSourceBounds(aSourceBounds)
-      , mDestinationPoint(aDestinationPoint)
-    {}
+    Copy(RefPtr<gfx::DrawTarget> aSource, RefPtr<gfx::DrawTarget> aDestination,
+         gfx::IntRect aSourceBounds, gfx::IntPoint aDestinationPoint)
+        : mSource(aSource),
+          mDestination(aDestination),
+          mSourceBounds(aSourceBounds),
+          mDestinationPoint(aDestinationPoint) {}
 
     bool CopyBuffer();
 
@@ -209,12 +199,10 @@ public:
 
   struct Clear {
     Clear(RefPtr<gfx::DrawTarget> aTarget,
-            RefPtr<gfx::DrawTarget> aTargetOnWhite,
-            nsIntRegion aDirtyRegion)
-      : mTarget(aTarget)
-      , mTargetOnWhite(aTargetOnWhite)
-      , mDirtyRegion(aDirtyRegion)
-    {}
+          RefPtr<gfx::DrawTarget> aTargetOnWhite, nsIntRegion aDirtyRegion)
+        : mTarget(aTarget),
+          mTargetOnWhite(aTargetOnWhite),
+          mDirtyRegion(aDirtyRegion) {}
 
     void ClearBuffer();
 
@@ -223,26 +211,19 @@ public:
     nsIntRegion mDirtyRegion;
   };
 
-  CapturedTiledPaintState()
-  {}
+  CapturedTiledPaintState() {}
   CapturedTiledPaintState(gfx::DrawTarget* aTarget,
                           gfx::DrawTargetCapture* aCapture)
-  : mTarget(aTarget)
-  , mCapture(aCapture)
-  {}
+      : mTarget(aTarget), mCapture(aCapture) {}
 
-  template<typename F>
-  void ForEachTextureClient(F aClosure) const
-  {
+  template <typename F>
+  void ForEachTextureClient(F aClosure) const {
     for (auto client : mClients) {
       aClosure(client);
     }
   }
 
-  void DropTextureClients()
-  {
-    mClients.clear();
-  }
+  void DropTextureClients() { mClients.clear(); }
 
   RefPtr<gfx::DrawTarget> mTarget;
   RefPtr<gfx::DrawTargetCapture> mCapture;
@@ -251,17 +232,16 @@ public:
 
   std::vector<RefPtr<TextureClient>> mClients;
 
-protected:
+ protected:
   virtual ~CapturedTiledPaintState() {}
 };
 
 class CompositorBridgeChild;
 
-class PaintThread final
-{
+class PaintThread final {
   friend void DestroyPaintThread(UniquePtr<PaintThread>&& aPaintThread);
 
-public:
+ public:
   static void Start();
   static void Shutdown();
   static PaintThread* Get();
@@ -302,7 +282,7 @@ public:
 
   static int32_t CalculatePaintWorkerCount();
 
-private:
+ private:
   PaintThread();
 
   bool Init();
@@ -334,7 +314,7 @@ private:
   nsTArray<RefPtr<gfx::DrawTarget>> mDrawTargetsToFlush;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

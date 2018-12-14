@@ -24,8 +24,7 @@ enum nsSortState_direction {
 };
 
 // the sort state holds info about the current sort
-struct nsSortState
-{
+struct nsSortState {
   bool initialized;
   MOZ_INIT_OUTSIDE_CTOR bool invertSort;
 
@@ -38,13 +37,8 @@ struct nsSortState
   nsCOMPtr<nsIContent> lastContainer;
   MOZ_INIT_OUTSIDE_CTOR bool lastWasFirst, lastWasLast;
 
-  nsSortState()
-    : initialized(false),
-      sortHints(0)
-  {
-  }
-  void Traverse(nsCycleCollectionTraversalCallback &cb) const
-  {
+  nsSortState() : initialized(false), sortHints(0) {}
+  void Traverse(nsCycleCollectionTraversalCallback& cb) const {
     cb.NoteXPCOMChild(lastContainer);
   }
 };
@@ -53,8 +47,7 @@ struct nsSortState
 struct contentSortInfo {
   nsCOMPtr<nsIContent> content;
   nsCOMPtr<nsIContent> parent;
-  void swap(contentSortInfo& other)
-  {
+  void swap(contentSortInfo& other) {
     content.swap(other.content);
     parent.swap(other.parent);
   }
@@ -65,17 +58,15 @@ struct contentSortInfo {
 //
 //   This is the sort service.
 //
-class XULSortServiceImpl : public nsIXULSortService
-{
-protected:
+class XULSortServiceImpl : public nsIXULSortService {
+ protected:
   XULSortServiceImpl(void) {}
   virtual ~XULSortServiceImpl(void) {}
 
   friend nsresult NS_NewXULSortService(nsIXULSortService** mgr);
 
-private:
-
-public:
+ private:
+ public:
   // nsISupports
   NS_DECL_ISUPPORTS
 
@@ -85,8 +76,7 @@ public:
   /**
    * Set sort and sortDirection attributes when a sort is done.
    */
-  void
-  SetSortHints(mozilla::dom::Element* aElement, nsSortState* aSortState);
+  void SetSortHints(mozilla::dom::Element* aElement, nsSortState* aSortState);
 
   /**
    * Set sortActive and sortDirection attributes on a tree column when a sort
@@ -94,10 +84,8 @@ public:
    * matches the sort key. The sort attributes are removed from the other
    * columns.
    */
-  void
-  SetSortColumnHints(nsIContent *content,
-                     const nsAString &sortResource,
-                     const nsAString &sortDirection);
+  void SetSortColumnHints(nsIContent* content, const nsAString& sortResource,
+                          const nsAString& sortDirection);
 
   /**
    * Determine the list of items which need to be sorted. This is determined
@@ -107,24 +95,20 @@ public:
    *   - otherwise, for trees, get the child treeitems
    *   - otherwise, get the direct children
    */
-  nsresult
-  GetItemsToSort(nsIContent *aContainer,
-                 nsSortState* aSortState,
-                 nsTArray<contentSortInfo>& aSortItems);
+  nsresult GetItemsToSort(nsIContent* aContainer, nsSortState* aSortState,
+                          nsTArray<contentSortInfo>& aSortItems);
 
   /**
    * Sort a container using the supplied sort state details.
    */
-  nsresult
-  SortContainer(nsIContent *aContainer, nsSortState* aSortState);
+  nsresult SortContainer(nsIContent* aContainer, nsSortState* aSortState);
 
   /**
    * Given a list of sortable items, reverse the list. This is done
    * when simply changing the sort direction for the same key.
    */
-  nsresult
-  InvertSortInfo(nsTArray<contentSortInfo>& aData,
-                 int32_t aStart, int32_t aNumItems);
+  nsresult InvertSortInfo(nsTArray<contentSortInfo>& aData, int32_t aStart,
+                          int32_t aNumItems);
 
   /**
    * Initialize sort information from attributes specified on the container,
@@ -136,20 +120,18 @@ public:
    * @param aSortDirection direction to sort in
    * @param aSortState structure filled in with sort data
    */
-  static nsresult
-  InitializeSortState(mozilla::dom::Element* aRootElement,
-                      mozilla::dom::Element* aContainer,
-                      const nsAString& aSortKey,
-                      const nsAString& aSortDirection,
-                      nsSortState* aSortState);
+  static nsresult InitializeSortState(mozilla::dom::Element* aRootElement,
+                                      mozilla::dom::Element* aContainer,
+                                      const nsAString& aSortKey,
+                                      const nsAString& aSortDirection,
+                                      nsSortState* aSortState);
 
   /**
    * Compares aLeft and aRight and returns < 0, 0, or > 0. The sort
    * hints are checked for case matching and integer sorting.
    */
-  static int32_t CompareValues(const nsAString& aLeft,
-                               const nsAString& aRight,
+  static int32_t CompareValues(const nsAString& aLeft, const nsAString& aRight,
                                uint32_t aSortHints);
 };
 
-#endif // nsXULSortService_h
+#endif  // nsXULSortService_h

@@ -29,19 +29,16 @@ using namespace mozilla::dom;
  * class used to implement attr() generated content
  */
 class nsAttributeTextNode final : public nsTextNode,
-                                  public nsStubMutationObserver
-{
-public:
+                                  public nsStubMutationObserver {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   nsAttributeTextNode(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                      int32_t aNameSpaceID,
-                      nsAtom* aAttrName) :
-    nsTextNode(aNodeInfo),
-    mGrandparent(nullptr),
-    mNameSpaceID(aNameSpaceID),
-    mAttrName(aAttrName)
-  {
+                      int32_t aNameSpaceID, nsAtom* aAttrName)
+      : nsTextNode(aNodeInfo),
+        mGrandparent(nullptr),
+        mNameSpaceID(aNameSpaceID),
+        mAttrName(aAttrName) {
     NS_ASSERTION(mNameSpaceID != kNameSpaceID_Unknown, "Must know namespace");
     NS_ASSERTION(mAttrName, "Must have attr name");
   }
@@ -55,14 +52,12 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
-  virtual nsGenericDOMDataNode *CloneDataNode(mozilla::dom::NodeInfo *aNodeInfo,
-                                              bool aCloneText) const override
-  {
+  virtual nsGenericDOMDataNode* CloneDataNode(mozilla::dom::NodeInfo* aNodeInfo,
+                                              bool aCloneText) const override {
     already_AddRefed<mozilla::dom::NodeInfo> ni =
-      RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
-    nsAttributeTextNode *it = new nsAttributeTextNode(ni,
-                                                      mNameSpaceID,
-                                                      mAttrName);
+        RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
+    nsAttributeTextNode* it =
+        new nsAttributeTextNode(ni, mNameSpaceID, mAttrName);
     if (it && aCloneText) {
       it->mText = mText;
     }
@@ -71,11 +66,9 @@ public:
   }
 
   // Public method for the event to run
-  void UpdateText() {
-    UpdateText(true);
-  }
+  void UpdateText() { UpdateText(true); }
 
-private:
+ private:
   virtual ~nsAttributeTextNode() {
     NS_ASSERTION(!mGrandparent, "We were not unbound!");
   }
@@ -93,32 +86,28 @@ private:
   RefPtr<nsAtom> mAttrName;
 };
 
-nsTextNode::~nsTextNode()
-{
-}
+nsTextNode::~nsTextNode() {}
 
 // Use the CC variant of this, even though this class does not define
 // a new CC participant, to make QIing to the CC interfaces faster.
-NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(nsTextNode, nsGenericDOMDataNode, nsIDOMNode,
-                                             nsIDOMText, nsIDOMCharacterData)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(nsTextNode, nsGenericDOMDataNode,
+                                             nsIDOMNode, nsIDOMText,
+                                             nsIDOMCharacterData)
 
-JSObject*
-nsTextNode::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* nsTextNode::WrapNode(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) {
   return TextBinding::Wrap(aCx, this, aGivenProto);
 }
 
-bool
-nsTextNode::IsNodeOfType(uint32_t aFlags) const
-{
+bool nsTextNode::IsNodeOfType(uint32_t aFlags) const {
   return !(aFlags & ~(eTEXT | eDATA_NODE));
 }
 
-nsGenericDOMDataNode*
-nsTextNode::CloneDataNode(mozilla::dom::NodeInfo *aNodeInfo, bool aCloneText) const
-{
-  already_AddRefed<mozilla::dom::NodeInfo> ni = RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
-  nsTextNode *it = new nsTextNode(ni);
+nsGenericDOMDataNode* nsTextNode::CloneDataNode(
+    mozilla::dom::NodeInfo* aNodeInfo, bool aCloneText) const {
+  already_AddRefed<mozilla::dom::NodeInfo> ni =
+      RefPtr<mozilla::dom::NodeInfo>(aNodeInfo).forget();
+  nsTextNode* it = new nsTextNode(ni);
   if (aCloneText) {
     it->mText = mText;
   }
@@ -126,23 +115,20 @@ nsTextNode::CloneDataNode(mozilla::dom::NodeInfo *aNodeInfo, bool aCloneText) co
   return it;
 }
 
-nsresult
-nsTextNode::AppendTextForNormalize(const char16_t* aBuffer, uint32_t aLength,
-                                   bool aNotify, nsIContent* aNextSibling)
-{
+nsresult nsTextNode::AppendTextForNormalize(const char16_t* aBuffer,
+                                            uint32_t aLength, bool aNotify,
+                                            nsIContent* aNextSibling) {
   CharacterDataChangeInfo::Details details = {
-    CharacterDataChangeInfo::Details::eMerge, aNextSibling
-  };
-  return SetTextInternal(mText.GetLength(), 0, aBuffer, aLength, aNotify, &details);
+      CharacterDataChangeInfo::Details::eMerge, aNextSibling};
+  return SetTextInternal(mText.GetLength(), 0, aBuffer, aLength, aNotify,
+                         &details);
 }
 
-nsresult
-nsTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                       nsIContent* aBindingParent, bool aCompileEventHandlers)
-{
-  nsresult rv = nsGenericDOMDataNode::BindToTree(aDocument, aParent,
-                                                 aBindingParent,
-                                                 aCompileEventHandlers);
+nsresult nsTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                                nsIContent* aBindingParent,
+                                bool aCompileEventHandlers) {
+  nsresult rv = nsGenericDOMDataNode::BindToTree(
+      aDocument, aParent, aBindingParent, aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   SetDirectionFromNewTextNode(this);
@@ -150,25 +136,20 @@ nsTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
-void nsTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
-{
+void nsTextNode::UnbindFromTree(bool aDeep, bool aNullParent) {
   ResetDirectionSetByTextNode(this);
 
   nsGenericDOMDataNode::UnbindFromTree(aDeep, aNullParent);
 }
 
-bool
-nsTextNode::IsShadowDOMEnabled(JSContext* aCx, JSObject* aObject)
-{
+bool nsTextNode::IsShadowDOMEnabled(JSContext* aCx, JSObject* aObject) {
   return nsDocument::IsShadowDOMEnabled(aCx, aObject);
 }
 
 #ifdef DEBUG
-void
-nsTextNode::List(FILE* out, int32_t aIndent) const
-{
+void nsTextNode::List(FILE* out, int32_t aIndent) const {
   int32_t index;
-  for (index = aIndent; --index >= 0; ) fputs("  ", out);
+  for (index = aIndent; --index >= 0;) fputs("  ", out);
 
   fprintf(out, "Text@%p", static_cast<const void*>(this));
   fprintf(out, " flags=[%08x]", static_cast<unsigned int>(GetFlags()));
@@ -193,40 +174,36 @@ nsTextNode::List(FILE* out, int32_t aIndent) const
   fputs(">\n", out);
 }
 
-void
-nsTextNode::DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const
-{
-  if(aDumpAll) {
+void nsTextNode::DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const {
+  if (aDumpAll) {
     int32_t index;
-    for (index = aIndent; --index >= 0; ) fputs("  ", out);
+    for (index = aIndent; --index >= 0;) fputs("  ", out);
 
     nsAutoString tmp;
     ToCString(tmp, 0, mText.GetLength());
 
-    if(!tmp.EqualsLiteral("\\n")) {
+    if (!tmp.EqualsLiteral("\\n")) {
       fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
-      if(aIndent) fputs("\n", out);
+      if (aIndent) fputs("\n", out);
     }
   }
 }
 #endif
 
-nsresult
-NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
-                       int32_t aNameSpaceID, nsAtom* aAttrName,
-                       nsIContent** aResult)
-{
+nsresult NS_NewAttributeContent(nsNodeInfoManager* aNodeInfoManager,
+                                int32_t aNameSpaceID, nsAtom* aAttrName,
+                                nsIContent** aResult) {
   NS_PRECONDITION(aNodeInfoManager, "Missing nodeInfoManager");
   NS_PRECONDITION(aAttrName, "Must have an attr name");
   NS_PRECONDITION(aNameSpaceID != kNameSpaceID_Unknown, "Must know namespace");
 
   *aResult = nullptr;
 
-  already_AddRefed<mozilla::dom::NodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
+  already_AddRefed<mozilla::dom::NodeInfo> ni =
+      aNodeInfoManager->GetTextNodeInfo();
 
-  nsAttributeTextNode* textNode = new nsAttributeTextNode(ni,
-                                                          aNameSpaceID,
-                                                          aAttrName);
+  nsAttributeTextNode* textNode =
+      new nsAttributeTextNode(ni, aNameSpaceID, aAttrName);
   NS_ADDREF(*aResult = textNode);
 
   return NS_OK;
@@ -235,16 +212,16 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
 NS_IMPL_ISUPPORTS_INHERITED(nsAttributeTextNode, nsTextNode,
                             nsIMutationObserver)
 
-nsresult
-nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                                nsIContent* aBindingParent,
-                                bool aCompileEventHandlers)
-{
-  NS_PRECONDITION(aParent && aParent->GetParent(),
-                  "This node can't be a child of the document or of the document root");
+nsresult nsAttributeTextNode::BindToTree(nsIDocument* aDocument,
+                                         nsIContent* aParent,
+                                         nsIContent* aBindingParent,
+                                         bool aCompileEventHandlers) {
+  NS_PRECONDITION(
+      aParent && aParent->GetParent(),
+      "This node can't be a child of the document or of the document root");
 
-  nsresult rv = nsTextNode::BindToTree(aDocument, aParent,
-                                       aBindingParent, aCompileEventHandlers);
+  nsresult rv = nsTextNode::BindToTree(aDocument, aParent, aBindingParent,
+                                       aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ASSERTION(!mGrandparent, "We were already bound!");
@@ -258,9 +235,7 @@ nsAttributeTextNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
-void
-nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
-{
+void nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent) {
   // UnbindFromTree can be called anytime so we have to be safe.
   if (mGrandparent) {
     // aNullParent might not be true here, but we want to remove the
@@ -272,38 +247,30 @@ nsAttributeTextNode::UnbindFromTree(bool aDeep, bool aNullParent)
   nsTextNode::UnbindFromTree(aDeep, aNullParent);
 }
 
-void
-nsAttributeTextNode::AttributeChanged(Element* aElement,
-                                      int32_t aNameSpaceID,
-                                      nsAtom* aAttribute,
-                                      int32_t aModType,
-                                      const nsAttrValue* aOldValue)
-{
+void nsAttributeTextNode::AttributeChanged(Element* aElement,
+                                           int32_t aNameSpaceID,
+                                           nsAtom* aAttribute, int32_t aModType,
+                                           const nsAttrValue* aOldValue) {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
       aElement == mGrandparent) {
     // Since UpdateText notifies, do it when it's safe to run script.  Note
     // that if we get unbound while the event is up that's ok -- we'll just
     // have no grandparent when it fires, and will do nothing.
     void (nsAttributeTextNode::*update)() = &nsAttributeTextNode::UpdateText;
-    nsContentUtils::AddScriptRunner(
-      NewRunnableMethod("nsAttributeTextNode::AttributeChanged", this, update));
+    nsContentUtils::AddScriptRunner(NewRunnableMethod(
+        "nsAttributeTextNode::AttributeChanged", this, update));
   }
 }
 
-void
-nsAttributeTextNode::NodeWillBeDestroyed(const nsINode* aNode)
-{
+void nsAttributeTextNode::NodeWillBeDestroyed(const nsINode* aNode) {
   NS_ASSERTION(aNode == static_cast<nsINode*>(mGrandparent), "Wrong node!");
   mGrandparent = nullptr;
 }
 
-void
-nsAttributeTextNode::UpdateText(bool aNotify)
-{
+void nsAttributeTextNode::UpdateText(bool aNotify) {
   if (mGrandparent) {
     nsAutoString attrValue;
     mGrandparent->GetAttr(mNameSpaceID, mAttrName, attrValue);
     SetText(attrValue, aNotify);
   }
 }
-

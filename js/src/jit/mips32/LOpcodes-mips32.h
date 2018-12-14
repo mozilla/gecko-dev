@@ -9,22 +9,22 @@
 
 #include "jit/shared/LOpcodes-shared.h"
 
-#define LIR_CPU_OPCODE_LIST(_)  \
-    _(BoxFloatingPoint)         \
-    _(ModMaskI)                 \
-    _(UDivOrMod)                \
-    _(DivOrModI64)              \
-    _(UDivOrModI64)             \
-    _(WasmUnalignedLoad)        \
-    _(WasmUnalignedStore)       \
-    _(WasmUnalignedLoadI64)     \
-    _(WasmUnalignedStoreI64)    \
-    _(WasmTruncateToInt64)      \
-    _(Int64ToFloatingPoint)     \
-    _(WasmCompareExchangeI64)   \
-    _(WasmAtomicExchangeI64)    \
-    _(WasmAtomicBinopI64)       \
-    _(WasmAtomicLoadI64)        \
-    _(WasmAtomicStoreI64)       \
+#define LIR_CPU_OPCODE_LIST(_) \
+  _(BoxFloatingPoint)          \
+  _(ModMaskI)                  \
+  _(UDivOrMod)                 \
+  _(DivOrModI64)               \
+  _(UDivOrModI64)              \
+  _(WasmUnalignedLoad)         \
+  _(WasmUnalignedStore)        \
+  _(WasmUnalignedLoadI64)      \
+  _(WasmUnalignedStoreI64)     \
+  _(WasmTruncateToInt64)       \
+  _(Int64ToFloatingPoint)      \
+  _(WasmCompareExchangeI64)    \
+  _(WasmAtomicExchangeI64)     \
+  _(WasmAtomicBinopI64)        \
+  _(WasmAtomicLoadI64)         \
+  _(WasmAtomicStoreI64)
 
-#endif // jit_mips32_LOpcodes_mips32_h__
+#endif  // jit_mips32_LOpcodes_mips32_h__

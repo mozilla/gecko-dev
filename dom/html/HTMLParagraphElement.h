@@ -14,50 +14,45 @@
 namespace mozilla {
 namespace dom {
 
-class HTMLParagraphElement final : public nsGenericHTMLElement
-{
-public:
-  explicit HTMLParagraphElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsGenericHTMLElement(aNodeInfo)
-  {
-  }
+class HTMLParagraphElement final : public nsGenericHTMLElement {
+ public:
+  explicit HTMLParagraphElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : nsGenericHTMLElement(aNodeInfo) {}
 
   // nsISupports
   NS_INLINE_DECL_REFCOUNTING_INHERITED(HTMLParagraphElement,
                                        nsGenericHTMLElement)
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult) override;
+  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsIPrincipal* aMaybeScriptedPrincipal,
+                              nsAttrValue& aResult) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
+  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction()
+      const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   // WebIDL API
-  void GetAlign(nsAString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::align, aValue);
-  }
-  void SetAlign(const nsAString& aValue, mozilla::ErrorResult& rv)
-  {
+  void GetAlign(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::align, aValue); }
+  void SetAlign(const nsAString& aValue, mozilla::ErrorResult& rv) {
     SetHTMLAttr(nsGkAtoms::align, aValue, rv);
   }
 
-protected:
+ protected:
   virtual ~HTMLParagraphElement();
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-private:
+ private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     GenericSpecifiedValues* aGenericData);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_HTMLParagraphElement_h
+#endif  // mozilla_dom_HTMLParagraphElement_h

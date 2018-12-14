@@ -24,9 +24,8 @@ class nsIPrefBranch;
 
 class nsIDNService final : public nsIIDNService,
                            public nsIObserver,
-                           public nsSupportsWeakReference
-{
-public:
+                           public nsSupportsWeakReference {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIIDNSERVICE
   NS_DECL_NSIOBSERVER
@@ -35,10 +34,10 @@ public:
 
   nsresult Init();
 
-protected:
+ protected:
   virtual ~nsIDNService();
 
-private:
+ private:
   enum stringPrepFlag {
     eStringPrepForDNS,
     eStringPrepForUI,
@@ -97,8 +96,8 @@ private:
   nsresult ACEtoUTF8(const nsACString& input, nsACString& _retval,
                      stringPrepFlag flag);
 
-  bool isInWhitelist(const nsACString &host);
-  void prefsChanged(nsIPrefBranch *prefBranch, const char16_t *pref);
+  bool isInWhitelist(const nsACString& host);
+  void prefsChanged(nsIPrefBranch* prefBranch, const char16_t* pref);
 
   /**
    * Determine whether a label is considered safe to display to the user
@@ -127,7 +126,7 @@ private:
    *  Both simplified-only and traditional-only Chinese characters
    *   XXX this test was disabled by bug 857481
    */
-  bool isLabelSafe(const nsAString &label);
+  bool isLabelSafe(const nsAString& label);
 
   /**
    * Determine whether a combination of scripts in a single label is
@@ -185,7 +184,7 @@ private:
    * http://www.unicode.org/reports/tr39/#Restriction_Level_Detection,
    * and selected by the pref network.IDN.restriction_profile
    */
-   enum restrictionProfile {
+  enum restrictionProfile {
     eASCIIOnlyProfile,
     eHighlyRestrictiveProfile,
     eModeratelyRestrictiveProfile

@@ -46,10 +46,10 @@ extern nsXREDirProvider* gDirServiceProvider;
 extern const mozilla::XREAppData* gAppData;
 extern bool gSafeMode;
 
-extern int    gArgc;
-extern char **gArgv;
-extern int    gRestartArgc;
-extern char **gRestartArgv;
+extern int gArgc;
+extern char** gArgv;
+extern int gRestartArgc;
+extern char** gRestartArgv;
 extern bool gLogConsoleErrors;
 extern nsString gAbsoluteArgv0Path;
 
@@ -60,13 +60,11 @@ extern bool gIsGtest;
  *
  * @note XPCOMInit has not happened yet.
  */
-nsresult NS_CreateNativeAppSupport(nsINativeAppSupport* *aResult);
+nsresult NS_CreateNativeAppSupport(nsINativeAppSupport** aResult);
 
-nsresult
-NS_NewToolkitProfileService(nsIToolkitProfileService* *aResult);
+nsresult NS_NewToolkitProfileService(nsIToolkitProfileService** aResult);
 
-nsresult
-NS_NewToolkitProfileFactory(nsIFactory* *aResult);
+nsresult NS_NewToolkitProfileFactory(nsIFactory** aResult);
 
 /**
  * Try to acquire exclusive access to the specified profile directory.
@@ -85,45 +83,40 @@ NS_NewToolkitProfileFactory(nsIFactory* *aResult);
  * @return NS_ERROR_FILE_ACCESS_DENIED to indicate that the profile
  *         directory cannot be unlocked.
  */
-nsresult
-NS_LockProfilePath(nsIFile* aPath, nsIFile* aTempPath,
-                   nsIProfileUnlocker* *aUnlocker, nsIProfileLock* *aResult);
+nsresult NS_LockProfilePath(nsIFile* aPath, nsIFile* aTempPath,
+                            nsIProfileUnlocker** aUnlocker,
+                            nsIProfileLock** aResult);
 
-void
-WriteConsoleLog();
+void WriteConsoleLog();
 
-void
-OverrideDefaultLocaleIfNeeded();
+void OverrideDefaultLocaleIfNeeded();
 
 /**
  * Allow exit() calls to complete. This should be done from a proper Gecko
  * shutdown path. Otherwise we aim to catch improper shutdowns.
  */
-void
-MozExpectedExit();
+void MozExpectedExit();
 
 #ifdef XP_WIN
-void
-UseParentConsole();
+void UseParentConsole();
 
-BOOL
-WinLaunchChild(const wchar_t *exePath, int argc,
-               char **argv, HANDLE userToken = nullptr,
-               HANDLE *hProcess = nullptr);
+BOOL WinLaunchChild(const wchar_t* exePath, int argc, char** argv,
+                    HANDLE userToken = nullptr, HANDLE* hProcess = nullptr);
 #endif
 
-#define NS_NATIVEAPPSUPPORT_CONTRACTID "@mozilla.org/toolkit/native-app-support;1"
+#define NS_NATIVEAPPSUPPORT_CONTRACTID \
+  "@mozilla.org/toolkit/native-app-support;1"
 
 namespace mozilla {
 namespace startup {
 Result<nsCOMPtr<nsIFile>, nsresult> GetIncompleteStartupFile(nsIFile* aProfLD);
 
 extern GeckoProcessType sChildProcessType;
-} // namespace startup
+}  // namespace startup
 
 const char* PlatformBuildID();
 
-} // namespace mozilla
+}  // namespace mozilla
 
 /**
  * Set up platform specific error handling such as suppressing DLL load dialog
@@ -131,4 +124,4 @@ const char* PlatformBuildID();
  */
 void SetupErrorHandling(const char* progname);
 
-#endif // nsAppRunner_h__
+#endif  // nsAppRunner_h__

@@ -22,53 +22,39 @@ class Promise;
 class WorkerHolder;
 class WorkerPrivate;
 
-template <class Derived> class FetchBody;
+template <class Derived>
+class FetchBody;
 
 // FetchBody is not thread-safe but we need to move it around threads.
 // In order to keep it alive all the time, we use a WorkerHolder, if created on
 // workers, plus a this consumer.
 template <class Derived>
-class FetchBodyConsumer final : public nsIObserver
-                              , public nsSupportsWeakReference
-                              , public AbortFollower
-{
-public:
+class FetchBodyConsumer final : public nsIObserver,
+                                public nsSupportsWeakReference,
+                                public AbortFollower {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  static already_AddRefed<Promise>
-  Create(nsIGlobalObject* aGlobal,
-         nsIEventTarget* aMainThreadEventTarget,
-         FetchBody<Derived>* aBody,
-         AbortSignal* aSignal,
-         FetchConsumeType aType,
-         ErrorResult& aRv);
+  static already_AddRefed<Promise> Create(
+      nsIGlobalObject* aGlobal, nsIEventTarget* aMainThreadEventTarget,
+      FetchBody<Derived>* aBody, AbortSignal* aSignal, FetchConsumeType aType,
+      ErrorResult& aRv);
 
-  void
-  ReleaseObject();
+  void ReleaseObject();
 
-  void
-  BeginConsumeBodyMainThread();
+  void BeginConsumeBodyMainThread();
 
-  void
-  ContinueConsumeBody(nsresult aStatus, uint32_t aLength, uint8_t* aResult,
-                      bool aShuttingDown = false);
+  void ContinueConsumeBody(nsresult aStatus, uint32_t aLength, uint8_t* aResult,
+                           bool aShuttingDown = false);
 
-  void
-  ContinueConsumeBlobBody(BlobImpl* aBlobImpl, bool aShuttingDown = false);
+  void ContinueConsumeBlobBody(BlobImpl* aBlobImpl, bool aShuttingDown = false);
 
-  void
-  ShutDownMainThreadConsuming();
+  void ShutDownMainThreadConsuming();
 
-  WorkerPrivate*
-  GetWorkerPrivate() const
-  {
-    return mWorkerPrivate;
-  }
+  WorkerPrivate* GetWorkerPrivate() const { return mWorkerPrivate; }
 
-  void
-  NullifyConsumeBodyPump()
-  {
+  void NullifyConsumeBodyPump() {
     mShuttingDown = true;
     mConsumeBodyPump = nullptr;
   }
@@ -76,22 +62,18 @@ public:
   // AbortFollower
   void Abort() override;
 
-private:
+ private:
   FetchBodyConsumer(nsIEventTarget* aMainThreadEventTarget,
                     nsIGlobalObject* aGlobalObject,
-                    WorkerPrivate* aWorkerPrivate,
-                    FetchBody<Derived>* aBody,
-                    nsIInputStream* aBodyStream,
-                    Promise* aPromise,
+                    WorkerPrivate* aWorkerPrivate, FetchBody<Derived>* aBody,
+                    nsIInputStream* aBodyStream, Promise* aPromise,
                     FetchConsumeType aType);
 
   ~FetchBodyConsumer();
 
-  void
-  AssertIsOnTargetThread() const;
+  void AssertIsOnTargetThread() const;
 
-  bool
-  RegisterWorkerHolder();
+  bool RegisterWorkerHolder();
 
   nsCOMPtr<nsIThread> mTargetThread;
   nsCOMPtr<nsIEventTarget> mMainThreadEventTarget;
@@ -131,7 +113,7 @@ private:
   bool mShuttingDown;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FetchConsumer_h
+#endif  // mozilla_dom_FetchConsumer_h

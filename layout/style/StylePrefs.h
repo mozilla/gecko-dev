@@ -11,8 +11,7 @@
 
 namespace mozilla {
 
-struct StylePrefs
-{
+struct StylePrefs {
   static bool sFontDisplayEnabled;
   static bool sOpentypeSVGEnabled;
   static bool sWebkitPrefixedAliasesEnabled;
@@ -30,6 +29,6 @@ struct StylePrefs
   static void Init();
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_StylePrefs_h
+#endif  // mozilla_StylePrefs_h

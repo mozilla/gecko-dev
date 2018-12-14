@@ -28,7 +28,7 @@
 #include "mozilla/TextEditRules.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"
-#include "nsCRTGlue.h" // for CRLF
+#include "nsCRTGlue.h"  // for CRLF
 #include "nsComponentManagerUtils.h"
 #include "nsIScriptError.h"
 #include "nsContentUtils.h"
@@ -79,19 +79,16 @@ namespace mozilla {
 
 using namespace dom;
 
-#define kInsertCookie  "_moz_Insert Here_moz_"
+#define kInsertCookie "_moz_Insert Here_moz_"
 
 // some little helpers
-static bool FindIntegerAfterString(const char* aLeadingString,
-                                   nsCString& aCStr, int32_t& foundNumber);
+static bool FindIntegerAfterString(const char* aLeadingString, nsCString& aCStr,
+                                   int32_t& foundNumber);
 static nsresult RemoveFragComments(nsCString& theStr);
 static void RemoveBodyAndHead(nsINode& aNode);
-static nsresult FindTargetNode(nsINode* aStart,
-                               nsCOMPtr<nsINode>& aResult);
+static nsresult FindTargetNode(nsINode* aStart, nsCOMPtr<nsINode>& aResult);
 
-nsresult
-HTMLEditor::LoadHTML(const nsAString& aInputString)
-{
+nsresult HTMLEditor::LoadHTML(const nsAString& aInputString) {
   NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
 
   // force IME commit; set up rules sniffing and batching
@@ -110,7 +107,7 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
   nsresult rv = rules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) {
-    return NS_OK; // rules canceled the operation
+    return NS_OK;  // rules canceled the operation
   }
 
   if (!handled) {
@@ -127,7 +124,7 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
     // Create fragment for pasted HTML.
     ErrorResult error;
     RefPtr<DocumentFragment> documentFragment =
-      range->CreateContextualFragment(aInputString, error);
+        range->CreateContextualFragment(aInputString, error);
     if (NS_WARN_IF(error.Failed())) {
       return error.StealNSResult();
     }
@@ -140,9 +137,8 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
     //     observer.  We need to investigate what we should do here.
     Unused << pointToInsert.Offset();
     for (nsCOMPtr<nsIContent> contentToInsert =
-           documentFragment->GetFirstChild();
-         contentToInsert;
-         contentToInsert = documentFragment->GetFirstChild()) {
+             documentFragment->GetFirstChild();
+         contentToInsert; contentToInsert = documentFragment->GetFirstChild()) {
       rv = InsertNode(*contentToInsert, pointToInsert.AsRaw());
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
@@ -165,41 +161,29 @@ HTMLEditor::LoadHTML(const nsAString& aInputString)
 }
 
 NS_IMETHODIMP
-HTMLEditor::InsertHTML(const nsAString& aInString)
-{
+HTMLEditor::InsertHTML(const nsAString& aInString) {
   const nsString& empty = EmptyString();
 
-  return InsertHTMLWithContext(aInString, empty, empty, empty,
-                               nullptr,  nullptr, 0, true);
+  return InsertHTMLWithContext(aInString, empty, empty, empty, nullptr, nullptr,
+                               0, true);
 }
 
-nsresult
-HTMLEditor::InsertHTMLWithContext(const nsAString& aInputString,
-                                  const nsAString& aContextStr,
-                                  const nsAString& aInfoStr,
-                                  const nsAString& aFlavor,
-                                  nsIDOMDocument* aSourceDoc,
-                                  nsIDOMNode* aDestNode,
-                                  int32_t aDestOffset,
-                                  bool aDeleteSelection)
-{
-  return DoInsertHTMLWithContext(aInputString, aContextStr, aInfoStr,
-      aFlavor, aSourceDoc, aDestNode, aDestOffset, aDeleteSelection,
+nsresult HTMLEditor::InsertHTMLWithContext(
+    const nsAString& aInputString, const nsAString& aContextStr,
+    const nsAString& aInfoStr, const nsAString& aFlavor,
+    nsIDOMDocument* aSourceDoc, nsIDOMNode* aDestNode, int32_t aDestOffset,
+    bool aDeleteSelection) {
+  return DoInsertHTMLWithContext(
+      aInputString, aContextStr, aInfoStr, aFlavor, aSourceDoc, aDestNode,
+      aDestOffset, aDeleteSelection,
       /* trusted input */ true, /* clear style */ false);
 }
 
-nsresult
-HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
-                                    const nsAString& aContextStr,
-                                    const nsAString& aInfoStr,
-                                    const nsAString& aFlavor,
-                                    nsIDOMDocument* aSourceDoc,
-                                    nsIDOMNode* aDestNode,
-                                    int32_t aDestOffset,
-                                    bool aDeleteSelection,
-                                    bool aTrustedInput,
-                                    bool aClearStyle)
-{
+nsresult HTMLEditor::DoInsertHTMLWithContext(
+    const nsAString& aInputString, const nsAString& aContextStr,
+    const nsAString& aInfoStr, const nsAString& aFlavor,
+    nsIDOMDocument* aSourceDoc, nsIDOMNode* aDestNode, int32_t aDestOffset,
+    bool aDeleteSelection, bool aTrustedInput, bool aClearStyle) {
   NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
 
   // Prevent the edit rules object from dying
@@ -218,22 +202,20 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
   nsCOMPtr<nsINode> fragmentAsNode, streamStartParent, streamEndParent;
   int32_t streamStartOffset = 0, streamEndOffset = 0;
 
-  nsresult rv = CreateDOMFragmentFromPaste(aInputString, aContextStr, aInfoStr,
-                                           address_of(fragmentAsNode),
-                                           address_of(streamStartParent),
-                                           address_of(streamEndParent),
-                                           &streamStartOffset,
-                                           &streamEndOffset,
-                                           aTrustedInput);
+  nsresult rv = CreateDOMFragmentFromPaste(
+      aInputString, aContextStr, aInfoStr, address_of(fragmentAsNode),
+      address_of(streamStartParent), address_of(streamEndParent),
+      &streamStartOffset, &streamEndOffset, aTrustedInput);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsINode> targetNode;
-  int32_t targetOffset=0;
+  int32_t targetOffset = 0;
 
   if (!aDestNode) {
     // if caller didn't provide the destination/target node,
     // fetch the paste insertion point from our selection
-    rv = GetStartNodeAndOffset(selection, getter_AddRefs(targetNode), &targetOffset);
+    rv = GetStartNodeAndOffset(selection, getter_AddRefs(targetNode),
+                               &targetOffset);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!targetNode || !IsEditable(targetNode)) {
       return NS_ERROR_FAILURE;
@@ -267,10 +249,9 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
 
   // make a list of what nodes in docFrag we need to move
   nsTArray<OwningNonNull<nsINode>> nodeList;
-  CreateListOfNodesToPaste(*static_cast<DocumentFragment*>(fragmentAsNode.get()),
-                           nodeList,
-                           streamStartParent, streamStartOffset,
-                           streamEndParent, streamEndOffset);
+  CreateListOfNodesToPaste(
+      *static_cast<DocumentFragment*>(fragmentAsNode.get()), nodeList,
+      streamStartParent, streamStartOffset, streamEndParent, streamEndOffset);
 
   if (nodeList.IsEmpty()) {
     // We aren't inserting anything, but if aDeleteSelection is set, we do want
@@ -332,14 +313,14 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
   rv = rules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) {
-    return NS_OK; // rules canceled the operation
+    return NS_OK;  // rules canceled the operation
   }
 
   if (!handled) {
     // Adjust position based on the first node we are going to insert.
     // FYI: WillDoAction() above might have changed the selection.
     EditorDOMPoint pointToInsert =
-      GetBetterInsertionPointFor(nodeList[0], GetStartPoint(selection));
+        GetBetterInsertionPointFor(nodeList[0], GetStartPoint(selection));
     if (NS_WARN_IF(!pointToInsert.IsSet())) {
       return NS_ERROR_FAILURE;
     }
@@ -349,8 +330,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     // the invisible br visible.
     WSRunObject wsObj(this, pointToInsert.GetContainer(),
                       pointToInsert.Offset());
-    if (wsObj.mEndReasonNode &&
-        TextEditUtils::IsBreak(wsObj.mEndReasonNode) &&
+    if (wsObj.mEndReasonNode && TextEditUtils::IsBreak(wsObj.mEndReasonNode) &&
         !IsVisibleBRElement(wsObj.mEndReasonNode)) {
       AutoEditorDOMPointChildInvalidator lockOffset(pointToInsert);
       rv = DeleteNode(wsObj.mEndReasonNode);
@@ -362,10 +342,9 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
 
     // Are we in a text node? If so, split it.
     if (pointToInsert.IsInTextNode()) {
-      SplitNodeResult splitNodeResult =
-        SplitNodeDeep(*pointToInsert.GetContainerAsContent(),
-                      pointToInsert.AsRaw(),
-                      SplitAtEdges::eAllowToCreateEmptyContainer);
+      SplitNodeResult splitNodeResult = SplitNodeDeep(
+          *pointToInsert.GetContainerAsContent(), pointToInsert.AsRaw(),
+          SplitAtEdges::eAllowToCreateEmptyContainer);
       if (NS_WARN_IF(splitNodeResult.Failed())) {
         return splitNodeResult.Rv();
       }
@@ -378,19 +357,18 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
     // build up list of parents of first node in list that are either
     // lists or tables.  First examine front of paste node list.
     nsTArray<OwningNonNull<Element>> startListAndTableArray;
-    GetListAndTableParents(StartOrEnd::start, nodeList,
-                           startListAndTableArray);
+    GetListAndTableParents(StartOrEnd::start, nodeList, startListAndTableArray);
 
     // remember number of lists and tables above us
     int32_t highWaterMark = -1;
     if (!startListAndTableArray.IsEmpty()) {
-      highWaterMark = DiscoverPartialListsAndTables(nodeList,
-                                                    startListAndTableArray);
+      highWaterMark =
+          DiscoverPartialListsAndTables(nodeList, startListAndTableArray);
     }
 
-    // if we have pieces of tables or lists to be inserted, let's force the paste
-    // to deal with table elements right away, so that it doesn't orphan some
-    // table or list contents outside the table or list.
+    // if we have pieces of tables or lists to be inserted, let's force the
+    // paste to deal with table elements right away, so that it doesn't orphan
+    // some table or list contents outside the table or list.
     if (highWaterMark >= 0) {
       ReplaceOrphanedStructure(StartOrEnd::start, nodeList,
                                startListAndTableArray, highWaterMark);
@@ -403,25 +381,24 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
 
     // remember number of lists and tables above us
     if (!endListAndTableArray.IsEmpty()) {
-      highWaterMark = DiscoverPartialListsAndTables(nodeList,
-                                                    endListAndTableArray);
+      highWaterMark =
+          DiscoverPartialListsAndTables(nodeList, endListAndTableArray);
     }
 
     // don't orphan partial list or table structure
     if (highWaterMark >= 0) {
-      ReplaceOrphanedStructure(StartOrEnd::end, nodeList,
-                               endListAndTableArray, highWaterMark);
+      ReplaceOrphanedStructure(StartOrEnd::end, nodeList, endListAndTableArray,
+                               highWaterMark);
     }
 
-    MOZ_ASSERT(pointToInsert.GetContainer()->
-                               GetChildAt_Deprecated(pointToInsert.Offset()) ==
-                 pointToInsert.GetChild());
+    MOZ_ASSERT(pointToInsert.GetContainer()->GetChildAt_Deprecated(
+                   pointToInsert.Offset()) == pointToInsert.GetChild());
 
     // Loop over the node list and paste the nodes:
     nsCOMPtr<nsINode> parentBlock =
-      IsBlockNode(pointToInsert.GetContainer()) ?
-        pointToInsert.GetContainer() :
-        GetBlockNodeParent(pointToInsert.GetContainer());
+        IsBlockNode(pointToInsert.GetContainer())
+            ? pointToInsert.GetContainer()
+            : GetBlockNodeParent(pointToInsert.GetContainer());
     nsCOMPtr<nsIContent> lastInsertNode;
     nsCOMPtr<nsINode> insertedContextParent;
     for (OwningNonNull<nsINode>& curNode : nodeList) {
@@ -434,8 +411,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         // If we had to insert something higher up in the paste hierarchy,
         // we want to skip any further paste nodes that descend from that.
         // Else we will paste twice.
-        if (EditorUtils::IsDescendantOf(*curNode,
-                                        *insertedContextParent)) {
+        if (EditorUtils::IsDescendantOf(*curNode, *insertedContextParent)) {
           continue;
         }
       }
@@ -449,10 +425,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
           (HTMLEditUtils::IsTable(curNode) ||
            HTMLEditUtils::IsTable(pointToInsert.GetContainer()))) {
         for (nsCOMPtr<nsIContent> firstChild = curNode->GetFirstChild();
-             firstChild;
-             firstChild = curNode->GetFirstChild()) {
-          EditorDOMPoint insertedPoint =
-            InsertNodeIntoProperAncestor(
+             firstChild; firstChild = curNode->GetFirstChild()) {
+          EditorDOMPoint insertedPoint = InsertNodeIntoProperAncestor(
               *firstChild, pointToInsert.AsRaw(),
               SplitAtEdges::eDoNotCreateEmptyContainer);
           if (NS_WARN_IF(!insertedPoint.IsSet())) {
@@ -463,7 +437,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
           pointToInsert = insertedPoint;
           DebugOnly<bool> advanced = pointToInsert.AdvanceOffset();
           NS_WARNING_ASSERTION(advanced,
-            "Failed to advance offset from inserted point");
+                               "Failed to advance offset from inserted point");
         }
       }
       // give the user a hand on list insertion.  if they have
@@ -474,8 +448,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
                (HTMLEditUtils::IsList(pointToInsert.GetContainer()) ||
                 HTMLEditUtils::IsListItem(pointToInsert.GetContainer()))) {
         for (nsCOMPtr<nsIContent> firstChild = curNode->GetFirstChild();
-             firstChild;
-             firstChild = curNode->GetFirstChild()) {
+             firstChild; firstChild = curNode->GetFirstChild()) {
           if (HTMLEditUtils::IsListItem(firstChild) ||
               HTMLEditUtils::IsList(firstChild)) {
             // Check if we are pasting into empty list item. If so
@@ -484,8 +457,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
               bool isEmpty;
               rv = IsEmptyNode(pointToInsert.GetContainer(), &isEmpty, true);
               if (NS_SUCCEEDED(rv) && isEmpty) {
-                if (NS_WARN_IF(!pointToInsert.GetContainer()->
-                                                GetParentNode())) {
+                if (NS_WARN_IF(
+                        !pointToInsert.GetContainer()->GetParentNode())) {
                   // Is it an orphan node?
                 } else {
                   DeleteNode(pointToInsert.GetContainer());
@@ -493,8 +466,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
                 }
               }
             }
-            EditorDOMPoint insertedPoint =
-              InsertNodeIntoProperAncestor(
+            EditorDOMPoint insertedPoint = InsertNodeIntoProperAncestor(
                 *firstChild, pointToInsert.AsRaw(),
                 SplitAtEdges::eDoNotCreateEmptyContainer);
             if (NS_WARN_IF(!insertedPoint.IsSet())) {
@@ -505,8 +477,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
             lastInsertNode = firstChild;
             pointToInsert = insertedPoint;
             DebugOnly<bool> advanced = pointToInsert.AdvanceOffset();
-            NS_WARNING_ASSERTION(advanced,
-              "Failed to advance offset from inserted point");
+            NS_WARNING_ASSERTION(
+                advanced, "Failed to advance offset from inserted point");
           } else {
             AutoEditorDOMPointChildInvalidator lockOffset(pointToInsert);
             ErrorResult error;
@@ -520,10 +492,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
                  HTMLEditUtils::IsPre(curNode)) {
         // Check for pre's going into pre's.
         for (nsCOMPtr<nsIContent> firstChild = curNode->GetFirstChild();
-             firstChild;
-             firstChild = curNode->GetFirstChild()) {
-          EditorDOMPoint insertedPoint =
-            InsertNodeIntoProperAncestor(
+             firstChild; firstChild = curNode->GetFirstChild()) {
+          EditorDOMPoint insertedPoint = InsertNodeIntoProperAncestor(
               *firstChild, pointToInsert.AsRaw(),
               SplitAtEdges::eDoNotCreateEmptyContainer);
           if (NS_WARN_IF(!insertedPoint.IsSet())) {
@@ -535,14 +505,13 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
           pointToInsert = insertedPoint;
           DebugOnly<bool> advanced = pointToInsert.AdvanceOffset();
           NS_WARNING_ASSERTION(advanced,
-            "Failed to advance offset from inserted point");
+                               "Failed to advance offset from inserted point");
         }
       }
 
       if (!bDidInsert || NS_FAILED(rv)) {
         // Try to insert.
-        EditorDOMPoint insertedPoint =
-          InsertNodeIntoProperAncestor(
+        EditorDOMPoint insertedPoint = InsertNodeIntoProperAncestor(
             *curNode->AsContent(), pointToInsert.AsRaw(),
             SplitAtEdges::eDoNotCreateEmptyContainer);
         if (insertedPoint.IsSet()) {
@@ -553,7 +522,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         // Assume failure means no legal parent in the document hierarchy,
         // try again with the parent of curNode in the paste hierarchy.
         for (nsCOMPtr<nsIContent> content =
-               curNode->IsContent() ? curNode->AsContent() : nullptr;
+                 curNode->IsContent() ? curNode->AsContent() : nullptr;
              content && !insertedPoint.IsSet();
              content = content->GetParent()) {
           if (NS_WARN_IF(!content->GetParent()) ||
@@ -561,8 +530,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
             continue;
           }
           nsCOMPtr<nsINode> oldParent = content->GetParentNode();
-          insertedPoint =
-            InsertNodeIntoProperAncestor(
+          insertedPoint = InsertNodeIntoProperAncestor(
               *content->GetParent(), pointToInsert.AsRaw(),
               SplitAtEdges::eDoNotCreateEmptyContainer);
           if (insertedPoint.IsSet()) {
@@ -575,7 +543,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         pointToInsert.Set(lastInsertNode);
         DebugOnly<bool> advanced = pointToInsert.AdvanceOffset();
         NS_WARNING_ASSERTION(advanced,
-          "Failed to advance offset from inserted point");
+                             "Failed to advance offset from inserted point");
       }
     }
 
@@ -589,8 +557,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
       if (!HTMLEditUtils::IsTable(lastInsertNode)) {
         selNode = GetLastEditableLeaf(*lastInsertNode);
         nsINode* highTable = nullptr;
-        for (nsINode* parent = selNode;
-             parent && parent != lastInsertNode;
+        for (nsINode* parent = selNode; parent && parent != lastInsertNode;
              parent = parent->GetParentNode()) {
           if (HTMLEditUtils::IsTable(parent)) {
             highTable = parent;
@@ -619,10 +586,11 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
         selOffset = pointAtContainer.Offset() + 1;
       }
 
-      // make sure we don't end up with selection collapsed after an invisible break node
+      // make sure we don't end up with selection collapsed after an invisible
+      // break node
       WSRunObject wsRunObj(this, selNode, selOffset);
       nsCOMPtr<nsINode> visNode;
-      int32_t outVisOffset=0;
+      int32_t outVisOffset = 0;
       WSType visType;
       wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
                                 &outVisOffset, &visType);
@@ -643,7 +611,8 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
                                     &outVisOffset, &visType);
           if (visType == WSType::text || visType == WSType::normalWS) {
             selNode = visNode;
-            selOffset = outVisOffset;  // PriorVisibleNode already set offset to _after_ the text or ws
+            selOffset = outVisOffset;  // PriorVisibleNode already set offset to
+                                       // _after_ the text or ws
           } else if (visType == WSType::special) {
             // prior visible thing is an image or some other non-text thingy.
             // We want to be right after it.
@@ -657,19 +626,18 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
 
       // if we just pasted a link, discontinue link style
       nsCOMPtr<nsINode> link;
-      if (!bStartedInLink &&
-          IsInLink(selNode, address_of(link))) {
-        // so, if we just pasted a link, I split it.  Why do that instead of just
-        // nudging selection point beyond it?  Because it might have ended in a BR
-        // that is not visible.  If so, the code above just placed selection
-        // inside that.  So I split it instead.
+      if (!bStartedInLink && IsInLink(selNode, address_of(link))) {
+        // so, if we just pasted a link, I split it.  Why do that instead of
+        // just nudging selection point beyond it?  Because it might have ended
+        // in a BR that is not visible.  If so, the code above just placed
+        // selection inside that.  So I split it instead.
         nsCOMPtr<nsIContent> linkContent = do_QueryInterface(link);
         NS_ENSURE_STATE(linkContent || !link);
         SplitNodeResult splitLinkResult =
-          SplitNodeDeep(*linkContent, EditorRawDOMPoint(selNode, selOffset),
-                        SplitAtEdges::eDoNotCreateEmptyContainer);
+            SplitNodeDeep(*linkContent, EditorRawDOMPoint(selNode, selOffset),
+                          SplitAtEdges::eDoNotCreateEmptyContainer);
         NS_WARNING_ASSERTION(splitLinkResult.Succeeded(),
-          "Failed to split the link");
+                             "Failed to split the link");
         if (splitLinkResult.GetPreviousNode()) {
           EditorRawDOMPoint afterLeftLink(splitLinkResult.GetPreviousNode());
           if (afterLeftLink.AdvanceOffset()) {
@@ -683,10 +651,7 @@ HTMLEditor::DoInsertHTMLWithContext(const nsAString& aInputString,
   return rules->DidDoAction(selection, &ruleInfo, rv);
 }
 
-bool
-HTMLEditor::IsInLink(nsINode* aNode,
-                     nsCOMPtr<nsINode>* outLink)
-{
+bool HTMLEditor::IsInLink(nsINode* aNode, nsCOMPtr<nsINode>* outLink) {
   NS_ENSURE_TRUE(aNode, false);
   if (outLink) {
     *outLink = nullptr;
@@ -704,10 +669,7 @@ HTMLEditor::IsInLink(nsINode* aNode,
   return false;
 }
 
-nsresult
-HTMLEditor::StripFormattingNodes(nsIContent& aNode,
-                                 bool aListOnly)
-{
+nsresult HTMLEditor::StripFormattingNodes(nsIContent& aNode, bool aListOnly) {
   if (aNode.TextIsOnlyWhitespace()) {
     nsCOMPtr<nsINode> parent = aNode.GetParentNode();
     if (parent) {
@@ -733,16 +695,14 @@ HTMLEditor::StripFormattingNodes(nsIContent& aNode,
 }
 
 NS_IMETHODIMP
-HTMLEditor::PrepareTransferable(nsITransferable** aTransferable)
-{
+HTMLEditor::PrepareTransferable(nsITransferable** aTransferable) {
   return NS_OK;
 }
 
-nsresult
-HTMLEditor::PrepareHTMLTransferable(nsITransferable** aTransferable)
-{
+nsresult HTMLEditor::PrepareHTMLTransferable(nsITransferable** aTransferable) {
   // Create generic Transferable for getting the data
-  nsresult rv = CallCreateInstance("@mozilla.org/widget/transferable;1", aTransferable);
+  nsresult rv =
+      CallCreateInstance("@mozilla.org/widget/transferable;1", aTransferable);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the nsITransferable interface for getting the data from the clipboard
@@ -788,11 +748,8 @@ HTMLEditor::PrepareHTMLTransferable(nsITransferable** aTransferable)
   return NS_OK;
 }
 
-bool
-FindIntegerAfterString(const char* aLeadingString,
-                       nsCString& aCStr,
-                       int32_t& foundNumber)
-{
+bool FindIntegerAfterString(const char* aLeadingString, nsCString& aCStr,
+                            int32_t& foundNumber) {
   // first obtain offsets from cfhtml str
   int32_t numFront = aCStr.Find(aLeadingString);
   if (numFront == -1) {
@@ -805,15 +762,13 @@ FindIntegerAfterString(const char* aLeadingString,
     return false;
   }
 
-  nsAutoCString numStr(Substring(aCStr, numFront, numBack-numFront));
+  nsAutoCString numStr(Substring(aCStr, numFront, numBack - numFront));
   nsresult errorCode;
   foundNumber = numStr.ToInteger(&errorCode);
   return true;
 }
 
-nsresult
-RemoveFragComments(nsCString& aStr)
-{
+nsresult RemoveFragComments(nsCString& aStr) {
   // remove the StartFragment/EndFragment comments from the str, if present
   int32_t startCommentIndx = aStr.Find("<!--StartFragment");
   if (startCommentIndx >= 0) {
@@ -832,19 +787,15 @@ RemoveFragComments(nsCString& aStr)
   return NS_OK;
 }
 
-nsresult
-HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
-                        char16_t** aStuffToPaste,
-                        char16_t** aCfcontext)
-{
+nsresult HTMLEditor::ParseCFHTML(nsCString& aCfhtml, char16_t** aStuffToPaste,
+                                 char16_t** aCfcontext) {
   // First obtain offsets from cfhtml str.
   int32_t startHTML, endHTML, startFragment, endFragment;
   if (!FindIntegerAfterString("StartHTML:", aCfhtml, startHTML) ||
       startHTML < -1) {
     return NS_ERROR_FAILURE;
   }
-  if (!FindIntegerAfterString("EndHTML:", aCfhtml, endHTML) ||
-      endHTML < -1) {
+  if (!FindIntegerAfterString("EndHTML:", aCfhtml, endHTML) || endHTML < -1) {
     return NS_ERROR_FAILURE;
   }
   if (!FindIntegerAfterString("StartFragment:", aCfhtml, startFragment) ||
@@ -856,7 +807,8 @@ HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
     return NS_ERROR_FAILURE;
   }
 
-  // The StartHTML and EndHTML markers are allowed to be -1 to include everything.
+  // The StartHTML and EndHTML markers are allowed to be -1 to include
+  // everything.
   //   See Reference: MSDN doc entitled "HTML Clipboard Format"
   //   http://msdn.microsoft.com/en-us/library/aa767917(VS.85).aspx#unknown_854
   if (startHTML == -1) {
@@ -875,9 +827,10 @@ HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
   }
 
   // create context string
-  nsAutoCString contextUTF8(Substring(aCfhtml, startHTML, startFragment - startHTML) +
-                            NS_LITERAL_CSTRING("<!--" kInsertCookie "-->") +
-                            Substring(aCfhtml, endFragment, endHTML - endFragment));
+  nsAutoCString contextUTF8(
+      Substring(aCfhtml, startHTML, startFragment - startHTML) +
+      NS_LITERAL_CSTRING("<!--" kInsertCookie "-->") +
+      Substring(aCfhtml, endFragment, endHTML - endFragment));
 
   // validate startFragment
   // make sure it's not in the middle of a HTML tag
@@ -894,7 +847,9 @@ HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
       if (curPos != startFragment) {
         // working backwards, the first thing we see is the start of a tag
         // so StartFragment is bad, so we need to update it.
-        NS_ERROR("StartFragment byte count in the clipboard looks bad, see bug #228879");
+        NS_ERROR(
+            "StartFragment byte count in the clipboard looks bad, see bug "
+            "#228879");
         startFragment = curPos - 1;
       }
       break;
@@ -903,7 +858,8 @@ HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
   }
 
   // create fragment string
-  nsAutoCString fragmentUTF8(Substring(aCfhtml, startFragment, endFragment-startFragment));
+  nsAutoCString fragmentUTF8(
+      Substring(aCfhtml, startFragment, endFragment - startFragment));
 
   // remove the StartFragment/EndFragment comments from the fragment, if present
   RemoveFragComments(fragmentUTF8);
@@ -916,30 +872,32 @@ HTMLEditor::ParseCFHTML(nsCString& aCfhtml,
   const nsString& cntxtUcs2Str = NS_ConvertUTF8toUTF16(contextUTF8);
 
   // translate platform linebreaks for fragment
-  int32_t oldLengthInChars = fragUcs2Str.Length() + 1;  // +1 to include null terminator
+  int32_t oldLengthInChars =
+      fragUcs2Str.Length() + 1;  // +1 to include null terminator
   int32_t newLengthInChars = 0;
-  *aStuffToPaste = nsLinebreakConverter::ConvertUnicharLineBreaks(fragUcs2Str.get(),
-                                                           nsLinebreakConverter::eLinebreakAny,
-                                                           nsLinebreakConverter::eLinebreakContent,
-                                                           oldLengthInChars, &newLengthInChars);
+  *aStuffToPaste = nsLinebreakConverter::ConvertUnicharLineBreaks(
+      fragUcs2Str.get(), nsLinebreakConverter::eLinebreakAny,
+      nsLinebreakConverter::eLinebreakContent, oldLengthInChars,
+      &newLengthInChars);
   NS_ENSURE_TRUE(*aStuffToPaste, NS_ERROR_FAILURE);
 
   // translate platform linebreaks for context
-  oldLengthInChars = cntxtUcs2Str.Length() + 1;  // +1 to include null terminator
+  oldLengthInChars =
+      cntxtUcs2Str.Length() + 1;  // +1 to include null terminator
   newLengthInChars = 0;
-  *aCfcontext = nsLinebreakConverter::ConvertUnicharLineBreaks(cntxtUcs2Str.get(),
-                                                           nsLinebreakConverter::eLinebreakAny,
-                                                           nsLinebreakConverter::eLinebreakContent,
-                                                           oldLengthInChars, &newLengthInChars);
-  // it's ok for context to be empty.  frag might be whole doc and contain all its context.
+  *aCfcontext = nsLinebreakConverter::ConvertUnicharLineBreaks(
+      cntxtUcs2Str.get(), nsLinebreakConverter::eLinebreakAny,
+      nsLinebreakConverter::eLinebreakContent, oldLengthInChars,
+      &newLengthInChars);
+  // it's ok for context to be empty.  frag might be whole doc and contain all
+  // its context.
 
   // we're done!
   return NS_OK;
 }
 
-static nsresult
-ImgFromData(const nsACString& aType, const nsACString& aData, nsString& aOutput)
-{
+static nsresult ImgFromData(const nsACString& aType, const nsACString& aData,
+                            nsString& aOutput) {
   nsAutoCString data64;
   nsresult rv = Base64Encode(aData, data64);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -956,29 +914,24 @@ ImgFromData(const nsACString& aType, const nsACString& aData, nsString& aOutput)
 
 NS_IMPL_ISUPPORTS(HTMLEditor::BlobReader, nsIEditorBlobListener)
 
-HTMLEditor::BlobReader::BlobReader(BlobImpl* aBlob,
-                                   HTMLEditor* aHTMLEditor,
-                                   bool aIsSafe,
-                                   nsIDOMDocument* aSourceDoc,
+HTMLEditor::BlobReader::BlobReader(BlobImpl* aBlob, HTMLEditor* aHTMLEditor,
+                                   bool aIsSafe, nsIDOMDocument* aSourceDoc,
                                    nsIDOMNode* aDestinationNode,
-                                   int32_t aDestOffset,
-                                   bool aDoDeleteSelection)
-  : mBlob(aBlob)
-  , mHTMLEditor(aHTMLEditor)
-  , mIsSafe(aIsSafe)
-  , mSourceDoc(aSourceDoc)
-  , mDestinationNode(aDestinationNode)
-  , mDestOffset(aDestOffset)
-  , mDoDeleteSelection(aDoDeleteSelection)
-{
+                                   int32_t aDestOffset, bool aDoDeleteSelection)
+    : mBlob(aBlob),
+      mHTMLEditor(aHTMLEditor),
+      mIsSafe(aIsSafe),
+      mSourceDoc(aSourceDoc),
+      mDestinationNode(aDestinationNode),
+      mDestOffset(aDestOffset),
+      mDoDeleteSelection(aDoDeleteSelection) {
   MOZ_ASSERT(mBlob);
   MOZ_ASSERT(mHTMLEditor);
   MOZ_ASSERT(mDestinationNode);
 }
 
 NS_IMETHODIMP
-HTMLEditor::BlobReader::OnResult(const nsACString& aResult)
-{
+HTMLEditor::BlobReader::OnResult(const nsACString& aResult) {
   nsString blobType;
   mBlob->GetType(blobType);
 
@@ -988,48 +941,38 @@ HTMLEditor::BlobReader::OnResult(const nsACString& aResult)
   NS_ENSURE_SUCCESS(rv, rv);
 
   AutoPlaceholderBatch beginBatching(mHTMLEditor);
-  rv = mHTMLEditor->DoInsertHTMLWithContext(stuffToPaste, EmptyString(),
-                                            EmptyString(),
-                                            NS_LITERAL_STRING(kFileMime),
-                                            mSourceDoc,
-                                            mDestinationNode, mDestOffset,
-                                            mDoDeleteSelection,
-                                            mIsSafe, false);
+  rv = mHTMLEditor->DoInsertHTMLWithContext(
+      stuffToPaste, EmptyString(), EmptyString(), NS_LITERAL_STRING(kFileMime),
+      mSourceDoc, mDestinationNode, mDestOffset, mDoDeleteSelection, mIsSafe,
+      false);
   return rv;
 }
 
 NS_IMETHODIMP
-HTMLEditor::BlobReader::OnError(const nsAString& aError)
-{
+HTMLEditor::BlobReader::OnError(const nsAString& aError) {
   nsCOMPtr<nsINode> destNode = do_QueryInterface(mDestinationNode);
   const nsPromiseFlatString& flat = PromiseFlatString(aError);
   const char16_t* error = flat.get();
-  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                  NS_LITERAL_CSTRING("Editor"),
-                                  destNode->OwnerDoc(),
-                                  nsContentUtils::eDOM_PROPERTIES,
-                                  "EditorFileDropFailed",
-                                  &error, 1);
+  nsContentUtils::ReportToConsole(
+      nsIScriptError::warningFlag, NS_LITERAL_CSTRING("Editor"),
+      destNode->OwnerDoc(), nsContentUtils::eDOM_PROPERTIES,
+      "EditorFileDropFailed", &error, 1);
   return NS_OK;
 }
 
-nsresult
-HTMLEditor::InsertObject(const nsACString& aType,
-                         nsISupports* aObject,
-                         bool aIsSafe,
-                         nsIDOMDocument* aSourceDoc,
-                         nsIDOMNode* aDestinationNode,
-                         int32_t aDestOffset,
-                         bool aDoDeleteSelection)
-{
+nsresult HTMLEditor::InsertObject(const nsACString& aType, nsISupports* aObject,
+                                  bool aIsSafe, nsIDOMDocument* aSourceDoc,
+                                  nsIDOMNode* aDestinationNode,
+                                  int32_t aDestOffset,
+                                  bool aDoDeleteSelection) {
   nsresult rv;
 
   if (nsCOMPtr<BlobImpl> blob = do_QueryInterface(aObject)) {
-    RefPtr<BlobReader> br = new BlobReader(blob, this, aIsSafe, aSourceDoc,
-                                           aDestinationNode, aDestOffset,
-                                           aDoDeleteSelection);
+    RefPtr<BlobReader> br =
+        new BlobReader(blob, this, aIsSafe, aSourceDoc, aDestinationNode,
+                       aDestOffset, aDoDeleteSelection);
     nsCOMPtr<nsIEditorUtils> utils =
-      do_GetService("@mozilla.org/editor-utils;1");
+        do_GetService("@mozilla.org/editor-utils;1");
     NS_ENSURE_TRUE(utils, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsINode> node = do_QueryInterface(aDestinationNode);
@@ -1059,10 +1002,8 @@ HTMLEditor::InsertObject(const nsACString& aType,
     }
   }
 
-  if (type.EqualsLiteral(kJPEGImageMime) ||
-      type.EqualsLiteral(kJPGImageMime) ||
-      type.EqualsLiteral(kPNGImageMime) ||
-      type.EqualsLiteral(kGIFImageMime) ||
+  if (type.EqualsLiteral(kJPEGImageMime) || type.EqualsLiteral(kJPGImageMime) ||
+      type.EqualsLiteral(kPNGImageMime) || type.EqualsLiteral(kGIFImageMime) ||
       insertAsImage) {
     nsCString imageData;
     if (insertAsImage) {
@@ -1085,34 +1026,25 @@ HTMLEditor::InsertObject(const nsACString& aType,
 
     AutoPlaceholderBatch beginBatching(this);
     rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(),
-                                 NS_LITERAL_STRING(kFileMime),
-                                 aSourceDoc,
+                                 NS_LITERAL_STRING(kFileMime), aSourceDoc,
                                  aDestinationNode, aDestOffset,
-                                 aDoDeleteSelection,
-                                 aIsSafe, false);
+                                 aDoDeleteSelection, aIsSafe, false);
   }
 
   return NS_OK;
 }
 
-nsresult
-HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
-                                   nsIDOMDocument* aSourceDoc,
-                                   const nsAString& aContextStr,
-                                   const nsAString& aInfoStr,
-                                   bool havePrivateHTMLFlavor,
-                                   nsIDOMNode* aDestinationNode,
-                                   int32_t aDestOffset,
-                                   bool aDoDeleteSelection)
-{
+nsresult HTMLEditor::InsertFromTransferable(
+    nsITransferable* transferable, nsIDOMDocument* aSourceDoc,
+    const nsAString& aContextStr, const nsAString& aInfoStr,
+    bool havePrivateHTMLFlavor, nsIDOMNode* aDestinationNode,
+    int32_t aDestOffset, bool aDoDeleteSelection) {
   nsresult rv = NS_OK;
   nsAutoCString bestFlavor;
   nsCOMPtr<nsISupports> genericDataObj;
   uint32_t len = 0;
-  if (NS_SUCCEEDED(
-        transferable->GetAnyTransferData(bestFlavor,
-                                         getter_AddRefs(genericDataObj),
-                                         &len))) {
+  if (NS_SUCCEEDED(transferable->GetAnyTransferData(
+          bestFlavor, getter_AddRefs(genericDataObj), &len))) {
     AutoTransactionsConserveSelection dontChangeMySelection(this);
     nsAutoString flavor;
     CopyASCIItoUTF16(bestFlavor, flavor);
@@ -1124,37 +1056,34 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
         bestFlavor.EqualsLiteral(kJPGImageMime) ||
         bestFlavor.EqualsLiteral(kPNGImageMime) ||
         bestFlavor.EqualsLiteral(kGIFImageMime)) {
-      rv = InsertObject(bestFlavor, genericDataObj, isSafe,
-                        aSourceDoc, aDestinationNode, aDestOffset, aDoDeleteSelection);
+      rv = InsertObject(bestFlavor, genericDataObj, isSafe, aSourceDoc,
+                        aDestinationNode, aDestOffset, aDoDeleteSelection);
     } else if (bestFlavor.EqualsLiteral(kNativeHTMLMime)) {
-      // note cf_html uses utf8, hence use length = len, not len/2 as in flavors below
-      nsCOMPtr<nsISupportsCString> textDataObj = do_QueryInterface(genericDataObj);
+      // note cf_html uses utf8, hence use length = len, not len/2 as in flavors
+      // below
+      nsCOMPtr<nsISupportsCString> textDataObj =
+          do_QueryInterface(genericDataObj);
       if (textDataObj && len > 0) {
         nsAutoCString cfhtml;
         textDataObj->GetData(cfhtml);
         NS_ASSERTION(cfhtml.Length() <= (len), "Invalid length!");
-        nsString cfcontext, cffragment, cfselection; // cfselection left emtpy for now
+        nsString cfcontext, cffragment,
+            cfselection;  // cfselection left emtpy for now
 
-        rv = ParseCFHTML(cfhtml, getter_Copies(cffragment), getter_Copies(cfcontext));
+        rv = ParseCFHTML(cfhtml, getter_Copies(cffragment),
+                         getter_Copies(cfcontext));
         if (NS_SUCCEEDED(rv) && !cffragment.IsEmpty()) {
           AutoPlaceholderBatch beginBatching(this);
           // If we have our private HTML flavor, we will only use the fragment
           // from the CF_HTML. The rest comes from the clipboard.
           if (havePrivateHTMLFlavor) {
-            rv = DoInsertHTMLWithContext(cffragment,
-                                         aContextStr, aInfoStr, flavor,
-                                         aSourceDoc,
-                                         aDestinationNode, aDestOffset,
-                                         aDoDeleteSelection,
-                                         isSafe);
+            rv = DoInsertHTMLWithContext(
+                cffragment, aContextStr, aInfoStr, flavor, aSourceDoc,
+                aDestinationNode, aDestOffset, aDoDeleteSelection, isSafe);
           } else {
-            rv = DoInsertHTMLWithContext(cffragment,
-                                         cfcontext, cfselection, flavor,
-                                         aSourceDoc,
-                                         aDestinationNode, aDestOffset,
-                                         aDoDeleteSelection,
-                                         isSafe);
-
+            rv = DoInsertHTMLWithContext(
+                cffragment, cfcontext, cfselection, flavor, aSourceDoc,
+                aDestinationNode, aDestOffset, aDoDeleteSelection, isSafe);
           }
         } else {
           // In some platforms (like Linux), the clipboard might return data
@@ -1170,14 +1099,16 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
     if (bestFlavor.EqualsLiteral(kHTMLMime) ||
         bestFlavor.EqualsLiteral(kUnicodeMime) ||
         bestFlavor.EqualsLiteral(kMozTextInternal)) {
-      nsCOMPtr<nsISupportsString> textDataObj = do_QueryInterface(genericDataObj);
+      nsCOMPtr<nsISupportsString> textDataObj =
+          do_QueryInterface(genericDataObj);
       if (textDataObj && len > 0) {
         nsAutoString text;
         textDataObj->GetData(text);
-        NS_ASSERTION(text.Length() <= (len/2), "Invalid length!");
+        NS_ASSERTION(text.Length() <= (len / 2), "Invalid length!");
         stuffToPaste.Assign(text.get(), len / 2);
       } else {
-        nsCOMPtr<nsISupportsCString> textDataObj(do_QueryInterface(genericDataObj));
+        nsCOMPtr<nsISupportsCString> textDataObj(
+            do_QueryInterface(genericDataObj));
         if (textDataObj && len > 0) {
           nsAutoCString text;
           textDataObj->GetData(text);
@@ -1189,14 +1120,12 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
       if (!stuffToPaste.IsEmpty()) {
         AutoPlaceholderBatch beginBatching(this);
         if (bestFlavor.EqualsLiteral(kHTMLMime)) {
-          rv = DoInsertHTMLWithContext(stuffToPaste,
-                                       aContextStr, aInfoStr, flavor,
-                                       aSourceDoc,
-                                       aDestinationNode, aDestOffset,
-                                       aDoDeleteSelection,
-                                       isSafe);
+          rv = DoInsertHTMLWithContext(stuffToPaste, aContextStr, aInfoStr,
+                                       flavor, aSourceDoc, aDestinationNode,
+                                       aDestOffset, aDoDeleteSelection, isSafe);
         } else {
-          rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
+          rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset,
+                            aDoDeleteSelection);
         }
       }
     }
@@ -1209,30 +1138,26 @@ HTMLEditor::InsertFromTransferable(nsITransferable* transferable,
   return rv;
 }
 
-static void
-GetStringFromDataTransfer(nsIDOMDataTransfer* aDataTransfer,
-                          const nsAString& aType,
-                          int32_t aIndex,
-                          nsAString& aOutputString)
-{
+static void GetStringFromDataTransfer(nsIDOMDataTransfer* aDataTransfer,
+                                      const nsAString& aType, int32_t aIndex,
+                                      nsAString& aOutputString) {
   nsCOMPtr<nsIVariant> variant;
-  DataTransfer::Cast(aDataTransfer)->GetDataAtNoSecurityCheck(aType, aIndex, getter_AddRefs(variant));
+  DataTransfer::Cast(aDataTransfer)
+      ->GetDataAtNoSecurityCheck(aType, aIndex, getter_AddRefs(variant));
   if (variant) {
     variant->GetAsAString(aOutputString);
   }
 }
 
-nsresult
-HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
-                                   int32_t aIndex,
-                                   nsIDOMDocument* aSourceDoc,
-                                   nsIDOMNode* aDestinationNode,
-                                   int32_t aDestOffset,
-                                   bool aDoDeleteSelection)
-{
+nsresult HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
+                                            int32_t aIndex,
+                                            nsIDOMDocument* aSourceDoc,
+                                            nsIDOMNode* aDestinationNode,
+                                            int32_t aDestOffset,
+                                            bool aDoDeleteSelection) {
   ErrorResult rv;
   RefPtr<DOMStringList> types =
-    aDataTransfer->MozTypesAt(aIndex, CallerType::System, rv);
+      aDataTransfer->MozTypesAt(aIndex, CallerType::System, rv);
   if (rv.Failed()) {
     return rv.StealNSResult();
   }
@@ -1248,18 +1173,19 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
     types->Item(t, type);
 
     if (!isText) {
-      if (type.EqualsLiteral(kFileMime) ||
-          type.EqualsLiteral(kJPEGImageMime) ||
+      if (type.EqualsLiteral(kFileMime) || type.EqualsLiteral(kJPEGImageMime) ||
           type.EqualsLiteral(kJPGImageMime) ||
           type.EqualsLiteral(kPNGImageMime) ||
           type.EqualsLiteral(kGIFImageMime)) {
         nsCOMPtr<nsIVariant> variant;
-        DataTransfer::Cast(aDataTransfer)->GetDataAtNoSecurityCheck(type, aIndex, getter_AddRefs(variant));
+        DataTransfer::Cast(aDataTransfer)
+            ->GetDataAtNoSecurityCheck(type, aIndex, getter_AddRefs(variant));
         if (variant) {
           nsCOMPtr<nsISupports> object;
           variant->GetAsISupports(getter_AddRefs(object));
           return InsertObject(NS_ConvertUTF16toUTF8(type), object, isSafe,
-                              aSourceDoc, aDestinationNode, aDestOffset, aDoDeleteSelection);
+                              aSourceDoc, aDestinationNode, aDestOffset,
+                              aDoDeleteSelection);
         }
       } else if (type.EqualsLiteral(kNativeHTMLMime)) {
         // Windows only clipboard parsing.
@@ -1267,9 +1193,11 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
         GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
         NS_ConvertUTF16toUTF8 cfhtml(text);
 
-        nsString cfcontext, cffragment, cfselection; // cfselection left emtpy for now
+        nsString cfcontext, cffragment,
+            cfselection;  // cfselection left emtpy for now
 
-        nsresult rv = ParseCFHTML(cfhtml, getter_Copies(cffragment), getter_Copies(cfcontext));
+        nsresult rv = ParseCFHTML(cfhtml, getter_Copies(cffragment),
+                                  getter_Copies(cfcontext));
         if (NS_SUCCEEDED(rv) && !cffragment.IsEmpty()) {
           AutoPlaceholderBatch beginBatching(this);
 
@@ -1277,87 +1205,80 @@ HTMLEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
             // If we have our private HTML flavor, we will only use the fragment
             // from the CF_HTML. The rest comes from the clipboard.
             nsAutoString contextString, infoString;
-            GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLContext), aIndex, contextString);
-            GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLInfo), aIndex, infoString);
-            return DoInsertHTMLWithContext(cffragment,
-                                           contextString, infoString, type,
-                                           aSourceDoc,
-                                           aDestinationNode, aDestOffset,
-                                           aDoDeleteSelection,
-                                           isSafe);
+            GetStringFromDataTransfer(aDataTransfer,
+                                      NS_LITERAL_STRING(kHTMLContext), aIndex,
+                                      contextString);
+            GetStringFromDataTransfer(aDataTransfer,
+                                      NS_LITERAL_STRING(kHTMLInfo), aIndex,
+                                      infoString);
+            return DoInsertHTMLWithContext(
+                cffragment, contextString, infoString, type, aSourceDoc,
+                aDestinationNode, aDestOffset, aDoDeleteSelection, isSafe);
           } else {
-            return DoInsertHTMLWithContext(cffragment,
-                                           cfcontext, cfselection, type,
-                                           aSourceDoc,
-                                           aDestinationNode, aDestOffset,
-                                           aDoDeleteSelection,
-                                           isSafe);
+            return DoInsertHTMLWithContext(
+                cffragment, cfcontext, cfselection, type, aSourceDoc,
+                aDestinationNode, aDestOffset, aDoDeleteSelection, isSafe);
           }
         }
       } else if (type.EqualsLiteral(kHTMLMime)) {
         nsAutoString text, contextString, infoString;
         GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
-        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLContext), aIndex, contextString);
-        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLInfo), aIndex, infoString);
+        GetStringFromDataTransfer(aDataTransfer,
+                                  NS_LITERAL_STRING(kHTMLContext), aIndex,
+                                  contextString);
+        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kHTMLInfo),
+                                  aIndex, infoString);
 
         AutoPlaceholderBatch beginBatching(this);
         if (type.EqualsLiteral(kHTMLMime)) {
-          return DoInsertHTMLWithContext(text,
-                                         contextString, infoString, type,
-                                         aSourceDoc,
-                                         aDestinationNode, aDestOffset,
-                                         aDoDeleteSelection,
-                                         isSafe);
+          return DoInsertHTMLWithContext(
+              text, contextString, infoString, type, aSourceDoc,
+              aDestinationNode, aDestOffset, aDoDeleteSelection, isSafe);
         }
       }
     }
 
-    if (type.EqualsLiteral(kTextMime) ||
-        type.EqualsLiteral(kMozTextInternal)) {
+    if (type.EqualsLiteral(kTextMime) || type.EqualsLiteral(kMozTextInternal)) {
       nsAutoString text;
       GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
 
       AutoPlaceholderBatch beginBatching(this);
-      return InsertTextAt(text, aDestinationNode, aDestOffset, aDoDeleteSelection);
+      return InsertTextAt(text, aDestinationNode, aDestOffset,
+                          aDoDeleteSelection);
     }
   }
 
   return NS_OK;
 }
 
-bool
-HTMLEditor::HavePrivateHTMLFlavor(nsIClipboard* aClipboard)
-{
-  // check the clipboard for our special kHTMLContext flavor.  If that is there, we know
-  // we have our own internal html format on clipboard.
+bool HTMLEditor::HavePrivateHTMLFlavor(nsIClipboard* aClipboard) {
+  // check the clipboard for our special kHTMLContext flavor.  If that is there,
+  // we know we have our own internal html format on clipboard.
 
   NS_ENSURE_TRUE(aClipboard, false);
   bool bHavePrivateHTMLFlavor = false;
 
-  const char* flavArray[] = { kHTMLContext };
+  const char* flavArray[] = {kHTMLContext};
 
-  if (NS_SUCCEEDED(
-        aClipboard->HasDataMatchingFlavors(flavArray,
-                                           ArrayLength(flavArray),
-                                           nsIClipboard::kGlobalClipboard,
-                                           &bHavePrivateHTMLFlavor))) {
+  if (NS_SUCCEEDED(aClipboard->HasDataMatchingFlavors(
+          flavArray, ArrayLength(flavArray), nsIClipboard::kGlobalClipboard,
+          &bHavePrivateHTMLFlavor))) {
     return bHavePrivateHTMLFlavor;
   }
 
   return false;
 }
 
-
 NS_IMETHODIMP
-HTMLEditor::Paste(int32_t aSelectionType)
-{
+HTMLEditor::Paste(int32_t aSelectionType) {
   if (!FireClipboardEvent(ePaste, aSelectionType)) {
     return NS_OK;
   }
 
   // Get Clipboard Service
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the nsITransferable interface for getting the data from the clipboard
@@ -1384,26 +1305,28 @@ HTMLEditor::Paste(int32_t aSelectionType)
     nsCOMPtr<nsISupportsString> textDataObj;
 
     nsCOMPtr<nsITransferable> contextTrans =
-                  do_CreateInstance("@mozilla.org/widget/transferable;1");
+        do_CreateInstance("@mozilla.org/widget/transferable;1");
     NS_ENSURE_TRUE(contextTrans, NS_ERROR_NULL_POINTER);
     contextTrans->Init(nullptr);
     contextTrans->AddDataFlavor(kHTMLContext);
     clipboard->GetData(contextTrans, aSelectionType);
-    contextTrans->GetTransferData(kHTMLContext, getter_AddRefs(contextDataObj), &contextLen);
+    contextTrans->GetTransferData(kHTMLContext, getter_AddRefs(contextDataObj),
+                                  &contextLen);
 
     nsCOMPtr<nsITransferable> infoTrans =
-                  do_CreateInstance("@mozilla.org/widget/transferable;1");
+        do_CreateInstance("@mozilla.org/widget/transferable;1");
     NS_ENSURE_TRUE(infoTrans, NS_ERROR_NULL_POINTER);
     infoTrans->Init(nullptr);
     infoTrans->AddDataFlavor(kHTMLInfo);
     clipboard->GetData(infoTrans, aSelectionType);
-    infoTrans->GetTransferData(kHTMLInfo, getter_AddRefs(infoDataObj), &infoLen);
+    infoTrans->GetTransferData(kHTMLInfo, getter_AddRefs(infoDataObj),
+                               &infoLen);
 
     if (contextDataObj) {
       nsAutoString text;
       textDataObj = do_QueryInterface(contextDataObj);
       textDataObj->GetData(text);
-      NS_ASSERTION(text.Length() <= (contextLen/2), "Invalid length!");
+      NS_ASSERTION(text.Length() <= (contextLen / 2), "Invalid length!");
       contextStr.Assign(text.get(), contextLen / 2);
     }
 
@@ -1411,7 +1334,7 @@ HTMLEditor::Paste(int32_t aSelectionType)
       nsAutoString text;
       textDataObj = do_QueryInterface(infoDataObj);
       textDataObj->GetData(text);
-      NS_ASSERTION(text.Length() <= (infoLen/2), "Invalid length!");
+      NS_ASSERTION(text.Length() <= (infoLen / 2), "Invalid length!");
       infoStr.Assign(text.get(), infoLen / 2);
     }
   }
@@ -1423,15 +1346,15 @@ HTMLEditor::Paste(int32_t aSelectionType)
     return NS_OK;
   }
 
-  return InsertFromTransferable(trans, nullptr, contextStr, infoStr, bHavePrivateHTMLFlavor,
-                                nullptr, 0, true);
+  return InsertFromTransferable(trans, nullptr, contextStr, infoStr,
+                                bHavePrivateHTMLFlavor, nullptr, 0, true);
 }
 
 NS_IMETHODIMP
-HTMLEditor::PasteTransferable(nsITransferable* aTransferable)
-{
-  // Use an invalid value for the clipboard type as data comes from aTransferable
-  // and we don't currently implement a way to put that in the data transfer yet.
+HTMLEditor::PasteTransferable(nsITransferable* aTransferable) {
+  // Use an invalid value for the clipboard type as data comes from
+  // aTransferable and we don't currently implement a way to put that in the
+  // data transfer yet.
   if (!FireClipboardEvent(ePaste, nsIClipboard::kGlobalClipboard)) {
     return NS_OK;
   }
@@ -1443,16 +1366,15 @@ HTMLEditor::PasteTransferable(nsITransferable* aTransferable)
   }
 
   nsAutoString contextStr, infoStr;
-  return InsertFromTransferable(aTransferable, nullptr, contextStr, infoStr, false,
-                                nullptr, 0, true);
+  return InsertFromTransferable(aTransferable, nullptr, contextStr, infoStr,
+                                false, nullptr, 0, true);
 }
 
 /**
  * HTML PasteNoFormatting. Ignore any HTML styles and formating in paste source.
  */
 NS_IMETHODIMP
-HTMLEditor::PasteNoFormatting(int32_t aSelectionType)
-{
+HTMLEditor::PasteNoFormatting(int32_t aSelectionType) {
   if (!FireClipboardEvent(ePasteNoFormatting, aSelectionType)) {
     return NS_OK;
   }
@@ -1461,7 +1383,8 @@ HTMLEditor::PasteNoFormatting(int32_t aSelectionType)
 
   // Get Clipboard Service
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the nsITransferable interface for getting the data from the clipboard.
@@ -1473,8 +1396,8 @@ HTMLEditor::PasteNoFormatting(int32_t aSelectionType)
     if (NS_SUCCEEDED(clipboard->GetData(trans, aSelectionType)) &&
         IsModifiable()) {
       const nsString& empty = EmptyString();
-      rv = InsertFromTransferable(trans, nullptr, empty, empty, false, nullptr, 0,
-                                  true);
+      rv = InsertFromTransferable(trans, nullptr, empty, empty, false, nullptr,
+                                  0, true);
     }
   }
 
@@ -1484,15 +1407,13 @@ HTMLEditor::PasteNoFormatting(int32_t aSelectionType)
 // The following arrays contain the MIME types that we can paste. The arrays
 // are used by CanPaste() and CanPasteTransferable() below.
 
-static const char* textEditorFlavors[] = { kUnicodeMime };
-static const char* textHtmlEditorFlavors[] = { kUnicodeMime, kHTMLMime,
-                                               kJPEGImageMime, kJPGImageMime,
-                                               kPNGImageMime, kGIFImageMime };
+static const char* textEditorFlavors[] = {kUnicodeMime};
+static const char* textHtmlEditorFlavors[] = {kUnicodeMime,   kHTMLMime,
+                                              kJPEGImageMime, kJPGImageMime,
+                                              kPNGImageMime,  kGIFImageMime};
 
 NS_IMETHODIMP
-HTMLEditor::CanPaste(int32_t aSelectionType,
-                     bool* aCanPaste)
-{
+HTMLEditor::CanPaste(int32_t aSelectionType, bool* aCanPaste) {
   NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = false;
 
@@ -1509,7 +1430,8 @@ HTMLEditor::CanPaste(int32_t aSelectionType,
   }
 
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool haveFlavors;
@@ -1532,8 +1454,7 @@ HTMLEditor::CanPaste(int32_t aSelectionType,
 
 NS_IMETHODIMP
 HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable,
-                                 bool* aCanPaste)
-{
+                                 bool* aCanPaste) {
   NS_ENSURE_ARG_POINTER(aCanPaste);
 
   // can't paste if readonly
@@ -1551,7 +1472,7 @@ HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable,
   // Peek in |aTransferable| to see if it contains a supported MIME type.
 
   // Use the flavors depending on the current editor mask
-  const char ** flavors;
+  const char** flavors;
   unsigned length;
   if (IsPlaintextEditor()) {
     flavors = textEditorFlavors;
@@ -1564,8 +1485,7 @@ HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable,
   for (unsigned int i = 0; i < length; i++, flavors++) {
     nsCOMPtr<nsISupports> data;
     uint32_t dataLen;
-    nsresult rv = aTransferable->GetTransferData(*flavors,
-                                                 getter_AddRefs(data),
+    nsresult rv = aTransferable->GetTransferData(*flavors, getter_AddRefs(data),
                                                  &dataLen);
     if (NS_SUCCEEDED(rv) && data) {
       *aCanPaste = true;
@@ -1581,8 +1501,7 @@ HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable,
  * HTML PasteAsQuotation: Paste in a blockquote type=cite.
  */
 NS_IMETHODIMP
-HTMLEditor::PasteAsQuotation(int32_t aSelectionType)
-{
+HTMLEditor::PasteAsQuotation(int32_t aSelectionType) {
   if (IsPlaintextEditor()) {
     return PasteAsPlaintextQuotation(aSelectionType);
   }
@@ -1593,8 +1512,7 @@ HTMLEditor::PasteAsQuotation(int32_t aSelectionType)
 
 NS_IMETHODIMP
 HTMLEditor::PasteAsCitedQuotation(const nsAString& aCitation,
-                                  int32_t aSelectionType)
-{
+                                  int32_t aSelectionType) {
   AutoPlaceholderBatch beginBatching(this);
   AutoRules beginRulesSniffing(this, EditAction::insertQuotation,
                                nsIEditor::eNext);
@@ -1611,11 +1529,11 @@ HTMLEditor::PasteAsCitedQuotation(const nsAString& aCitation,
   nsresult rv = rules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
-    return NS_OK; // rules canceled the operation
+    return NS_OK;  // rules canceled the operation
   }
 
   nsCOMPtr<Element> newNode =
-    DeleteSelectionAndCreateElement(*nsGkAtoms::blockquote);
+      DeleteSelectionAndCreateElement(*nsGkAtoms::blockquote);
   NS_ENSURE_TRUE(newNode, NS_ERROR_NULL_POINTER);
 
   // Try to set type=cite.  Ignore it if this fails.
@@ -1632,17 +1550,16 @@ HTMLEditor::PasteAsCitedQuotation(const nsAString& aCitation,
 /**
  * Paste a plaintext quotation.
  */
-nsresult
-HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType)
-{
+nsresult HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType) {
   // Get Clipboard Service
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Create generic Transferable for getting the data
   nsCOMPtr<nsITransferable> trans =
-                 do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
+      do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(trans, NS_ERROR_FAILURE);
 
@@ -1670,7 +1587,7 @@ HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType)
     if (textDataObj && len > 0) {
       nsAutoString stuffToPaste;
       textDataObj->GetData(stuffToPaste);
-      NS_ASSERTION(stuffToPaste.Length() <= (len/2), "Invalid length!");
+      NS_ASSERTION(stuffToPaste.Length() <= (len / 2), "Invalid length!");
       AutoPlaceholderBatch beginBatching(this);
       rv = InsertAsPlaintextQuotation(stuffToPaste, true, 0);
     }
@@ -1680,8 +1597,7 @@ HTMLEditor::PasteAsPlaintextQuotation(int32_t aSelectionType)
 }
 
 NS_IMETHODIMP
-HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
-{
+HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert) {
   // The whole operation should be undoable in one transaction:
   BeginTransaction();
 
@@ -1703,16 +1619,17 @@ HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
   // but in debug builds, let's take the time to verify that
   // there aren't any there:
 #ifdef DEBUG
-  nsAString::const_iterator dbgStart (hunkStart);
+  nsAString::const_iterator dbgStart(hunkStart);
   if (FindCharInReadable('\r', dbgStart, strEnd)) {
-    NS_ASSERTION(false,
-            "Return characters in DOM! InsertTextWithQuotations may be wrong");
+    NS_ASSERTION(
+        false,
+        "Return characters in DOM! InsertTextWithQuotations may be wrong");
   }
 #endif /* DEBUG */
 
   // Loop over lines:
   nsresult rv = NS_OK;
-  nsAString::const_iterator lineStart (hunkStart);
+  nsAString::const_iterator lineStart(hunkStart);
   // We will break from inside when we run out of newlines.
   for (;;) {
     // Search for the end of this line (dom newlines, see above):
@@ -1721,7 +1638,7 @@ HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
     if (found) {
       // if there's another newline, lineStart now points there.
       // Loop over any consecutive newline chars:
-      nsAString::const_iterator firstNewline (lineStart);
+      nsAString::const_iterator firstNewline(lineStart);
       while (*lineStart == '\n') {
         ++lineStart;
       }
@@ -1752,11 +1669,11 @@ HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
 
     // If no newline found, lineStart is now strEnd and we can finish up,
     // inserting from curHunk to lineStart then returning.
-    const nsAString &curHunk = Substring(hunkStart, lineStart);
+    const nsAString& curHunk = Substring(hunkStart, lineStart);
     nsCOMPtr<nsIDOMNode> dummyNode;
     if (curHunkIsQuoted) {
-      rv = InsertAsPlaintextQuotation(curHunk, false,
-                                      getter_AddRefs(dummyNode));
+      rv =
+          InsertAsPlaintextQuotation(curHunk, false, getter_AddRefs(dummyNode));
     } else {
       rv = InsertText(curHunk);
     }
@@ -1774,26 +1691,22 @@ HTMLEditor::InsertTextWithQuotations(const nsAString& aStringToInsert)
 
 NS_IMETHODIMP
 HTMLEditor::InsertAsQuotation(const nsAString& aQuotedText,
-                              nsIDOMNode** aNodeInserted)
-{
+                              nsIDOMNode** aNodeInserted) {
   if (IsPlaintextEditor()) {
     return InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
   }
 
   nsAutoString citation;
-  return InsertAsCitedQuotation(aQuotedText, citation, false,
-                                aNodeInserted);
+  return InsertAsCitedQuotation(aQuotedText, citation, false, aNodeInserted);
 }
 
 // Insert plaintext as a quotation, with cite marks (e.g. "> ").
 // This differs from its corresponding method in TextEditor
 // in that here, quoted material is enclosed in a <pre> tag
 // in order to preserve the original line wrapping.
-nsresult
-HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
-                                       bool aAddCites,
-                                       nsIDOMNode** aNodeInserted)
-{
+nsresult HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
+                                                bool aAddCites,
+                                                nsIDOMNode** aNodeInserted) {
   // get selection
   RefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
@@ -1810,7 +1723,7 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
   nsresult rv = rules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
-    return NS_OK; // rules canceled the operation
+    return NS_OK;  // rules canceled the operation
   }
 
   // Wrap the inserted quote in a <span> so we can distinguish it. If we're
@@ -1819,8 +1732,7 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
   // We could use 100vw, but 98vw avoids a horizontal scroll bar where possible.
   // All this is done to wrap overlong lines to the screen and not to the
   // container element, the width-restricted body.
-  nsCOMPtr<Element> newNode =
-    DeleteSelectionAndCreateElement(*nsGkAtoms::span);
+  nsCOMPtr<Element> newNode = DeleteSelectionAndCreateElement(*nsGkAtoms::span);
 
   // If this succeeded, then set selection inside the pre
   // so the inserted text will end up there.
@@ -1833,12 +1745,14 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
     // Allow wrapping on spans so long lines get wrapped to the screen.
     nsCOMPtr<nsINode> parent = newNode->GetParentNode();
     if (parent && parent->IsHTMLElement(nsGkAtoms::body)) {
-      newNode->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
-        NS_LITERAL_STRING("white-space: pre-wrap; display: block; width: 98vw;"),
-        true);
+      newNode->SetAttr(
+          kNameSpaceID_None, nsGkAtoms::style,
+          NS_LITERAL_STRING(
+              "white-space: pre-wrap; display: block; width: 98vw;"),
+          true);
     } else {
       newNode->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
-        NS_LITERAL_STRING("white-space: pre-wrap;"), true);
+                       NS_LITERAL_STRING("white-space: pre-wrap;"), true);
     }
 
     // and set the selection inside it:
@@ -1870,26 +1784,22 @@ HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
 }
 
 NS_IMETHODIMP
-HTMLEditor::StripCites()
-{
-  return TextEditor::StripCites();
-}
+HTMLEditor::StripCites() { return TextEditor::StripCites(); }
 
 NS_IMETHODIMP
-HTMLEditor::Rewrap(bool aRespectNewlines)
-{
+HTMLEditor::Rewrap(bool aRespectNewlines) {
   return TextEditor::Rewrap(aRespectNewlines);
 }
 
 NS_IMETHODIMP
 HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
-                                   const nsAString& aCitation,
-                                   bool aInsertHTML,
-                                   nsIDOMNode** aNodeInserted)
-{
+                                   const nsAString& aCitation, bool aInsertHTML,
+                                   nsIDOMNode** aNodeInserted) {
   // Don't let anyone insert html into a "plaintext" editor:
   if (IsPlaintextEditor()) {
-    NS_ASSERTION(!aInsertHTML, "InsertAsCitedQuotation: trying to insert html into plaintext editor");
+    NS_ASSERTION(
+        !aInsertHTML,
+        "InsertAsCitedQuotation: trying to insert html into plaintext editor");
     return InsertAsPlaintextQuotation(aQuotedText, true, aNodeInserted);
   }
 
@@ -1909,11 +1819,11 @@ HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
   nsresult rv = rules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
-    return NS_OK; // rules canceled the operation
+    return NS_OK;  // rules canceled the operation
   }
 
   nsCOMPtr<Element> newNode =
-    DeleteSelectionAndCreateElement(*nsGkAtoms::blockquote);
+      DeleteSelectionAndCreateElement(*nsGkAtoms::blockquote);
   NS_ENSURE_TRUE(newNode, NS_ERROR_NULL_POINTER);
 
   // Try to set type=cite.  Ignore it if this fails.
@@ -1948,14 +1858,11 @@ HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
   return rv;
 }
 
-
-void RemoveBodyAndHead(nsINode& aNode)
-{
+void RemoveBodyAndHead(nsINode& aNode) {
   nsCOMPtr<nsIContent> body, head;
   // find the body and head nodes if any.
   // look only at immediate children of aNode.
-  for (nsCOMPtr<nsIContent> child = aNode.GetFirstChild();
-       child;
+  for (nsCOMPtr<nsIContent> child = aNode.GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsHTMLElement(nsGkAtoms::body)) {
       body = child;
@@ -1989,8 +1896,7 @@ void RemoveBodyAndHead(nsINode& aNode)
  * the magical comment node containing kInsertCookie or, failing that, the
  * firstChild of the firstChild (until we reach a leaf).
  */
-nsresult FindTargetNode(nsINode *aStart, nsCOMPtr<nsINode> &aResult)
-{
+nsresult FindTargetNode(nsINode* aStart, nsCOMPtr<nsINode>& aResult) {
   NS_ENSURE_TRUE(aStart, NS_OK);
 
   nsCOMPtr<nsINode> child = aStart->GetFirstChild();
@@ -2035,18 +1941,13 @@ nsresult FindTargetNode(nsINode *aStart, nsCOMPtr<nsINode> &aResult)
   return NS_OK;
 }
 
-nsresult
-HTMLEditor::CreateDOMFragmentFromPaste(const nsAString& aInputString,
-                                       const nsAString& aContextStr,
-                                       const nsAString& aInfoStr,
-                                       nsCOMPtr<nsINode>* outFragNode,
-                                       nsCOMPtr<nsINode>* outStartNode,
-                                       nsCOMPtr<nsINode>* outEndNode,
-                                       int32_t* outStartOffset,
-                                       int32_t* outEndOffset,
-                                       bool aTrustedInput)
-{
-  NS_ENSURE_TRUE(outFragNode && outStartNode && outEndNode, NS_ERROR_NULL_POINTER);
+nsresult HTMLEditor::CreateDOMFragmentFromPaste(
+    const nsAString& aInputString, const nsAString& aContextStr,
+    const nsAString& aInfoStr, nsCOMPtr<nsINode>* outFragNode,
+    nsCOMPtr<nsINode>* outStartNode, nsCOMPtr<nsINode>* outEndNode,
+    int32_t* outStartOffset, int32_t* outEndOffset, bool aTrustedInput) {
+  NS_ENSURE_TRUE(outFragNode && outStartNode && outEndNode,
+                 NS_ERROR_NULL_POINTER);
 
   nsCOMPtr<nsIDocument> doc = GetDocument();
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
@@ -2084,10 +1985,7 @@ HTMLEditor::CreateDOMFragmentFromPaste(const nsAString& aInputString,
     contextAtom = nsGkAtoms::body;
   }
   RefPtr<DocumentFragment> fragment;
-  rv = ParseFragment(aInputString,
-                     contextAtom,
-                     doc,
-                     getter_AddRefs(fragment),
+  rv = ParseFragment(aInputString, contextAtom, doc, getter_AddRefs(fragment),
                      aTrustedInput);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(fragment, NS_ERROR_FAILURE);
@@ -2118,7 +2016,8 @@ HTMLEditor::CreateDOMFragmentFromPaste(const nsAString& aInputString,
   if (!aInfoStr.IsEmpty()) {
     int32_t sep = aInfoStr.FindChar((char16_t)',');
     nsAutoString numstr1(Substring(aInfoStr, 0, sep));
-    nsAutoString numstr2(Substring(aInfoStr, sep+1, aInfoStr.Length() - (sep+1)));
+    nsAutoString numstr2(
+        Substring(aInfoStr, sep + 1, aInfoStr.Length() - (sep + 1)));
 
     // Move the start and end children.
     nsresult err;
@@ -2141,44 +2040,33 @@ HTMLEditor::CreateDOMFragmentFromPaste(const nsAString& aInputString,
   return NS_OK;
 }
 
-
-nsresult
-HTMLEditor::ParseFragment(const nsAString& aFragStr,
-                          nsAtom* aContextLocalName,
-                          nsIDocument* aTargetDocument,
-                          DocumentFragment** aFragment,
-                          bool aTrustedInput)
-{
+nsresult HTMLEditor::ParseFragment(const nsAString& aFragStr,
+                                   nsAtom* aContextLocalName,
+                                   nsIDocument* aTargetDocument,
+                                   DocumentFragment** aFragment,
+                                   bool aTrustedInput) {
   nsAutoScriptBlockerSuppressNodeRemoved autoBlocker;
 
   RefPtr<DocumentFragment> fragment =
-    new DocumentFragment(aTargetDocument->NodeInfoManager());
-  nsresult rv = nsContentUtils::ParseFragmentHTML(aFragStr,
-                                                  fragment,
-                                                  aContextLocalName ?
-                                                    aContextLocalName : nsGkAtoms::body,
-                                                    kNameSpaceID_XHTML,
-                                                  false,
-                                                  true);
+      new DocumentFragment(aTargetDocument->NodeInfoManager());
+  nsresult rv = nsContentUtils::ParseFragmentHTML(
+      aFragStr, fragment,
+      aContextLocalName ? aContextLocalName : nsGkAtoms::body,
+      kNameSpaceID_XHTML, false, true);
   if (!aTrustedInput) {
-    nsTreeSanitizer sanitizer(aContextLocalName ?
-                              nsIParserUtils::SanitizerAllowStyle :
-                              nsIParserUtils::SanitizerAllowComments);
+    nsTreeSanitizer sanitizer(aContextLocalName
+                                  ? nsIParserUtils::SanitizerAllowStyle
+                                  : nsIParserUtils::SanitizerAllowComments);
     sanitizer.Sanitize(fragment);
   }
   fragment.forget(aFragment);
   return rv;
 }
 
-void
-HTMLEditor::CreateListOfNodesToPaste(
-              DocumentFragment& aFragment,
-              nsTArray<OwningNonNull<nsINode>>& outNodeList,
-              nsINode* aStartContainer,
-              int32_t aStartOffset,
-              nsINode* aEndContainer,
-              int32_t aEndOffset)
-{
+void HTMLEditor::CreateListOfNodesToPaste(
+    DocumentFragment& aFragment, nsTArray<OwningNonNull<nsINode>>& outNodeList,
+    nsINode* aStartContainer, int32_t aStartOffset, nsINode* aEndContainer,
+    int32_t aEndOffset) {
   // If no info was provided about the boundary between context and stream,
   // then assume all is stream.
   if (!aStartContainer) {
@@ -2189,9 +2077,9 @@ HTMLEditor::CreateListOfNodesToPaste(
   }
 
   RefPtr<nsRange> docFragRange;
-  nsresult rv = nsRange::CreateRange(aStartContainer, aStartOffset,
-                                     aEndContainer, aEndOffset,
-                                     getter_AddRefs(docFragRange));
+  nsresult rv =
+      nsRange::CreateRange(aStartContainer, aStartOffset, aEndContainer,
+                           aEndOffset, getter_AddRefs(docFragRange));
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   NS_ENSURE_SUCCESS(rv, );
 
@@ -2203,11 +2091,9 @@ HTMLEditor::CreateListOfNodesToPaste(
   iter.AppendList(functor, outNodeList);
 }
 
-void
-HTMLEditor::GetListAndTableParents(StartOrEnd aStartOrEnd,
-                                   nsTArray<OwningNonNull<nsINode>>& aNodeList,
-                                   nsTArray<OwningNonNull<Element>>& outArray)
-{
+void HTMLEditor::GetListAndTableParents(
+    StartOrEnd aStartOrEnd, nsTArray<OwningNonNull<nsINode>>& aNodeList,
+    nsTArray<OwningNonNull<Element>>& outArray) {
   MOZ_ASSERT(aNodeList.Length());
 
   // Build up list of parents of first (or last) node in list that are either
@@ -2222,11 +2108,9 @@ HTMLEditor::GetListAndTableParents(StartOrEnd aStartOrEnd,
   }
 }
 
-int32_t
-HTMLEditor::DiscoverPartialListsAndTables(
-              nsTArray<OwningNonNull<nsINode>>& aPasteNodes,
-              nsTArray<OwningNonNull<Element>>& aListsAndTables)
-{
+int32_t HTMLEditor::DiscoverPartialListsAndTables(
+    nsTArray<OwningNonNull<nsINode>>& aPasteNodes,
+    nsTArray<OwningNonNull<Element>>& aListsAndTables) {
   int32_t ret = -1;
   int32_t listAndTableParents = aListsAndTables.Length();
 
@@ -2269,12 +2153,9 @@ HTMLEditor::DiscoverPartialListsAndTables(
   return ret;
 }
 
-nsINode*
-HTMLEditor::ScanForListAndTableStructure(
-              StartOrEnd aStartOrEnd,
-              nsTArray<OwningNonNull<nsINode>>& aNodes,
-              Element& aListOrTable)
-{
+nsINode* HTMLEditor::ScanForListAndTableStructure(
+    StartOrEnd aStartOrEnd, nsTArray<OwningNonNull<nsINode>>& aNodes,
+    Element& aListOrTable) {
   // Look upward from first/last paste node for a piece of this list/table
   int32_t idx = aStartOrEnd == StartOrEnd::end ? aNodes.Length() - 1 : 0;
   bool isList = HTMLEditUtils::IsList(&aListOrTable);
@@ -2283,7 +2164,7 @@ HTMLEditor::ScanForListAndTableStructure(
        node = node->GetParentNode()) {
     if ((isList && HTMLEditUtils::IsListItem(node)) ||
         (!isList && HTMLEditUtils::IsTableElement(node) &&
-                    !node->IsHTMLElement(nsGkAtoms::table))) {
+         !node->IsHTMLElement(nsGkAtoms::table))) {
       nsCOMPtr<Element> structureNode = node->GetParentElement();
       if (isList) {
         while (structureNode && !HTMLEditUtils::IsList(structureNode)) {
@@ -2306,18 +2187,15 @@ HTMLEditor::ScanForListAndTableStructure(
   return nullptr;
 }
 
-void
-HTMLEditor::ReplaceOrphanedStructure(
-              StartOrEnd aStartOrEnd,
-              nsTArray<OwningNonNull<nsINode>>& aNodeArray,
-              nsTArray<OwningNonNull<Element>>& aListAndTableArray,
-              int32_t aHighWaterMark)
-{
+void HTMLEditor::ReplaceOrphanedStructure(
+    StartOrEnd aStartOrEnd, nsTArray<OwningNonNull<nsINode>>& aNodeArray,
+    nsTArray<OwningNonNull<Element>>& aListAndTableArray,
+    int32_t aHighWaterMark) {
   OwningNonNull<Element> curNode = aListAndTableArray[aHighWaterMark];
 
   // Find substructure of list or table that must be included in paste.
   nsCOMPtr<nsINode> replaceNode =
-    ScanForListAndTableStructure(aStartOrEnd, aNodeArray, curNode);
+      ScanForListAndTableStructure(aStartOrEnd, aNodeArray, curNode);
 
   if (!replaceNode) {
     return;
@@ -2329,8 +2207,8 @@ HTMLEditor::ReplaceOrphanedStructure(
   uint32_t removedCount = 0;
   uint32_t originalLength = aNodeArray.Length();
   for (uint32_t i = 0; i < originalLength; i++) {
-    uint32_t idx = aStartOrEnd == StartOrEnd::start ?
-      (i - removedCount) : (originalLength - i - 1);
+    uint32_t idx = aStartOrEnd == StartOrEnd::start ? (i - removedCount)
+                                                    : (originalLength - i - 1);
     OwningNonNull<nsINode> endpoint = aNodeArray[idx];
     if (endpoint == replaceNode ||
         EditorUtils::IsDescendantOf(*endpoint, *replaceNode)) {
@@ -2347,4 +2225,4 @@ HTMLEditor::ReplaceOrphanedStructure(
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

@@ -9,9 +9,8 @@
 // Moz headers (alphabetical)
 
 // System headers (alphabetical)
-#include <windows.h>   // HINSTANCE, HANDLE
-#include <wlanapi.h>   // Wlan* functions
-
+#include <windows.h>  // HINSTANCE, HANDLE
+#include <wlanapi.h>  // Wlan* functions
 
 class WinWLANLibrary {
  public:
@@ -19,13 +18,13 @@ class WinWLANLibrary {
   ~WinWLANLibrary();
 
   HANDLE GetWLANHandle() const;
-  decltype(::WlanEnumInterfaces)* GetWlanEnumInterfacesPtr() const;
-  decltype(::WlanGetNetworkBssList)* GetWlanGetNetworkBssListPtr() const;
-  decltype(::WlanFreeMemory)* GetWlanFreeMemoryPtr() const;
-  decltype(::WlanCloseHandle)* GetWlanCloseHandlePtr() const;
-  decltype(::WlanOpenHandle)* GetWlanOpenHandlePtr() const;
-  decltype(::WlanRegisterNotification)* GetWlanRegisterNotificationPtr() const;
-  decltype(::WlanScan)* GetWlanScanPtr() const;
+  decltype(::WlanEnumInterfaces) * GetWlanEnumInterfacesPtr() const;
+  decltype(::WlanGetNetworkBssList) * GetWlanGetNetworkBssListPtr() const;
+  decltype(::WlanFreeMemory) * GetWlanFreeMemoryPtr() const;
+  decltype(::WlanCloseHandle) * GetWlanCloseHandlePtr() const;
+  decltype(::WlanOpenHandle) * GetWlanOpenHandlePtr() const;
+  decltype(::WlanRegisterNotification) * GetWlanRegisterNotificationPtr() const;
+  decltype(::WlanScan) * GetWlanScanPtr() const;
 
  private:
   WinWLANLibrary();
@@ -43,19 +42,13 @@ class WinWLANLibrary {
 };
 
 class ScopedWLANObject {
-public:
- ScopedWLANObject(WinWLANLibrary* library, void* object)
-   : mLibrary(library)
-   , mObject(object)
-  {
-  }
+ public:
+  ScopedWLANObject(WinWLANLibrary* library, void* object)
+      : mLibrary(library), mObject(object) {}
 
-  ~ScopedWLANObject()
-  {
-    (*(mLibrary->GetWlanFreeMemoryPtr()))(mObject);
-  }
+  ~ScopedWLANObject() { (*(mLibrary->GetWlanFreeMemoryPtr()))(mObject); }
 
  private:
-  WinWLANLibrary *mLibrary;
-  void *mObject;
+  WinWLANLibrary* mLibrary;
+  void* mObject;
 };

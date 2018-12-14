@@ -10,13 +10,13 @@
 namespace mozilla {
 namespace hal {
 class NetworkInformation;
-} // namespace hal
+}  // namespace hal
 
 template <class T>
 class Observer;
 
 typedef Observer<hal::NetworkInformation> NetworkObserver;
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_dom_network_Types_h
+#endif  // mozilla_dom_network_Types_h

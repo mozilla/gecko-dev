@@ -27,15 +27,15 @@ class HTMLMediaElement;
  *    We restrict user gestures to "mouse click", "keyboard press" and "touch".
  * 2) Muted media content or video without audio content
  */
-class AutoplayPolicy
-{
-public:
+class AutoplayPolicy {
+ public:
   static bool IsMediaElementAllowedToPlay(NotNull<HTMLMediaElement*> aElement);
-private:
+
+ private:
   static bool IsDocumentAllowedToPlay(nsIDocument* aDoc);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

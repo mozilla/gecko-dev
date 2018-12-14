@@ -12,13 +12,11 @@
 
 namespace IPC {
 
-SerializedLoadContext::SerializedLoadContext(nsILoadContext* aLoadContext)
-{
+SerializedLoadContext::SerializedLoadContext(nsILoadContext* aLoadContext) {
   Init(aLoadContext);
 }
 
-SerializedLoadContext::SerializedLoadContext(nsIChannel* aChannel)
-{
+SerializedLoadContext::SerializedLoadContext(nsIChannel* aChannel) {
   if (!aChannel) {
     Init(nullptr);
     return;
@@ -35,8 +33,8 @@ SerializedLoadContext::SerializedLoadContext(nsIChannel* aChannel)
     bool isOverriden = false;
     nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(aChannel);
     if (pbChannel &&
-        NS_SUCCEEDED(pbChannel->IsPrivateModeOverriden(&isPrivate,
-                                                       &isOverriden)) &&
+        NS_SUCCEEDED(
+            pbChannel->IsPrivateModeOverriden(&isPrivate, &isOverriden)) &&
         isOverriden) {
       mIsPrivateBitValid = true;
     }
@@ -44,8 +42,7 @@ SerializedLoadContext::SerializedLoadContext(nsIChannel* aChannel)
   }
 }
 
-SerializedLoadContext::SerializedLoadContext(nsIWebSocketChannel* aChannel)
-{
+SerializedLoadContext::SerializedLoadContext(nsIWebSocketChannel* aChannel) {
   nsCOMPtr<nsILoadContext> loadContext;
   if (aChannel) {
     NS_QueryNotificationCallbacks(aChannel, loadContext);
@@ -53,9 +50,7 @@ SerializedLoadContext::SerializedLoadContext(nsIWebSocketChannel* aChannel)
   Init(loadContext);
 }
 
-void
-SerializedLoadContext::Init(nsILoadContext* aLoadContext)
-{
+void SerializedLoadContext::Init(nsILoadContext* aLoadContext) {
   if (aLoadContext) {
     mIsNotNull = true;
     mIsPrivateBitValid = true;
@@ -74,4 +69,4 @@ SerializedLoadContext::Init(nsILoadContext* aLoadContext)
   }
 }
 
-} // namespace IPC
+}  // namespace IPC

@@ -17,19 +17,19 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AnimationEventDispatcher)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AnimationEventDispatcher)
   for (auto& info : tmp->mPendingEvents) {
-    ImplCycleCollectionTraverse(cb, info.mElement,
-      "mozilla::AnimationEventDispatcher.mPendingEvents.mElement");
-    ImplCycleCollectionTraverse(cb, info.mAnimation,
-      "mozilla::AnimationEventDispatcher.mPendingEvents.mAnimation");
+    ImplCycleCollectionTraverse(
+        cb, info.mElement,
+        "mozilla::AnimationEventDispatcher.mPendingEvents.mElement");
+    ImplCycleCollectionTraverse(
+        cb, info.mAnimation,
+        "mozilla::AnimationEventDispatcher.mPendingEvents.mAnimation");
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(AnimationEventDispatcher, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AnimationEventDispatcher, Release)
 
-void
-AnimationEventDispatcher::Disconnect()
-{
+void AnimationEventDispatcher::Disconnect() {
   if (mIsObserving) {
     MOZ_ASSERT(mPresContext && mPresContext->RefreshDriver(),
                "The pres context and the refresh driver should be still "
@@ -40,11 +40,9 @@ AnimationEventDispatcher::Disconnect()
   mPresContext = nullptr;
 }
 
-void
-AnimationEventDispatcher::QueueEvents(nsTArray<AnimationEventInfo>&& aEvents)
-{
-  MOZ_ASSERT(mPresContext,
-             "The pres context should be valid");
+void AnimationEventDispatcher::QueueEvents(
+    nsTArray<AnimationEventInfo>&& aEvents) {
+  MOZ_ASSERT(mPresContext, "The pres context should be valid");
 
   mPendingEvents.AppendElements(Move(aEvents));
   mIsSorted = false;
@@ -54,5 +52,4 @@ AnimationEventDispatcher::QueueEvents(nsTArray<AnimationEventInfo>&& aEvents)
   }
 }
 
-} // namespace mozilla
-
+}  // namespace mozilla

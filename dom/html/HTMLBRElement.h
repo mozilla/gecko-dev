@@ -14,45 +14,39 @@
 namespace mozilla {
 namespace dom {
 
-class HTMLBRElement final : public nsGenericHTMLElement
-{
-public:
+class HTMLBRElement final : public nsGenericHTMLElement {
+ public:
   explicit HTMLBRElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult) override;
+  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsIPrincipal* aMaybeScriptedPrincipal,
+                              nsAttrValue& aResult) override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
-  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction()
+      const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
-  bool Clear()
-  {
-    return GetBoolAttr(nsGkAtoms::clear);
-  }
-  void SetClear(const nsAString& aClear, ErrorResult& aError)
-  {
+  bool Clear() { return GetBoolAttr(nsGkAtoms::clear); }
+  void SetClear(const nsAString& aClear, ErrorResult& aError) {
     return SetHTMLAttr(nsGkAtoms::clear, aClear, aError);
   }
-  void GetClear(DOMString& aClear) const
-  {
+  void GetClear(DOMString& aClear) const {
     return GetHTMLAttr(nsGkAtoms::clear, aClear);
   }
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-private:
+ private:
   virtual ~HTMLBRElement();
 
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     GenericSpecifiedValues* aGenericData);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif
-

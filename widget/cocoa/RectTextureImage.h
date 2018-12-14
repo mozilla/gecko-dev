@@ -14,7 +14,7 @@ namespace mozilla {
 
 namespace gl {
 class GLContext;
-} // namespace gl
+}  // namespace gl
 
 namespace widget {
 
@@ -25,22 +25,20 @@ namespace widget {
 // RectTextureImages are used both for accelerated GL layers drawing and for
 // OMTC BasicLayers drawing.
 class RectTextureImage {
-public:
+ public:
   RectTextureImage();
 
   virtual ~RectTextureImage();
 
-  already_AddRefed<gfx::DrawTarget>
-    BeginUpdate(const LayoutDeviceIntSize& aNewSize,
-                const LayoutDeviceIntRegion& aDirtyRegion =
-                  LayoutDeviceIntRegion());
+  already_AddRefed<gfx::DrawTarget> BeginUpdate(
+      const LayoutDeviceIntSize& aNewSize,
+      const LayoutDeviceIntRegion& aDirtyRegion = LayoutDeviceIntRegion());
   void EndUpdate();
 
   void UpdateIfNeeded(const LayoutDeviceIntSize& aNewSize,
                       const LayoutDeviceIntRegion& aDirtyRegion,
                       void (^aCallback)(gfx::DrawTarget*,
-                                        const LayoutDeviceIntRegion&))
-  {
+                                        const LayoutDeviceIntRegion&)) {
     RefPtr<gfx::DrawTarget> drawTarget = BeginUpdate(aNewSize, aDirtyRegion);
     if (drawTarget) {
       aCallback(drawTarget, GetUpdateRegion());
@@ -61,8 +59,7 @@ public:
             const LayoutDeviceIntPoint& aLocation,
             const gfx::Matrix4x4& aTransform = gfx::Matrix4x4());
 
-
-protected:
+ protected:
   void DeleteTexture();
   void BindIOSurfaceToTexture(gl::GLContext* aGL);
 
@@ -74,7 +71,7 @@ protected:
   bool mInUpdate;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // RectTextureImage_h_
+#endif  // RectTextureImage_h_

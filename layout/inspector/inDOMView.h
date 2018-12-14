@@ -23,9 +23,8 @@ class nsDOMAttributeMap;
 
 class inDOMView : public inIDOMView,
                   public nsITreeView,
-                  public nsStubMutationObserver
-{
-public:
+                  public nsStubMutationObserver {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_INIDOMVIEW
   NS_DECL_NSITREEVIEW
@@ -39,7 +38,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
   NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
-protected:
+ protected:
   virtual ~inDOMView();
 
   nsCOMPtr<nsITreeBoxObject> mTree;
@@ -81,15 +80,20 @@ protected:
 
   nsresult GetChildNodesFor(nsIDOMNode* aNode, nsCOMArray<nsIDOMNode>& aResult);
   void AppendKidsToArray(nsINodeList* aKids, nsCOMArray<nsIDOMNode>& aArray);
-  nsresult AppendAttrsToArray(nsDOMAttributeMap* aKids, nsCOMArray<nsIDOMNode>& aArray);
-  nsresult GetFirstDescendantOf(inDOMViewNode* aNode, int32_t aRow, int32_t* aResult);
-  nsresult GetLastDescendantOf(inDOMViewNode* aNode, int32_t aRow, int32_t* aResult);
+  nsresult AppendAttrsToArray(nsDOMAttributeMap* aKids,
+                              nsCOMArray<nsIDOMNode>& aArray);
+  nsresult GetFirstDescendantOf(inDOMViewNode* aNode, int32_t aRow,
+                                int32_t* aResult);
+  nsresult GetLastDescendantOf(inDOMViewNode* aNode, int32_t aRow,
+                               int32_t* aResult);
 };
 
 // {FB5C1775-1BBD-4b9c-ABB0-AE7ACD29E87E}
-#define IN_DOMVIEW_CID \
-{ 0xfb5c1775, 0x1bbd, 0x4b9c, { 0xab, 0xb0, 0xae, 0x7a, 0xcd, 0x29, 0xe8, 0x7e } }
+#define IN_DOMVIEW_CID                               \
+  {                                                  \
+    0xfb5c1775, 0x1bbd, 0x4b9c, {                    \
+      0xab, 0xb0, 0xae, 0x7a, 0xcd, 0x29, 0xe8, 0x7e \
+    }                                                \
+  }
 
-#endif // __inDOMView_h__
-
-
+#endif  // __inDOMView_h__

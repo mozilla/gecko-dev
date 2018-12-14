@@ -33,20 +33,16 @@ namespace mozilla {
 using namespace mozilla::gfx;
 
 MediaEngineTabVideoSource::MediaEngineTabVideoSource()
-  : mMutex("MediaEngineTabVideoSource::mMutex") {}
+    : mMutex("MediaEngineTabVideoSource::mMutex") {}
 
-nsresult
-MediaEngineTabVideoSource::StartRunnable::Run()
-{
+nsresult MediaEngineTabVideoSource::StartRunnable::Run() {
   mVideoSource->Draw();
   mVideoSource->mTimer->InitWithNamedFuncCallback(
       [](nsITimer* aTimer, void* aClosure) mutable {
         auto source = static_cast<MediaEngineTabVideoSource*>(aClosure);
         source->Draw();
       },
-      mVideoSource,
-      mVideoSource->mTimePerFrame,
-      nsITimer::TYPE_REPEATING_SLACK,
+      mVideoSource, mVideoSource->mTimePerFrame, nsITimer::TYPE_REPEATING_SLACK,
       "MediaEngineTabVideoSource DrawTimer");
   if (mVideoSource->mTabSource) {
     mVideoSource->mTabSource->NotifyStreamStart(mVideoSource->mWindow);
@@ -54,9 +50,7 @@ MediaEngineTabVideoSource::StartRunnable::Run()
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::StopRunnable::Run()
-{
+nsresult MediaEngineTabVideoSource::StopRunnable::Run() {
   if (mVideoSource->mTimer) {
     mVideoSource->mTimer->Cancel();
     mVideoSource->mTimer = nullptr;
@@ -67,12 +61,10 @@ MediaEngineTabVideoSource::StopRunnable::Run()
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::InitRunnable::Run()
-{
+nsresult MediaEngineTabVideoSource::InitRunnable::Run() {
   if (mVideoSource->mWindowId != -1) {
     nsGlobalWindowOuter* globalWindow =
-      nsGlobalWindowOuter::GetOuterWindowWithId(mVideoSource->mWindowId);
+        nsGlobalWindowOuter::GetOuterWindowWithId(mVideoSource->mWindowId);
     if (!globalWindow) {
       // We can't access the window, just send a blacked out screen.
       mVideoSource->mWindow = nullptr;
@@ -87,14 +79,14 @@ MediaEngineTabVideoSource::InitRunnable::Run()
   }
   if (!mVideoSource->mWindow && !mVideoSource->mBlackedoutWindow) {
     nsresult rv;
-    mVideoSource->mTabSource = do_GetService(NS_TABSOURCESERVICE_CONTRACTID, &rv);
+    mVideoSource->mTabSource =
+        do_GetService(NS_TABSOURCESERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<mozIDOMWindowProxy> win;
     rv = mVideoSource->mTabSource->GetTabToStream(getter_AddRefs(win));
     NS_ENSURE_SUCCESS(rv, rv);
-    if (!win)
-      return NS_OK;
+    if (!win) return NS_OK;
 
     mVideoSource->mWindow = nsPIDOMWindowOuter::From(win);
     MOZ_ASSERT(mVideoSource->mWindow);
@@ -105,9 +97,7 @@ MediaEngineTabVideoSource::InitRunnable::Run()
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::DestroyRunnable::Run()
-{
+nsresult MediaEngineTabVideoSource::DestroyRunnable::Run() {
   MOZ_ASSERT(NS_IsMainThread());
 
   mVideoSource->mWindow = nullptr;
@@ -116,15 +106,11 @@ MediaEngineTabVideoSource::DestroyRunnable::Run()
   return NS_OK;
 }
 
-nsString
-MediaEngineTabVideoSource::GetName() const
-{
+nsString MediaEngineTabVideoSource::GetName() const {
   return NS_LITERAL_STRING(u"&getUserMedia.videoSource.tabShare;");
 }
 
-nsCString
-MediaEngineTabVideoSource::GetUUID() const
-{
+nsCString MediaEngineTabVideoSource::GetUUID() const {
   return NS_LITERAL_CSTRING("tab");
 }
 
@@ -132,21 +118,19 @@ MediaEngineTabVideoSource::GetUUID() const
 #define DEFAULT_TABSHARE_VIDEO_MAX_HEIGHT 4096
 #define DEFAULT_TABSHARE_VIDEO_FRAMERATE 30
 
-nsresult
-MediaEngineTabVideoSource::Allocate(const dom::MediaTrackConstraints& aConstraints,
-                                    const MediaEnginePrefs& aPrefs,
-                                    const nsString& aDeviceId,
-                                    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-                                    AllocationHandle** aOutHandle,
-                                    const char** aOutBadConstraint)
-{
+nsresult MediaEngineTabVideoSource::Allocate(
+    const dom::MediaTrackConstraints& aConstraints,
+    const MediaEnginePrefs& aPrefs, const nsString& aDeviceId,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+    AllocationHandle** aOutHandle, const char** aOutBadConstraint) {
   AssertIsOnOwningThread();
 
   // windowId is not a proper constraint, so just read it.
   // It has no well-defined behavior in advanced, so ignore it there.
 
-  mWindowId = aConstraints.mBrowserWindow.WasPassed() ?
-              aConstraints.mBrowserWindow.Value() : -1;
+  mWindowId = aConstraints.mBrowserWindow.WasPassed()
+                  ? aConstraints.mBrowserWindow.Value()
+                  : -1;
   *aOutHandle = nullptr;
 
   {
@@ -154,16 +138,15 @@ MediaEngineTabVideoSource::Allocate(const dom::MediaTrackConstraints& aConstrain
     mState = kAllocated;
   }
 
-  return Reconfigure(nullptr, aConstraints, aPrefs, aDeviceId, aOutBadConstraint);
+  return Reconfigure(nullptr, aConstraints, aPrefs, aDeviceId,
+                     aOutBadConstraint);
 }
 
-nsresult
-MediaEngineTabVideoSource::Reconfigure(const RefPtr<AllocationHandle>& aHandle,
-                                       const dom::MediaTrackConstraints& aConstraints,
-                                       const mozilla::MediaEnginePrefs& aPrefs,
-                                       const nsString& aDeviceId,
-                                       const char** aOutBadConstraint)
-{
+nsresult MediaEngineTabVideoSource::Reconfigure(
+    const RefPtr<AllocationHandle>& aHandle,
+    const dom::MediaTrackConstraints& aConstraints,
+    const mozilla::MediaEnginePrefs& aPrefs, const nsString& aDeviceId,
+    const char** aOutBadConstraint) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!aHandle);
   MOZ_ASSERT(mState != kReleased);
@@ -171,15 +154,16 @@ MediaEngineTabVideoSource::Reconfigure(const RefPtr<AllocationHandle>& aHandle,
   // scrollWithPage is not proper a constraint, so just read it.
   // It has no well-defined behavior in advanced, so ignore it there.
 
-  mScrollWithPage = aConstraints.mScrollWithPage.WasPassed() ?
-                    aConstraints.mScrollWithPage.Value() : false;
+  mScrollWithPage = aConstraints.mScrollWithPage.WasPassed()
+                        ? aConstraints.mScrollWithPage.Value()
+                        : false;
 
   FlattenedConstraints c(aConstraints);
 
   mBufWidthMax = c.mWidth.Get(DEFAULT_TABSHARE_VIDEO_MAX_WIDTH);
   mBufHeightMax = c.mHeight.Get(DEFAULT_TABSHARE_VIDEO_MAX_HEIGHT);
   double frameRate = c.mFrameRate.Get(DEFAULT_TABSHARE_VIDEO_FRAMERATE);
-  mTimePerFrame = std::max(10, int(1000.0 / (frameRate > 0? frameRate : 1)));
+  mTimePerFrame = std::max(10, int(1000.0 / (frameRate > 0 ? frameRate : 1)));
 
   if (!mScrollWithPage) {
     mViewportOffsetX = c.mViewportOffsetX.Get(0);
@@ -190,9 +174,8 @@ MediaEngineTabVideoSource::Reconfigure(const RefPtr<AllocationHandle>& aHandle,
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::Deallocate(const RefPtr<const AllocationHandle>& aHandle)
-{
+nsresult MediaEngineTabVideoSource::Deallocate(
+    const RefPtr<const AllocationHandle>& aHandle) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!aHandle);
   MOZ_ASSERT(mState == kAllocated || mState == kStopped);
@@ -211,12 +194,10 @@ MediaEngineTabVideoSource::Deallocate(const RefPtr<const AllocationHandle>& aHan
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::SetTrack(const RefPtr<const AllocationHandle>& aHandle,
-                                    const RefPtr<SourceMediaStream>& aStream,
-                                    TrackID aTrackID,
-                                    const mozilla::PrincipalHandle& aPrincipal)
-{
+nsresult MediaEngineTabVideoSource::SetTrack(
+    const RefPtr<const AllocationHandle>& aHandle,
+    const RefPtr<SourceMediaStream>& aStream, TrackID aTrackID,
+    const mozilla::PrincipalHandle& aPrincipal) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == kAllocated);
 
@@ -230,9 +211,8 @@ MediaEngineTabVideoSource::SetTrack(const RefPtr<const AllocationHandle>& aHandl
   return NS_OK;
 }
 
-nsresult
-MediaEngineTabVideoSource::Start(const RefPtr<const AllocationHandle>& aHandle)
-{
+nsresult MediaEngineTabVideoSource::Start(
+    const RefPtr<const AllocationHandle>& aHandle) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == kAllocated);
 
@@ -252,13 +232,10 @@ MediaEngineTabVideoSource::Start(const RefPtr<const AllocationHandle>& aHandle)
   return NS_OK;
 }
 
-void
-MediaEngineTabVideoSource::Pull(const RefPtr<const AllocationHandle>& aHandle,
-                                const RefPtr<SourceMediaStream>& aStream,
-                                TrackID aTrackID,
-                                StreamTime aDesiredTime,
-                                const PrincipalHandle& aPrincipalHandle)
-{
+void MediaEngineTabVideoSource::Pull(
+    const RefPtr<const AllocationHandle>& aHandle,
+    const RefPtr<SourceMediaStream>& aStream, TrackID aTrackID,
+    StreamTime aDesiredTime, const PrincipalHandle& aPrincipalHandle) {
   VideoSegment segment;
   RefPtr<layers::Image> image;
   gfx::IntSize imageSize;
@@ -287,8 +264,7 @@ MediaEngineTabVideoSource::Pull(const RefPtr<const AllocationHandle>& aHandle,
   aStream->AppendToTrack(aTrackID, &(segment));
 }
 
-void
-MediaEngineTabVideoSource::Draw() {
+void MediaEngineTabVideoSource::Draw() {
   if (!mWindow && !mBlackedoutWindow) {
     return;
   }
@@ -330,8 +306,8 @@ MediaEngineTabVideoSource::Draw() {
     }
   }
 
-  uint32_t stride = StrideForFormatAndWidth(SurfaceFormat::X8R8G8B8_UINT32,
-                                            size.width);
+  uint32_t stride =
+      StrideForFormatAndWidth(SurfaceFormat::X8R8G8B8_UINT32, size.width);
 
   if (mDataSize < static_cast<size_t>(stride * size.height)) {
     mDataSize = stride * size.height;
@@ -355,33 +331,33 @@ MediaEngineTabVideoSource::Draw() {
   }
 
   RefPtr<layers::ImageContainer> container =
-    layers::LayerManager::CreateImageContainer(layers::ImageContainer::ASYNCHRONOUS);
-  RefPtr<DrawTarget> dt =
-    Factory::CreateDrawTargetForData(gfxPlatform::GetPlatform()->GetSoftwareBackend(),
-                                     mData.get(),
-                                     size,
-                                     stride,
-                                     SurfaceFormat::B8G8R8X8,
-                                     true);
+      layers::LayerManager::CreateImageContainer(
+          layers::ImageContainer::ASYNCHRONOUS);
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
+      gfxPlatform::GetPlatform()->GetSoftwareBackend(), mData.get(), size,
+      stride, SurfaceFormat::B8G8R8X8, true);
   if (!dt || !dt->IsValid()) {
     return;
   }
 
   if (mWindow) {
     RefPtr<gfxContext> context = gfxContext::CreateOrNull(dt);
-    MOZ_ASSERT(context); // already checked the draw target above
-    context->SetMatrix(context->CurrentMatrix().PreScale((((float) size.width)/mViewportWidth),
-                                                         (((float) size.height)/mViewportHeight)));
+    MOZ_ASSERT(context);  // already checked the draw target above
+    context->SetMatrix(context->CurrentMatrix().PreScale(
+        (((float)size.width) / mViewportWidth),
+        (((float)size.height) / mViewportHeight)));
 
     nscolor bgColor = NS_RGB(255, 255, 255);
-    uint32_t renderDocFlags = mScrollWithPage? 0 :
-      (nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING |
-       nsIPresShell::RENDER_DOCUMENT_RELATIVE);
+    uint32_t renderDocFlags =
+        mScrollWithPage ? 0
+                        : (nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING |
+                           nsIPresShell::RENDER_DOCUMENT_RELATIVE);
     nsRect r(nsPresContext::CSSPixelsToAppUnits((float)mViewportOffsetX),
              nsPresContext::CSSPixelsToAppUnits((float)mViewportOffsetY),
              nsPresContext::CSSPixelsToAppUnits((float)mViewportWidth),
              nsPresContext::CSSPixelsToAppUnits((float)mViewportHeight));
-    NS_ENSURE_SUCCESS_VOID(presShell->RenderDocument(r, renderDocFlags, bgColor, context));
+    NS_ENSURE_SUCCESS_VOID(
+        presShell->RenderDocument(r, renderDocFlags, bgColor, context));
   } else {
     dt->ClearRect(Rect(0, 0, size.width, size.height));
   }
@@ -391,16 +367,16 @@ MediaEngineTabVideoSource::Draw() {
     return;
   }
 
-  RefPtr<layers::SourceSurfaceImage> image = new layers::SourceSurfaceImage(size, surface);
+  RefPtr<layers::SourceSurfaceImage> image =
+      new layers::SourceSurfaceImage(size, surface);
 
   MutexAutoLock lock(mMutex);
   mImage = image;
   mImageSize = size;
 }
 
-nsresult
-MediaEngineTabVideoSource::Stop(const RefPtr<const AllocationHandle>& aHandle)
-{
+nsresult MediaEngineTabVideoSource::Stop(
+    const RefPtr<const AllocationHandle>& aHandle) {
   AssertIsOnOwningThread();
 
   if (mState == kStopped || mState == kAllocated) {
@@ -424,4 +400,4 @@ MediaEngineTabVideoSource::Stop(const RefPtr<const AllocationHandle>& aHandle)
   return NS_OK;
 }
 
-}
+}  // namespace mozilla

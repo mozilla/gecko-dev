@@ -42,63 +42,59 @@
 #define DEBUG_COMMANDLINE
 #endif
 
-#define NS_COMMANDLINE_CID \
-  { 0x23bcc750, 0xdc20, 0x460b, { 0xb2, 0xd4, 0x74, 0xd8, 0xf5, 0x8d, 0x36, 0x15 } }
+#define NS_COMMANDLINE_CID                           \
+  {                                                  \
+    0x23bcc750, 0xdc20, 0x460b, {                    \
+      0xb2, 0xd4, 0x74, 0xd8, 0xf5, 0x8d, 0x36, 0x15 \
+    }                                                \
+  }
 
-class nsCommandLine final : public nsICommandLineRunner
-{
-public:
+class nsCommandLine final : public nsICommandLineRunner {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSICOMMANDLINE
   NS_DECL_NSICOMMANDLINERUNNER
 
   nsCommandLine();
 
-protected:
+ protected:
   ~nsCommandLine() = default;
 
   typedef nsresult (*EnumerateHandlersCallback)(nsICommandLineHandler* aHandler,
-					nsICommandLine* aThis,
-					void *aClosure);
-  typedef nsresult (*EnumerateValidatorsCallback)(nsICommandLineValidator* aValidator,
-					nsICommandLine* aThis,
-					void *aClosure);
+                                                nsICommandLine* aThis,
+                                                void* aClosure);
+  typedef nsresult (*EnumerateValidatorsCallback)(
+      nsICommandLineValidator* aValidator, nsICommandLine* aThis,
+      void* aClosure);
 
   void appendArg(const char* arg);
   MOZ_MUST_USE nsresult resolveShortcutURL(nsIFile* aFile, nsACString& outURL);
-  nsresult EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClosure);
-  nsresult EnumerateValidators(EnumerateValidatorsCallback aCallback, void *aClosure);
+  nsresult EnumerateHandlers(EnumerateHandlersCallback aCallback,
+                             void* aClosure);
+  nsresult EnumerateValidators(EnumerateValidatorsCallback aCallback,
+                               void* aClosure);
 
-  nsTArray<nsString>      mArgs;
-  uint32_t                mState;
-  nsCOMPtr<nsIFile>       mWorkingDir;
-  nsCOMPtr<nsIDOMWindow>  mWindowContext;
-  bool                    mPreventDefault;
+  nsTArray<nsString> mArgs;
+  uint32_t mState;
+  nsCOMPtr<nsIFile> mWorkingDir;
+  nsCOMPtr<nsIDOMWindow> mWindowContext;
+  bool mPreventDefault;
 };
 
-nsCommandLine::nsCommandLine() :
-  mState(STATE_INITIAL_LAUNCH),
-  mPreventDefault(false)
-{
-
-}
-
+nsCommandLine::nsCommandLine()
+    : mState(STATE_INITIAL_LAUNCH), mPreventDefault(false) {}
 
 NS_IMPL_CLASSINFO(nsCommandLine, nullptr, 0, NS_COMMANDLINE_CID)
-NS_IMPL_ISUPPORTS_CI(nsCommandLine,
-                     nsICommandLine,
-                     nsICommandLineRunner)
+NS_IMPL_ISUPPORTS_CI(nsCommandLine, nsICommandLine, nsICommandLineRunner)
 
 NS_IMETHODIMP
-nsCommandLine::GetLength(int32_t *aResult)
-{
+nsCommandLine::GetLength(int32_t* aResult) {
   *aResult = int32_t(mArgs.Length());
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetArgument(int32_t aIndex, nsAString& aResult)
-{
+nsCommandLine::GetArgument(int32_t aIndex, nsAString& aResult) {
   NS_ENSURE_ARG_MIN(aIndex, 0);
   NS_ENSURE_ARG_MAX(aIndex, int32_t(mArgs.Length() - 1));
 
@@ -107,18 +103,18 @@ nsCommandLine::GetArgument(int32_t aIndex, nsAString& aResult)
 }
 
 NS_IMETHODIMP
-nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, int32_t *aResult)
-{
+nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive,
+                        int32_t* aResult) {
   NS_ENSURE_ARG(!aFlag.IsEmpty());
 
   nsDefaultStringComparator caseCmp;
   nsCaseInsensitiveStringComparator caseICmp;
-  nsStringComparator& c = aCaseSensitive ?
-    static_cast<nsStringComparator&>(caseCmp) :
-    static_cast<nsStringComparator&>(caseICmp);
+  nsStringComparator& c = aCaseSensitive
+                              ? static_cast<nsStringComparator&>(caseCmp)
+                              : static_cast<nsStringComparator&>(caseICmp);
 
   for (uint32_t f = 0; f < mArgs.Length(); f++) {
-    const nsString &arg = mArgs[f];
+    const nsString& arg = mArgs[f];
 
     if (arg.Length() >= 2 && arg.First() == char16_t('-')) {
       if (aFlag.Equals(Substring(arg, 1), c)) {
@@ -133,8 +129,7 @@ nsCommandLine::FindFlag(const nsAString& aFlag, bool aCaseSensitive, int32_t *aR
 }
 
 NS_IMETHODIMP
-nsCommandLine::RemoveArguments(int32_t aStart, int32_t aEnd)
-{
+nsCommandLine::RemoveArguments(int32_t aStart, int32_t aEnd) {
   NS_ENSURE_ARG_MIN(aStart, 0);
   NS_ENSURE_ARG_MAX(uint32_t(aEnd) + 1, mArgs.Length());
 
@@ -147,8 +142,7 @@ nsCommandLine::RemoveArguments(int32_t aStart, int32_t aEnd)
 
 NS_IMETHODIMP
 nsCommandLine::HandleFlag(const nsAString& aFlag, bool aCaseSensitive,
-                          bool *aResult)
-{
+                          bool* aResult) {
   nsresult rv;
 
   int32_t found;
@@ -168,8 +162,7 @@ nsCommandLine::HandleFlag(const nsAString& aFlag, bool aCaseSensitive,
 
 NS_IMETHODIMP
 nsCommandLine::HandleFlagWithParam(const nsAString& aFlag, bool aCaseSensitive,
-                                   nsAString& aResult)
-{
+                                   nsAString& aResult) {
   nsresult rv;
 
   int32_t found;
@@ -187,7 +180,7 @@ nsCommandLine::HandleFlagWithParam(const nsAString& aFlag, bool aCaseSensitive,
 
   ++found;
 
-  { // scope for validity of |param|, which RemoveArguments call invalidates
+  {  // scope for validity of |param|, which RemoveArguments call invalidates
     const nsString& param = mArgs[found];
     if (!param.IsEmpty() && param.First() == '-') {
       return NS_ERROR_INVALID_ARG;
@@ -202,29 +195,25 @@ nsCommandLine::HandleFlagWithParam(const nsAString& aFlag, bool aCaseSensitive,
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetState(uint32_t *aResult)
-{
+nsCommandLine::GetState(uint32_t* aResult) {
   *aResult = mState;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetPreventDefault(bool *aResult)
-{
+nsCommandLine::GetPreventDefault(bool* aResult) {
   *aResult = mPreventDefault;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::SetPreventDefault(bool aValue)
-{
+nsCommandLine::SetPreventDefault(bool aValue) {
   mPreventDefault = aValue;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetWorkingDirectory(nsIFile* *aResult)
-{
+nsCommandLine::GetWorkingDirectory(nsIFile** aResult) {
   NS_ENSURE_TRUE(mWorkingDir, NS_ERROR_NOT_INITIALIZED);
 
   NS_ADDREF(*aResult = mWorkingDir);
@@ -232,22 +221,19 @@ nsCommandLine::GetWorkingDirectory(nsIFile* *aResult)
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetWindowContext(nsIDOMWindow* *aResult)
-{
+nsCommandLine::GetWindowContext(nsIDOMWindow** aResult) {
   NS_IF_ADDREF(*aResult = mWindowContext);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::SetWindowContext(nsIDOMWindow* aValue)
-{
+nsCommandLine::SetWindowContext(nsIDOMWindow* aValue) {
   mWindowContext = aValue;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
-{
+nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile** aResult) {
   NS_ENSURE_TRUE(mWorkingDir, NS_ERROR_NOT_INITIALIZED);
 
   // This is some seriously screwed-up code. nsIFile.appendRelativeNativePath
@@ -257,10 +243,11 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   nsresult rv;
 
 #if defined(MOZ_WIDGET_COCOA)
-  nsCOMPtr<nsILocalFileMac> lfm (do_QueryInterface(mWorkingDir));
+  nsCOMPtr<nsILocalFileMac> lfm(do_QueryInterface(mWorkingDir));
   NS_ENSURE_TRUE(lfm, NS_ERROR_NO_INTERFACE);
 
-  nsCOMPtr<nsILocalFileMac> newfile (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsILocalFileMac> newfile(
+      do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(newfile, NS_ERROR_OUT_OF_MEMORY);
 
   CFURLRef baseurl;
@@ -270,10 +257,8 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   nsAutoCString path;
   NS_CopyUnicodeToNative(aArgument, path);
 
-  CFURLRef newurl =
-    CFURLCreateFromFileSystemRepresentationRelativeToBase(nullptr, (const UInt8*) path.get(),
-                                                          path.Length(),
-                                                          true, baseurl);
+  CFURLRef newurl = CFURLCreateFromFileSystemRepresentationRelativeToBase(
+      nullptr, (const UInt8*)path.get(), path.Length(), true, baseurl);
 
   CFRelease(baseurl);
 
@@ -285,7 +270,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   return NS_OK;
 
 #elif defined(XP_UNIX)
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
 
   if (aArgument.First() == '/') {
@@ -316,15 +301,16 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   return NS_OK;
 
 #elif defined(XP_WIN32)
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   NS_ENSURE_TRUE(lf, NS_ERROR_OUT_OF_MEMORY);
 
   rv = lf->InitWithPath(aArgument);
   if (NS_FAILED(rv)) {
-    // If it's a relative path, the Init is *going* to fail. We use string magic and
-    // win32 _fullpath. Note that paths of the form "\Relative\To\CurDrive" are
-    // going to fail, and I haven't figured out a way to work around this without
-    // the PathCombine() function, which is not available in plain win95/nt4
+    // If it's a relative path, the Init is *going* to fail. We use string magic
+    // and win32 _fullpath. Note that paths of the form "\Relative\To\CurDrive"
+    // are going to fail, and I haven't figured out a way to work around this
+    // without the PathCombine() function, which is not available in plain
+    // win95/nt4
 
     nsAutoString fullPath;
     mWorkingDir->GetPath(fullPath);
@@ -333,8 +319,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
     fullPath.Append(aArgument);
 
     WCHAR pathBuf[MAX_PATH];
-    if (!_wfullpath(pathBuf, fullPath.get(), MAX_PATH))
-      return NS_ERROR_FAILURE;
+    if (!_wfullpath(pathBuf, fullPath.get(), MAX_PATH)) return NS_ERROR_FAILURE;
 
     rv = lf->InitWithPath(nsDependentString(pathBuf));
     if (NS_FAILED(rv)) return rv;
@@ -348,12 +333,11 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
 }
 
 NS_IMETHODIMP
-nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
-{
+nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI** aResult) {
   nsresult rv;
 
-  // First, we try to init the argument as an absolute file path. If this doesn't
-  // work, it is an absolute or relative URI.
+  // First, we try to init the argument as an absolute file path. If this
+  // doesn't work, it is an absolute or relative URI.
 
   nsCOMPtr<nsIIOService> io = do_GetIOService();
   NS_ENSURE_TRUE(io, NS_ERROR_OUT_OF_MEMORY);
@@ -363,7 +347,7 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
     io->NewFileURI(mWorkingDir, getter_AddRefs(workingDirURI));
   }
 
-  nsCOMPtr<nsIFile> lf (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
+  nsCOMPtr<nsIFile> lf(do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
   rv = lf->InitWithPath(aArgument);
   if (NS_SUCCEEDED(rv)) {
     lf->Normalize();
@@ -371,24 +355,17 @@ nsCommandLine::ResolveURI(const nsAString& aArgument, nsIURI* *aResult)
     // Try to resolve the url for .url files.
     rv = resolveShortcutURL(lf, url);
     if (NS_SUCCEEDED(rv) && !url.IsEmpty()) {
-      return io->NewURI(url,
-                        nullptr,
-                        workingDirURI,
-                        aResult);
+      return io->NewURI(url, nullptr, workingDirURI, aResult);
     }
 
     return io->NewFileURI(lf, aResult);
   }
 
-  return io->NewURI(NS_ConvertUTF16toUTF8(aArgument),
-                    nullptr,
-                    workingDirURI,
+  return io->NewURI(NS_ConvertUTF16toUTF8(aArgument), nullptr, workingDirURI,
                     aResult);
 }
 
-void
-nsCommandLine::appendArg(const char* arg)
-{
+void nsCommandLine::appendArg(const char* arg) {
 #ifdef DEBUG_COMMANDLINE
   printf("Adding XP arg: %s\n", arg);
 #endif
@@ -403,26 +380,21 @@ nsCommandLine::appendArg(const char* arg)
   mArgs.AppendElement(warg);
 }
 
-nsresult
-nsCommandLine::resolveShortcutURL(nsIFile* aFile, nsACString& outURL)
-{
+nsresult nsCommandLine::resolveShortcutURL(nsIFile* aFile, nsACString& outURL) {
   nsCOMPtr<nsIFileProtocolHandler> fph;
   nsresult rv = NS_GetFileProtocolHandler(getter_AddRefs(fph));
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsIURI> uri;
   rv = fph->ReadURLFile(aFile, getter_AddRefs(uri));
-  if (NS_FAILED(rv))
-    return rv;
+  if (NS_FAILED(rv)) return rv;
 
   return uri->GetSpec(outURL);
 }
 
 NS_IMETHODIMP
 nsCommandLine::Init(int32_t argc, const char* const* argv, nsIFile* aWorkingDir,
-                    uint32_t aState)
-{
+                    uint32_t aState) {
   NS_ENSURE_ARG_MAX(aState, 2);
 
   int32_t i;
@@ -446,7 +418,7 @@ nsCommandLine::Init(int32_t argc, const char* const* argv, nsIFile* aWorkingDir,
       if (colon) {
         *colon = '\0';
         appendArg(dup);
-        appendArg(colon+1);
+        appendArg(colon + 1);
       } else {
         appendArg(dup);
       }
@@ -455,7 +427,7 @@ nsCommandLine::Init(int32_t argc, const char* const* argv, nsIFile* aWorkingDir,
     }
 #endif
     if (*curarg == '-') {
-      if (*(curarg+1) == '-') ++curarg;
+      if (*(curarg + 1) == '-') ++curarg;
 
       char* dup = PL_strdup(curarg);
       if (!dup) return NS_ERROR_OUT_OF_MEMORY;
@@ -480,25 +452,22 @@ nsCommandLine::Init(int32_t argc, const char* const* argv, nsIFile* aWorkingDir,
   return NS_OK;
 }
 
-template<typename ...T>
-static void
-LogConsoleMessage(const char16_t* fmt, T... args)
-{
+template <typename... T>
+static void LogConsoleMessage(const char16_t* fmt, T... args) {
   nsString msg;
   nsTextFormatter::ssprintf(msg, fmt, args...);
 
-  nsCOMPtr<nsIConsoleService> cs = do_GetService("@mozilla.org/consoleservice;1");
-  if (cs)
-    cs->LogStringMessage(msg.get());
+  nsCOMPtr<nsIConsoleService> cs =
+      do_GetService("@mozilla.org/consoleservice;1");
+  if (cs) cs->LogStringMessage(msg.get());
 }
 
-nsresult
-nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClosure)
-{
+nsresult nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback,
+                                          void* aClosure) {
   nsresult rv;
 
-  nsCOMPtr<nsICategoryManager> catman
-    (do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
+  nsCOMPtr<nsICategoryManager> catman(
+      do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
   NS_ENSURE_TRUE(catman, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsISimpleEnumerator> entenum;
@@ -506,7 +475,7 @@ nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClo
                                  getter_AddRefs(entenum));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIUTF8StringEnumerator> strenum (do_QueryInterface(entenum));
+  nsCOMPtr<nsIUTF8StringEnumerator> strenum(do_QueryInterface(entenum));
   NS_ENSURE_TRUE(strenum, NS_ERROR_UNEXPECTED);
 
   nsAutoCString entry;
@@ -515,22 +484,21 @@ nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClo
     strenum->GetNext(entry);
 
     nsCString contractID;
-    rv = catman->GetCategoryEntry("command-line-handler",
-				  entry.get(),
-				  getter_Copies(contractID));
-    if (NS_FAILED(rv))
-      continue;
+    rv = catman->GetCategoryEntry("command-line-handler", entry.get(),
+                                  getter_Copies(contractID));
+    if (NS_FAILED(rv)) continue;
 
     nsCOMPtr<nsICommandLineHandler> clh(do_GetService(contractID.get()));
     if (!clh) {
-      LogConsoleMessage(u"Contract ID '%s' was registered as a command line handler for entry '%s', but could not be created.",
-                        contractID.get(), entry.get());
+      LogConsoleMessage(
+          u"Contract ID '%s' was registered as a command line handler for "
+          u"entry '%s', but could not be created.",
+          contractID.get(), entry.get());
       continue;
     }
 
     rv = (aCallback)(clh, this, aClosure);
-    if (rv == NS_ERROR_ABORT)
-      break;
+    if (rv == NS_ERROR_ABORT) break;
 
     rv = NS_OK;
   }
@@ -538,13 +506,12 @@ nsCommandLine::EnumerateHandlers(EnumerateHandlersCallback aCallback, void *aClo
   return rv;
 }
 
-nsresult
-nsCommandLine::EnumerateValidators(EnumerateValidatorsCallback aCallback, void *aClosure)
-{
+nsresult nsCommandLine::EnumerateValidators(
+    EnumerateValidatorsCallback aCallback, void* aClosure) {
   nsresult rv;
 
-  nsCOMPtr<nsICategoryManager> catman
-    (do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
+  nsCOMPtr<nsICategoryManager> catman(
+      do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
   NS_ENSURE_TRUE(catman, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsISimpleEnumerator> entenum;
@@ -552,7 +519,7 @@ nsCommandLine::EnumerateValidators(EnumerateValidatorsCallback aCallback, void *
                                  getter_AddRefs(entenum));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIUTF8StringEnumerator> strenum (do_QueryInterface(entenum));
+  nsCOMPtr<nsIUTF8StringEnumerator> strenum(do_QueryInterface(entenum));
   NS_ENSURE_TRUE(strenum, NS_ERROR_UNEXPECTED);
 
   nsAutoCString entry;
@@ -561,19 +528,15 @@ nsCommandLine::EnumerateValidators(EnumerateValidatorsCallback aCallback, void *
     strenum->GetNext(entry);
 
     nsCString contractID;
-    rv = catman->GetCategoryEntry("command-line-validator",
-				  entry.get(),
-				  getter_Copies(contractID));
-    if (contractID.IsVoid())
-      continue;
+    rv = catman->GetCategoryEntry("command-line-validator", entry.get(),
+                                  getter_Copies(contractID));
+    if (contractID.IsVoid()) continue;
 
     nsCOMPtr<nsICommandLineValidator> clv(do_GetService(contractID.get()));
-    if (!clv)
-      continue;
+    if (!clv) continue;
 
     rv = (aCallback)(clv, this, aClosure);
-    if (rv == NS_ERROR_ABORT)
-      break;
+    if (rv == NS_ERROR_ABORT) break;
 
     rv = NS_OK;
   }
@@ -581,44 +544,39 @@ nsCommandLine::EnumerateValidators(EnumerateValidatorsCallback aCallback, void *
   return rv;
 }
 
-static nsresult
-EnumValidate(nsICommandLineValidator* aValidator, nsICommandLine* aThis, void*)
-{
+static nsresult EnumValidate(nsICommandLineValidator* aValidator,
+                             nsICommandLine* aThis, void*) {
   return aValidator->Validate(aThis);
 }
 
-static nsresult
-EnumRun(nsICommandLineHandler* aHandler, nsICommandLine* aThis, void*)
-{
+static nsresult EnumRun(nsICommandLineHandler* aHandler, nsICommandLine* aThis,
+                        void*) {
   return aHandler->Handle(aThis);
 }
 
 NS_IMETHODIMP
-nsCommandLine::Run()
-{
+nsCommandLine::Run() {
   nsresult rv;
 
   rv = EnumerateValidators(EnumValidate, nullptr);
-  if (rv == NS_ERROR_ABORT)
-    return rv;
+  if (rv == NS_ERROR_ABORT) return rv;
 
   rv = EnumerateHandlers(EnumRun, nullptr);
-  if (rv == NS_ERROR_ABORT)
-    return rv;
+  if (rv == NS_ERROR_ABORT) return rv;
 
   return NS_OK;
 }
 
-static nsresult
-EnumHelp(nsICommandLineHandler* aHandler, nsICommandLine* aThis, void* aClosure)
-{
+static nsresult EnumHelp(nsICommandLineHandler* aHandler, nsICommandLine* aThis,
+                         void* aClosure) {
   nsresult rv;
 
   nsCString text;
   rv = aHandler->GetHelpInfo(text);
   if (NS_SUCCEEDED(rv)) {
-    NS_ASSERTION(text.Length() == 0 || text.Last() == '\n',
-                 "Help text from command line handlers should end in a newline.");
+    NS_ASSERTION(
+        text.Length() == 0 || text.Last() == '\n',
+        "Help text from command line handlers should end in a newline.");
 
     nsACString* totalText = reinterpret_cast<nsACString*>(aClosure);
     totalText->Append(text);
@@ -628,8 +586,7 @@ EnumHelp(nsICommandLineHandler* aHandler, nsICommandLine* aThis, void* aClosure)
 }
 
 NS_IMETHODIMP
-nsCommandLine::GetHelpText(nsACString& aResult)
-{
+nsCommandLine::GetHelpText(nsACString& aResult) {
   EnumerateHandlers(EnumHelp, &aResult);
 
   return NS_OK;
@@ -640,19 +597,13 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsCommandLine)
 NS_DEFINE_NAMED_CID(NS_COMMANDLINE_CID);
 
 static const mozilla::Module::CIDEntry kCommandLineCIDs[] = {
-  { &kNS_COMMANDLINE_CID, false, nullptr, nsCommandLineConstructor },
-  { nullptr }
-};
+    {&kNS_COMMANDLINE_CID, false, nullptr, nsCommandLineConstructor},
+    {nullptr}};
 
 static const mozilla::Module::ContractIDEntry kCommandLineContracts[] = {
-  { "@mozilla.org/toolkit/command-line;1", &kNS_COMMANDLINE_CID },
-  { nullptr }
-};
+    {"@mozilla.org/toolkit/command-line;1", &kNS_COMMANDLINE_CID}, {nullptr}};
 
 static const mozilla::Module kCommandLineModule = {
-  mozilla::Module::kVersion,
-  kCommandLineCIDs,
-  kCommandLineContracts
-};
+    mozilla::Module::kVersion, kCommandLineCIDs, kCommandLineContracts};
 
 NSMODULE_DEFN(CommandLineModule) = &kCommandLineModule;

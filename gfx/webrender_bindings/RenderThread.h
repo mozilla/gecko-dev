@@ -7,9 +7,9 @@
 #ifndef MOZILLA_LAYERS_RENDERTHREAD_H
 #define MOZILLA_LAYERS_RENDERTHREAD_H
 
-#include "base/basictypes.h"            // for DISALLOW_EVIL_CONSTRUCTORS
-#include "base/platform_thread.h"       // for PlatformThreadId
-#include "base/thread.h"                // for Thread
+#include "base/basictypes.h"       // for DISALLOW_EVIL_CONSTRUCTORS
+#include "base/platform_thread.h"  // for PlatformThreadId
+#include "base/thread.h"           // for Thread
 #include "base/message_loop.h"
 #include "nsISupportsImpl.h"
 #include "nsRefPtrHashtable.h"
@@ -27,38 +27,38 @@ class RendererOGL;
 class RenderTextureHost;
 class RenderThread;
 
-/// A rayon thread pool that is shared by all WebRender instances within a process.
+/// A rayon thread pool that is shared by all WebRender instances within a
+/// process.
 class WebRenderThreadPool {
-public:
+ public:
   WebRenderThreadPool();
 
   ~WebRenderThreadPool();
 
   wr::WrThreadPool* Raw() { return mThreadPool; }
 
-protected:
+ protected:
   wr::WrThreadPool* mThreadPool;
 };
 
 class WebRenderProgramCache {
-public:
+ public:
   WebRenderProgramCache();
 
   ~WebRenderProgramCache();
 
   wr::WrProgramCache* Raw() { return mProgramCache; }
 
-protected:
+ protected:
   wr::WrProgramCache* mProgramCache;
 };
 
 /// Base class for an event that can be scheduled to run on the render thread.
 ///
-/// The event can be passed through the same channels as regular WebRender messages
-/// to preserve ordering.
-class RendererEvent
-{
-public:
+/// The event can be passed through the same channels as regular WebRender
+/// messages to preserve ordering.
+class RendererEvent {
+ public:
   virtual ~RendererEvent() {}
   virtual void Run(RenderThread& aRenderThread, wr::WindowId aWindow) = 0;
 };
@@ -66,25 +66,25 @@ public:
 /// The render thread is where WebRender issues all of its GPU work, and as much
 /// as possible this thread should only serve this purpose.
 ///
-/// The render thread owns the different RendererOGLs (one per window) and implements
-/// the RenderNotifier api exposed by the WebRender bindings.
+/// The render thread owns the different RendererOGLs (one per window) and
+/// implements the RenderNotifier api exposed by the WebRender bindings.
 ///
-/// We should generally avoid posting tasks to the render thread's event loop directly
-/// and instead use the RendererEvent mechanism which avoids races between the events
-/// and WebRender's own messages.
+/// We should generally avoid posting tasks to the render thread's event loop
+/// directly and instead use the RendererEvent mechanism which avoids races
+/// between the events and WebRender's own messages.
 ///
 /// The GL context(s) should be created and used on this thread only.
 /// XXX - I've tried to organize code so that we can potentially avoid making
 /// this a singleton since this bad habit has a tendency to bite us later, but
 /// I haven't gotten all the way there either, in order to focus on the more
-/// important pieces first. So we are a bit in-between (this is totally a singleton
-/// but in some places we pretend it's not). Hopefully we can evolve this in a way
-/// that keeps the door open to removing the singleton bits.
-class RenderThread final
-{
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(RenderThread)
+/// important pieces first. So we are a bit in-between (this is totally a
+/// singleton but in some places we pretend it's not). Hopefully we can evolve
+/// this in a way that keeps the door open to removing the singleton bits.
+class RenderThread final {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(
+      RenderThread)
 
-public:
+ public:
   /// Can be called from any thread.
   static RenderThread* Get();
 
@@ -95,9 +95,9 @@ public:
   static void ShutDown();
 
   /// Can be called from any thread.
-  /// In most cases it is best to post RendererEvents through WebRenderAPI instead
-  /// of scheduling directly to this message loop (so as to preserve the ordering
-  /// of the messages).
+  /// In most cases it is best to post RendererEvents through WebRenderAPI
+  /// instead of scheduling directly to this message loop (so as to preserve the
+  /// ordering of the messages).
   static MessageLoop* Loop();
 
   /// Can be called from any thread.
@@ -121,7 +121,8 @@ public:
   void WakeUp(wr::WindowId aWindowId);
 
   /// Automatically forwarded to the render thread.
-  void PipelineSizeChanged(wr::WindowId aWindowId, uint64_t aPipelineId, float aWidth, float aHeight);
+  void PipelineSizeChanged(wr::WindowId aWindowId, uint64_t aPipelineId,
+                           float aWidth, float aHeight);
 
   /// Automatically forwarded to the render thread.
   void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aCallBack);
@@ -133,7 +134,8 @@ public:
   bool Resume(wr::WindowId aWindowId);
 
   /// Can be called from any thread.
-  void RegisterExternalImage(uint64_t aExternalImageId, already_AddRefed<RenderTextureHost> aTexture);
+  void RegisterExternalImage(uint64_t aExternalImageId,
+                             already_AddRefed<RenderTextureHost> aTexture);
 
   /// Can be called from any thread.
   void UnregisterExternalImage(uint64_t aExternalImageId);
@@ -160,7 +162,7 @@ public:
   /// Can only be called from the render thread.
   WebRenderProgramCache* ProgramCache();
 
-private:
+ private:
   explicit RenderThread(base::Thread* aThread);
 
   void DeferredRenderTextureHostDestroy(RefPtr<RenderTextureHost> aTexture);
@@ -189,7 +191,7 @@ private:
   bool mHasShutdown;
 };
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
 #endif

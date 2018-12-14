@@ -20,34 +20,28 @@ enum eHtml5FlushState {
   eInDocUpdate = 2,  // inside an update batch on the document
 };
 
-class nsHtml5DocumentBuilder : public nsContentSink
-{
+class nsHtml5DocumentBuilder : public nsContentSink {
   using Encoding = mozilla::Encoding;
-  template <typename T> using NotNull = mozilla::NotNull<T>;
-public:
+  template <typename T>
+  using NotNull = mozilla::NotNull<T>;
+
+ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHtml5DocumentBuilder,
                                            nsContentSink)
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  inline void HoldElement(already_AddRefed<nsIContent> aContent)
-  {
+  inline void HoldElement(already_AddRefed<nsIContent> aContent) {
     *(mOwnedElements.AppendElement()) = aContent;
   }
 
-  nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
-                nsISupports* aContainer, nsIChannel* aChannel);
+  nsresult Init(nsIDocument* aDoc, nsIURI* aURI, nsISupports* aContainer,
+                nsIChannel* aChannel);
 
   // Getters and setters for fields from nsContentSink
-  nsIDocument* GetDocument()
-  {
-    return mDocument;
-  }
+  nsIDocument* GetDocument() { return mDocument; }
 
-  nsNodeInfoManager* GetNodeInfoManager()
-  {
-    return mNodeInfoManager;
-  }
+  nsNodeInfoManager* GetNodeInfoManager() { return mNodeInfoManager; }
 
   /**
    * Marks this parser as broken and tells the stream parser (if any) to
@@ -61,42 +55,32 @@ public:
    * Checks if this parser is broken. Returns a non-NS_OK (i.e. non-0)
    * value if broken.
    */
-  inline nsresult IsBroken()
-  {
-    return mBroken;
-  }
+  inline nsresult IsBroken() { return mBroken; }
 
-  inline bool IsComplete()
-  {
-    return !mParser;
-  }
+  inline bool IsComplete() { return !mParser; }
 
-  inline void BeginDocUpdate()
-  {
+  inline void BeginDocUpdate() {
     MOZ_RELEASE_ASSERT(IsInFlush(), "Tried to double-open doc update.");
     MOZ_RELEASE_ASSERT(mParser, "Started doc update without parser.");
     mFlushState = eInDocUpdate;
     mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
   }
 
-  inline void EndDocUpdate()
-  {
+  inline void EndDocUpdate() {
     MOZ_RELEASE_ASSERT(IsInDocUpdate(),
                        "Tried to end doc update without one open.");
     mFlushState = eInFlush;
     mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
   }
 
-  inline void BeginFlush()
-  {
+  inline void BeginFlush() {
     MOZ_RELEASE_ASSERT(mFlushState == eNotFlushing,
                        "Tried to start a flush when already flushing.");
     MOZ_RELEASE_ASSERT(mParser, "Started a flush without parser.");
     mFlushState = eInFlush;
   }
 
-  inline void EndFlush()
-  {
+  inline void EndFlush() {
     MOZ_RELEASE_ASSERT(IsInFlush(), "Tried to end flush when not flushing.");
     mFlushState = eNotFlushing;
   }
@@ -115,8 +99,7 @@ public:
 
   void SetDocumentMode(nsHtml5DocumentMode m);
 
-  void SetNodeInfoManager(nsNodeInfoManager* aManager)
-  {
+  void SetNodeInfoManager(nsNodeInfoManager* aManager) {
     mNodeInfoManager = aManager;
   }
 
@@ -124,12 +107,11 @@ public:
   virtual void UpdateChildCounts() override;
   virtual nsresult FlushTags() override;
 
-protected:
-
+ protected:
   explicit nsHtml5DocumentBuilder(bool aRunsToCompletion);
   virtual ~nsHtml5DocumentBuilder();
 
-protected:
+ protected:
   AutoTArray<nsCOMPtr<nsIContent>, 32> mOwnedElements;
   /**
    * Non-NS_OK if this parser should refuse to process any more input.
@@ -139,8 +121,8 @@ protected:
    * and parsing more input could lead to a DOM where pieces of HTML source
    * that weren't supposed to become scripts become scripts.
    */
-  nsresult                             mBroken;
-  eHtml5FlushState                     mFlushState;
+  nsresult mBroken;
+  eHtml5FlushState mFlushState;
 };
 
-#endif // nsHtml5DocumentBuilder_h
+#endif  // nsHtml5DocumentBuilder_h

@@ -41,52 +41,33 @@
 
 using namespace mozilla::dom;
 
-NS_IMPL_ISUPPORTS(nsParserUtils,
-                  nsIScriptableUnescapeHTML,
-                  nsIParserUtils)
+NS_IMPL_ISUPPORTS(nsParserUtils, nsIScriptableUnescapeHTML, nsIParserUtils)
 
 NS_IMETHODIMP
-nsParserUtils::ConvertToPlainText(const nsAString& aFromStr,
-                                  uint32_t aFlags,
-                                  uint32_t aWrapCol,
-                                  nsAString& aToStr)
-{
-  return nsContentUtils::ConvertToPlainText(aFromStr,
-    aToStr,
-    aFlags,
-    aWrapCol);
+nsParserUtils::ConvertToPlainText(const nsAString& aFromStr, uint32_t aFlags,
+                                  uint32_t aWrapCol, nsAString& aToStr) {
+  return nsContentUtils::ConvertToPlainText(aFromStr, aToStr, aFlags, aWrapCol);
 }
 
 NS_IMETHODIMP
-nsParserUtils::Unescape(const nsAString& aFromStr,
-                        nsAString& aToStr)
-{
-  return nsContentUtils::ConvertToPlainText(aFromStr,
-    aToStr,
-    nsIDocumentEncoder::OutputSelectionOnly |
-    nsIDocumentEncoder::OutputAbsoluteLinks,
-    0);
+nsParserUtils::Unescape(const nsAString& aFromStr, nsAString& aToStr) {
+  return nsContentUtils::ConvertToPlainText(
+      aFromStr, aToStr,
+      nsIDocumentEncoder::OutputSelectionOnly |
+          nsIDocumentEncoder::OutputAbsoluteLinks,
+      0);
 }
 
 NS_IMETHODIMP
-nsParserUtils::Sanitize(const nsAString& aFromStr,
-                        uint32_t aFlags,
-                        nsAString& aToStr)
-{
+nsParserUtils::Sanitize(const nsAString& aFromStr, uint32_t aFlags,
+                        nsAString& aToStr) {
   nsCOMPtr<nsIURI> uri;
   NS_NewURI(getter_AddRefs(uri), "about:blank");
   nsCOMPtr<nsIPrincipal> principal = NullPrincipal::Create();
   nsCOMPtr<nsIDOMDocument> domDocument;
-  nsresult rv = NS_NewDOMDocument(getter_AddRefs(domDocument),
-                                  EmptyString(),
-                                  EmptyString(),
-                                  nullptr,
-                                  uri,
-                                  uri,
-                                  principal,
-                                  true,
-                                  nullptr,
-                                  DocumentFlavorHTML);
+  nsresult rv = NS_NewDOMDocument(getter_AddRefs(domDocument), EmptyString(),
+                                  EmptyString(), nullptr, uri, uri, principal,
+                                  true, nullptr, DocumentFlavorHTML);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIDocument> document = do_QueryInterface(domDocument);
@@ -97,42 +78,31 @@ nsParserUtils::Sanitize(const nsAString& aFromStr,
   sanitizer.Sanitize(document);
 
   nsCOMPtr<nsIDocumentEncoder> encoder =
-    do_CreateInstance(NS_DOC_ENCODER_CONTRACTID_BASE "text/html");
+      do_CreateInstance(NS_DOC_ENCODER_CONTRACTID_BASE "text/html");
 
-  encoder->NativeInit(document,
-                      NS_LITERAL_STRING("text/html"),
+  encoder->NativeInit(document, NS_LITERAL_STRING("text/html"),
                       nsIDocumentEncoder::OutputDontRewriteEncodingDeclaration |
-                      nsIDocumentEncoder::OutputNoScriptContent |
-                      nsIDocumentEncoder::OutputEncodeBasicEntities |
-                      nsIDocumentEncoder::OutputLFLineBreak |
-                      nsIDocumentEncoder::OutputRaw);
+                          nsIDocumentEncoder::OutputNoScriptContent |
+                          nsIDocumentEncoder::OutputEncodeBasicEntities |
+                          nsIDocumentEncoder::OutputLFLineBreak |
+                          nsIDocumentEncoder::OutputRaw);
 
   return encoder->EncodeToString(aToStr);
 }
 
 NS_IMETHODIMP
-nsParserUtils::ParseFragment(const nsAString& aFragment,
-                             bool aIsXML,
-                             nsIURI* aBaseURI,
-                             nsIDOMElement* aContextElement,
-                             nsIDOMDocumentFragment** aReturn)
-{
-  return nsParserUtils::ParseFragment(aFragment,
-                                      0,
-                                      aIsXML,
-                                      aBaseURI,
-                                      aContextElement,
-                                      aReturn);
+nsParserUtils::ParseFragment(const nsAString& aFragment, bool aIsXML,
+                             nsIURI* aBaseURI, nsIDOMElement* aContextElement,
+                             nsIDOMDocumentFragment** aReturn) {
+  return nsParserUtils::ParseFragment(aFragment, 0, aIsXML, aBaseURI,
+                                      aContextElement, aReturn);
 }
 
 NS_IMETHODIMP
-nsParserUtils::ParseFragment(const nsAString& aFragment,
-                             uint32_t aFlags,
-                             bool aIsXML,
-                             nsIURI* aBaseURI,
+nsParserUtils::ParseFragment(const nsAString& aFragment, uint32_t aFlags,
+                             bool aIsXML, nsIURI* aBaseURI,
                              nsIDOMElement* aContextElement,
-                             nsIDOMDocumentFragment** aReturn)
-{
+                             nsIDOMDocumentFragment** aReturn) {
   NS_ENSURE_ARG(aContextElement);
   *aReturn = nullptr;
 
@@ -162,21 +132,14 @@ nsParserUtils::ParseFragment(const nsAString& aFragment,
   if (aIsXML) {
     // XHTML
     tagStack.AppendElement(NS_LITERAL_STRING(XHTML_DIV_TAG));
-    rv = nsContentUtils::ParseFragmentXML(aFragment,
-                                          document,
-                                          tagStack,
-                                          true,
+    rv = nsContentUtils::ParseFragmentXML(aFragment, document, tagStack, true,
                                           aReturn);
     fragment = do_QueryInterface(*aReturn);
   } else {
     NS_ADDREF(*aReturn = new DocumentFragment(document->NodeInfoManager()));
     fragment = do_QueryInterface(*aReturn);
-    rv = nsContentUtils::ParseFragmentHTML(aFragment,
-                                           fragment,
-                                           nsGkAtoms::body,
-                                           kNameSpaceID_XHTML,
-                                           false,
-                                           true);
+    rv = nsContentUtils::ParseFragmentHTML(aFragment, fragment, nsGkAtoms::body,
+                                           kNameSpaceID_XHTML, false, true);
   }
   if (fragment) {
     nsTreeSanitizer sanitizer(aFlags);

@@ -11,13 +11,13 @@
 #include "nsCoord.h"
 #include "nsRect.h"
 
-struct nsRectAbsolute :
-  public mozilla::gfx::BaseRectAbsolute<nscoord, nsRectAbsolute, nsRect> {
+struct nsRectAbsolute
+    : public mozilla::gfx::BaseRectAbsolute<nscoord, nsRectAbsolute, nsRect> {
   typedef mozilla::gfx::BaseRectAbsolute<nscoord, nsRectAbsolute, nsRect> Super;
 
   nsRectAbsolute() : Super() {}
-  nsRectAbsolute(nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2) :
-      Super(aX1, aY1, aX2, aY2) {}
+  nsRectAbsolute(nscoord aX1, nscoord aY1, nscoord aX2, nscoord aY2)
+      : Super(aX1, aY1, aX2, aY2) {}
 };
 
 #endif /* NSRECTABSOLUTE_H */

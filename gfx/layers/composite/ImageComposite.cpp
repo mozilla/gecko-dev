@@ -15,34 +15,26 @@ namespace layers {
 /* static */ const float ImageComposite::BIAS_TIME_MS = 1.0f;
 
 ImageComposite::ImageComposite()
-  : mLastFrameID(-1)
-  , mLastProducerID(-1)
-  , mBias(BIAS_NONE)
-{}
+    : mLastFrameID(-1), mLastProducerID(-1), mBias(BIAS_NONE) {}
 
-ImageComposite::~ImageComposite()
-{
-}
+ImageComposite::~ImageComposite() {}
 
-/* static */ TimeStamp
-ImageComposite::GetBiasedTime(const TimeStamp& aInput, ImageComposite::Bias aBias)
-{
+/* static */ TimeStamp ImageComposite::GetBiasedTime(
+    const TimeStamp& aInput, ImageComposite::Bias aBias) {
   switch (aBias) {
-  case ImageComposite::BIAS_NEGATIVE:
-    return aInput - TimeDuration::FromMilliseconds(BIAS_TIME_MS);
-  case ImageComposite::BIAS_POSITIVE:
-    return aInput + TimeDuration::FromMilliseconds(BIAS_TIME_MS);
-  default:
-    return aInput;
+    case ImageComposite::BIAS_NEGATIVE:
+      return aInput - TimeDuration::FromMilliseconds(BIAS_TIME_MS);
+    case ImageComposite::BIAS_POSITIVE:
+      return aInput + TimeDuration::FromMilliseconds(BIAS_TIME_MS);
+    default:
+      return aInput;
   }
 }
 
-/* static */ ImageComposite::Bias
-ImageComposite::UpdateBias(const TimeStamp& aCompositionTime,
-                           const TimeStamp& aCompositedImageTime,
-                           const TimeStamp& aNextImageTime, // may be null
-                           ImageComposite::Bias aBias)
-{
+/* static */ ImageComposite::Bias ImageComposite::UpdateBias(
+    const TimeStamp& aCompositionTime, const TimeStamp& aCompositedImageTime,
+    const TimeStamp& aNextImageTime,  // may be null
+    ImageComposite::Bias aBias) {
   if (aCompositedImageTime.IsNull()) {
     return ImageComposite::BIAS_NONE;
   }
@@ -78,9 +70,7 @@ ImageComposite::UpdateBias(const TimeStamp& aCompositionTime,
   return ImageComposite::BIAS_NONE;
 }
 
-int
-ImageComposite::ChooseImageIndex() const
-{
+int ImageComposite::ChooseImageIndex() const {
   if (mImages.IsEmpty()) {
     return -1;
   }
@@ -100,23 +90,21 @@ ImageComposite::ChooseImageIndex() const
 
   uint32_t result = 0;
   while (result + 1 < mImages.Length() &&
-      GetBiasedTime(mImages[result + 1].mTimeStamp, mBias) <= now) {
+         GetBiasedTime(mImages[result + 1].mTimeStamp, mBias) <= now) {
     ++result;
   }
   return result;
 }
 
-const ImageComposite::TimedImage* ImageComposite::ChooseImage() const
-{
+const ImageComposite::TimedImage* ImageComposite::ChooseImage() const {
   int index = ChooseImageIndex();
   return index >= 0 ? &mImages[index] : nullptr;
 }
 
-ImageComposite::TimedImage* ImageComposite::ChooseImage()
-{
+ImageComposite::TimedImage* ImageComposite::ChooseImage() {
   int index = ChooseImageIndex();
   return index >= 0 ? &mImages[index] : nullptr;
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

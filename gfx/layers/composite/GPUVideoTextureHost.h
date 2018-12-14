@@ -12,16 +12,16 @@
 namespace mozilla {
 namespace layers {
 
-class GPUVideoTextureHost : public TextureHost
-{
-public:
- GPUVideoTextureHost(TextureFlags aFlags,
-                     const SurfaceDescriptorGPUVideo& aDescriptor);
+class GPUVideoTextureHost : public TextureHost {
+ public:
+  GPUVideoTextureHost(TextureFlags aFlags,
+                      const SurfaceDescriptorGPUVideo& aDescriptor);
   virtual ~GPUVideoTextureHost();
 
   virtual void DeallocateDeviceData() override {}
 
-  virtual void SetTextureSourceProvider(TextureSourceProvider* aProvider) override;
+  virtual void SetTextureSourceProvider(
+      TextureSourceProvider* aProvider) override;
 
   virtual bool Lock() override;
 
@@ -29,12 +29,13 @@ public:
 
   virtual gfx::SurfaceFormat GetFormat() const override;
 
-  virtual bool BindTextureSource(CompositableTextureSourceRef& aTexture) override;
-  virtual bool AcquireTextureSource(CompositableTextureSourceRef& aTexture) override;
+  virtual bool BindTextureSource(
+      CompositableTextureSourceRef& aTexture) override;
+  virtual bool AcquireTextureSource(
+      CompositableTextureSourceRef& aTexture) override;
 
-  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override
-  {
-    return nullptr; // XXX - implement this (for MOZ_DUMP_PAINTING)
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override {
+    return nullptr;  // XXX - implement this (for MOZ_DUMP_PAINTING)
   }
 
   virtual YUVColorSpace GetYUVColorSpace() const override;
@@ -47,7 +48,8 @@ public:
 
   virtual bool HasIntermediateBuffer() const override;
 
-  virtual void CreateRenderTexture(const wr::ExternalImageId& aExternalImageId) override;
+  virtual void CreateRenderTexture(
+      const wr::ExternalImageId& aExternalImageId) override;
 
   virtual uint32_t NumSubTextures() const override;
 
@@ -62,11 +64,11 @@ public:
                                 wr::ImageRendering aFilter,
                                 const Range<wr::ImageKey>& aImageKeys) override;
 
-protected:
+ protected:
   RefPtr<TextureHost> mWrappedTextureHost;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // MOZILLA_GFX_GPUVIDEOTEXTUREHOST_H
+#endif  // MOZILLA_GFX_GPUVIDEOTEXTUREHOST_H

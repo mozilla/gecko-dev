@@ -14,95 +14,90 @@ namespace dom {
 
 class PaymentRequestParent;
 
-class PaymentResponseData : public nsIPaymentResponseData
-{
-public:
+class PaymentResponseData : public nsIPaymentResponseData {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPAYMENTRESPONSEDATA
 
   PaymentResponseData() = default;
 
-protected:
+ protected:
   virtual ~PaymentResponseData() = default;
 
   uint32_t mType;
 };
 
-class GeneralResponseData final : public PaymentResponseData
-                                , public nsIGeneralResponseData
-{
-public:
+class GeneralResponseData final : public PaymentResponseData,
+                                  public nsIGeneralResponseData {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTRESPONSEDATA(PaymentResponseData::)
   NS_DECL_NSIGENERALRESPONSEDATA
 
   GeneralResponseData();
 
-private:
+ private:
   ~GeneralResponseData() = default;
 
   nsString mData;
 };
 
-class BasicCardResponseData final : public nsIBasicCardResponseData
-                                  , public PaymentResponseData
-{
-public:
+class BasicCardResponseData final : public nsIBasicCardResponseData,
+                                    public PaymentResponseData {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTRESPONSEDATA(PaymentResponseData::)
   NS_DECL_NSIBASICCARDRESPONSEDATA
 
   BasicCardResponseData();
 
-private:
+ private:
   ~BasicCardResponseData() = default;
 
   nsString mData;
   nsCOMPtr<nsIPaymentAddress> mBillingAddress;
 };
 
-class PaymentActionResponse : public nsIPaymentActionResponse
-{
-public:
+class PaymentActionResponse : public nsIPaymentActionResponse {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPAYMENTACTIONRESPONSE
 
   PaymentActionResponse();
 
-protected:
+ protected:
   virtual ~PaymentActionResponse() = default;
 
   nsString mRequestId;
   uint32_t mType;
 };
 
-class PaymentCanMakeActionResponse final : public nsIPaymentCanMakeActionResponse
-                                         , public PaymentActionResponse
-{
-public:
+class PaymentCanMakeActionResponse final
+    : public nsIPaymentCanMakeActionResponse,
+      public PaymentActionResponse {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONRESPONSE(PaymentActionResponse::)
   NS_DECL_NSIPAYMENTCANMAKEACTIONRESPONSE
 
   PaymentCanMakeActionResponse();
 
-private:
+ private:
   ~PaymentCanMakeActionResponse() = default;
 
   bool mResult;
 };
 
-class PaymentShowActionResponse final : public nsIPaymentShowActionResponse
-                                      , public PaymentActionResponse
-{
-public:
+class PaymentShowActionResponse final : public nsIPaymentShowActionResponse,
+                                        public PaymentActionResponse {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONRESPONSE(PaymentActionResponse::)
   NS_DECL_NSIPAYMENTSHOWACTIONRESPONSE
 
   PaymentShowActionResponse();
 
-private:
+ private:
   ~PaymentShowActionResponse() = default;
 
   uint32_t mAcceptStatus;
@@ -113,39 +108,38 @@ private:
   nsString mPayerPhone;
 };
 
-class PaymentAbortActionResponse final : public nsIPaymentAbortActionResponse
-                                       , public PaymentActionResponse
-{
-public:
+class PaymentAbortActionResponse final : public nsIPaymentAbortActionResponse,
+                                         public PaymentActionResponse {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONRESPONSE(PaymentActionResponse::)
   NS_DECL_NSIPAYMENTABORTACTIONRESPONSE
 
   PaymentAbortActionResponse();
 
-private:
+ private:
   ~PaymentAbortActionResponse() = default;
 
   uint32_t mAbortStatus;
 };
 
-class PaymentCompleteActionResponse final : public nsIPaymentCompleteActionResponse
-                                          , public PaymentActionResponse
-{
-public:
+class PaymentCompleteActionResponse final
+    : public nsIPaymentCompleteActionResponse,
+      public PaymentActionResponse {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_FORWARD_NSIPAYMENTACTIONRESPONSE(PaymentActionResponse::)
   NS_DECL_NSIPAYMENTCOMPLETEACTIONRESPONSE
 
   PaymentCompleteActionResponse();
 
-private:
+ private:
   ~PaymentCompleteActionResponse() = default;
 
   uint32_t mCompleteStatus;
 };
 
-} // end of dom
-} // end of namespace mozilla
+}  // namespace dom
+}  // end of namespace mozilla
 
 #endif

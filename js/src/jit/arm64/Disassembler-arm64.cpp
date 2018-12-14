@@ -18,8 +18,7 @@
 
 #include "jit/Disassembler.h"
 
-MOZ_COLD uint8_t*
-js::jit::Disassembler::DisassembleHeapAccess(uint8_t*, js::jit::Disassembler::HeapAccess*)
-{
-    MOZ_CRASH("NYI - asm.js not supported yet on this platform");
+MOZ_COLD uint8_t* js::jit::Disassembler::DisassembleHeapAccess(
+    uint8_t*, js::jit::Disassembler::HeapAccess*) {
+  MOZ_CRASH("NYI - asm.js not supported yet on this platform");
 }

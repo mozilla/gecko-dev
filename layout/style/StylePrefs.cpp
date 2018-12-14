@@ -24,9 +24,7 @@ bool StylePrefs::sGridTemplateSubgridValueEnabled;
 bool StylePrefs::sFontVariationsEnabled;
 bool StylePrefs::sEmulateMozBoxWithFlex;
 
-/* static */ void
-StylePrefs::Init()
-{
+/* static */ void StylePrefs::Init() {
   Preferences::AddBoolVarCache(&sFontDisplayEnabled,
                                "layout.css.font-display.enabled");
   Preferences::AddBoolVarCache(&sOpentypeSVGEnabled,
@@ -47,8 +45,9 @@ StylePrefs::Init()
                                "layout.css.visited_links_enabled");
   Preferences::AddBoolVarCache(&sMozDocumentEnabledInContent,
                                "layout.css.moz-document.content.enabled");
-  Preferences::AddBoolVarCache(&sGridTemplateSubgridValueEnabled,
-                               "layout.css.grid-template-subgrid-value.enabled");
+  Preferences::AddBoolVarCache(
+      &sGridTemplateSubgridValueEnabled,
+      "layout.css.grid-template-subgrid-value.enabled");
   Preferences::AddBoolVarCache(&sFontVariationsEnabled,
                                "layout.css.font-variations.enabled");
 
@@ -60,4 +59,4 @@ StylePrefs::Init()
 #endif
 }
 
-} // namespace mozilla
+}  // namespace mozilla

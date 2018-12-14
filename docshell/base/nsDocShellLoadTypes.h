@@ -29,9 +29,8 @@
  * above 0xffff (e.g. LOAD_FLAGS_BYPASS_CLASSIFIER), since MAKE_LOAD_TYPE would
  * just shift them out anyway.
  */
-#define EXTRA_LOAD_FLAGS (LOAD_FLAGS_FIRST_LOAD | \
-                          LOAD_FLAGS_ALLOW_POPUPS | \
-                          0xffff0000)
+#define EXTRA_LOAD_FLAGS \
+  (LOAD_FLAGS_FIRST_LOAD | LOAD_FLAGS_ALLOW_POPUPS | 0xffff0000)
 
 /* load types are legal combinations of load commands and flags
  *
@@ -39,45 +38,85 @@
  *  Remember to update the IsValidLoadType function below if you change this
  *  enum to ensure bad flag combinations will be rejected.
  */
-enum LoadType
-{
-  LOAD_NORMAL = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_NONE),
-  LOAD_NORMAL_REPLACE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY),
-  LOAD_NORMAL_EXTERNAL = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_FROM_EXTERNAL),
-  LOAD_HISTORY = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_HISTORY, nsIWebNavigation::LOAD_FLAGS_NONE),
-  LOAD_NORMAL_BYPASS_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
-  LOAD_NORMAL_BYPASS_PROXY = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
-  LOAD_NORMAL_BYPASS_PROXY_AND_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE | nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
-  LOAD_NORMAL_ALLOW_MIXED_CONTENT = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_ALLOW_MIXED_CONTENT | nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
-  LOAD_RELOAD_NORMAL = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_NONE),
-  LOAD_RELOAD_BYPASS_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
-  LOAD_RELOAD_BYPASS_PROXY = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
-  LOAD_RELOAD_ALLOW_MIXED_CONTENT = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_ALLOW_MIXED_CONTENT | nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
-  LOAD_RELOAD_BYPASS_PROXY_AND_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE | nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
-  LOAD_LINK = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_IS_LINK),
-  LOAD_REFRESH = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH),
-  LOAD_RELOAD_CHARSET_CHANGE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE),
-  LOAD_RELOAD_CHARSET_CHANGE_BYPASS_PROXY_AND_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE | nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE | nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
-  LOAD_RELOAD_CHARSET_CHANGE_BYPASS_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE | nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
-  LOAD_BYPASS_HISTORY = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_HISTORY),
-  LOAD_STOP_CONTENT = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_STOP_CONTENT),
-  LOAD_STOP_CONTENT_AND_REPLACE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_STOP_CONTENT | nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY),
-  LOAD_PUSHSTATE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_PUSHSTATE, nsIWebNavigation::LOAD_FLAGS_NONE),
-  LOAD_REPLACE_BYPASS_CACHE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY | nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+enum LoadType {
+  LOAD_NORMAL = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                               nsIWebNavigation::LOAD_FLAGS_NONE),
+  LOAD_NORMAL_REPLACE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY),
+  LOAD_NORMAL_EXTERNAL = MAKE_LOAD_TYPE(
+      nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_FROM_EXTERNAL),
+  LOAD_HISTORY = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_HISTORY,
+                                nsIWebNavigation::LOAD_FLAGS_NONE),
+  LOAD_NORMAL_BYPASS_CACHE = MAKE_LOAD_TYPE(
+      nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+  LOAD_NORMAL_BYPASS_PROXY = MAKE_LOAD_TYPE(
+      nsIDocShell::LOAD_CMD_NORMAL, nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
+  LOAD_NORMAL_BYPASS_PROXY_AND_CACHE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
+  LOAD_NORMAL_ALLOW_MIXED_CONTENT =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_ALLOW_MIXED_CONTENT |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+  LOAD_RELOAD_NORMAL = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                                      nsIWebNavigation::LOAD_FLAGS_NONE),
+  LOAD_RELOAD_BYPASS_CACHE = MAKE_LOAD_TYPE(
+      nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+  LOAD_RELOAD_BYPASS_PROXY = MAKE_LOAD_TYPE(
+      nsIDocShell::LOAD_CMD_RELOAD, nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
+  LOAD_RELOAD_ALLOW_MIXED_CONTENT =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                     nsIWebNavigation::LOAD_FLAGS_ALLOW_MIXED_CONTENT |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+  LOAD_RELOAD_BYPASS_PROXY_AND_CACHE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                     nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
+  LOAD_LINK = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                             nsIWebNavigation::LOAD_FLAGS_IS_LINK),
+  LOAD_REFRESH = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                                nsIWebNavigation::LOAD_FLAGS_IS_REFRESH),
+  LOAD_RELOAD_CHARSET_CHANGE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                     nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE),
+  LOAD_RELOAD_CHARSET_CHANGE_BYPASS_PROXY_AND_CACHE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                     nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_PROXY),
+  LOAD_RELOAD_CHARSET_CHANGE_BYPASS_CACHE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_RELOAD,
+                     nsIWebNavigation::LOAD_FLAGS_CHARSET_CHANGE |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
+  LOAD_BYPASS_HISTORY =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_BYPASS_HISTORY),
+  LOAD_STOP_CONTENT = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                                     nsIWebNavigation::LOAD_FLAGS_STOP_CONTENT),
+  LOAD_STOP_CONTENT_AND_REPLACE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_STOP_CONTENT |
+                         nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY),
+  LOAD_PUSHSTATE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_PUSHSTATE,
+                                  nsIWebNavigation::LOAD_FLAGS_NONE),
+  LOAD_REPLACE_BYPASS_CACHE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
+                     nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY |
+                         nsIWebNavigation::LOAD_FLAGS_BYPASS_CACHE),
   /**
    * Load type for an error page. These loads are never triggered by users of
    * Docshell. Instead, Docshell triggers the load itself when a
    * consumer-triggered load failed.
    */
-  LOAD_ERROR_PAGE = MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL,
-                                   LOAD_FLAGS_ERROR_PAGE)
+  LOAD_ERROR_PAGE =
+      MAKE_LOAD_TYPE(nsIDocShell::LOAD_CMD_NORMAL, LOAD_FLAGS_ERROR_PAGE)
 
   // NOTE: Adding a new value? Remember to update IsValidLoadType!
 };
 
-static inline bool
-IsValidLoadType(uint32_t aLoadType)
-{
+static inline bool IsValidLoadType(uint32_t aLoadType) {
   switch (aLoadType) {
     case LOAD_NORMAL:
     case LOAD_NORMAL_REPLACE:
@@ -108,8 +147,7 @@ IsValidLoadType(uint32_t aLoadType)
   return false;
 }
 
-static inline bool
-IsForceReloadType(uint32_t aLoadType) {
+static inline bool IsForceReloadType(uint32_t aLoadType) {
   switch (aLoadType) {
     case LOAD_RELOAD_BYPASS_CACHE:
     case LOAD_RELOAD_BYPASS_PROXY:
@@ -120,9 +158,8 @@ IsForceReloadType(uint32_t aLoadType) {
   return false;
 }
 
-static inline nsDocShellInfoLoadType
-ConvertLoadTypeToDocShellInfoLoadType(uint32_t aLoadType)
-{
+static inline nsDocShellInfoLoadType ConvertLoadTypeToDocShellInfoLoadType(
+    uint32_t aLoadType) {
   nsDocShellInfoLoadType docShellLoadType = nsIDocShellLoadInfo::loadNormal;
   switch (aLoadType) {
     case LOAD_NORMAL:
@@ -156,10 +193,12 @@ ConvertLoadTypeToDocShellInfoLoadType(uint32_t aLoadType)
       docShellLoadType = nsIDocShellLoadInfo::loadReloadCharsetChange;
       break;
     case LOAD_RELOAD_CHARSET_CHANGE_BYPASS_CACHE:
-      docShellLoadType = nsIDocShellLoadInfo::loadReloadCharsetChangeBypassCache;
+      docShellLoadType =
+          nsIDocShellLoadInfo::loadReloadCharsetChangeBypassCache;
       break;
     case LOAD_RELOAD_CHARSET_CHANGE_BYPASS_PROXY_AND_CACHE:
-      docShellLoadType = nsIDocShellLoadInfo::loadReloadCharsetChangeBypassProxyAndCache;
+      docShellLoadType =
+          nsIDocShellLoadInfo::loadReloadCharsetChangeBypassProxyAndCache;
       break;
     case LOAD_RELOAD_BYPASS_CACHE:
       docShellLoadType = nsIDocShellLoadInfo::loadReloadBypassCache;
@@ -202,9 +241,8 @@ ConvertLoadTypeToDocShellInfoLoadType(uint32_t aLoadType)
   return docShellLoadType;
 }
 
-static inline uint32_t
-ConvertDocShellInfoLoadTypeToLoadType(nsDocShellInfoLoadType aDocShellLoadType)
-{
+static inline uint32_t ConvertDocShellInfoLoadTypeToLoadType(
+    nsDocShellInfoLoadType aDocShellLoadType) {
   uint32_t loadType = LOAD_NORMAL;
 
   switch (aDocShellLoadType) {
@@ -284,9 +322,8 @@ ConvertDocShellInfoLoadTypeToLoadType(nsDocShellInfoLoadType aDocShellLoadType)
   return loadType;
 }
 
-static inline nsDOMNavigationTiming::Type
-ConvertLoadTypeToNavigationType(uint32_t aLoadType)
-{
+static inline nsDOMNavigationTiming::Type ConvertLoadTypeToNavigationType(
+    uint32_t aLoadType) {
   // Not initialized, assume it's normal load.
   if (aLoadType == 0) {
     aLoadType = LOAD_NORMAL;
@@ -334,5 +371,5 @@ ConvertLoadTypeToNavigationType(uint32_t aLoadType)
   return result;
 }
 
-#endif // MOZILLA_INTERNAL_API
+#endif  // MOZILLA_INTERNAL_API
 #endif

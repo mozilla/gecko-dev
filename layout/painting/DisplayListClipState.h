@@ -23,32 +23,31 @@ namespace mozilla {
  * for the display item we're building.
  */
 class DisplayListClipState {
-public:
+ public:
   DisplayListClipState()
-    : mClipChainContentDescendants(nullptr)
-    , mClipChainContainingBlockDescendants(nullptr)
-    , mCurrentCombinedClipChain(nullptr)
-    , mCurrentCombinedClipChainIsValid(false)
-  {}
+      : mClipChainContentDescendants(nullptr),
+        mClipChainContainingBlockDescendants(nullptr),
+        mCurrentCombinedClipChain(nullptr),
+        mCurrentCombinedClipChainIsValid(false) {}
 
   /**
    * Returns intersection of mClipChainContainingBlockDescendants and
    * mClipChainContentDescendants, allocated on aBuilder's arena.
    */
-  const DisplayItemClipChain* GetCurrentCombinedClipChain(nsDisplayListBuilder* aBuilder);
+  const DisplayItemClipChain* GetCurrentCombinedClipChain(
+      nsDisplayListBuilder* aBuilder);
 
-  const DisplayItemClipChain* GetClipChainForContainingBlockDescendants() const
-  {
+  const DisplayItemClipChain* GetClipChainForContainingBlockDescendants()
+      const {
     return mClipChainContainingBlockDescendants;
   }
-  const DisplayItemClipChain* GetClipChainForContentDescendants() const
-  {
+  const DisplayItemClipChain* GetClipChainForContentDescendants() const {
     return mClipChainContentDescendants;
   }
 
-  const ActiveScrolledRoot* GetContentClipASR() const
-  {
-    return mClipChainContentDescendants ? mClipChainContentDescendants->mASR : nullptr;
+  const ActiveScrolledRoot* GetContentClipASR() const {
+    return mClipChainContentDescendants ? mClipChainContentDescendants->mASR
+                                        : nullptr;
   }
 
   class AutoSaveRestore;
@@ -57,22 +56,18 @@ public:
 
   class AutoClipMultiple;
 
-  enum {
-    ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT = 0x01
-  };
+  enum { ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT = 0x01 };
 
-private:
-
-  void Clear()
-  {
+ private:
+  void Clear() {
     mClipChainContentDescendants = nullptr;
     mClipChainContainingBlockDescendants = nullptr;
     mCurrentCombinedClipChain = nullptr;
     mCurrentCombinedClipChainIsValid = false;
   }
 
-  void SetClipChainForContainingBlockDescendants(const DisplayItemClipChain* aClipChain)
-  {
+  void SetClipChainForContainingBlockDescendants(
+      const DisplayItemClipChain* aClipChain) {
     mClipChainContainingBlockDescendants = aClipChain;
     InvalidateCurrentCombinedClipChain(aClipChain ? aClipChain->mASR : nullptr);
   }
@@ -88,16 +83,15 @@ private:
                                       DisplayItemClipChain& aClipChainOnStack);
 
   void ClipContentDescendants(nsDisplayListBuilder* aBuilder,
-                              const nsRect& aRect,
-                              const nscoord* aRadii,
+                              const nsRect& aRect, const nscoord* aRadii,
                               DisplayItemClipChain& aClipChainOnStack);
   void ClipContentDescendants(nsDisplayListBuilder* aBuilder,
-                              const nsRect& aRect,
-                              const nsRect& aRoundedRect,
+                              const nsRect& aRect, const nsRect& aRoundedRect,
                               const nscoord* aRadii,
                               DisplayItemClipChain& aClipChainOnStack);
 
-  void InvalidateCurrentCombinedClipChain(const ActiveScrolledRoot* aInvalidateUpTo);
+  void InvalidateCurrentCombinedClipChain(
+      const ActiveScrolledRoot* aInvalidateUpTo);
 
   /**
    * Clips containing-block descendants to the frame's content-box,
@@ -107,15 +101,14 @@ private:
    * clipping is only required if there is a border-radius. This is an
    * optimization to reduce the amount of clipping required.
    */
-  void ClipContainingBlockDescendantsToContentBox(nsDisplayListBuilder* aBuilder,
-                                                  nsIFrame* aFrame,
-                                                  DisplayItemClipChain& aClipChainOnStack,
-                                                  uint32_t aFlags);
+  void ClipContainingBlockDescendantsToContentBox(
+      nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+      DisplayItemClipChain& aClipChainOnStack, uint32_t aFlags);
 
   /**
    * All content descendants (i.e. following placeholder frames to their
-   * out-of-flows if necessary) should be clipped by mClipChainContentDescendants.
-   * Null if no clipping applies.
+   * out-of-flows if necessary) should be clipped by
+   * mClipChainContentDescendants. Null if no clipping applies.
    */
   const DisplayItemClipChain* mClipChainContentDescendants;
   /**
@@ -129,8 +122,8 @@ private:
    * The intersection of mClipChainContentDescendants and
    * mClipChainContainingBlockDescendants.
    * Allocated in the nsDisplayListBuilder arena. Null if none has been
-   * allocated or both mClipChainContentDescendants and mClipChainContainingBlockDescendants
-   * are null.
+   * allocated or both mClipChainContentDescendants and
+   * mClipChainContainingBlockDescendants are null.
    */
   const DisplayItemClipChain* mCurrentCombinedClipChain;
   bool mCurrentCombinedClipChainIsValid;
@@ -144,22 +137,17 @@ private:
  * dangling pointers to DisplayItemClips.
  */
 class DisplayListClipState::AutoSaveRestore {
-public:
+ public:
   explicit AutoSaveRestore(nsDisplayListBuilder* aBuilder);
-  void Restore()
-  {
+  void Restore() {
     mState = mSavedState;
 #ifdef DEBUG
     mRestored = true;
 #endif
   }
-  ~AutoSaveRestore()
-  {
-    Restore();
-  }
+  ~AutoSaveRestore() { Restore(); }
 
-  void Clear()
-  {
+  void Clear() {
     NS_ASSERTION(!mRestored, "Already restored!");
     mState.Clear();
 #ifdef DEBUG
@@ -167,8 +155,8 @@ public:
 #endif
   }
 
-  void SetClipChainForContainingBlockDescendants(const DisplayItemClipChain* aClipChain)
-  {
+  void SetClipChainForContainingBlockDescendants(
+      const DisplayItemClipChain* aClipChain) {
     mState.SetClipChainForContainingBlockDescendants(aClipChain);
   }
 
@@ -178,8 +166,7 @@ public:
    * the result, stored in aClipOnStack.
    */
   void ClipContainingBlockDescendants(const nsRect& aRect,
-                                      const nscoord* aRadii = nullptr)
-  {
+                                      const nscoord* aRadii = nullptr) {
     NS_ASSERTION(!mRestored, "Already restored!");
     NS_ASSERTION(!mClipUsed, "mClip already used");
 #ifdef DEBUG
@@ -189,8 +176,7 @@ public:
   }
 
   void ClipContentDescendants(const nsRect& aRect,
-                              const nscoord* aRadii = nullptr)
-  {
+                              const nscoord* aRadii = nullptr) {
     NS_ASSERTION(!mRestored, "Already restored!");
     NS_ASSERTION(!mClipUsed, "mClip already used");
 #ifdef DEBUG
@@ -199,16 +185,15 @@ public:
     mState.ClipContentDescendants(mBuilder, aRect, aRadii, mClipChain);
   }
 
-  void ClipContentDescendants(const nsRect& aRect,
-                              const nsRect& aRoundedRect,
-                              const nscoord* aRadii = nullptr)
-  {
+  void ClipContentDescendants(const nsRect& aRect, const nsRect& aRoundedRect,
+                              const nscoord* aRadii = nullptr) {
     NS_ASSERTION(!mRestored, "Already restored!");
     NS_ASSERTION(!mClipUsed, "mClip already used");
 #ifdef DEBUG
     mClipUsed = true;
 #endif
-    mState.ClipContentDescendants(mBuilder, aRect, aRoundedRect, aRadii, mClipChain);
+    mState.ClipContentDescendants(mBuilder, aRect, aRoundedRect, aRadii,
+                                  mClipChain);
   }
 
   /**
@@ -219,19 +204,18 @@ public:
    * clipping is only required if there is a border-radius. This is an
    * optimization to reduce the amount of clipping required.
    */
-  void ClipContainingBlockDescendantsToContentBox(nsDisplayListBuilder* aBuilder,
-                                                  nsIFrame* aFrame,
-                                                  uint32_t aFlags = 0)
-  {
+  void ClipContainingBlockDescendantsToContentBox(
+      nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, uint32_t aFlags = 0) {
     NS_ASSERTION(!mRestored, "Already restored!");
     NS_ASSERTION(!mClipUsed, "mClip already used");
 #ifdef DEBUG
     mClipUsed = true;
 #endif
-    mState.ClipContainingBlockDescendantsToContentBox(aBuilder, aFrame, mClipChain, aFlags);
+    mState.ClipContainingBlockDescendantsToContentBox(aBuilder, aFrame,
+                                                      mClipChain, aFlags);
   }
 
-protected:
+ protected:
   nsDisplayListBuilder* mBuilder;
   DisplayListClipState& mState;
   DisplayListClipState mSavedState;
@@ -242,17 +226,18 @@ protected:
 #endif
 };
 
-class DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox : public AutoSaveRestore {
-public:
+class DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
+    : public AutoSaveRestore {
+ public:
   AutoClipContainingBlockDescendantsToContentBox(nsDisplayListBuilder* aBuilder,
                                                  nsIFrame* aFrame,
                                                  uint32_t aFlags = 0)
-    : AutoSaveRestore(aBuilder)
-  {
+      : AutoSaveRestore(aBuilder) {
 #ifdef DEBUG
     mClipUsed = true;
 #endif
-    mState.ClipContainingBlockDescendantsToContentBox(aBuilder, aFrame, mClipChain, aFlags);
+    mState.ClipContainingBlockDescendantsToContentBox(aBuilder, aFrame,
+                                                      mClipChain, aFlags);
   }
 };
 
@@ -262,13 +247,15 @@ public:
  * BuildDisplayListForChild is as efficient as possible.
  */
 class DisplayListClipState::AutoClipMultiple : public AutoSaveRestore {
-public:
+ public:
   explicit AutoClipMultiple(nsDisplayListBuilder* aBuilder)
-    : AutoSaveRestore(aBuilder)
+      : AutoSaveRestore(aBuilder)
 #ifdef DEBUG
-    , mExtraClipUsed(false)
+        ,
+        mExtraClipUsed(false)
 #endif
-  {}
+  {
+  }
 
   /**
    * Intersects the given clip rect (with optional aRadii) with the current
@@ -276,23 +263,23 @@ public:
    * the result, stored in aClipOnStack.
    */
   void ClipContainingBlockDescendantsExtra(const nsRect& aRect,
-                                           const nscoord* aRadii)
-  {
+                                           const nscoord* aRadii) {
     NS_ASSERTION(!mRestored, "Already restored!");
     NS_ASSERTION(!mExtraClipUsed, "mExtraClip already used");
 #ifdef DEBUG
     mExtraClipUsed = true;
 #endif
-    mState.ClipContainingBlockDescendants(mBuilder, aRect, aRadii, mExtraClipChain);
+    mState.ClipContainingBlockDescendants(mBuilder, aRect, aRadii,
+                                          mExtraClipChain);
   }
 
-protected:
+ protected:
   DisplayItemClipChain mExtraClipChain;
 #ifdef DEBUG
   bool mExtraClipUsed;
 #endif
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* DISPLAYLISTCLIPSTATE_H_ */

@@ -14,13 +14,12 @@
 namespace mozilla {
 
 const char* DllServices::kTopicDllLoadedMainThread = "dll-loaded-main-thread";
-const char* DllServices::kTopicDllLoadedNonMainThread = "dll-loaded-non-main-thread";
+const char* DllServices::kTopicDllLoadedNonMainThread =
+    "dll-loaded-non-main-thread";
 
 static StaticRefPtr<DllServices> sInstance;
 
-DllServices*
-DllServices::Get()
-{
+DllServices* DllServices::Get() {
   if (sInstance) {
     return sInstance;
   }
@@ -30,14 +29,10 @@ DllServices::Get()
   return sInstance;
 }
 
-DllServices::DllServices()
-{
-  Enable();
-}
+DllServices::DllServices() { Enable(); }
 
-void
-DllServices::NotifyDllLoad(const bool aIsMainThread, const nsString& aDllName)
-{
+void DllServices::NotifyDllLoad(const bool aIsMainThread,
+                                const nsString& aDllName) {
   const char* topic;
 
   if (aIsMainThread) {
@@ -50,5 +45,4 @@ DllServices::NotifyDllLoad(const bool aIsMainThread, const nsString& aDllName)
   obsServ->NotifyObservers(nullptr, topic, aDllName.get());
 }
 
-} // namespace mozilla
-
+}  // namespace mozilla

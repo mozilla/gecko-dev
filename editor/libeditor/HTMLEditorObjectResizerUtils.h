@@ -17,28 +17,27 @@ class nsIHTMLEditor;
 
 namespace mozilla {
 
-#define kTopLeft       NS_LITERAL_STRING("nw")
-#define kTop           NS_LITERAL_STRING("n")
-#define kTopRight      NS_LITERAL_STRING("ne")
-#define kLeft          NS_LITERAL_STRING("w")
-#define kRight         NS_LITERAL_STRING("e")
-#define kBottomLeft    NS_LITERAL_STRING("sw")
-#define kBottom        NS_LITERAL_STRING("s")
-#define kBottomRight   NS_LITERAL_STRING("se")
+#define kTopLeft NS_LITERAL_STRING("nw")
+#define kTop NS_LITERAL_STRING("n")
+#define kTopRight NS_LITERAL_STRING("ne")
+#define kLeft NS_LITERAL_STRING("w")
+#define kRight NS_LITERAL_STRING("e")
+#define kBottomLeft NS_LITERAL_STRING("sw")
+#define kBottom NS_LITERAL_STRING("s")
+#define kBottomRight NS_LITERAL_STRING("se")
 
 /******************************************************************************
  * mozilla::ResizerMouseMotionListener
  ******************************************************************************/
 
-class ResizerMouseMotionListener final : public nsIDOMEventListener
-{
-public:
+class ResizerMouseMotionListener final : public nsIDOMEventListener {
+ public:
   explicit ResizerMouseMotionListener(HTMLEditor& aHTMLEditor);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
-protected:
+ protected:
   virtual ~ResizerMouseMotionListener() {}
   CachedWeakPtr<HTMLEditor, nsIHTMLEditor> mHTMLEditorWeak;
 };
@@ -47,19 +46,18 @@ protected:
  * mozilla::DocumentResizeEventListener
  ******************************************************************************/
 
-class DocumentResizeEventListener final : public nsIDOMEventListener
-{
-public:
+class DocumentResizeEventListener final : public nsIDOMEventListener {
+ public:
   explicit DocumentResizeEventListener(HTMLEditor& aHTMLEditor);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
-protected:
+ protected:
   virtual ~DocumentResizeEventListener() {}
   CachedWeakPtr<HTMLEditor, nsIHTMLEditor> mHTMLEditorWeak;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef HTMLEditorObjectResizerUtils_h
+#endif  // #ifndef HTMLEditorObjectResizerUtils_h

@@ -31,9 +31,8 @@ class ImageURL;
  * Controlled documents do not share their cache entries with
  * non-controlled documents, or other controlled documents.
  */
-class ImageCacheKey final
-{
-public:
+class ImageCacheKey final {
+ public:
   ImageCacheKey(nsIURI* aURI, const OriginAttributes& aAttrs,
                 nsIDocument* aDocument, nsresult& aRv);
   ImageCacheKey(ImageURL* aURI, const OriginAttributes& aAttrs,
@@ -55,7 +54,7 @@ public:
   /// belongs to, if any.
   void* ControlledDocument() const { return mControlledDocument; }
 
-private:
+ private:
   static PLDHashNumber ComputeHash(ImageURL* aURI,
                                    const Maybe<uint64_t>& aBlobSerial,
                                    const OriginAttributes& aAttrs,
@@ -75,7 +74,7 @@ private:
   bool mIsStyloEnabled;
 };
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla
 
-#endif // mozilla_image_src_ImageCacheKey_h
+#endif  // mozilla_image_src_ImageCacheKey_h

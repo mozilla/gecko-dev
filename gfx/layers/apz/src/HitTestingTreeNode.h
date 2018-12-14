@@ -7,13 +7,13 @@
 #ifndef mozilla_layers_HitTestingTreeNode_h
 #define mozilla_layers_HitTestingTreeNode_h
 
-#include "FrameMetrics.h"                   // for ScrollableLayerGuid
+#include "FrameMetrics.h"  // for ScrollableLayerGuid
 #include "Layers.h"
 #include "mozilla/gfx/CompositorHitTestInfo.h"
-#include "mozilla/gfx/Matrix.h"             // for Matrix4x4
-#include "mozilla/layers/LayersTypes.h"     // for EventRegions
-#include "mozilla/Maybe.h"                  // for Maybe
-#include "mozilla/RefPtr.h"               // for nsRefPtr
+#include "mozilla/gfx/Matrix.h"          // for Matrix4x4
+#include "mozilla/layers/LayersTypes.h"  // for EventRegions
+#include "mozilla/Maybe.h"               // for Maybe
+#include "mozilla/RefPtr.h"              // for nsRefPtr
 
 namespace mozilla {
 namespace layers {
@@ -52,9 +52,10 @@ class AsyncPanZoomController;
 class HitTestingTreeNode {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(HitTestingTreeNode);
 
-private:
+ private:
   ~HitTestingTreeNode();
-public:
+
+ public:
   HitTestingTreeNode(AsyncPanZoomController* aApzc, bool aIsPrimaryHolder,
                      uint64_t aLayersId);
   void RecycleWith(AsyncPanZoomController* aApzc, uint64_t aLayersId);
@@ -95,10 +96,10 @@ public:
 
   /* Scrollbar info */
 
-  void SetScrollbarData(FrameMetrics::ViewID aScrollViewId,
-                        const uint64_t& aScrollbarAnimationId,
-                        const ScrollThumbData& aThumbData,
-                        const Maybe<ScrollDirection>& aScrollContainerDirection);
+  void SetScrollbarData(
+      FrameMetrics::ViewID aScrollViewId, const uint64_t& aScrollbarAnimationId,
+      const ScrollThumbData& aThumbData,
+      const Maybe<ScrollDirection>& aScrollContainerDirection);
   bool MatchesScrollDragMetrics(const AsyncDragMetrics& aDragMetrics) const;
   bool IsScrollbarNode() const;  // Scroll thumb or scrollbar container layer.
   // This can only be called if IsScrollbarNode() is true
@@ -116,8 +117,9 @@ public:
   /* Convert |aPoint| into the LayerPixel space for the layer corresponding to
    * this node. |aTransform| is the complete (content + async) transform for
    * this node. */
-  Maybe<LayerPoint> Untransform(const ParentLayerPoint& aPoint,
-                                const LayerToParentLayerMatrix4x4& aTransform) const;
+  Maybe<LayerPoint> Untransform(
+      const ParentLayerPoint& aPoint,
+      const LayerToParentLayerMatrix4x4& aTransform) const;
   /* Assuming aPoint is inside the clip region for this node, check which of the
    * event region spaces it falls inside. */
   gfx::CompositorHitTestInfo HitTest(const LayerPoint& aPoint) const;
@@ -129,7 +131,7 @@ public:
   /* Debug helpers */
   void Dump(const char* aPrefix = "") const;
 
-private:
+ private:
   void SetApzcParent(AsyncPanZoomController* aApzc);
 
   RefPtr<HitTestingTreeNode> mLastChild;
@@ -193,7 +195,7 @@ private:
   EventRegionsOverride mOverride;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_HitTestingTreeNode_h
+#endif  // mozilla_layers_HitTestingTreeNode_h

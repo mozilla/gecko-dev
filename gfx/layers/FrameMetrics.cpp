@@ -13,31 +13,27 @@ namespace layers {
 
 const FrameMetrics::ViewID FrameMetrics::NULL_SCROLL_ID = 0;
 
-void
-ScrollMetadata::SetUsesContainerScrolling(bool aValue) {
+void ScrollMetadata::SetUsesContainerScrolling(bool aValue) {
   MOZ_ASSERT_IF(aValue, gfxPrefs::LayoutUseContainersForRootFrames());
   mUsesContainerScrolling = aValue;
 }
 
-static OverscrollBehavior
-ToOverscrollBehavior(StyleOverscrollBehavior aBehavior)
-{
+static OverscrollBehavior ToOverscrollBehavior(
+    StyleOverscrollBehavior aBehavior) {
   switch (aBehavior) {
-  case StyleOverscrollBehavior::Auto:
-    return OverscrollBehavior::Auto;
-  case StyleOverscrollBehavior::Contain:
-    return OverscrollBehavior::Contain;
-  case StyleOverscrollBehavior::None:
-    return OverscrollBehavior::None;
+    case StyleOverscrollBehavior::Auto:
+      return OverscrollBehavior::Auto;
+    case StyleOverscrollBehavior::Contain:
+      return OverscrollBehavior::Contain;
+    case StyleOverscrollBehavior::None:
+      return OverscrollBehavior::None;
   }
   MOZ_ASSERT_UNREACHABLE("Invalid overscroll behavior");
   return OverscrollBehavior::Auto;
 }
 
-OverscrollBehaviorInfo
-OverscrollBehaviorInfo::FromStyleConstants(StyleOverscrollBehavior aBehaviorX,
-                                           StyleOverscrollBehavior aBehaviorY)
-{
+OverscrollBehaviorInfo OverscrollBehaviorInfo::FromStyleConstants(
+    StyleOverscrollBehavior aBehaviorX, StyleOverscrollBehavior aBehaviorY) {
   OverscrollBehaviorInfo result;
   result.mBehaviorX = ToOverscrollBehavior(aBehaviorX);
   result.mBehaviorY = ToOverscrollBehavior(aBehaviorY);
@@ -46,5 +42,5 @@ OverscrollBehaviorInfo::FromStyleConstants(StyleOverscrollBehavior aBehaviorX,
 
 StaticAutoPtr<const ScrollMetadata> ScrollMetadata::sNullMetadata;
 
-}
-}
+}  // namespace layers
+}  // namespace mozilla

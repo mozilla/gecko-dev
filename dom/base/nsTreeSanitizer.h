@@ -18,228 +18,219 @@ class nsIContent;
  * about the default behavior and the configuration options of this sanitizer.
  */
 class MOZ_STACK_CLASS nsTreeSanitizer {
+ public:
+  /**
+   * The constructor.
+   *
+   * @param aFlags Flags from nsIParserUtils
+   */
+  explicit nsTreeSanitizer(uint32_t aFlags = 0);
 
-  public:
+  static void InitializeStatics();
+  static void ReleaseStatics();
 
-    /**
-     * The constructor.
-     *
-     * @param aFlags Flags from nsIParserUtils
-     */
-    explicit nsTreeSanitizer(uint32_t aFlags = 0);
+  /**
+   * Sanitizes a disconnected DOM fragment freshly obtained from a parser.
+   * The argument must be of type nsINode::eDOCUMENT_FRAGMENT and,
+   * consequently, must not be in the document. Furthermore, the fragment
+   * must have just come from a parser so that it can't have mutation
+   * event listeners set on it.
+   */
+  void Sanitize(nsIContent* aFragment);
 
-    static void InitializeStatics();
-    static void ReleaseStatics();
+  /**
+   * Sanitizes a disconnected (not in a docshell) document freshly obtained
+   * from a parser. The document must not be embedded in a docshell and must
+   * not have had a chance to get mutation event listeners attached to it.
+   * The root element must be <html>.
+   */
+  void Sanitize(nsIDocument* aDocument);
 
-    /**
-     * Sanitizes a disconnected DOM fragment freshly obtained from a parser.
-     * The argument must be of type nsINode::eDOCUMENT_FRAGMENT and,
-     * consequently, must not be in the document. Furthermore, the fragment
-     * must have just come from a parser so that it can't have mutation
-     * event listeners set on it.
-     */
-    void Sanitize(nsIContent* aFragment);
+ private:
+  /**
+   * Whether <style> and style="" are allowed.
+   */
+  bool mAllowStyles;
 
-    /**
-     * Sanitizes a disconnected (not in a docshell) document freshly obtained
-     * from a parser. The document must not be embedded in a docshell and must
-     * not have had a chance to get mutation event listeners attached to it.
-     * The root element must be <html>.
-     */
-    void Sanitize(nsIDocument* aDocument);
+  /**
+   * Whether comment nodes are allowed.
+   */
+  bool mAllowComments;
 
-  private:
+  /**
+   * Whether HTML <font>, <center>, bgcolor="", etc., are dropped.
+   */
+  bool mDropNonCSSPresentation;
 
-    /**
-     * Whether <style> and style="" are allowed.
-     */
-    bool mAllowStyles;
+  /**
+   * Whether to remove forms and form controls (excluding fieldset/legend).
+   */
+  bool mDropForms;
 
-    /**
-     * Whether comment nodes are allowed.
-     */
-    bool mAllowComments;
+  /**
+   * Whether only cid: embeds are allowed.
+   */
+  bool mCidEmbedsOnly;
 
-    /**
-     * Whether HTML <font>, <center>, bgcolor="", etc., are dropped.
-     */
-    bool mDropNonCSSPresentation;
+  /**
+   * Whether to drop <img>, <video>, <audio> and <svg>.
+   */
+  bool mDropMedia;
 
-    /**
-     * Whether to remove forms and form controls (excluding fieldset/legend).
-     */
-    bool mDropForms;
+  /**
+   * Whether we are sanitizing a full document (as opposed to a fragment).
+   */
+  bool mFullDocument;
 
-    /**
-     * Whether only cid: embeds are allowed.
-     */
-    bool mCidEmbedsOnly;
+  /**
+   * Whether we should notify to the console for anything that's stripped.
+   */
+  bool mLogRemovals;
 
-    /**
-     * Whether to drop <img>, <video>, <audio> and <svg>.
-     */
-    bool mDropMedia;
+  void SanitizeChildren(nsINode* aRoot);
 
-    /**
-     * Whether we are sanitizing a full document (as opposed to a fragment).
-     */
-    bool mFullDocument;
+  /**
+   * Queries if an element must be replaced with its children.
+   * @param aNamespace the namespace of the element the question is about
+   * @param aLocal the local name of the element the question is about
+   * @return true if the element must be replaced with its children and
+   *         false if the element is to be kept
+   */
+  bool MustFlatten(int32_t aNamespace, nsAtom* aLocal);
 
-    /**
-     * Whether we should notify to the console for anything that's stripped.
-     */
-    bool mLogRemovals;
+  /**
+   * Queries if an element including its children must be removed.
+   * @param aNamespace the namespace of the element the question is about
+   * @param aLocal the local name of the element the question is about
+   * @param aElement the element node itself for inspecting attributes
+   * @return true if the element and its children must be removed and
+   *         false if the element is to be kept
+   */
+  bool MustPrune(int32_t aNamespace, nsAtom* aLocal,
+                 mozilla::dom::Element* aElement);
 
-    void SanitizeChildren(nsINode* aRoot);
+  /**
+   * Checks if a given local name (for an attribute) is on the given list
+   * of URL attribute names.
+   * @param aURLs the list of URL attribute names
+   * @param aLocalName the name to search on the list
+   * @return true if aLocalName is on the aURLs list and false otherwise
+   */
+  bool IsURL(nsStaticAtom** const* aURLs, nsAtom* aLocalName);
 
-    /**
-     * Queries if an element must be replaced with its children.
-     * @param aNamespace the namespace of the element the question is about
-     * @param aLocal the local name of the element the question is about
-     * @return true if the element must be replaced with its children and
-     *         false if the element is to be kept
-     */
-    bool MustFlatten(int32_t aNamespace, nsAtom* aLocal);
+  /**
+   * Removes dangerous attributes from the element. If the style attribute
+   * is allowed, its value is sanitized. The values of URL attributes are
+   * sanitized, except src isn't sanitized when it is allowed to remain
+   * potentially dangerous.
+   *
+   * @param aElement the element whose attributes should be sanitized
+   * @param aAllowed the whitelist of permitted local names to use
+   * @param aURLs the local names of URL-valued attributes
+   * @param aAllowXLink whether XLink attributes are allowed
+   * @param aAllowStyle whether the style attribute is allowed
+   * @param aAllowDangerousSrc whether to leave the value of the src
+   *                           attribute unsanitized
+   */
+  void SanitizeAttributes(mozilla::dom::Element* aElement,
+                          nsTHashtable<nsRefPtrHashKey<nsAtom>>* aAllowed,
+                          nsStaticAtom** const* aURLs, bool aAllowXLink,
+                          bool aAllowStyle, bool aAllowDangerousSrc);
 
-    /**
-     * Queries if an element including its children must be removed.
-     * @param aNamespace the namespace of the element the question is about
-     * @param aLocal the local name of the element the question is about
-     * @param aElement the element node itself for inspecting attributes
-     * @return true if the element and its children must be removed and
-     *         false if the element is to be kept
-     */
-    bool MustPrune(int32_t aNamespace,
-                     nsAtom* aLocal,
-                     mozilla::dom::Element* aElement);
+  /**
+   * Remove the named URL attribute from the element if the URL fails a
+   * security check.
+   *
+   * @param aElement the element whose attribute to possibly modify
+   * @param aNamespace the namespace of the URL attribute
+   * @param aLocalName the local name of the URL attribute
+   * @return true if the attribute was removed and false otherwise
+   */
+  bool SanitizeURL(mozilla::dom::Element* aElement, int32_t aNamespace,
+                   nsAtom* aLocalName);
 
-    /**
-     * Checks if a given local name (for an attribute) is on the given list
-     * of URL attribute names.
-     * @param aURLs the list of URL attribute names
-     * @param aLocalName the name to search on the list
-     * @return true if aLocalName is on the aURLs list and false otherwise
-     */
-    bool IsURL(nsStaticAtom** const* aURLs, nsAtom* aLocalName);
+  /**
+   * Checks a style rule for the presence of the 'binding' CSS property and
+   * removes that property from the rule.
+   *
+   * @param aDeclaration The style declaration to check
+   * @return true if the rule was modified and false otherwise
+   */
+  bool SanitizeStyleDeclaration(mozilla::DeclarationBlock* aDeclaration);
 
-    /**
-     * Removes dangerous attributes from the element. If the style attribute
-     * is allowed, its value is sanitized. The values of URL attributes are
-     * sanitized, except src isn't sanitized when it is allowed to remain
-     * potentially dangerous.
-     *
-     * @param aElement the element whose attributes should be sanitized
-     * @param aAllowed the whitelist of permitted local names to use
-     * @param aURLs the local names of URL-valued attributes
-     * @param aAllowXLink whether XLink attributes are allowed
-     * @param aAllowStyle whether the style attribute is allowed
-     * @param aAllowDangerousSrc whether to leave the value of the src
-     *                           attribute unsanitized
-     */
-    void SanitizeAttributes(mozilla::dom::Element* aElement,
-                            nsTHashtable<nsRefPtrHashKey<nsAtom>>* aAllowed,
-                            nsStaticAtom** const* aURLs,
-                            bool aAllowXLink,
-                            bool aAllowStyle,
-                            bool aAllowDangerousSrc);
+  /**
+   * Parses a style sheet and reserializes it with the 'binding' property
+   * removed if it was present.
+   *
+   * @param aOrigin the original style sheet source
+   * @param aSanitized the reserialization without 'binding'; only valid if
+   *                   this method return true
+   * @param aDocument the document the style sheet belongs to
+   * @param aBaseURI the base URI to use
+   * @return true if the 'binding' property was encountered and false
+   *              otherwise
+   */
+  bool SanitizeStyleSheet(const nsAString& aOriginal, nsAString& aSanitized,
+                          nsIDocument* aDocument, nsIURI* aBaseURI);
 
-    /**
-     * Remove the named URL attribute from the element if the URL fails a
-     * security check.
-     *
-     * @param aElement the element whose attribute to possibly modify
-     * @param aNamespace the namespace of the URL attribute
-     * @param aLocalName the local name of the URL attribute
-     * @return true if the attribute was removed and false otherwise
-     */
-    bool SanitizeURL(mozilla::dom::Element* aElement,
-                     int32_t aNamespace,
-                     nsAtom* aLocalName);
+  /**
+   * Removes all attributes from an element node.
+   */
+  void RemoveAllAttributes(mozilla::dom::Element* aElement);
 
-    /**
-     * Checks a style rule for the presence of the 'binding' CSS property and
-     * removes that property from the rule.
-     *
-     * @param aDeclaration The style declaration to check
-     * @return true if the rule was modified and false otherwise
-     */
-    bool SanitizeStyleDeclaration(mozilla::DeclarationBlock* aDeclaration);
+  /**
+   * Log a Console Service message to indicate we removed something.
+   * If you pass an element and/or attribute, their information will
+   * be appended to the message.
+   *
+   * @param aMessage   the basic message to log.
+   * @param aDocument  the base document we're modifying
+   *                   (used for the error message)
+   * @param aElement   optional, the element being removed or modified.
+   * @param aAttribute optional, the attribute being removed or modified.
+   */
+  void LogMessage(const char* aMessage, nsIDocument* aDoc,
+                  Element* aElement = nullptr, nsAtom* aAttr = nullptr);
 
-    /**
-     * Parses a style sheet and reserializes it with the 'binding' property
-     * removed if it was present.
-     *
-     * @param aOrigin the original style sheet source
-     * @param aSanitized the reserialization without 'binding'; only valid if
-     *                   this method return true
-     * @param aDocument the document the style sheet belongs to
-     * @param aBaseURI the base URI to use
-     * @return true if the 'binding' property was encountered and false
-     *              otherwise
-     */
-    bool SanitizeStyleSheet(const nsAString& aOriginal,
-                              nsAString& aSanitized,
-                              nsIDocument* aDocument,
-                              nsIURI* aBaseURI);
+  /**
+   * The whitelist of HTML elements.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsHTML;
 
-    /**
-     * Removes all attributes from an element node.
-     */
-    void RemoveAllAttributes(mozilla::dom::Element* aElement);
+  /**
+   * The whitelist of non-presentational HTML attributes.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesHTML;
 
-    /**
-     * Log a Console Service message to indicate we removed something.
-     * If you pass an element and/or attribute, their information will
-     * be appended to the message.
-     *
-     * @param aMessage   the basic message to log.
-     * @param aDocument  the base document we're modifying
-     *                   (used for the error message)
-     * @param aElement   optional, the element being removed or modified.
-     * @param aAttribute optional, the attribute being removed or modified.
-     */
-    void LogMessage(const char* aMessage, nsIDocument* aDoc,
-                    Element* aElement = nullptr, nsAtom* aAttr = nullptr);
+  /**
+   * The whitelist of presentational HTML attributes.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sPresAttributesHTML;
 
-    /**
-     * The whitelist of HTML elements.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsHTML;
+  /**
+   * The whitelist of SVG elements.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsSVG;
 
-    /**
-     * The whitelist of non-presentational HTML attributes.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesHTML;
+  /**
+   * The whitelist of SVG attributes.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesSVG;
 
-    /**
-     * The whitelist of presentational HTML attributes.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sPresAttributesHTML;
+  /**
+   * The whitelist of SVG elements.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsMathML;
 
-    /**
-     * The whitelist of SVG elements.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsSVG;
+  /**
+   * The whitelist of MathML attributes.
+   */
+  static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesMathML;
 
-    /**
-     * The whitelist of SVG attributes.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesSVG;
-
-    /**
-     * The whitelist of SVG elements.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sElementsMathML;
-
-    /**
-     * The whitelist of MathML attributes.
-     */
-    static nsTHashtable<nsRefPtrHashKey<nsAtom>>* sAttributesMathML;
-
-    /**
-     * Reusable null principal for URL checks.
-     */
-    static nsIPrincipal* sNullPrincipal;
+  /**
+   * Reusable null principal for URL checks.
+   */
+  static nsIPrincipal* sNullPrincipal;
 };
 
-#endif // nsTreeSanitizer_h_
+#endif  // nsTreeSanitizer_h_

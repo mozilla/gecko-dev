@@ -26,9 +26,8 @@
 // operation when accessing entries in that storage buffer. "Evicting" an entry
 // really just means that an existing entry in the storage buffer gets
 // overwritten and that mRangeStart gets incremented.
-class ProfileBuffer final
-{
-public:
+class ProfileBuffer final {
+ public:
   // ProfileBuffer constructor
   // @param aEntrySize The minimum capacity of the buffer. The actual buffer
   //                   capacity will be rounded up to the next power of two.
@@ -44,8 +43,8 @@ public:
   uint64_t AddThreadIdEntry(int aThreadId);
 
   void CollectCodeLocation(
-    const char* aLabel, const char* aStr, int aLineNumber,
-    const mozilla::Maybe<js::ProfileEntry::Category>& aCategory);
+      const char* aLabel, const char* aStr, int aLineNumber,
+      const mozilla::Maybe<js::ProfileEntry::Category>& aCategory);
 
   // Maximum size of a frameKey string that we'll handle.
   static const size_t kMaxFrameKeyLength = 512;
@@ -53,8 +52,8 @@ public:
   // Add JIT frame information to aJITFrameInfo for any JitReturnAddr entries
   // that are currently in the buffer at or after aRangeStart, in samples
   // for the given thread.
-  void AddJITInfoForRange(uint64_t aRangeStart,
-                          int aThreadId, JSContext* aContext,
+  void AddJITInfoForRange(uint64_t aRangeStart, int aThreadId,
+                          JSContext* aContext,
                           JITFrameInfo& aJITFrameInfo) const;
 
   // Stream JSON for samples in the buffer to aWriter, using the supplied
@@ -90,14 +89,13 @@ public:
   void DeleteExpiredStoredMarkers();
 
   // Access an entry in the buffer.
-  ProfileBufferEntry& GetEntry(uint64_t aPosition) const
-  {
+  ProfileBufferEntry& GetEntry(uint64_t aPosition) const {
     return mEntries[aPosition & mEntryIndexMask];
   }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-private:
+ private:
   // The storage that backs our buffer. Holds mEntrySize entries.
   // All accesses to entries in mEntries need to go through GetEntry(), which
   // translates the given buffer position from the near-infinite uint64_t space
@@ -107,7 +105,7 @@ private:
   // A mask such that pos & mEntryIndexMask == pos % mEntrySize.
   uint32_t mEntryIndexMask;
 
-public:
+ public:
   // mRangeStart and mRangeEnd are uint64_t values that strictly advance and
   // never wrap around. mRangeEnd is always greater than or equal to
   // mRangeStart, but never gets more than mEntrySize steps ahead of
@@ -139,23 +137,17 @@ public:
  * buffer, as well as additional feature flags which are needed to control the
  * data collection strategy
  */
-class ProfileBufferCollector final : public ProfilerStackCollector
-{
-public:
+class ProfileBufferCollector final : public ProfilerStackCollector {
+ public:
   ProfileBufferCollector(ProfileBuffer& aBuf, uint32_t aFeatures,
                          uint64_t aSamplePos)
-    : mBuf(aBuf)
-    , mSamplePositionInBuffer(aSamplePos)
-    , mFeatures(aFeatures)
-  {}
+      : mBuf(aBuf), mSamplePositionInBuffer(aSamplePos), mFeatures(aFeatures) {}
 
-  mozilla::Maybe<uint64_t> SamplePositionInBuffer() override
-  {
+  mozilla::Maybe<uint64_t> SamplePositionInBuffer() override {
     return mozilla::Some(mSamplePositionInBuffer);
   }
 
-  mozilla::Maybe<uint64_t> BufferRangeStart() override
-  {
+  mozilla::Maybe<uint64_t> BufferRangeStart() override {
     return mozilla::Some(mBuf.mRangeStart);
   }
 
@@ -164,7 +156,7 @@ public:
   virtual void CollectWasmFrame(const char* aLabel) override;
   virtual void CollectPseudoEntry(const js::ProfileEntry& aEntry) override;
 
-private:
+ private:
   ProfileBuffer& mBuf;
   uint64_t mSamplePositionInBuffer;
   uint32_t mFeatures;

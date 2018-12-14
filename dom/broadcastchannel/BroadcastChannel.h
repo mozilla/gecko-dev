@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace ipc {
 class PrincipalInfo;
-} // namespace ipc
+}  // namespace ipc
 
 namespace dom {
 
@@ -28,33 +28,26 @@ class BroadcastChannelChild;
 class BroadcastChannelMessage;
 class WorkerHolder;
 
-class BroadcastChannel final
-  : public DOMEventTargetHelper
-  , public nsIObserver
-{
+class BroadcastChannel final : public DOMEventTargetHelper, public nsIObserver {
   friend class BroadcastChannelChild;
 
   NS_DECL_NSIOBSERVER
 
   typedef mozilla::ipc::PrincipalInfo PrincipalInfo;
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(BroadcastChannel,
                                            DOMEventTargetHelper)
 
-  virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  static already_AddRefed<BroadcastChannel>
-  Constructor(const GlobalObject& aGlobal, const nsAString& aChannel,
-              ErrorResult& aRv);
+  static already_AddRefed<BroadcastChannel> Constructor(
+      const GlobalObject& aGlobal, const nsAString& aChannel, ErrorResult& aRv);
 
-  void GetName(nsAString& aName) const
-  {
-    aName = mChannel;
-  }
+  void GetName(nsAString& aName) const { aName = mChannel; }
 
   void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
                    ErrorResult& aRv);
@@ -66,11 +59,10 @@ public:
 
   void Shutdown();
 
-private:
+ private:
   BroadcastChannel(nsPIDOMWindowInner* aWindow,
                    const PrincipalInfo& aPrincipalInfo,
-                   const nsACString& aOrigin,
-                   const nsAString& aChannel);
+                   const nsACString& aOrigin, const nsAString& aChannel);
 
   ~BroadcastChannel();
 
@@ -89,13 +81,10 @@ private:
 
   uint64_t mInnerID;
 
-  enum {
-    StateActive,
-    StateClosed
-  } mState;
+  enum { StateActive, StateClosed } mState;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_BroadcastChannel_h
+#endif  // mozilla_dom_BroadcastChannel_h

@@ -9,7 +9,7 @@
 #include "PaintedLayerMLGPU.h"
 #include "ImageLayerMLGPU.h"
 #include "CanvasLayerMLGPU.h"
-#include "GeckoProfiler.h"              // for profiler_*
+#include "GeckoProfiler.h"  // for profiler_*
 #include "MLGDevice.h"
 #include "RenderPassMLGPU.h"
 #include "RenderViewMLGPU.h"
@@ -42,12 +42,11 @@ static const int kDebugOverlayMaxWidth = 600;
 static const int kDebugOverlayMaxHeight = 96;
 
 LayerManagerMLGPU::LayerManagerMLGPU(widget::CompositorWidget* aWidget)
- : mWidget(aWidget),
-   mDrawDiagnostics(false),
-   mUsingInvalidation(false),
-   mCurrentFrame(nullptr),
-   mDebugFrameNumber(0)
-{
+    : mWidget(aWidget),
+      mDrawDiagnostics(false),
+      mUsingInvalidation(false),
+      mCurrentFrame(nullptr),
+      mDebugFrameNumber(0) {
   if (!aWidget) {
     return;
   }
@@ -70,16 +69,13 @@ LayerManagerMLGPU::LayerManagerMLGPU(widget::CompositorWidget* aWidget)
   mTextRenderer = new TextRenderer();
 }
 
-LayerManagerMLGPU::~LayerManagerMLGPU()
-{
+LayerManagerMLGPU::~LayerManagerMLGPU() {
   if (mTextureSourceProvider) {
     mTextureSourceProvider->Destroy();
   }
 }
 
-bool
-LayerManagerMLGPU::Initialize()
-{
+bool LayerManagerMLGPU::Initialize() {
   if (!mDevice || !mSwapChain) {
     return false;
   }
@@ -88,9 +84,7 @@ LayerManagerMLGPU::Initialize()
   return true;
 }
 
-void
-LayerManagerMLGPU::Destroy()
-{
+void LayerManagerMLGPU::Destroy() {
   if (IsDestroyed()) {
     return;
   }
@@ -112,9 +106,7 @@ LayerManagerMLGPU::Destroy()
   mDevice = nullptr;
 }
 
-void
-LayerManagerMLGPU::ForcePresent()
-{
+void LayerManagerMLGPU::ForcePresent() {
   if (!mDevice->IsValid()) {
     return;
   }
@@ -127,52 +119,36 @@ LayerManagerMLGPU::ForcePresent()
   mSwapChain->ForcePresent();
 }
 
-already_AddRefed<ContainerLayer>
-LayerManagerMLGPU::CreateContainerLayer()
-{
+already_AddRefed<ContainerLayer> LayerManagerMLGPU::CreateContainerLayer() {
   return MakeAndAddRef<ContainerLayerMLGPU>(this);
 }
 
-already_AddRefed<ColorLayer>
-LayerManagerMLGPU::CreateColorLayer()
-{
+already_AddRefed<ColorLayer> LayerManagerMLGPU::CreateColorLayer() {
   return MakeAndAddRef<ColorLayerMLGPU>(this);
 }
 
-already_AddRefed<RefLayer>
-LayerManagerMLGPU::CreateRefLayer()
-{
+already_AddRefed<RefLayer> LayerManagerMLGPU::CreateRefLayer() {
   return MakeAndAddRef<RefLayerMLGPU>(this);
 }
 
-already_AddRefed<PaintedLayer>
-LayerManagerMLGPU::CreatePaintedLayer()
-{
+already_AddRefed<PaintedLayer> LayerManagerMLGPU::CreatePaintedLayer() {
   return MakeAndAddRef<PaintedLayerMLGPU>(this);
 }
 
-already_AddRefed<ImageLayer>
-LayerManagerMLGPU::CreateImageLayer()
-{
+already_AddRefed<ImageLayer> LayerManagerMLGPU::CreateImageLayer() {
   return MakeAndAddRef<ImageLayerMLGPU>(this);
 }
 
-already_AddRefed<BorderLayer>
-LayerManagerMLGPU::CreateBorderLayer()
-{
+already_AddRefed<BorderLayer> LayerManagerMLGPU::CreateBorderLayer() {
   MOZ_ASSERT_UNREACHABLE("Not yet implemented");
   return nullptr;
 }
 
-already_AddRefed<CanvasLayer>
-LayerManagerMLGPU::CreateCanvasLayer()
-{
+already_AddRefed<CanvasLayer> LayerManagerMLGPU::CreateCanvasLayer() {
   return MakeAndAddRef<CanvasLayerMLGPU>(this);
 }
 
-TextureFactoryIdentifier
-LayerManagerMLGPU::GetTextureFactoryIdentifier()
-{
+TextureFactoryIdentifier LayerManagerMLGPU::GetTextureFactoryIdentifier() {
   TextureFactoryIdentifier ident;
   if (mDevice) {
     ident = mDevice->GetTextureFactoryIdentifier();
@@ -181,29 +157,19 @@ LayerManagerMLGPU::GetTextureFactoryIdentifier()
   return ident;
 }
 
-LayersBackend
-LayerManagerMLGPU::GetBackendType()
-{
+LayersBackend LayerManagerMLGPU::GetBackendType() {
   return mDevice ? mDevice->GetLayersBackend() : LayersBackend::LAYERS_NONE;
 }
 
-void
-LayerManagerMLGPU::SetRoot(Layer* aLayer)
-{
-  mRoot = aLayer;
-}
+void LayerManagerMLGPU::SetRoot(Layer* aLayer) { mRoot = aLayer; }
 
-bool
-LayerManagerMLGPU::BeginTransaction()
-{
+bool LayerManagerMLGPU::BeginTransaction() {
   MOZ_ASSERT(!mTarget);
   return true;
 }
 
-void
-LayerManagerMLGPU::BeginTransactionWithDrawTarget(gfx::DrawTarget* aTarget,
-                                                  const gfx::IntRect& aRect)
-{
+void LayerManagerMLGPU::BeginTransactionWithDrawTarget(
+    gfx::DrawTarget* aTarget, const gfx::IntRect& aRect) {
   MOZ_ASSERT(!mTarget);
 
   mTarget = aTarget;
@@ -212,23 +178,17 @@ LayerManagerMLGPU::BeginTransactionWithDrawTarget(gfx::DrawTarget* aTarget,
 }
 
 // Helper class for making sure textures are unlocked.
-class MOZ_STACK_CLASS AutoUnlockAllTextures
-{
-public:
-  explicit AutoUnlockAllTextures(MLGDevice* aDevice)
-   : mDevice(aDevice)
-  {}
-  ~AutoUnlockAllTextures() {
-    mDevice->UnlockAllTextures();
-  }
+class MOZ_STACK_CLASS AutoUnlockAllTextures {
+ public:
+  explicit AutoUnlockAllTextures(MLGDevice* aDevice) : mDevice(aDevice) {}
+  ~AutoUnlockAllTextures() { mDevice->UnlockAllTextures(); }
 
-private:
+ private:
   RefPtr<MLGDevice> mDevice;
 };
 
-void
-LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp, EndTransactionFlags aFlags)
-{
+void LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp,
+                                       EndTransactionFlags aFlags) {
   AUTO_PROFILER_LABEL("LayerManager::EndTransaction", GRAPHICS);
 
   SetCompositionTime(aTimeStamp);
@@ -251,8 +211,9 @@ LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp, EndTransactionFla
     // Note: all references to the backbuffer must be cleared.
     mDevice->SetRenderTarget(nullptr);
     if (!mSwapChain->ResizeBuffers(windowSize)) {
-      gfxCriticalNote << "Could not resize the swapchain (" <<
-        hexa(windowSize.width) << "," << hexa(windowSize.height) << ")";
+      gfxCriticalNote << "Could not resize the swapchain ("
+                      << hexa(windowSize.width) << ","
+                      << hexa(windowSize.height) << ")";
       return;
     }
   }
@@ -280,9 +241,7 @@ LayerManagerMLGPU::EndTransaction(const TimeStamp& aTimeStamp, EndTransactionFla
   mLastCompositionEndTime = TimeStamp::Now();
 }
 
-void
-LayerManagerMLGPU::Composite()
-{
+void LayerManagerMLGPU::Composite() {
   AUTO_PROFILER_LABEL("LayerManagerMLGPU::Composite", GRAPHICS);
 
   // Don't composite if we're minimized/hidden, or if there is nothing to draw.
@@ -294,16 +253,17 @@ LayerManagerMLGPU::Composite()
   // earlier, so we don't accidentally cause extra composites.
   Maybe<IntRect> diagnosticRect;
   if (mDrawDiagnostics) {
-    diagnosticRect = Some(IntRect(
-      kDebugOverlayX, kDebugOverlayY,
-      kDebugOverlayMaxWidth, kDebugOverlayMaxHeight));
+    diagnosticRect =
+        Some(IntRect(kDebugOverlayX, kDebugOverlayY, kDebugOverlayMaxWidth,
+                     kDebugOverlayMaxHeight));
   }
 
   AL_LOG("Computed invalid region: %s\n", Stringify(mInvalidRegion).c_str());
 
   // Now that we have the final invalid region, give it to the swap chain which
   // will tell us if we still need to render.
-  if (!mSwapChain->ApplyNewInvalidRegion(Move(mInvalidRegion), diagnosticRect)) {
+  if (!mSwapChain->ApplyNewInvalidRegion(Move(mInvalidRegion),
+                                         diagnosticRect)) {
     return;
   }
 
@@ -346,9 +306,7 @@ LayerManagerMLGPU::Composite()
   mClonedLayerTreeProperties = LayerProperties::CloneFrom(mRoot);
 }
 
-void
-LayerManagerMLGPU::RenderLayers()
-{
+void LayerManagerMLGPU::RenderLayers() {
   AUTO_PROFILER_LABEL("LayerManagerMLGPU::RenderLayers", GRAPHICS);
 
   // Traverse the layer tree and assign each layer to a render target.
@@ -360,7 +318,8 @@ LayerManagerMLGPU::RenderLayers()
   }
 
   if (mDrawDiagnostics) {
-    mDiagnostics->RecordPrepareTime((TimeStamp::Now() - mCompositionStartTime).ToMilliseconds());
+    mDiagnostics->RecordPrepareTime(
+        (TimeStamp::Now() - mCompositionStartTime).ToMilliseconds());
   }
 
   // Make sure we acquire/release the sync object.
@@ -386,14 +345,13 @@ LayerManagerMLGPU::RenderLayers()
   mCurrentFrame = nullptr;
 
   if (mDrawDiagnostics) {
-    mDiagnostics->RecordCompositeTime((TimeStamp::Now() - start).ToMilliseconds());
+    mDiagnostics->RecordCompositeTime(
+        (TimeStamp::Now() - start).ToMilliseconds());
     mDevice->EndDiagnostics();
   }
 }
 
-void
-LayerManagerMLGPU::DrawDebugOverlay()
-{
+void LayerManagerMLGPU::DrawDebugOverlay() {
   IntSize windowSize = mSwapChain->GetSize();
 
   GPUStats stats;
@@ -401,21 +359,18 @@ LayerManagerMLGPU::DrawDebugOverlay()
   stats.mScreenPixels = windowSize.width * windowSize.height;
 
   std::string text = mDiagnostics->GetFrameOverlayString(stats);
-  RefPtr<TextureSource> texture = mTextRenderer->RenderText(
-    mTextureSourceProvider,
-    text,
-    30,
-    600,
-    TextRenderer::FontType::FixedWidth);
+  RefPtr<TextureSource> texture =
+      mTextRenderer->RenderText(mTextureSourceProvider, text, 30, 600,
+                                TextRenderer::FontType::FixedWidth);
   if (!texture) {
     return;
   }
 
   if (mUsingInvalidation &&
       (texture->GetSize().width > kDebugOverlayMaxWidth ||
-       texture->GetSize().height > kDebugOverlayMaxHeight))
-  {
-    gfxCriticalNote << "Diagnostic overlay exceeds invalidation area: %s" << Stringify(texture->GetSize()).c_str();
+       texture->GetSize().height > kDebugOverlayMaxHeight)) {
+    gfxCriticalNote << "Diagnostic overlay exceeds invalidation area: %s"
+                    << Stringify(texture->GetSize()).c_str();
   }
 
   struct DebugRect {
@@ -425,7 +380,8 @@ LayerManagerMLGPU::DrawDebugOverlay()
 
   if (!mDiagnosticVertices) {
     DebugRect rect;
-    rect.bounds = Rect(Point(kDebugOverlayX, kDebugOverlayY), Size(texture->GetSize()));
+    rect.bounds =
+        Rect(Point(kDebugOverlayX, kDebugOverlayY), Size(texture->GetSize()));
     rect.texCoords = Rect(0.0, 0.0, 1.0, 1.0);
 
     VertexStagingBuffer instances;
@@ -434,10 +390,8 @@ LayerManagerMLGPU::DrawDebugOverlay()
     }
 
     mDiagnosticVertices = mDevice->CreateBuffer(
-      MLGBufferType::Vertex,
-      instances.NumItems() * instances.SizeOfItem(),
-      MLGUsage::Immutable,
-      instances.GetBufferStart());
+        MLGBufferType::Vertex, instances.NumItems() * instances.SizeOfItem(),
+        MLGUsage::Immutable, instances.GetBufferStart());
     if (!mDiagnosticVertices) {
       return;
     }
@@ -457,9 +411,7 @@ LayerManagerMLGPU::DrawDebugOverlay()
   mDevice->DrawInstanced(4, 1, 0, 0);
 }
 
-void
-LayerManagerMLGPU::ComputeInvalidRegion()
-{
+void LayerManagerMLGPU::ComputeInvalidRegion() {
   // If invalidation is disabled, throw away cloned properties and redraw the
   // whole target area.
   if (!mUsingInvalidation) {
@@ -470,7 +422,8 @@ LayerManagerMLGPU::ComputeInvalidRegion()
 
   nsIntRegion changed;
   if (mClonedLayerTreeProperties) {
-    if (!mClonedLayerTreeProperties->ComputeDifferences(mRoot, changed, nullptr)) {
+    if (!mClonedLayerTreeProperties->ComputeDifferences(mRoot, changed,
+                                                        nullptr)) {
       changed = mRenderBounds;
     }
   } else {
@@ -488,47 +441,29 @@ LayerManagerMLGPU::ComputeInvalidRegion()
   }
 }
 
-void
-LayerManagerMLGPU::AddInvalidRegion(const nsIntRegion& aRegion)
-{
+void LayerManagerMLGPU::AddInvalidRegion(const nsIntRegion& aRegion) {
   mNextFrameInvalidRegion.OrWith(aRegion);
 }
 
-TextureSourceProvider*
-LayerManagerMLGPU::GetTextureSourceProvider() const
-{
+TextureSourceProvider* LayerManagerMLGPU::GetTextureSourceProvider() const {
   return mTextureSourceProvider;
 }
 
-bool
-LayerManagerMLGPU::IsCompositingToScreen() const
-{
-  return !mTarget;
-}
+bool LayerManagerMLGPU::IsCompositingToScreen() const { return !mTarget; }
 
-bool
-LayerManagerMLGPU::AreComponentAlphaLayersEnabled()
-{
+bool LayerManagerMLGPU::AreComponentAlphaLayersEnabled() {
   return LayerManager::AreComponentAlphaLayersEnabled();
 }
 
-bool
-LayerManagerMLGPU::BlendingRequiresIntermediateSurface()
-{
-  return true;
-}
+bool LayerManagerMLGPU::BlendingRequiresIntermediateSurface() { return true; }
 
-void
-LayerManagerMLGPU::EndTransaction(DrawPaintedLayerCallback aCallback,
-                                  void* aCallbackData,
-                                  EndTransactionFlags aFlags)
-{
+void LayerManagerMLGPU::EndTransaction(DrawPaintedLayerCallback aCallback,
+                                       void* aCallbackData,
+                                       EndTransactionFlags aFlags) {
   MOZ_CRASH("GFX: Use EndTransaction(aTimeStamp)");
 }
 
-void
-LayerManagerMLGPU::ClearCachedResources(Layer* aSubtree)
-{
+void LayerManagerMLGPU::ClearCachedResources(Layer* aSubtree) {
   Layer* root = aSubtree ? aSubtree : mRoot.get();
   if (!root) {
     return;
@@ -543,23 +478,17 @@ LayerManagerMLGPU::ClearCachedResources(Layer* aSubtree)
   });
 }
 
-void
-LayerManagerMLGPU::NotifyShadowTreeTransaction()
-{
+void LayerManagerMLGPU::NotifyShadowTreeTransaction() {
   if (gfxPrefs::LayersDrawFPS()) {
     mDiagnostics->AddTxnFrame();
   }
 }
 
-void
-LayerManagerMLGPU::UpdateRenderBounds(const gfx::IntRect& aRect)
-{
+void LayerManagerMLGPU::UpdateRenderBounds(const gfx::IntRect& aRect) {
   mRenderBounds = aRect;
 }
 
-bool
-LayerManagerMLGPU::PreRender()
-{
+bool LayerManagerMLGPU::PreRender() {
   AUTO_PROFILER_LABEL("LayerManagerMLGPU::PreRender", GRAPHICS);
 
   widget::WidgetRenderingContext context;
@@ -570,12 +499,10 @@ LayerManagerMLGPU::PreRender()
   return true;
 }
 
-void
-LayerManagerMLGPU::PostRender()
-{
+void LayerManagerMLGPU::PostRender() {
   mWidget->PostRender(mWidgetContext.ptr());
   mWidgetContext = Nothing();
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

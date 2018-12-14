@@ -9,46 +9,43 @@
 
 #include <string>
 
-namespace CSF
-{
-	class AudioControl;
-	class VideoControl;
-	class AudioTermination;
-	class VideoTermination;
-	class MediaProviderObserver;
+namespace CSF {
+class AudioControl;
+class VideoControl;
+class AudioTermination;
+class VideoTermination;
+class MediaProviderObserver;
 
+class MediaProvider {
+ public:
+  static MediaProvider* create();  /// factory method for all MediaProvider
+                                   /// derived types (ctor is protected).
+  virtual ~MediaProvider() = 0;
 
-	class MediaProvider
-	{
-	public:
-		static MediaProvider* create( );///factory method for all MediaProvider derived types (ctor is protected).
-		virtual ~MediaProvider() = 0;
+  virtual int init() = 0;
+  virtual void shutdown() = 0;
 
-		virtual int init() = 0;
-		virtual void shutdown() = 0;
+  virtual AudioControl* getAudioControl() = 0;
+  virtual VideoControl* getVideoControl() = 0;
+  virtual AudioTermination* getAudioTermination() = 0;
+  virtual VideoTermination* getVideoTermination() = 0;
 
-		virtual AudioControl* getAudioControl() = 0;
-		virtual VideoControl* getVideoControl() = 0;
-		virtual AudioTermination* getAudioTermination() = 0;
-		virtual VideoTermination* getVideoTermination() = 0;
+  virtual void addMediaProviderObserver(MediaProviderObserver* observer) = 0;
 
-		virtual void addMediaProviderObserver( MediaProviderObserver* observer ) = 0;
+ protected:
+  MediaProvider(){};
+};
 
-	protected:
-        MediaProvider() {};
-	};
+class MediaProviderObserver {
+ public:
+  virtual void onVideoModeChanged(bool enable) {}
+  virtual void onKeyFrameRequested(int callId) {}
+  virtual void onMediaLost(int callId) {}
+  virtual void onMediaRestored(int callId) {}
+};
 
-	class MediaProviderObserver
-	{
-	public:
-		virtual void onVideoModeChanged( bool enable ) {}
-		virtual void onKeyFrameRequested( int callId ) {}
-		virtual void onMediaLost( int callId ) {}
-		virtual void onMediaRestored( int callId ) {}
-	};
+}  // namespace CSF
 
-} // namespace
-
-#endif // __cplusplus
+#endif  // __cplusplus
 
 #endif /* CSFMEDIAPROVIDER_H_ */

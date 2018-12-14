@@ -16,11 +16,11 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/UniquePtr.h"
-#include "nsAttrAndChildArray.h"          // member
-#include "nsCycleCollectionParticipant.h" // NS_DECL_CYCLE_*
-#include "nsIContent.h"                   // base class
-#include "nsIWeakReference.h"             // base class
-#include "nsNodeUtils.h"                  // class member nsNodeUtils::CloneNodeImpl
+#include "nsAttrAndChildArray.h"           // member
+#include "nsCycleCollectionParticipant.h"  // NS_DECL_CYCLE_*
+#include "nsIContent.h"                    // base class
+#include "nsIWeakReference.h"              // base class
+#include "nsNodeUtils.h"  // class member nsNodeUtils::CloneNodeImpl
 #include "nsIHTMLCollection.h"
 #include "nsDataHashtable.h"
 #include "nsXBLBinding.h"
@@ -42,47 +42,37 @@ class DeclarationBlock;
 namespace dom {
 struct CustomElementData;
 class Element;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 /**
  * A class that implements nsIWeakReference
  */
 
-class nsNodeWeakReference final : public nsIWeakReference
-{
-public:
-  explicit nsNodeWeakReference(nsINode* aNode)
-    : nsIWeakReference(aNode)
-  {
-  }
+class nsNodeWeakReference final : public nsIWeakReference {
+ public:
+  explicit nsNodeWeakReference(nsINode* aNode) : nsIWeakReference(aNode) {}
 
   // nsISupports
   NS_DECL_ISUPPORTS
 
   // nsIWeakReference
   NS_DECL_NSIWEAKREFERENCE
-  virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfOnlyThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
-  void NoticeNodeDestruction()
-  {
-    mObject = nullptr;
-  }
+  void NoticeNodeDestruction() { mObject = nullptr; }
 
-private:
+ private:
   ~nsNodeWeakReference();
 };
 
 /**
  * Tearoff to use for nodes to implement nsISupportsWeakReference
  */
-class nsNodeSupportsWeakRefTearoff final : public nsISupportsWeakReference
-{
-public:
-  explicit nsNodeSupportsWeakRefTearoff(nsINode* aNode)
-    : mNode(aNode)
-  {
-  }
+class nsNodeSupportsWeakRefTearoff final : public nsISupportsWeakReference {
+ public:
+  explicit nsNodeSupportsWeakRefTearoff(nsINode* aNode) : mNode(aNode) {}
 
   // nsISupports
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -92,7 +82,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSupportsWeakRefTearoff)
 
-private:
+ private:
   ~nsNodeSupportsWeakRefTearoff() {}
 
   nsCOMPtr<nsINode> mNode;
@@ -107,11 +97,12 @@ namespace dom {
 
 class ShadowRoot;
 
-class FragmentOrElement : public nsIContent
-{
-public:
-  explicit FragmentOrElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  explicit FragmentOrElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+class FragmentOrElement : public nsIContent {
+ public:
+  explicit FragmentOrElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit FragmentOrElement(
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -119,7 +110,7 @@ public:
 
   // nsINode interface methods
   virtual uint32_t GetChildCount() const override;
-  virtual nsIContent *GetChildAt_Deprecated(uint32_t aIndex) const override;
+  virtual nsIContent* GetChildAt_Deprecated(uint32_t aIndex) const override;
   virtual int32_t ComputeIndexOf(const nsINode* aPossibleChild) const override;
   virtual nsresult InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
                                      bool aNotify) override;
@@ -135,13 +126,12 @@ public:
 
   // nsIContent interface methods
   virtual already_AddRefed<nsINodeList> GetChildren(uint32_t aFilter) override;
-  virtual const nsTextFragment *GetText() override;
+  virtual const nsTextFragment* GetText() override;
   virtual uint32_t TextLength() const override;
   virtual nsresult SetText(const char16_t* aBuffer, uint32_t aLength,
                            bool aNotify) override;
   // Need to implement this here too to avoid hiding.
-  nsresult SetText(const nsAString& aStr, bool aNotify)
-  {
+  nsresult SetText(const nsAString& aStr, bool aNotify) {
     return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
   virtual nsresult AppendText(const char16_t* aBuffer, uint32_t aLength,
@@ -151,7 +141,8 @@ public:
   virtual bool HasTextForTranslation() override;
   virtual void AppendTextTo(nsAString& aResult) override;
   MOZ_MUST_USE
-  virtual bool AppendTextTo(nsAString& aResult, const mozilla::fallible_t&) override;
+  virtual bool AppendTextTo(nsAString& aResult,
+                            const mozilla::fallible_t&) override;
   virtual nsXBLBinding* DoGetXBLBinding() const override;
   virtual bool IsLink(nsIURI** aURI) const override;
 
@@ -159,10 +150,7 @@ public:
   virtual void SaveSubtreeState() override;
 
   nsIHTMLCollection* Children();
-  uint32_t ChildElementCount()
-  {
-    return Children()->Length();
-  }
+  uint32_t ChildElementCount() { return Children()->Length(); }
 
   /**
    * Sets the IsElementInStyleScope flag on each element in the subtree rooted
@@ -172,13 +160,12 @@ public:
    */
   void SetIsElementInStyleScopeFlagOnSubtree(bool aInStyleScope);
 
-public:
+ public:
   /**
    * If there are listeners for DOMNodeInserted event, fires the event on all
    * aNodes
    */
-  static void FireNodeInserted(nsIDocument* aDoc,
-                               nsINode* aParent,
+  static void FireNodeInserted(nsIDocument* aDoc, nsINode* aParent,
                                nsTArray<nsCOMPtr<nsIContent> >& aNodes);
 
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(FragmentOrElement)
@@ -188,8 +175,7 @@ public:
    */
   void FireNodeRemovedForChildren();
 
-  virtual bool OwnedOnlyByTheDOMTree() override
-  {
+  virtual bool OwnedOnlyByTheDOMTree() override {
     uint32_t rc = mRefCnt.get();
     if (GetParent()) {
       --rc;
@@ -198,15 +184,9 @@ public:
     return rc == 0;
   }
 
-  virtual bool IsPurple() override
-  {
-    return mRefCnt.IsPurple();
-  }
+  virtual bool IsPurple() override { return mRefCnt.IsPurple(); }
 
-  virtual void RemovePurple() override
-  {
-    mRefCnt.RemovePurple();
-  }
+  virtual void RemovePurple() override { mRefCnt.RemovePurple(); }
 
   static void ClearContentUnbinder();
   static bool CanSkip(nsINode* aNode, bool aRemovingAllowed);
@@ -216,13 +196,14 @@ public:
   static void MarkNodeChildren(nsINode* aNode);
   static void InitCCCallbacks();
   static void MarkUserData(void* aObject, nsAtom* aKey, void* aChild,
-                           void *aData);
+                           void* aData);
 
   /**
    * Is the HTML local name a void element?
    */
   static bool IsHTMLVoid(nsAtom* aLocalName);
-protected:
+
+ protected:
   virtual ~FragmentOrElement();
 
   /**
@@ -231,7 +212,7 @@ protected:
    */
   nsresult CopyInnerTo(FragmentOrElement* aDest, bool aPreallocateChildren);
 
-public:
+ public:
   /**
    * There are a set of DOM- and scripting-specific instance variables
    * that may only be instantiated when a content object is accessed
@@ -241,9 +222,8 @@ public:
    * accessed through the DOM.
    */
 
-  class nsExtendedDOMSlots final : public nsIContent::nsExtendedContentSlots
-  {
-  public:
+  class nsExtendedDOMSlots final : public nsIContent::nsExtendedContentSlots {
+   public:
     nsExtendedDOMSlots();
     ~nsExtendedDOMSlots() final;
 
@@ -262,8 +242,8 @@ public:
     RefPtr<mozilla::DeclarationBlock> mSMILOverrideStyleDeclaration;
 
     /**
-    * The controllers of the XUL Element.
-    */
+     * The controllers of the XUL Element.
+     */
     nsCOMPtr<nsIControllers> mControllers;
 
     /**
@@ -290,12 +270,10 @@ public:
      * For XUL to hold either frameloader or opener.
      */
     nsCOMPtr<nsISupports> mFrameLoaderOrOpener;
-
   };
 
-  class nsDOMSlots final : public nsIContent::nsContentSlots
-  {
-  public:
+  class nsDOMSlots final : public nsIContent::nsContentSlots {
+   public:
     nsDOMSlots();
     ~nsDOMSlots() final;
 
@@ -315,7 +293,7 @@ public:
      * The .dataset attribute.
      * @see nsGenericHTMLElement::GetDataset
      */
-    nsDOMStringMap* mDataset; // [Weak]
+    nsDOMStringMap* mDataset;  // [Weak]
 
     /**
      * @see Element::Attributes
@@ -333,45 +311,36 @@ public:
     RefPtr<nsDOMTokenList> mClassList;
   };
 
-protected:
+ protected:
   void GetMarkup(bool aIncludeSelf, nsAString& aMarkup);
   void SetInnerHTMLInternal(const nsAString& aInnerHTML, ErrorResult& aError,
                             bool aNeverSanitize = false);
 
   // Override from nsINode
-  nsIContent::nsContentSlots* CreateSlots() override
-  {
+  nsIContent::nsContentSlots* CreateSlots() override {
     return new nsDOMSlots();
   }
 
-  nsIContent::nsExtendedContentSlots* CreateExtendedSlots() final
-  {
+  nsIContent::nsExtendedContentSlots* CreateExtendedSlots() final {
     return new nsExtendedDOMSlots();
   }
 
-  nsDOMSlots* DOMSlots()
-  {
-    return static_cast<nsDOMSlots*>(Slots());
-  }
+  nsDOMSlots* DOMSlots() { return static_cast<nsDOMSlots*>(Slots()); }
 
-  nsDOMSlots *GetExistingDOMSlots() const
-  {
+  nsDOMSlots* GetExistingDOMSlots() const {
     return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
 
-  nsExtendedDOMSlots* ExtendedDOMSlots()
-  {
+  nsExtendedDOMSlots* ExtendedDOMSlots() {
     return static_cast<nsExtendedDOMSlots*>(ExtendedContentSlots());
   }
 
-  const nsExtendedDOMSlots* GetExistingExtendedDOMSlots() const
-  {
+  const nsExtendedDOMSlots* GetExistingExtendedDOMSlots() const {
     return static_cast<const nsExtendedDOMSlots*>(
-      GetExistingExtendedContentSlots());
+        GetExistingExtendedContentSlots());
   }
 
-  nsExtendedDOMSlots* GetExistingExtendedDOMSlots()
-  {
+  nsExtendedDOMSlots* GetExistingExtendedDOMSlots() {
     return static_cast<nsExtendedDOMSlots*>(GetExistingExtendedContentSlots());
   }
 
@@ -390,14 +359,13 @@ protected:
   nsAttrAndChildArray mAttrsAndChildren;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE                               \
-    if (NS_SUCCEEDED(rv))                                                     \
-      return rv;                                                              \
-                                                                              \
-    rv = FragmentOrElement::QueryInterface(aIID, aInstancePtr);               \
-    NS_INTERFACE_TABLE_TO_MAP_SEGUE
+#define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE               \
+  if (NS_SUCCEEDED(rv)) return rv;                            \
+                                                              \
+  rv = FragmentOrElement::QueryInterface(aIID, aInstancePtr); \
+  NS_INTERFACE_TABLE_TO_MAP_SEGUE
 
 #endif /* FragmentOrElement_h___ */

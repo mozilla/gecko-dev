@@ -10,9 +10,7 @@
 
 namespace mozilla {
 
-/* static */ bool
-FlacDecoder::IsEnabled()
-{
+/* static */ bool FlacDecoder::IsEnabled() {
 #ifdef MOZ_FFVPX
   return MediaPrefs::FlacEnabled();
 #else
@@ -21,13 +19,12 @@ FlacDecoder::IsEnabled()
 #endif
 }
 
-/* static */ bool
-FlacDecoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+/* static */ bool FlacDecoder::IsSupportedType(
+    const MediaContainerType& aContainerType) {
   return IsEnabled() &&
          (aContainerType.Type() == MEDIAMIMETYPE("audio/flac") ||
           aContainerType.Type() == MEDIAMIMETYPE("audio/x-flac") ||
           aContainerType.Type() == MEDIAMIMETYPE("application/x-flac"));
 }
 
-} // namespace mozilla
+}  // namespace mozilla

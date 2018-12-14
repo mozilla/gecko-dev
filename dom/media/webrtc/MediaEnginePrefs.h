@@ -13,7 +13,7 @@ namespace mozilla {
  * Video source and friends.
  */
 class MediaEnginePrefs {
-public:
+ public:
   static const int DEFAULT_VIDEO_FPS = 30;
   static const int DEFAULT_43_VIDEO_WIDTH = 640;
   static const int DEFAULT_43_VIDEO_HEIGHT = 480;
@@ -21,27 +21,26 @@ public:
   static const int DEFAULT_169_VIDEO_HEIGHT = 720;
 
   MediaEnginePrefs()
-    : mWidth(0)
-    , mHeight(0)
-    , mFPS(0)
-    , mFreq(0)
-    , mAecOn(false)
-    , mAgcOn(false)
-    , mNoiseOn(false)
-    , mAec(0)
-    , mAgc(0)
-    , mNoise(0)
-    , mFullDuplex(false)
-    , mExtendedFilter(false)
-    , mDelayAgnostic(false)
-    , mFakeDeviceChangeEventOn(false)
-    , mChannels(0)
-  {}
+      : mWidth(0),
+        mHeight(0),
+        mFPS(0),
+        mFreq(0),
+        mAecOn(false),
+        mAgcOn(false),
+        mNoiseOn(false),
+        mAec(0),
+        mAgc(0),
+        mNoise(0),
+        mFullDuplex(false),
+        mExtendedFilter(false),
+        mDelayAgnostic(false),
+        mFakeDeviceChangeEventOn(false),
+        mChannels(0) {}
 
   int32_t mWidth;
   int32_t mHeight;
   int32_t mFPS;
-  int32_t mFreq; // for test tones (fake:true)
+  int32_t mFreq;  // for test tones (fake:true)
   bool mAecOn;
   bool mAgcOn;
   bool mNoiseOn;
@@ -57,18 +56,18 @@ public:
   // mWidth and/or mHeight may be zero (=adaptive default), so use functions.
 
   int32_t GetWidth(bool aHD = false) const {
-    return mWidth? mWidth : (mHeight?
-                             (mHeight * GetDefWidth(aHD)) / GetDefHeight(aHD) :
-                             GetDefWidth(aHD));
+    return mWidth ? mWidth
+                  : (mHeight ? (mHeight * GetDefWidth(aHD)) / GetDefHeight(aHD)
+                             : GetDefWidth(aHD));
   }
 
   int32_t GetHeight(bool aHD = false) const {
-    return mHeight? mHeight : (mWidth?
-                               (mWidth * GetDefHeight(aHD)) / GetDefWidth(aHD) :
-                               GetDefHeight(aHD));
+    return mHeight ? mHeight
+                   : (mWidth ? (mWidth * GetDefHeight(aHD)) / GetDefWidth(aHD)
+                             : GetDefHeight(aHD));
   }
 
-private:
+ private:
   static int32_t GetDefWidth(bool aHD = false) {
     // It'd be nice if we could use the ternary operator here, but we can't
     // because of bug 1002729.
@@ -90,6 +89,6 @@ private:
   }
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // MediaEnginePrefs_h
+#endif  // MediaEnginePrefs_h

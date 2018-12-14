@@ -37,208 +37,186 @@ NS_IMPL_ISUPPORTS(nsContentPolicy, nsIContentPolicy)
 
 static mozilla::LazyLogModule gConPolLog("nsContentPolicy");
 
-nsresult
-NS_NewContentPolicy(nsIContentPolicy **aResult)
-{
+nsresult NS_NewContentPolicy(nsIContentPolicy **aResult) {
   *aResult = new nsContentPolicy;
   NS_ADDREF(*aResult);
   return NS_OK;
 }
 
 nsContentPolicy::nsContentPolicy()
-    : mPolicies(NS_CONTENTPOLICY_CATEGORY)
-    , mMixedContentBlocker(do_GetService(NS_MIXEDCONTENTBLOCKER_CONTRACTID))
-    , mCSPService(do_GetService(CSPSERVICE_CONTRACTID))
-{
-}
+    : mPolicies(NS_CONTENTPOLICY_CATEGORY),
+      mMixedContentBlocker(do_GetService(NS_MIXEDCONTENTBLOCKER_CONTRACTID)),
+      mCSPService(do_GetService(CSPSERVICE_CONTRACTID)) {}
 
-nsContentPolicy::~nsContentPolicy()
-{
-}
+nsContentPolicy::~nsContentPolicy() {}
 
 #ifdef DEBUG
-#define WARN_IF_URI_UNINITIALIZED(uri,name)                         \
-  PR_BEGIN_MACRO                                                    \
-    if ((uri)) {                                                    \
-        nsAutoCString spec;                                         \
-        (uri)->GetAsciiSpec(spec);                                  \
-        if (spec.IsEmpty()) {                                       \
-            NS_WARNING(name " is uninitialized, fix caller");       \
-        }                                                           \
-    }                                                               \
+#define WARN_IF_URI_UNINITIALIZED(uri, name)            \
+  PR_BEGIN_MACRO                                        \
+  if ((uri)) {                                          \
+    nsAutoCString spec;                                 \
+    (uri)->GetAsciiSpec(spec);                          \
+    if (spec.IsEmpty()) {                               \
+      NS_WARNING(name " is uninitialized, fix caller"); \
+    }                                                   \
+  }                                                     \
   PR_END_MACRO
 
 #else  // ! defined(DEBUG)
 
-#define WARN_IF_URI_UNINITIALIZED(uri,name)
+#define WARN_IF_URI_UNINITIALIZED(uri, name)
 
-#endif // defined(DEBUG)
+#endif  // defined(DEBUG)
 
-inline nsresult
-nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
-                             nsContentPolicyType contentType,
-                             nsIURI           *contentLocation,
-                             nsIURI           *requestingLocation,
-                             nsISupports      *requestingContext,
-                             const nsACString &mimeType,
-                             nsISupports      *extra,
-                             nsIPrincipal     *requestPrincipal,
-                             int16_t           *decision)
-{
-    //sanity-check passed-through parameters
-    NS_PRECONDITION(decision, "Null out pointer");
-    WARN_IF_URI_UNINITIALIZED(contentLocation, "Request URI");
-    WARN_IF_URI_UNINITIALIZED(requestingLocation, "Requesting URI");
+inline nsresult nsContentPolicy::CheckPolicy(
+    CPMethod policyMethod, nsContentPolicyType contentType,
+    nsIURI *contentLocation, nsIURI *requestingLocation,
+    nsISupports *requestingContext, const nsACString &mimeType,
+    nsISupports *extra, nsIPrincipal *requestPrincipal, int16_t *decision) {
+  // sanity-check passed-through parameters
+  NS_PRECONDITION(decision, "Null out pointer");
+  WARN_IF_URI_UNINITIALIZED(contentLocation, "Request URI");
+  WARN_IF_URI_UNINITIALIZED(requestingLocation, "Requesting URI");
 
 #ifdef DEBUG
-    {
-        nsCOMPtr<nsIDOMNode> node(do_QueryInterface(requestingContext));
-        nsCOMPtr<nsIDOMWindow> window(do_QueryInterface(requestingContext));
-        nsCOMPtr<nsITabChild> tabChild(do_QueryInterface(requestingContext));
-        NS_ASSERTION(!requestingContext || node || window || tabChild,
-                     "Context should be a DOM node, DOM window or a tabChild!");
-    }
+  {
+    nsCOMPtr<nsIDOMNode> node(do_QueryInterface(requestingContext));
+    nsCOMPtr<nsIDOMWindow> window(do_QueryInterface(requestingContext));
+    nsCOMPtr<nsITabChild> tabChild(do_QueryInterface(requestingContext));
+    NS_ASSERTION(!requestingContext || node || window || tabChild,
+                 "Context should be a DOM node, DOM window or a tabChild!");
+  }
 #endif
 
-    /*
-     * There might not be a requestinglocation. This can happen for
-     * iframes with an image as src. Get the uri from the dom node.
-     * See bug 254510
-     */
-    if (!requestingLocation) {
-        nsCOMPtr<nsIDocument> doc;
-        nsCOMPtr<nsIContent> node = do_QueryInterface(requestingContext);
-        if (node) {
-            doc = node->OwnerDoc();
-        }
-        if (!doc) {
-            doc = do_QueryInterface(requestingContext);
-        }
-        if (doc) {
-            requestingLocation = doc->GetDocumentURI();
-        }
+  /*
+   * There might not be a requestinglocation. This can happen for
+   * iframes with an image as src. Get the uri from the dom node.
+   * See bug 254510
+   */
+  if (!requestingLocation) {
+    nsCOMPtr<nsIDocument> doc;
+    nsCOMPtr<nsIContent> node = do_QueryInterface(requestingContext);
+    if (node) {
+      doc = node->OwnerDoc();
     }
-
-    nsContentPolicyType externalType =
-        nsContentUtils::InternalContentPolicyTypeToExternal(contentType);
-
-    /*
-     * Enumerate mPolicies and ask each of them, taking the logical AND of
-     * their permissions.
-     */
-    nsresult rv;
-    const nsCOMArray<nsIContentPolicy>& entries = mPolicies.GetCachedEntries();
-
-    nsCOMPtr<nsPIDOMWindowOuter> window;
-    if (nsCOMPtr<nsINode> node = do_QueryInterface(requestingContext)) {
-        window = node->OwnerDoc()->GetWindow();
-    } else {
-        window = do_QueryInterface(requestingContext);
+    if (!doc) {
+      doc = do_QueryInterface(requestingContext);
     }
-
-    if (requestPrincipal) {
-        nsCOMPtr<nsIContentSecurityPolicy> csp;
-        requestPrincipal->GetCsp(getter_AddRefs(csp));
-        if (csp && window) {
-            csp->EnsureEventTarget(window->EventTargetFor(mozilla::TaskCategory::Other));
-        }
+    if (doc) {
+      requestingLocation = doc->GetDocumentURI();
     }
+  }
 
-    int32_t count = entries.Count();
-    for (int32_t i = 0; i < count; i++) {
-        /* check the appropriate policy */
-        // Send internal content policy type to CSP and mixed content blocker
-        nsContentPolicyType type = externalType;
-        if (mMixedContentBlocker == entries[i] || mCSPService == entries[i]) {
-          type = contentType;
-        }
-        rv = (entries[i]->*policyMethod)(type, contentLocation,
-                                         requestingLocation, requestingContext,
-                                         mimeType, extra, requestPrincipal,
-                                         decision);
+  nsContentPolicyType externalType =
+      nsContentUtils::InternalContentPolicyTypeToExternal(contentType);
 
-        if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
-            // If we are blocking an image, we have to let the
-            // ImageLoadingContent know that we blocked the load.
-            if (externalType == nsIContentPolicy::TYPE_IMAGE ||
-                externalType == nsIContentPolicy::TYPE_IMAGESET) {
-              nsCOMPtr<nsIImageLoadingContent> img =
-                do_QueryInterface(requestingContext);
-              if (img) {
-                img->SetBlockedRequest(*decision);
-              }
-            }
-            /* policy says no, no point continuing to check */
-            return NS_OK;
-        }
+  /*
+   * Enumerate mPolicies and ask each of them, taking the logical AND of
+   * their permissions.
+   */
+  nsresult rv;
+  const nsCOMArray<nsIContentPolicy> &entries = mPolicies.GetCachedEntries();
+
+  nsCOMPtr<nsPIDOMWindowOuter> window;
+  if (nsCOMPtr<nsINode> node = do_QueryInterface(requestingContext)) {
+    window = node->OwnerDoc()->GetWindow();
+  } else {
+    window = do_QueryInterface(requestingContext);
+  }
+
+  if (requestPrincipal) {
+    nsCOMPtr<nsIContentSecurityPolicy> csp;
+    requestPrincipal->GetCsp(getter_AddRefs(csp));
+    if (csp && window) {
+      csp->EnsureEventTarget(
+          window->EventTargetFor(mozilla::TaskCategory::Other));
     }
+  }
 
-    // everyone returned failure, or no policies: sanitize result
-    *decision = nsIContentPolicy::ACCEPT;
-    return NS_OK;
+  int32_t count = entries.Count();
+  for (int32_t i = 0; i < count; i++) {
+    /* check the appropriate policy */
+    // Send internal content policy type to CSP and mixed content blocker
+    nsContentPolicyType type = externalType;
+    if (mMixedContentBlocker == entries[i] || mCSPService == entries[i]) {
+      type = contentType;
+    }
+    rv = (entries[i]->*policyMethod)(type, contentLocation, requestingLocation,
+                                     requestingContext, mimeType, extra,
+                                     requestPrincipal, decision);
+
+    if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
+      // If we are blocking an image, we have to let the
+      // ImageLoadingContent know that we blocked the load.
+      if (externalType == nsIContentPolicy::TYPE_IMAGE ||
+          externalType == nsIContentPolicy::TYPE_IMAGESET) {
+        nsCOMPtr<nsIImageLoadingContent> img =
+            do_QueryInterface(requestingContext);
+        if (img) {
+          img->SetBlockedRequest(*decision);
+        }
+      }
+      /* policy says no, no point continuing to check */
+      return NS_OK;
+    }
+  }
+
+  // everyone returned failure, or no policies: sanitize result
+  *decision = nsIContentPolicy::ACCEPT;
+  return NS_OK;
 }
 
-//uses the parameters from ShouldXYZ to produce and log a message
-//logType must be a literal string constant
+// uses the parameters from ShouldXYZ to produce and log a message
+// logType must be a literal string constant
 #define LOG_CHECK(logType)                                                     \
   PR_BEGIN_MACRO                                                               \
-    /* skip all this nonsense if the call failed or logging is disabled */     \
-    if (NS_SUCCEEDED(rv) && MOZ_LOG_TEST(gConPolLog, LogLevel::Debug)) {       \
-      const char *resultName;                                                  \
-      if (decision) {                                                          \
-        resultName = NS_CP_ResponseName(*decision);                            \
-      } else {                                                                 \
-        resultName = "(null ptr)";                                             \
-      }                                                                        \
-      MOZ_LOG(gConPolLog, LogLevel::Debug,                                     \
-             ("Content Policy: " logType ": <%s> <Ref:%s> result=%s",          \
-              contentLocation ? contentLocation->GetSpecOrDefault().get()      \
-                              : "None",                                        \
-              requestingLocation ? requestingLocation->GetSpecOrDefault().get()\
-                                 : "None",                                     \
-              resultName)                                                      \
-             );                                                                \
+  /* skip all this nonsense if the call failed or logging is disabled */       \
+  if (NS_SUCCEEDED(rv) && MOZ_LOG_TEST(gConPolLog, LogLevel::Debug)) {         \
+    const char *resultName;                                                    \
+    if (decision) {                                                            \
+      resultName = NS_CP_ResponseName(*decision);                              \
+    } else {                                                                   \
+      resultName = "(null ptr)";                                               \
     }                                                                          \
+    MOZ_LOG(                                                                   \
+        gConPolLog, LogLevel::Debug,                                           \
+        ("Content Policy: " logType ": <%s> <Ref:%s> result=%s",               \
+         contentLocation ? contentLocation->GetSpecOrDefault().get() : "None", \
+         requestingLocation ? requestingLocation->GetSpecOrDefault().get()     \
+                            : "None",                                          \
+         resultName));                                                         \
+  }                                                                            \
   PR_END_MACRO
 
 NS_IMETHODIMP
-nsContentPolicy::ShouldLoad(uint32_t          contentType,
-                            nsIURI           *contentLocation,
-                            nsIURI           *requestingLocation,
-                            nsISupports      *requestingContext,
-                            const nsACString &mimeType,
-                            nsISupports      *extra,
-                            nsIPrincipal     *requestPrincipal,
-                            int16_t          *decision)
-{
-    // ShouldProcess does not need a content location, but we do
-    NS_PRECONDITION(contentLocation, "Must provide request location");
-    nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldLoad,
-                              contentType,
-                              contentLocation, requestingLocation,
-                              requestingContext, mimeType, extra,
-                              requestPrincipal, decision);
-    LOG_CHECK("ShouldLoad");
+nsContentPolicy::ShouldLoad(uint32_t contentType, nsIURI *contentLocation,
+                            nsIURI *requestingLocation,
+                            nsISupports *requestingContext,
+                            const nsACString &mimeType, nsISupports *extra,
+                            nsIPrincipal *requestPrincipal, int16_t *decision) {
+  // ShouldProcess does not need a content location, but we do
+  NS_PRECONDITION(contentLocation, "Must provide request location");
+  nsresult rv =
+      CheckPolicy(&nsIContentPolicy::ShouldLoad, contentType, contentLocation,
+                  requestingLocation, requestingContext, mimeType, extra,
+                  requestPrincipal, decision);
+  LOG_CHECK("ShouldLoad");
 
-    return rv;
+  return rv;
 }
 
 NS_IMETHODIMP
-nsContentPolicy::ShouldProcess(uint32_t          contentType,
-                               nsIURI           *contentLocation,
-                               nsIURI           *requestingLocation,
-                               nsISupports      *requestingContext,
-                               const nsACString &mimeType,
-                               nsISupports      *extra,
-                               nsIPrincipal     *requestPrincipal,
-                               int16_t          *decision)
-{
-    nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldProcess,
-                              contentType,
-                              contentLocation, requestingLocation,
-                              requestingContext, mimeType, extra,
-                              requestPrincipal, decision);
-    LOG_CHECK("ShouldProcess");
+nsContentPolicy::ShouldProcess(uint32_t contentType, nsIURI *contentLocation,
+                               nsIURI *requestingLocation,
+                               nsISupports *requestingContext,
+                               const nsACString &mimeType, nsISupports *extra,
+                               nsIPrincipal *requestPrincipal,
+                               int16_t *decision) {
+  nsresult rv =
+      CheckPolicy(&nsIContentPolicy::ShouldProcess, contentType,
+                  contentLocation, requestingLocation, requestingContext,
+                  mimeType, extra, requestPrincipal, decision);
+  LOG_CHECK("ShouldProcess");
 
-    return rv;
+  return rv;
 }

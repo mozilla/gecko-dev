@@ -11,16 +11,14 @@
 namespace mozilla {
 namespace dom {
 
-class PerformanceProxyData
-{
-public:
+class PerformanceProxyData {
+ public:
   PerformanceProxyData(UniquePtr<PerformanceTimingData>&& aData,
                        const nsAString& aInitiatorType,
                        const nsAString& aEntryName)
-    : mData(Move(aData))
-    , mInitiatorType(aInitiatorType)
-    , mEntryName(aEntryName)
-  {}
+      : mData(Move(aData)),
+        mInitiatorType(aInitiatorType),
+        mEntryName(aEntryName) {}
 
   UniquePtr<PerformanceTimingData> mData;
   nsString mInitiatorType;
@@ -34,98 +32,72 @@ namespace {
 // shutdown procedure.
 // Here we use control runnable because this code must be executed also when in
 // a sync event loop.
-class PerformanceStorageInitializer final : public WorkerControlRunnable
-{
+class PerformanceStorageInitializer final : public WorkerControlRunnable {
   RefPtr<PerformanceStorageWorker> mStorage;
 
-public:
+ public:
   PerformanceStorageInitializer(WorkerPrivate* aWorkerPrivate,
                                 PerformanceStorageWorker* aStorage)
-    : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
-    , mStorage(aStorage)
-  {}
+      : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount),
+        mStorage(aStorage) {}
 
-  bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
+  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mStorage->InitializeOnWorker();
     return true;
   }
 
-  nsresult
-  Cancel() override
-  {
+  nsresult Cancel() override {
     mStorage->ShutdownOnWorker();
     return WorkerRunnable::Cancel();
   }
 
-  bool
-  PreDispatch(WorkerPrivate* aWorkerPrivate) override
-  {
-    return true;
-  }
+  bool PreDispatch(WorkerPrivate* aWorkerPrivate) override { return true; }
 
-  void
-  PostDispatch(WorkerPrivate* aWorkerPrivate, bool aDispatchResult) override
-  {}
+  void PostDispatch(WorkerPrivate* aWorkerPrivate,
+                    bool aDispatchResult) override {}
 };
 
 // Here we use control runnable because this code must be executed also when in
 // a sync event loop
-class PerformanceEntryAdder final : public WorkerControlRunnable
-{
-public:
+class PerformanceEntryAdder final : public WorkerControlRunnable {
+ public:
   PerformanceEntryAdder(WorkerPrivate* aWorkerPrivate,
                         PerformanceStorageWorker* aStorage,
                         UniquePtr<PerformanceProxyData>&& aData)
-    : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
-    , mStorage(aStorage)
-    , mData(Move(aData))
-  {}
+      : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount),
+        mStorage(aStorage),
+        mData(Move(aData)) {}
 
-  bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
-  {
+  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mStorage->AddEntryOnWorker(Move(mData));
     return true;
   }
 
-  nsresult
-  Cancel() override
-  {
+  nsresult Cancel() override {
     mStorage->ShutdownOnWorker();
     return WorkerRunnable::Cancel();
   }
 
-  bool
-  PreDispatch(WorkerPrivate* aWorkerPrivate) override
-  {
-    return true;
-  }
+  bool PreDispatch(WorkerPrivate* aWorkerPrivate) override { return true; }
 
-  void
-  PostDispatch(WorkerPrivate* aWorkerPrivate, bool aDispatchResult) override
-  {}
+  void PostDispatch(WorkerPrivate* aWorkerPrivate,
+                    bool aDispatchResult) override {}
 
-private:
+ private:
   RefPtr<PerformanceStorageWorker> mStorage;
   UniquePtr<PerformanceProxyData> mData;
 };
 
-class PerformanceStorageWorkerHolder final : public WorkerHolder
-{
+class PerformanceStorageWorkerHolder final : public WorkerHolder {
   RefPtr<PerformanceStorageWorker> mStorage;
 
-public:
+ public:
   explicit PerformanceStorageWorkerHolder(PerformanceStorageWorker* aStorage)
-    : WorkerHolder("PerformanceStorageWorkerHolder",
-                   WorkerHolder::AllowIdleShutdownStart)
-    , mStorage(aStorage)
-  {}
+      : WorkerHolder("PerformanceStorageWorkerHolder",
+                     WorkerHolder::AllowIdleShutdownStart),
+        mStorage(aStorage) {}
 
-  bool
-  Notify(WorkerStatus aStatus) override
-  {
+  bool Notify(WorkerStatus aStatus) override {
     if (mStorage) {
       RefPtr<PerformanceStorageWorker> storage;
       storage.swap(mStorage);
@@ -136,18 +108,17 @@ public:
   }
 };
 
-} // anonymous
+}  // namespace
 
 /* static */ already_AddRefed<PerformanceStorageWorker>
-PerformanceStorageWorker::Create(WorkerPrivate* aWorkerPrivate)
-{
+PerformanceStorageWorker::Create(WorkerPrivate* aWorkerPrivate) {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<PerformanceStorageWorker> storage =
-    new PerformanceStorageWorker(aWorkerPrivate);
+      new PerformanceStorageWorker(aWorkerPrivate);
 
   RefPtr<PerformanceStorageInitializer> r =
-    new PerformanceStorageInitializer(aWorkerPrivate, storage);
+      new PerformanceStorageInitializer(aWorkerPrivate, storage);
   if (NS_WARN_IF(!r->Dispatch())) {
     return nullptr;
   }
@@ -155,19 +126,16 @@ PerformanceStorageWorker::Create(WorkerPrivate* aWorkerPrivate)
   return storage.forget();
 }
 
-PerformanceStorageWorker::PerformanceStorageWorker(WorkerPrivate* aWorkerPrivate)
-  : mMutex("PerformanceStorageWorker::mMutex")
-  , mWorkerPrivate(aWorkerPrivate)
-  , mState(eInitializing)
-{
-}
+PerformanceStorageWorker::PerformanceStorageWorker(
+    WorkerPrivate* aWorkerPrivate)
+    : mMutex("PerformanceStorageWorker::mMutex"),
+      mWorkerPrivate(aWorkerPrivate),
+      mState(eInitializing) {}
 
 PerformanceStorageWorker::~PerformanceStorageWorker() = default;
 
-void
-PerformanceStorageWorker::AddEntry(nsIHttpChannel* aChannel,
-                                   nsITimedChannel* aTimedChannel)
-{
+void PerformanceStorageWorker::AddEntry(nsIHttpChannel* aChannel,
+                                        nsITimedChannel* aTimedChannel) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MutexAutoLock lock(mMutex);
@@ -180,24 +148,21 @@ PerformanceStorageWorker::AddEntry(nsIHttpChannel* aChannel,
   nsAutoString entryName;
 
   UniquePtr<PerformanceTimingData> performanceTimingData(
-    PerformanceTimingData::Create(aTimedChannel, aChannel, 0, initiatorType,
-                                  entryName));
+      PerformanceTimingData::Create(aTimedChannel, aChannel, 0, initiatorType,
+                                    entryName));
   if (!performanceTimingData) {
     return;
   }
 
-  UniquePtr<PerformanceProxyData> data(
-    new PerformanceProxyData(Move(performanceTimingData), initiatorType,
-                             entryName));
+  UniquePtr<PerformanceProxyData> data(new PerformanceProxyData(
+      Move(performanceTimingData), initiatorType, entryName));
 
   RefPtr<PerformanceEntryAdder> r =
-    new PerformanceEntryAdder(mWorkerPrivate, this, Move(data));
+      new PerformanceEntryAdder(mWorkerPrivate, this, Move(data));
   Unused << NS_WARN_IF(!r->Dispatch());
 }
 
-void
-PerformanceStorageWorker::InitializeOnWorker()
-{
+void PerformanceStorageWorker::InitializeOnWorker() {
   MutexAutoLock lock(mMutex);
   MOZ_ASSERT(mState == eInitializing);
   MOZ_ASSERT(mWorkerPrivate);
@@ -214,9 +179,7 @@ PerformanceStorageWorker::InitializeOnWorker()
   mState = eReady;
 }
 
-void
-PerformanceStorageWorker::ShutdownOnWorker()
-{
+void PerformanceStorageWorker::ShutdownOnWorker() {
   MutexAutoLock lock(mMutex);
 
   if (mState == eTerminated) {
@@ -231,9 +194,8 @@ PerformanceStorageWorker::ShutdownOnWorker()
   mWorkerPrivate = nullptr;
 }
 
-void
-PerformanceStorageWorker::AddEntryOnWorker(UniquePtr<PerformanceProxyData>&& aData)
-{
+void PerformanceStorageWorker::AddEntryOnWorker(
+    UniquePtr<PerformanceProxyData>&& aData) {
   RefPtr<Performance> performance;
   UniquePtr<PerformanceProxyData> data = Move(aData);
 
@@ -258,12 +220,12 @@ PerformanceStorageWorker::AddEntryOnWorker(UniquePtr<PerformanceProxyData>&& aDa
   }
 
   RefPtr<PerformanceResourceTiming> performanceEntry =
-    new PerformanceResourceTiming(Move(data->mData), performance,
-                                 data->mEntryName);
+      new PerformanceResourceTiming(Move(data->mData), performance,
+                                    data->mEntryName);
   performanceEntry->SetInitiatorType(data->mInitiatorType);
 
   performance->InsertResourceEntry(performanceEntry);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

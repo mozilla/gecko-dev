@@ -14,34 +14,34 @@
 
   value: A number between 0% and 100%
   align: horizontal or vertical
-  mode: determined, undetermined (one shows progress other shows animated candy cane)
+  mode: determined, undetermined (one shows progress other shows animated candy
+cane)
 
 **/
 
 #include "mozilla/Attributes.h"
 #include "nsBoxFrame.h"
 
-class nsProgressMeterFrame final : public nsBoxFrame
-{
-public:
+class nsProgressMeterFrame final : public nsBoxFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsProgressMeterFrame)
 
-  friend nsIFrame* NS_NewProgressMeterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsIFrame* NS_NewProgressMeterFrame(nsIPresShell* aPresShell,
+                                            nsStyleContext* aContext);
 
   NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsAtom* aAttribute,
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-protected:
-  explicit nsProgressMeterFrame(nsStyleContext* aContext) :
-    nsBoxFrame(aContext, kClassID), mNeedsReflowCallback(true) {}
+ protected:
+  explicit nsProgressMeterFrame(nsStyleContext* aContext)
+      : nsBoxFrame(aContext, kClassID), mNeedsReflowCallback(true) {}
   virtual ~nsProgressMeterFrame();
 
   bool mNeedsReflowCallback;
-}; // class nsProgressMeterFrame
+};  // class nsProgressMeterFrame

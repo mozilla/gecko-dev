@@ -13,11 +13,10 @@
 namespace mozilla {
 namespace a11y {
 
-class StyleInfo
-{
-public:
+class StyleInfo {
+ public:
   explicit StyleInfo(dom::Element* aElement);
-  ~StyleInfo() { }
+  ~StyleInfo() {}
 
   void Display(nsAString& aValue);
   void TextAlign(nsAString& aValue);
@@ -28,13 +27,15 @@ public:
   void MarginBottom(nsAString& aValue) { Margin(eSideBottom, aValue); }
 
   static void FormatColor(const nscolor& aValue, nsString& aFormattedValue);
-  static void FormatFontStyle(const nscoord& aValue, nsAString& aFormattedValue);
-  static void FormatTextDecorationStyle(uint8_t aValue, nsAString& aFormattedValue);
+  static void FormatFontStyle(const nscoord& aValue,
+                              nsAString& aFormattedValue);
+  static void FormatTextDecorationStyle(uint8_t aValue,
+                                        nsAString& aFormattedValue);
 
-private:
+ private:
   StyleInfo() = delete;
   StyleInfo(const StyleInfo&) = delete;
-  StyleInfo& operator = (const StyleInfo&) = delete;
+  StyleInfo& operator=(const StyleInfo&) = delete;
 
   void Margin(Side aSide, nsAString& aValue);
 
@@ -42,7 +43,7 @@ private:
   RefPtr<nsStyleContext> mStyleContext;
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

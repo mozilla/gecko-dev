@@ -16,12 +16,10 @@ class nsIDocument;
 namespace mozilla {
 namespace a11y {
 
-class RootAccessible : public DocAccessibleWrap,
-                       public nsIDOMEventListener
-{
+class RootAccessible : public DocAccessibleWrap, public nsIDOMEventListener {
   NS_DECL_ISUPPORTS_INHERITED
 
-public:
+ public:
   RootAccessible(nsIDocument* aDocument, nsIPresShell* aPresShell);
 
   // nsIDOMEventListener
@@ -46,7 +44,7 @@ public:
    */
   ProxyAccessible* GetPrimaryRemoteTopLevelContentDoc() const;
 
-protected:
+ protected:
   virtual ~RootAccessible();
 
   /**
@@ -71,22 +69,20 @@ protected:
   void HandlePopupHidingEvent(nsINode* aNode);
 
 #ifdef MOZ_XUL
-    void HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
-                                        XULTreeAccessible* aAccessible);
-    void HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
-                                    XULTreeAccessible* aAccessible);
+  void HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
+                                      XULTreeAccessible* aAccessible);
+  void HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
+                                  XULTreeAccessible* aAccessible);
 
-    uint32_t GetChromeFlags();
+  uint32_t GetChromeFlags();
 #endif
 };
 
-inline RootAccessible*
-Accessible::AsRoot()
-{
+inline RootAccessible* Accessible::AsRoot() {
   return IsRoot() ? static_cast<mozilla::a11y::RootAccessible*>(this) : nullptr;
 }
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif

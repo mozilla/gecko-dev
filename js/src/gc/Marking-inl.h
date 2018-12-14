@@ -15,130 +15,117 @@ namespace js {
 namespace gc {
 
 template <typename T>
-struct MightBeForwarded
-{
-    static_assert(mozilla::IsBaseOf<Cell, T>::value,
-                  "T must derive from Cell");
-    static_assert(!mozilla::IsSame<Cell, T>::value && !mozilla::IsSame<TenuredCell, T>::value,
-                  "T must not be Cell or TenuredCell");
+struct MightBeForwarded {
+  static_assert(mozilla::IsBaseOf<Cell, T>::value, "T must derive from Cell");
+  static_assert(!mozilla::IsSame<Cell, T>::value &&
+                    !mozilla::IsSame<TenuredCell, T>::value,
+                "T must not be Cell or TenuredCell");
 
-    static const bool value = mozilla::IsBaseOf<JSObject, T>::value ||
-                              mozilla::IsBaseOf<Shape, T>::value ||
-                              mozilla::IsBaseOf<BaseShape, T>::value ||
-                              mozilla::IsBaseOf<JSString, T>::value ||
-                              mozilla::IsBaseOf<JSScript, T>::value ||
-                              mozilla::IsBaseOf<js::LazyScript, T>::value ||
-                              mozilla::IsBaseOf<js::Scope, T>::value ||
-                              mozilla::IsBaseOf<js::RegExpShared, T>::value;
+  static const bool value = mozilla::IsBaseOf<JSObject, T>::value ||
+                            mozilla::IsBaseOf<Shape, T>::value ||
+                            mozilla::IsBaseOf<BaseShape, T>::value ||
+                            mozilla::IsBaseOf<JSString, T>::value ||
+                            mozilla::IsBaseOf<JSScript, T>::value ||
+                            mozilla::IsBaseOf<js::LazyScript, T>::value ||
+                            mozilla::IsBaseOf<js::Scope, T>::value ||
+                            mozilla::IsBaseOf<js::RegExpShared, T>::value;
 };
 
 template <typename T>
-inline bool
-IsForwarded(const T* t)
-{
-    const RelocationOverlay* overlay = RelocationOverlay::fromCell(t);
-    if (!MightBeForwarded<T>::value) {
-        MOZ_ASSERT(!overlay->isForwarded());
-        return false;
-    }
+inline bool IsForwarded(const T* t) {
+  const RelocationOverlay* overlay = RelocationOverlay::fromCell(t);
+  if (!MightBeForwarded<T>::value) {
+    MOZ_ASSERT(!overlay->isForwarded());
+    return false;
+  }
 
-    return overlay->isForwarded();
+  return overlay->isForwarded();
 }
 
 struct IsForwardedFunctor : public BoolDefaultAdaptor<Value, false> {
-    template <typename T> bool operator()(const T* t) { return IsForwarded(t); }
+  template <typename T>
+  bool operator()(const T* t) {
+    return IsForwarded(t);
+  }
 };
 
-inline bool
-IsForwarded(const JS::Value& value)
-{
-    return DispatchTyped(IsForwardedFunctor(), value);
+inline bool IsForwarded(const JS::Value& value) {
+  return DispatchTyped(IsForwardedFunctor(), value);
 }
 
 template <typename T>
-inline T*
-Forwarded(const T* t)
-{
-    const RelocationOverlay* overlay = RelocationOverlay::fromCell(t);
-    MOZ_ASSERT(overlay->isForwarded());
-    return reinterpret_cast<T*>(overlay->forwardingAddress());
+inline T* Forwarded(const T* t) {
+  const RelocationOverlay* overlay = RelocationOverlay::fromCell(t);
+  MOZ_ASSERT(overlay->isForwarded());
+  return reinterpret_cast<T*>(overlay->forwardingAddress());
 }
 
 struct ForwardedFunctor : public IdentityDefaultAdaptor<Value> {
-    template <typename T> inline Value operator()(const T* t) {
-        return js::gc::RewrapTaggedPointer<Value, T>::wrap(Forwarded(t));
-    }
+  template <typename T>
+  inline Value operator()(const T* t) {
+    return js::gc::RewrapTaggedPointer<Value, T>::wrap(Forwarded(t));
+  }
 };
 
-inline Value
-Forwarded(const JS::Value& value)
-{
-    return DispatchTyped(ForwardedFunctor(), value);
+inline Value Forwarded(const JS::Value& value) {
+  return DispatchTyped(ForwardedFunctor(), value);
 }
 
 template <typename T>
-inline T
-MaybeForwarded(T t)
-{
-    if (IsForwarded(t))
-        t = Forwarded(t);
-    MakeAccessibleAfterMovingGC(t);
-    return t;
+inline T MaybeForwarded(T t) {
+  if (IsForwarded(t)) t = Forwarded(t);
+  MakeAccessibleAfterMovingGC(t);
+  return t;
 }
 
-inline void
-RelocationOverlay::forwardTo(Cell* cell)
-{
-    MOZ_ASSERT(!isForwarded());
-    // The location of magic_ is important because it must never be valid to see
-    // the value Relocated there in a GC thing that has not been moved.
-    static_assert(offsetof(RelocationOverlay, magic_) == offsetof(JSObject, group_) + sizeof(uint32_t),
-                  "RelocationOverlay::magic_ is in the wrong location");
-    static_assert(offsetof(RelocationOverlay, magic_) == offsetof(js::Shape, base_) + sizeof(uint32_t),
-                  "RelocationOverlay::magic_ is in the wrong location");
-    static_assert(offsetof(RelocationOverlay, magic_) == offsetof(JSString, d.u1.length),
-                  "RelocationOverlay::magic_ is in the wrong location");
-    magic_ = Relocated;
-    newLocation_ = cell;
+inline void RelocationOverlay::forwardTo(Cell* cell) {
+  MOZ_ASSERT(!isForwarded());
+  // The location of magic_ is important because it must never be valid to see
+  // the value Relocated there in a GC thing that has not been moved.
+  static_assert(offsetof(RelocationOverlay, magic_) ==
+                    offsetof(JSObject, group_) + sizeof(uint32_t),
+                "RelocationOverlay::magic_ is in the wrong location");
+  static_assert(offsetof(RelocationOverlay, magic_) ==
+                    offsetof(js::Shape, base_) + sizeof(uint32_t),
+                "RelocationOverlay::magic_ is in the wrong location");
+  static_assert(
+      offsetof(RelocationOverlay, magic_) == offsetof(JSString, d.u1.length),
+      "RelocationOverlay::magic_ is in the wrong location");
+  magic_ = Relocated;
+  newLocation_ = cell;
 }
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
 template <typename T>
-inline bool
-IsGCThingValidAfterMovingGC(T* t)
-{
-    return !IsInsideNursery(t) && !RelocationOverlay::isCellForwarded(t);
+inline bool IsGCThingValidAfterMovingGC(T* t) {
+  return !IsInsideNursery(t) && !RelocationOverlay::isCellForwarded(t);
 }
 
 template <typename T>
-inline void
-CheckGCThingAfterMovingGC(T* t)
-{
-    if (t)
-        MOZ_RELEASE_ASSERT(IsGCThingValidAfterMovingGC(t));
+inline void CheckGCThingAfterMovingGC(T* t) {
+  if (t) MOZ_RELEASE_ASSERT(IsGCThingValidAfterMovingGC(t));
 }
 
 template <typename T>
-inline void
-CheckGCThingAfterMovingGC(const ReadBarriered<T*>& t)
-{
-    CheckGCThingAfterMovingGC(t.unbarrieredGet());
+inline void CheckGCThingAfterMovingGC(const ReadBarriered<T*>& t) {
+  CheckGCThingAfterMovingGC(t.unbarrieredGet());
 }
 
 struct CheckValueAfterMovingGCFunctor : public VoidDefaultAdaptor<Value> {
-    template <typename T> void operator()(T* t) { CheckGCThingAfterMovingGC(t); }
+  template <typename T>
+  void operator()(T* t) {
+    CheckGCThingAfterMovingGC(t);
+  }
 };
 
-inline void
-CheckValueAfterMovingGC(const JS::Value& value)
-{
-    DispatchTyped(CheckValueAfterMovingGCFunctor(), value);
+inline void CheckValueAfterMovingGC(const JS::Value& value) {
+  DispatchTyped(CheckValueAfterMovingGCFunctor(), value);
 }
 
-#endif // JSGC_HASH_TABLE_CHECKS
+#endif  // JSGC_HASH_TABLE_CHECKS
 
 } /* namespace gc */
 } /* namespace js */
 
-#endif // gc_Marking_inl_h
+#endif  // gc_Marking_inl_h

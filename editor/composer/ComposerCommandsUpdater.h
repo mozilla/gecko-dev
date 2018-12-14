@@ -7,15 +7,15 @@
 #ifndef mozilla_ComposerCommandsUpdater_h
 #define mozilla_ComposerCommandsUpdater_h
 
-#include "nsCOMPtr.h"                   // for already_AddRefed, nsCOMPtr
+#include "nsCOMPtr.h"  // for already_AddRefed, nsCOMPtr
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocumentStateListener.h"
 #include "nsINamed.h"
-#include "nsISupportsImpl.h"            // for NS_DECL_ISUPPORTS
-#include "nsITimer.h"                   // for NS_DECL_NSITIMERCALLBACK, etc
-#include "nsITransactionListener.h"     // for nsITransactionListener
-#include "nsIWeakReferenceUtils.h"      // for nsWeakPtr
-#include "nscore.h"                     // for NS_IMETHOD, nsresult, etc
+#include "nsISupportsImpl.h"         // for NS_DECL_ISUPPORTS
+#include "nsITimer.h"                // for NS_DECL_NSITIMERCALLBACK, etc
+#include "nsITransactionListener.h"  // for nsITransactionListener
+#include "nsIWeakReferenceUtils.h"   // for nsWeakPtr
+#include "nscore.h"                  // for NS_IMETHOD, nsresult, etc
 
 class nsIDocShell;
 class nsITransaction;
@@ -25,12 +25,11 @@ class nsPICommandUpdater;
 
 namespace mozilla {
 
-class ComposerCommandsUpdater final : public nsIDocumentStateListener
-                                    , public nsITransactionListener
-                                    , public nsITimerCallback
-                                    , public nsINamed
-{
-public:
+class ComposerCommandsUpdater final : public nsIDocumentStateListener,
+                                      public nsITransactionListener,
+                                      public nsITimerCallback,
+                                      public nsINamed {
+ public:
   ComposerCommandsUpdater();
 
   // nsISupports
@@ -55,16 +54,12 @@ public:
   /**
    * OnSelectionChange() is called when selection is changed in the editor.
    */
-  void OnSelectionChange()
-  {
-    PrimeUpdateTimer();
-  }
+  void OnSelectionChange() { PrimeUpdateTimer(); }
 
-protected:
+ protected:
   virtual ~ComposerCommandsUpdater();
 
-  enum
-  {
+  enum {
     eStateUninitialized = -1,
     eStateOff = 0,
     eStateOn = 1,
@@ -89,6 +84,6 @@ protected:
   bool mFirstDoOfFirstUndo;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef mozilla_ComposerCommandsUpdater_h
+#endif  // #ifndef mozilla_ComposerCommandsUpdater_h

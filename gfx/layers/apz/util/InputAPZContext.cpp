@@ -15,45 +15,32 @@ nsEventStatus InputAPZContext::sApzResponse = nsEventStatus_eIgnore;
 bool InputAPZContext::sRoutedToChildProcess = false;
 bool InputAPZContext::sPendingLayerization = false;
 
-/*static*/ ScrollableLayerGuid
-InputAPZContext::GetTargetLayerGuid()
-{
+/*static*/ ScrollableLayerGuid InputAPZContext::GetTargetLayerGuid() {
   return sGuid;
 }
 
-/*static*/ uint64_t
-InputAPZContext::GetInputBlockId()
-{
-  return sBlockId;
-}
+/*static*/ uint64_t InputAPZContext::GetInputBlockId() { return sBlockId; }
 
-/*static*/ nsEventStatus
-InputAPZContext::GetApzResponse()
-{
+/*static*/ nsEventStatus InputAPZContext::GetApzResponse() {
   return sApzResponse;
 }
 
-/*static*/ void
-InputAPZContext::SetRoutedToChildProcess()
-{
+/*static*/ void InputAPZContext::SetRoutedToChildProcess() {
   sRoutedToChildProcess = true;
 }
 
-/*static*/ void
-InputAPZContext::SetPendingLayerization()
-{
+/*static*/ void InputAPZContext::SetPendingLayerization() {
   sPendingLayerization = true;
 }
 
 InputAPZContext::InputAPZContext(const ScrollableLayerGuid& aGuid,
                                  const uint64_t& aBlockId,
                                  const nsEventStatus& aApzResponse)
-  : mOldGuid(sGuid)
-  , mOldBlockId(sBlockId)
-  , mOldApzResponse(sApzResponse)
-  , mOldRoutedToChildProcess(sRoutedToChildProcess)
-  , mOldPendingLayerization(sPendingLayerization)
-{
+    : mOldGuid(sGuid),
+      mOldBlockId(sBlockId),
+      mOldApzResponse(sApzResponse),
+      mOldRoutedToChildProcess(sRoutedToChildProcess),
+      mOldPendingLayerization(sPendingLayerization) {
   sGuid = aGuid;
   sBlockId = aBlockId;
   sApzResponse = aApzResponse;
@@ -61,8 +48,7 @@ InputAPZContext::InputAPZContext(const ScrollableLayerGuid& aGuid,
   sPendingLayerization = false;
 }
 
-InputAPZContext::~InputAPZContext()
-{
+InputAPZContext::~InputAPZContext() {
   sGuid = mOldGuid;
   sBlockId = mOldBlockId;
   sApzResponse = mOldApzResponse;
@@ -70,17 +56,13 @@ InputAPZContext::~InputAPZContext()
   sPendingLayerization = mOldPendingLayerization;
 }
 
-/*static*/ bool
-InputAPZContext::WasRoutedToChildProcess()
-{
+/*static*/ bool InputAPZContext::WasRoutedToChildProcess() {
   return sRoutedToChildProcess;
 }
 
-/*static*/ bool
-InputAPZContext::HavePendingLayerization()
-{
+/*static*/ bool InputAPZContext::HavePendingLayerization() {
   return sPendingLayerization;
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

@@ -30,10 +30,10 @@ namespace dom {
  * Protocol Constants
  **********************************************************************/
 
-const uint8_t FLAG_TUP = 0x01; // Test of User Presence required
-const uint8_t FLAG_AT = 0x40; // Authenticator Data is provided
-const uint8_t FLAG_UV = 0x04; // User was Verified (biometrics, etc.); this
-                              // flag is not possible with U2F devices
+const uint8_t FLAG_TUP = 0x01;  // Test of User Presence required
+const uint8_t FLAG_AT = 0x40;   // Authenticator Data is provided
+const uint8_t FLAG_UV = 0x04;   // User was Verified (biometrics, etc.); this
+                                // flag is not possible with U2F devices
 
 /***********************************************************************
  * Statics
@@ -49,13 +49,11 @@ NS_IMPL_ISUPPORTS(WebAuthnManager, nsIDOMEventListener);
  * Utility Functions
  **********************************************************************/
 
-static nsresult
-AssembleClientData(const nsAString& aOrigin,
-                   const CryptoBuffer& aChallenge,
-                   const nsAString& aType,
-                   const AuthenticationExtensionsClientInputs& aExtensions,
-                   /* out */ nsACString& aJsonOut)
-{
+static nsresult AssembleClientData(
+    const nsAString& aOrigin, const CryptoBuffer& aChallenge,
+    const nsAString& aType,
+    const AuthenticationExtensionsClientInputs& aExtensions,
+    /* out */ nsACString& aJsonOut) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsString challengeBase64;
@@ -80,18 +78,15 @@ AssembleClientData(const nsAString& aOrigin,
   return NS_OK;
 }
 
-nsresult
-GetOrigin(nsPIDOMWindowInner* aParent,
-          /*out*/ nsAString& aOrigin, /*out*/ nsACString& aHost)
-{
+nsresult GetOrigin(nsPIDOMWindowInner* aParent,
+                   /*out*/ nsAString& aOrigin, /*out*/ nsACString& aHost) {
   MOZ_ASSERT(aParent);
   nsCOMPtr<nsIDocument> doc = aParent->GetDoc();
   MOZ_ASSERT(doc);
 
   nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
   nsresult rv = nsContentUtils::GetUTFOrigin(principal, aOrigin);
-  if (NS_WARN_IF(NS_FAILED(rv)) ||
-      NS_WARN_IF(aOrigin.IsEmpty())) {
+  if (NS_WARN_IF(NS_FAILED(rv)) || NS_WARN_IF(aOrigin.IsEmpty())) {
     return NS_ERROR_FAILURE;
   }
 
@@ -99,7 +94,8 @@ GetOrigin(nsPIDOMWindowInner* aParent,
     // 4.1.1.3 If callerOrigin is an opaque origin, reject promise with a
     // DOMException whose name is "NotAllowedError", and terminate this
     // algorithm
-    MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug, ("Rejecting due to opaque origin"));
+    MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug,
+            ("Rejecting due to opaque origin"));
     return NS_ERROR_DOM_NOT_ALLOWED_ERR;
   }
 
@@ -114,11 +110,9 @@ GetOrigin(nsPIDOMWindowInner* aParent,
   return NS_OK;
 }
 
-nsresult
-RelaxSameOrigin(nsPIDOMWindowInner* aParent,
-                const nsAString& aInputRpId,
-                /* out */ nsACString& aRelaxedRpId)
-{
+nsresult RelaxSameOrigin(nsPIDOMWindowInner* aParent,
+                         const nsAString& aInputRpId,
+                         /* out */ nsACString& aRelaxedRpId) {
   MOZ_ASSERT(aParent);
   nsCOMPtr<nsIDocument> doc = aParent->GetDoc();
   MOZ_ASSERT(doc);
@@ -147,8 +141,8 @@ RelaxSameOrigin(nsPIDOMWindowInner* aParent,
   // RP ID, then it should be a valid domain string.)
   nsCOMPtr<nsIURI> inputRpIdURI;
   nsresult rv = NS_MutateURI(uri)
-         .SetHost(NS_ConvertUTF16toUTF8(aInputRpId))
-         .Finalize(inputRpIdURI);
+                    .SetHost(NS_ConvertUTF16toUTF8(aInputRpId))
+                    .Finalize(inputRpIdURI);
   if (NS_FAILED(rv)) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
@@ -157,7 +151,7 @@ RelaxSameOrigin(nsPIDOMWindowInner* aParent,
     return NS_ERROR_FAILURE;
   }
   if (!html->IsRegistrableDomainSuffixOfOrEqualTo(
-      NS_ConvertUTF8toUTF16(inputRpId), originHost)) {
+          NS_ConvertUTF8toUTF16(inputRpId), originHost)) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
@@ -169,9 +163,7 @@ RelaxSameOrigin(nsPIDOMWindowInner* aParent,
  * WebAuthnManager Implementation
  **********************************************************************/
 
-void
-WebAuthnManager::ClearTransaction()
-{
+void WebAuthnManager::ClearTransaction() {
   if (!NS_WARN_IF(mTransaction.isNothing())) {
     StopListeningForVisibilityEvents();
   }
@@ -180,9 +172,7 @@ WebAuthnManager::ClearTransaction()
   Unfollow();
 }
 
-void
-WebAuthnManager::RejectTransaction(const nsresult& aError)
-{
+void WebAuthnManager::RejectTransaction(const nsresult& aError) {
   if (!NS_WARN_IF(mTransaction.isNothing())) {
     mTransaction.ref().mPromise->MaybeReject(aError);
   }
@@ -190,9 +180,7 @@ WebAuthnManager::RejectTransaction(const nsresult& aError)
   ClearTransaction();
 }
 
-void
-WebAuthnManager::CancelTransaction(const nsresult& aError)
-{
+void WebAuthnManager::CancelTransaction(const nsresult& aError) {
   if (!NS_WARN_IF(!mChild || mTransaction.isNothing())) {
     mChild->SendRequestCancel(mTransaction.ref().mId);
   }
@@ -200,8 +188,7 @@ WebAuthnManager::CancelTransaction(const nsresult& aError)
   RejectTransaction(aError);
 }
 
-WebAuthnManager::~WebAuthnManager()
-{
+WebAuthnManager::~WebAuthnManager() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mTransaction.isSome()) {
@@ -215,10 +202,9 @@ WebAuthnManager::~WebAuthnManager()
   }
 }
 
-already_AddRefed<Promise>
-WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptions,
-                                const Optional<OwningNonNull<AbortSignal>>& aSignal)
-{
+already_AddRefed<Promise> WebAuthnManager::MakeCredential(
+    const PublicKeyCredentialCreationOptions& aOptions,
+    const Optional<OwningNonNull<AbortSignal>>& aSignal) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mTransaction.isSome()) {
@@ -299,7 +285,7 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
 
   nsresult srv;
   nsCOMPtr<nsICryptoHash> hashService =
-    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &srv);
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &srv);
   if (NS_WARN_IF(NS_FAILED(srv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
@@ -310,7 +296,6 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
-
 
   // TODO: Move this logic into U2FTokenManager in Bug 1409220.
 
@@ -324,7 +309,8 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
     // If current.type does not contain a PublicKeyCredentialType
     // supported by this implementation, then stop processing current and move
     // on to the next element in mPubKeyCredParams.
-    if (aOptions.mPubKeyCredParams[a].mType != PublicKeyCredentialType::Public_key) {
+    if (aOptions.mPubKeyCredParams[a].mType !=
+        PublicKeyCredentialType::Public_key) {
       continue;
     }
 
@@ -335,7 +321,7 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
     }
 
     if (!acceptableParams.AppendElement(aOptions.mPubKeyCredParams[a],
-                                        mozilla::fallible)){
+                                        mozilla::fallible)) {
       promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
       return promise.forget();
     }
@@ -392,7 +378,7 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
   }
 
   nsTArray<WebAuthnScopedCredential> excludeList;
-  for (const auto& s: aOptions.mExcludeCredentials) {
+  for (const auto& s : aOptions.mExcludeCredentials) {
     WebAuthnScopedCredential c;
     CryptoBuffer cb;
     cb.Assign(s.mId);
@@ -414,30 +400,26 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
 
   // Does the RP require attachment == "platform"?
   bool requirePlatformAttachment =
-    attachment.WasPassed() && attachment.Value() == AuthenticatorAttachment::Platform;
+      attachment.WasPassed() &&
+      attachment.Value() == AuthenticatorAttachment::Platform;
 
   // Does the RP require user verification?
   bool requireUserVerification =
-    selection.mUserVerification == UserVerificationRequirement::Required;
+      selection.mUserVerification == UserVerificationRequirement::Required;
 
   // Does the RP desire direct attestation? Indirect attestation is not
   // implemented, and thus is equivilent to None.
   bool requestDirectAttestation =
-    attestation == AttestationConveyancePreference::Direct;
+      attestation == AttestationConveyancePreference::Direct;
 
   // Create and forward authenticator selection criteria.
   WebAuthnAuthenticatorSelection authSelection(selection.mRequireResidentKey,
                                                requireUserVerification,
                                                requirePlatformAttachment);
 
-  WebAuthnMakeCredentialInfo info(origin,
-                                  rpIdHash,
-                                  clientDataHash,
-                                  adjustedTimeout,
-                                  excludeList,
-                                  extensions,
-                                  authSelection,
-                                  requestDirectAttestation);
+  WebAuthnMakeCredentialInfo info(origin, rpIdHash, clientDataHash,
+                                  adjustedTimeout, excludeList, extensions,
+                                  authSelection, requestDirectAttestation);
 
   ListenForVisibilityEvents();
 
@@ -448,21 +430,17 @@ WebAuthnManager::MakeCredential(const PublicKeyCredentialCreationOptions& aOptio
   }
 
   MOZ_ASSERT(mTransaction.isNothing());
-  mTransaction = Some(WebAuthnTransaction(promise,
-                                          rpIdHash,
-                                          clientDataJSON,
-                                          requestDirectAttestation,
-                                          signal));
+  mTransaction = Some(WebAuthnTransaction(promise, rpIdHash, clientDataJSON,
+                                          requestDirectAttestation, signal));
 
   mChild->SendRequestRegister(mTransaction.ref().mId, info);
 
   return promise.forget();
 }
 
-already_AddRefed<Promise>
-WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
-                              const Optional<OwningNonNull<AbortSignal>>& aSignal)
-{
+already_AddRefed<Promise> WebAuthnManager::GetAssertion(
+    const PublicKeyCredentialRequestOptions& aOptions,
+    const Optional<OwningNonNull<AbortSignal>>& aSignal) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mTransaction.isSome()) {
@@ -525,7 +503,7 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
 
   nsresult srv;
   nsCOMPtr<nsICryptoHash> hashService =
-    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &srv);
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &srv);
   if (NS_WARN_IF(NS_FAILED(srv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
@@ -568,7 +546,7 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
   }
 
   nsTArray<WebAuthnScopedCredential> allowList;
-  for (const auto& s: aOptions.mAllowCredentials) {
+  for (const auto& s : aOptions.mAllowCredentials) {
     if (s.mType == PublicKeyCredentialType::Public_key) {
       WebAuthnScopedCredential c;
       CryptoBuffer cb;
@@ -578,7 +556,7 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
       // Serialize transports.
       if (s.mTransports.WasPassed()) {
         uint8_t transports = 0;
-        for (const auto& t: s.mTransports.Value()) {
+        for (const auto& t : s.mTransports.Value()) {
           if (t == AuthenticatorTransport::Usb) {
             transports |= U2F_AUTHENTICATOR_TRANSPORT_USB;
           }
@@ -603,7 +581,7 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
 
   // Does the RP require user verification?
   bool requireUserVerification =
-    aOptions.mUserVerification == UserVerificationRequirement::Required;
+      aOptions.mUserVerification == UserVerificationRequirement::Required;
 
   // If extensions were specified, process any extensions supported by this
   // client platform, to produce the extension data that needs to be sent to the
@@ -629,7 +607,8 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
     }
 
     // We need the SHA-256 hash of the appId.
-    nsresult srv = HashCString(hashService, NS_ConvertUTF16toUTF8(appId), appIdHash);
+    nsresult srv =
+        HashCString(hashService, NS_ConvertUTF16toUTF8(appId), appIdHash);
     if (NS_WARN_IF(NS_FAILED(srv))) {
       promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
       return promise.forget();
@@ -639,13 +618,9 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
     extensions.AppendElement(WebAuthnExtensionAppId(appIdHash));
   }
 
-  WebAuthnGetAssertionInfo info(origin,
-                                rpIdHash,
-                                clientDataHash,
-                                adjustedTimeout,
-                                allowList,
-                                requireUserVerification,
-                                extensions);
+  WebAuthnGetAssertionInfo info(origin, rpIdHash, clientDataHash,
+                                adjustedTimeout, allowList,
+                                requireUserVerification, extensions);
 
   ListenForVisibilityEvents();
 
@@ -656,19 +631,16 @@ WebAuthnManager::GetAssertion(const PublicKeyCredentialRequestOptions& aOptions,
   }
 
   MOZ_ASSERT(mTransaction.isNothing());
-  mTransaction = Some(WebAuthnTransaction(promise,
-                                          rpIdHash,
-                                          clientDataJSON,
-                                          false /* aDirectAttestation */,
-                                          signal));
+  mTransaction =
+      Some(WebAuthnTransaction(promise, rpIdHash, clientDataJSON,
+                               false /* aDirectAttestation */, signal));
 
   mChild->SendRequestSign(mTransaction.ref().mId, info);
   return promise.forget();
 }
 
-already_AddRefed<Promise>
-WebAuthnManager::Store(const Credential& aCredential)
-{
+already_AddRefed<Promise> WebAuthnManager::Store(
+    const Credential& aCredential) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mTransaction.isSome()) {
@@ -687,10 +659,9 @@ WebAuthnManager::Store(const Credential& aCredential)
   return promise.forget();
 }
 
-void
-WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
-                                      const WebAuthnMakeCredentialResult& aResult)
-{
+void WebAuthnManager::FinishMakeCredential(
+    const uint64_t& aTransactionId,
+    const WebAuthnMakeCredentialResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
@@ -712,7 +683,7 @@ WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
   }
   // FIDO U2F devices have no AAGUIDs, so they'll be all zeros until we add
   // support for CTAP2 devices.
-  for (int i=0; i<16; i++) {
+  for (int i = 0; i < 16; i++) {
     aaguidBuf.AppendElement(0x00, mozilla::fallible);
   }
 
@@ -723,8 +694,8 @@ WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
   CryptoBuffer signatureBuf;
 
   // Only handles attestation cert chains of length=1.
-  nsresult rv = U2FDecomposeRegistrationResponse(regData, pubKeyBuf, keyHandleBuf,
-                                                 attestationCertBuf, signatureBuf);
+  nsresult rv = U2FDecomposeRegistrationResponse(
+      regData, pubKeyBuf, keyHandleBuf, attestationCertBuf, signatureBuf);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     RejectTransaction(rv);
     return;
@@ -810,8 +781,7 @@ WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
   attestation->SetClientDataJSON(clientDataBuf);
   attestation->SetAttestationObject(attObj);
 
-  RefPtr<PublicKeyCredential> credential =
-      new PublicKeyCredential(mParent);
+  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mParent);
   credential->SetId(keyHandleBase64Url);
   credential->SetType(NS_LITERAL_STRING("public-key"));
   credential->SetRawId(keyHandleBuf);
@@ -821,10 +791,8 @@ WebAuthnManager::FinishMakeCredential(const uint64_t& aTransactionId,
   ClearTransaction();
 }
 
-void
-WebAuthnManager::FinishGetAssertion(const uint64_t& aTransactionId,
-                                    const WebAuthnGetAssertionResult& aResult)
-{
+void WebAuthnManager::FinishGetAssertion(
+    const uint64_t& aTransactionId, const WebAuthnGetAssertionResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Check for a valid transaction.
@@ -890,7 +858,7 @@ WebAuthnManager::FinishGetAssertion(const uint64_t& aTransactionId,
   // with the values returned from the authenticator as well as the
   // clientDataJSON computed earlier.
   RefPtr<AuthenticatorAssertionResponse> assertion =
-    new AuthenticatorAssertionResponse(mParent);
+      new AuthenticatorAssertionResponse(mParent);
   assertion->SetClientDataJSON(clientDataBuf);
   assertion->SetAuthenticatorData(authenticatorDataBuf);
   assertion->SetSignature(signatureBuf);
@@ -902,7 +870,7 @@ WebAuthnManager::FinishGetAssertion(const uint64_t& aTransactionId,
   credential->SetResponse(assertion);
 
   // Forward client extension results.
-  for (auto& ext: aResult.Extensions()) {
+  for (auto& ext : aResult.Extensions()) {
     if (ext.type() == WebAuthnExtensionResult::TWebAuthnExtensionResultAppId) {
       bool appid = ext.get_WebAuthnExtensionResultAppId().AppId();
       credential->SetClientExtensionResultAppId(appid);
@@ -913,10 +881,8 @@ WebAuthnManager::FinishGetAssertion(const uint64_t& aTransactionId,
   ClearTransaction();
 }
 
-void
-WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
-                                const nsresult& aError)
-{
+void WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
+                                     const nsresult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mTransaction.isSome() && mTransaction.ref().mId == aTransactionId) {
@@ -924,11 +890,7 @@ WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
   }
 }
 
-void
-WebAuthnManager::Abort()
-{
-  CancelTransaction(NS_ERROR_DOM_ABORT_ERR);
-}
+void WebAuthnManager::Abort() { CancelTransaction(NS_ERROR_DOM_ABORT_ERR); }
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla

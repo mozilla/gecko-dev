@@ -17,13 +17,9 @@ nsDOMCSSRect::nsDOMCSSRect(nsROCSSPrimitiveValue* aTop,
                            nsROCSSPrimitiveValue* aRight,
                            nsROCSSPrimitiveValue* aBottom,
                            nsROCSSPrimitiveValue* aLeft)
-  : mTop(aTop), mRight(aRight), mBottom(aBottom), mLeft(aLeft)
-{
-}
+    : mTop(aTop), mRight(aRight), mBottom(aBottom), mLeft(aLeft) {}
 
-nsDOMCSSRect::~nsDOMCSSRect(void)
-{
-}
+nsDOMCSSRect::~nsDOMCSSRect(void) {}
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMCSSRect)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
@@ -33,10 +29,10 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMCSSRect)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMCSSRect)
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSRect, mTop, mBottom, mLeft, mRight)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSRect, mTop, mBottom, mLeft,
+                                      mRight)
 
-JSObject*
-nsDOMCSSRect::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
-{
- return dom::RectBinding::Wrap(cx, this, aGivenProto);
+JSObject* nsDOMCSSRect::WrapObject(JSContext* cx,
+                                   JS::Handle<JSObject*> aGivenProto) {
+  return dom::RectBinding::Wrap(cx, this, aGivenProto);
 }

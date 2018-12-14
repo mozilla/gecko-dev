@@ -26,7 +26,8 @@ const char* gfx_wr_resource_path_override();
 void gfx_critical_note(const char* msg);
 void gfx_critical_error(const char* msg);
 void gecko_printf_stderr_output(const char* msg);
-void* get_proc_address_from_glcontext(void* glcontext_ptr, const char* procname);
+void* get_proc_address_from_glcontext(void* glcontext_ptr,
+                                      const char* procname);
 void gecko_profiler_register_thread(const char* threadname);
 void gecko_profiler_unregister_thread();
 
@@ -52,7 +53,7 @@ struct FontInstanceFlags {
   }
 
   FontInstanceFlags operator|(uint32_t aBits) {
-    FontInstanceFlags flags = { bits | aBits };
+    FontInstanceFlags flags = {bits | aBits};
     return flags;
   }
 
@@ -62,33 +63,33 @@ struct FontInstanceFlags {
   }
 
   FontInstanceFlags operator&(uint32_t aBits) {
-    FontInstanceFlags flags = { bits & aBits };
+    FontInstanceFlags flags = {bits & aBits};
     return flags;
   }
 
   enum : uint32_t {
     SYNTHETIC_ITALICS = 1 << 0,
-    SYNTHETIC_BOLD    = 1 << 1,
-    EMBEDDED_BITMAPS  = 1 << 2,
-    SUBPIXEL_BGR      = 1 << 3,
-    TRANSPOSE         = 1 << 4,
-    FLIP_X            = 1 << 5,
-    FLIP_Y            = 1 << 6,
+    SYNTHETIC_BOLD = 1 << 1,
+    EMBEDDED_BITMAPS = 1 << 2,
+    SUBPIXEL_BGR = 1 << 3,
+    TRANSPOSE = 1 << 4,
+    FLIP_X = 1 << 5,
+    FLIP_Y = 1 << 6,
 
-    FORCE_GDI         = 1 << 16,
+    FORCE_GDI = 1 << 16,
 
-    FONT_SMOOTHING    = 1 << 16,
+    FONT_SMOOTHING = 1 << 16,
 
-    FORCE_AUTOHINT    = 1 << 16,
-    NO_AUTOHINT       = 1 << 17,
-    VERTICAL_LAYOUT   = 1 << 18
+    FORCE_AUTOHINT = 1 << 16,
+    NO_AUTOHINT = 1 << 17,
+    VERTICAL_LAYOUT = 1 << 18
   };
 };
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
-} // extern "C"
+}  // extern "C"
 
 // Some useful defines to stub out webrender binding functions for when we
 // build gecko without webrender. We try to tell the compiler these functions
@@ -98,13 +99,15 @@ struct FontInstanceFlags {
 // destructors in C++ classes, use WR_DESTRUCTOR_SAFE_FUNC instead, which omits
 // the unreachable annotation.
 #ifdef MOZ_BUILD_WEBRENDER
-#  define WR_INLINE
-#  define WR_FUNC
-#  define WR_DESTRUCTOR_SAFE_FUNC
+#define WR_INLINE
+#define WR_FUNC
+#define WR_DESTRUCTOR_SAFE_FUNC
 #else
-#  define WR_INLINE inline
-#  define WR_FUNC { MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("WebRender disabled"); }
-#  define WR_DESTRUCTOR_SAFE_FUNC {}
+#define WR_INLINE inline
+#define WR_FUNC \
+  { MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("WebRender disabled"); }
+#define WR_DESTRUCTOR_SAFE_FUNC \
+  {}
 #endif
 
 #include "webrender_ffi_generated.h"
@@ -112,4 +115,4 @@ struct FontInstanceFlags {
 #undef WR_FUNC
 #undef WR_DESTRUCTOR_SAFE_FUNC
 
-#endif // WR_h
+#endif  // WR_h

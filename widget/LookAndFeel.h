@@ -16,17 +16,15 @@
 
 struct gfxFontStyle;
 
-struct LookAndFeelInt
-{
+struct LookAndFeelInt {
   int32_t id;
   int32_t value;
 };
 
 namespace mozilla {
 
-class LookAndFeel
-{
-public:
+class LookAndFeel {
+ public:
   // When modifying this list, also modify nsXPLookAndFeel::sColorPrefs
   // in widget/xpwidgts/nsXPLookAndFeel.cpp.
   enum ColorID : uint8_t {
@@ -141,19 +139,19 @@ public:
     eColorID__moz_mac_chrome_inactive,
     // foreground color of default buttons
     eColorID__moz_mac_defaultbuttontext,
-    //ring around text fields and lists
+    // ring around text fields and lists
     eColorID__moz_mac_focusring,
-    //colour used when mouse is over a menu item
+    // colour used when mouse is over a menu item
     eColorID__moz_mac_menuselect,
-    //colour used to do shadows on menu items
+    // colour used to do shadows on menu items
     eColorID__moz_mac_menushadow,
     // color used to display text for disabled menu items
     eColorID__moz_mac_menutextdisable,
-    //colour used to display text while mouse is over a menu item
+    // colour used to display text while mouse is over a menu item
     eColorID__moz_mac_menutextselect,
     // text color of disabled text on toolbars
     eColorID__moz_mac_disabledtoolbartext,
-    //inactive light hightlight
+    // inactive light hightlight
     eColorID__moz_mac_secondaryhighlight,
 
     // Font smoothing background colors needed by the Mac OS X theme, based
@@ -318,15 +316,15 @@ public:
      */
     eIntID_MacGraphiteTheme,
 
-   /*
-    * A Boolean value to determine whether the Mac OS X Yosemite-specific theming
-    * should be used.
-    *
-    * The value of this metric is not used on non-Mac platforms. These
-    * platforms should return NS_ERROR_NOT_IMPLEMENTED when queried for this
-    * metric.
-    */
-   eIntID_MacYosemiteTheme,
+    /*
+     * A Boolean value to determine whether the Mac OS X Yosemite-specific
+     * theming should be used.
+     *
+     * The value of this metric is not used on non-Mac platforms. These
+     * platforms should return NS_ERROR_NOT_IMPLEMENTED when queried for this
+     * metric.
+     */
+    eIntID_MacYosemiteTheme,
 
     /*
      * eIntID_AlertNotificationOrigin indicates from which corner of the
@@ -390,55 +388,55 @@ public:
      */
     eIntID_SwipeAnimationEnabled,
 
-     /*
-      * Controls whether overlay scrollbars display when the user moves
-      * the mouse in a scrollable frame.
-      */
-     eIntID_ScrollbarDisplayOnMouseMove,
+    /*
+     * Controls whether overlay scrollbars display when the user moves
+     * the mouse in a scrollable frame.
+     */
+    eIntID_ScrollbarDisplayOnMouseMove,
 
-     /*
-      * Overlay scrollbar animation constants.
-      */
-     eIntID_ScrollbarFadeBeginDelay,
-     eIntID_ScrollbarFadeDuration,
-      
-     /**
-      * Distance in pixels to offset the context menu from the cursor
-      * on open.
-      */
-     eIntID_ContextMenuOffsetVertical,
-     eIntID_ContextMenuOffsetHorizontal,
+    /*
+     * Overlay scrollbar animation constants.
+     */
+    eIntID_ScrollbarFadeBeginDelay,
+    eIntID_ScrollbarFadeDuration,
 
-     /*
-      * A boolean value indicating whether client-side decorations are
-      * supported by the user's GTK version.
-      */
-     eIntID_GTKCSDAvailable,
+    /**
+     * Distance in pixels to offset the context menu from the cursor
+     * on open.
+     */
+    eIntID_ContextMenuOffsetVertical,
+    eIntID_ContextMenuOffsetHorizontal,
 
-     /*
-      * A boolean value indicating whether client-side decorations should
-      * contain a minimize button.
-      */
-     eIntID_GTKCSDMinimizeButton,
+    /*
+     * A boolean value indicating whether client-side decorations are
+     * supported by the user's GTK version.
+     */
+    eIntID_GTKCSDAvailable,
 
-     /*
-      * A boolean value indicating whether client-side decorations should
-      * contain a maximize button.
-      */
-     eIntID_GTKCSDMaximizeButton,
+    /*
+     * A boolean value indicating whether client-side decorations should
+     * contain a minimize button.
+     */
+    eIntID_GTKCSDMinimizeButton,
 
-     /*
-      * A boolean value indicating whether client-side decorations should
-      * contain a close button.
-      */
-     eIntID_GTKCSDCloseButton
+    /*
+     * A boolean value indicating whether client-side decorations should
+     * contain a maximize button.
+     */
+    eIntID_GTKCSDMaximizeButton,
+
+    /*
+     * A boolean value indicating whether client-side decorations should
+     * contain a close button.
+     */
+    eIntID_GTKCSDCloseButton
   };
 
   /**
    * Windows themes we currently detect.
    */
   enum WindowsTheme {
-    eWindowsTheme_Generic = 0, // unrecognized theme
+    eWindowsTheme_Generic = 0,  // unrecognized theme
     eWindowsTheme_Classic,
     eWindowsTheme_Aero,
     eWindowsTheme_LunaBlue,
@@ -470,23 +468,20 @@ public:
   enum {
     // single arrow at each end
     eScrollArrowStyle_Single =
-      eScrollArrow_StartBackward | eScrollArrow_EndForward,
+        eScrollArrow_StartBackward | eScrollArrow_EndForward,
     // both arrows at bottom/right, none at top/left
     eScrollArrowStyle_BothAtBottom =
-      eScrollArrow_EndBackward | eScrollArrow_EndForward,
+        eScrollArrow_EndBackward | eScrollArrow_EndForward,
     // both arrows at both ends
     eScrollArrowStyle_BothAtEachEnd =
-      eScrollArrow_EndBackward | eScrollArrow_EndForward |
-      eScrollArrow_StartBackward | eScrollArrow_StartForward,
+        eScrollArrow_EndBackward | eScrollArrow_EndForward |
+        eScrollArrow_StartBackward | eScrollArrow_StartForward,
     // both arrows at top/left, none at bottom/right
     eScrollArrowStyle_BothAtTop =
-      eScrollArrow_StartBackward | eScrollArrow_StartForward
+        eScrollArrow_StartBackward | eScrollArrow_StartForward
   };
 
-  enum {
-    eScrollThumbStyle_Normal,
-    eScrollThumbStyle_Proportional
-  };
+  enum { eScrollThumbStyle_Normal, eScrollThumbStyle_Proportional };
 
   // When modifying this list, also modify nsXPLookAndFeel::sFloatPrefs
   // in widget/xpwidgts/nsXPLookAndFeel.cpp.
@@ -502,7 +497,7 @@ public:
   // These constants must be kept in 1:1 correspondence with the
   // NS_STYLE_FONT_* system font constants.
   enum FontID {
-    eFont_Caption = 1,     // css2
+    eFont_Caption = 1,  // css2
     FontID_MINIMUM = eFont_Caption,
     eFont_Icon,
     eFont_Menu,
@@ -510,7 +505,7 @@ public:
     eFont_SmallCaption,
     eFont_StatusBar,
 
-    eFont_Window,          // css3
+    eFont_Window,  // css3
     eFont_Document,
     eFont_Workspace,
     eFont_Desktop,
@@ -521,7 +516,7 @@ public:
     eFont_List,
     eFont_Field,
 
-    eFont_Tooltips,        // moz
+    eFont_Tooltips,  // moz
     eFont_Widget,
     FontID_MAXIMUM = eFont_Widget
   };
@@ -543,7 +538,7 @@ public:
    */
   static nsresult GetColor(ColorID aID, nscolor* aResult);
 
-   /**
+  /**
    * This variant of GetColor() takes an extra Boolean parameter that allows
    * the caller to ask that hard-coded color values be substituted for
    * native colors (used when it is desireable to hide system colors to
@@ -563,8 +558,7 @@ public:
   static nsresult GetInt(IntID aID, int32_t* aResult);
   static nsresult GetFloat(FloatID aID, float* aResult);
 
-  static nscolor GetColor(ColorID aID, nscolor aDefault = NS_RGB(0, 0, 0))
-  {
+  static nscolor GetColor(ColorID aID, nscolor aDefault = NS_RGB(0, 0, 0)) {
     nscolor result = NS_RGB(0, 0, 0);
     if (NS_FAILED(GetColor(aID, &result))) {
       return aDefault;
@@ -573,19 +567,17 @@ public:
   }
 
   static nscolor GetColorUsingStandins(ColorID aID,
-                                       nscolor aDefault = NS_RGB(0, 0, 0))
-  {
+                                       nscolor aDefault = NS_RGB(0, 0, 0)) {
     nscolor result = NS_RGB(0, 0, 0);
     if (NS_FAILED(GetColor(aID,
-                           true, // aUseStandinsForNativeColors
+                           true,  // aUseStandinsForNativeColors
                            &result))) {
       return aDefault;
     }
     return result;
   }
 
-  static int32_t GetInt(IntID aID, int32_t aDefault = 0)
-  {
+  static int32_t GetInt(IntID aID, int32_t aDefault = 0) {
     int32_t result;
     if (NS_FAILED(GetInt(aID, &result))) {
       return aDefault;
@@ -593,8 +585,7 @@ public:
     return result;
   }
 
-  static float GetFloat(FloatID aID, float aDefault = 0.0f)
-  {
+  static float GetFloat(FloatID aID, float aDefault = 0.0f) {
     float result;
     if (NS_FAILED(GetFloat(aID, &result))) {
       return aDefault;
@@ -658,18 +649,18 @@ public:
   static void SetIntCache(const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 // On the Mac, GetColor(eColorID_TextSelectForeground, color) returns this
 // constant to specify that the foreground color should not be changed
 // (ie. a colored text keeps its colors  when selected).
 // Of course if other plaforms work like the Mac, they can use it too.
-#define NS_DONT_CHANGE_COLOR 	NS_RGB(0x01, 0x01, 0x01)
+#define NS_DONT_CHANGE_COLOR NS_RGB(0x01, 0x01, 0x01)
 
 // Similar with NS_DONT_CHANGE_COLOR, except NS_DONT_CHANGE_COLOR would returns
 // complementary color if fg color is same as bg color.
-// NS_CHANGE_COLOR_IF_SAME_AS_BG would returns eColorID_TextSelectForegroundCustom if
-// fg and bg color are the same.
+// NS_CHANGE_COLOR_IF_SAME_AS_BG would returns
+// eColorID_TextSelectForegroundCustom if fg and bg color are the same.
 #define NS_CHANGE_COLOR_IF_SAME_AS_BG NS_RGB(0x02, 0x02, 0x02)
 
 // ---------------------------------------------------------------------
@@ -677,21 +668,21 @@ public:
 // ---------------------------------------------------------------------
 
 // For background color only.
-#define NS_TRANSPARENT                NS_RGBA(0x01, 0x00, 0x00, 0x00)
+#define NS_TRANSPARENT NS_RGBA(0x01, 0x00, 0x00, 0x00)
 // For foreground color only.
-#define NS_SAME_AS_FOREGROUND_COLOR   NS_RGBA(0x02, 0x00, 0x00, 0x00)
+#define NS_SAME_AS_FOREGROUND_COLOR NS_RGBA(0x02, 0x00, 0x00, 0x00)
 #define NS_40PERCENT_FOREGROUND_COLOR NS_RGBA(0x03, 0x00, 0x00, 0x00)
 
-#define NS_IS_SELECTION_SPECIAL_COLOR(c) ((c) == NS_TRANSPARENT || \
-                                          (c) == NS_SAME_AS_FOREGROUND_COLOR || \
-                                          (c) == NS_40PERCENT_FOREGROUND_COLOR)
+#define NS_IS_SELECTION_SPECIAL_COLOR(c)                          \
+  ((c) == NS_TRANSPARENT || (c) == NS_SAME_AS_FOREGROUND_COLOR || \
+   (c) == NS_40PERCENT_FOREGROUND_COLOR)
 
 // ------------------------------------------
 //  Bits for eIntID_AlertNotificationOrigin
 // ------------------------------------------
 
 #define NS_ALERT_HORIZONTAL 1
-#define NS_ALERT_LEFT       2
-#define NS_ALERT_TOP        4
+#define NS_ALERT_LEFT 2
+#define NS_ALERT_TOP 4
 
 #endif /* __LookAndFeel */

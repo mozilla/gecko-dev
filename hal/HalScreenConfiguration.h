@@ -13,8 +13,7 @@ namespace mozilla {
 namespace hal {
 class ScreenConfiguration;
 typedef Observer<ScreenConfiguration> ScreenConfigurationObserver;
-} // namespace hal
-} // namespace mozilla
+}  // namespace hal
+}  // namespace mozilla
 
 #endif  // mozilla_HalScreenConfiguration_h
-

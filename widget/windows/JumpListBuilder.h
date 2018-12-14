@@ -12,7 +12,7 @@
 #define NTDDI_VERSION NTDDI_WIN7
 // Needed for various com interfaces
 #include <shobjidl.h>
-#undef LogSeverity // SetupAPI.h #defines this as DWORD
+#undef LogSeverity  // SetupAPI.h #defines this as DWORD
 
 #include "nsString.h"
 #include "nsIMutableArray.h"
@@ -29,32 +29,31 @@ namespace widget {
 
 namespace detail {
 class DoneCommitListBuildCallback;
-} // namespace detail
+}  // namespace detail
 
-class JumpListBuilder : public nsIJumpListBuilder, 
-                        public nsIObserver
-{
+class JumpListBuilder : public nsIJumpListBuilder, public nsIObserver {
   virtual ~JumpListBuilder();
 
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIJUMPLISTBUILDER
   NS_DECL_NSIOBSERVER
 
   JumpListBuilder();
 
-protected:
+ protected:
   static Atomic<bool> sBuildingList;
 
-private:
+ private:
   RefPtr<ICustomDestinationList> mJumpListMgr;
   uint32_t mMaxItems;
   bool mHasCommit;
   nsCOMPtr<nsIThread> mIOThread;
   ReentrantMonitor mMonitor;
 
-  bool IsSeparator(nsCOMPtr<nsIJumpListItem>& item);
-  nsresult TransferIObjectArrayToIMutableArray(IObjectArray *objArray, nsIMutableArray *removedItems);
+  bool IsSeparator(nsCOMPtr<nsIJumpListItem> &item);
+  nsresult TransferIObjectArrayToIMutableArray(IObjectArray *objArray,
+                                               nsIMutableArray *removedItems);
   nsresult RemoveIconCacheForItems(nsIMutableArray *removedItems);
   nsresult RemoveIconCacheForAllItems();
   void DoCommitListBuild(RefPtr<detail::DoneCommitListBuildCallback> aCallback);
@@ -62,8 +61,7 @@ private:
   friend class WinTaskbar;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
 #endif /* __JumpListBuilder_h__ */
-

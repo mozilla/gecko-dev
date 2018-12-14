@@ -19,11 +19,10 @@ namespace dom {
 // Utility method to properly execute a ClientManager operation.  It
 // will properly hold a worker thread alive and avoid executing callbacks
 // if the thread is shutting down.
-template<typename Func, typename Arg, typename Resolve, typename Reject>
-void
-StartClientManagerOp(Func aFunc, const Arg& aArg, nsISerialEventTarget* aTarget,
-                     Resolve aResolve, Reject aReject)
-{
+template <typename Func, typename Arg, typename Resolve, typename Reject>
+void StartClientManagerOp(Func aFunc, const Arg& aArg,
+                          nsISerialEventTarget* aTarget, Resolve aResolve,
+                          Reject aReject) {
   RefPtr<WorkerHolderToken> token;
   if (!NS_IsMainThread()) {
     token = WorkerHolderToken::Create(GetCurrentThreadWorkerPrivate(),
@@ -32,20 +31,21 @@ StartClientManagerOp(Func aFunc, const Arg& aArg, nsISerialEventTarget* aTarget,
 
   RefPtr<ClientOpPromise> promise = aFunc(aArg, aTarget);
   promise->Then(aTarget, __func__,
-    [aResolve, token](const ClientOpResult& aResult) {
-      if (token && token->IsShuttingDown()) {
-        return;
-      }
-      aResolve(aResult);
-    }, [aReject, token](nsresult aResult) {
-      if (token && token->IsShuttingDown()) {
-        return;
-      }
-      aReject(aResult);
-    });
+                [aResolve, token](const ClientOpResult& aResult) {
+                  if (token && token->IsShuttingDown()) {
+                    return;
+                  }
+                  aResolve(aResult);
+                },
+                [aReject, token](nsresult aResult) {
+                  if (token && token->IsShuttingDown()) {
+                    return;
+                  }
+                  aReject(aResult);
+                });
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // _mozilla_dom_ClientDOMUtil_h
+#endif  // _mozilla_dom_ClientDOMUtil_h

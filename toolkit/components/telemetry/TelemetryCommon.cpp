@@ -19,19 +19,15 @@ namespace mozilla {
 namespace Telemetry {
 namespace Common {
 
-bool
-IsExpiredVersion(const char* aExpiration)
-{
+bool IsExpiredVersion(const char* aExpiration) {
   MOZ_ASSERT(aExpiration);
   // Note: We intentionally don't construct a static Version object here as we
   // saw odd crashes around this (see bug 1334105).
   return strcmp(aExpiration, "never") && strcmp(aExpiration, "default") &&
-    (mozilla::Version(aExpiration) <= MOZ_APP_VERSION);
+         (mozilla::Version(aExpiration) <= MOZ_APP_VERSION);
 }
 
-bool
-IsInDataset(uint32_t aDataset, uint32_t aContainingDataset)
-{
+bool IsInDataset(uint32_t aDataset, uint32_t aContainingDataset) {
   if (aDataset == aContainingDataset) {
     return true;
   }
@@ -46,9 +42,8 @@ IsInDataset(uint32_t aDataset, uint32_t aContainingDataset)
   return false;
 }
 
-bool
-CanRecordDataset(uint32_t aDataset, bool aCanRecordBase, bool aCanRecordExtended)
-{
+bool CanRecordDataset(uint32_t aDataset, bool aCanRecordBase,
+                      bool aCanRecordExtended) {
   // If we are extended telemetry is enabled, we are allowed to record
   // regardless of the dataset.
   if (aCanRecordExtended) {
@@ -59,7 +54,7 @@ CanRecordDataset(uint32_t aDataset, bool aCanRecordBase, bool aCanRecordExtended
   // telemetry, allow it.
   if (aCanRecordBase &&
       IsInDataset(aDataset, nsITelemetry::DATASET_RELEASE_CHANNEL_OPTOUT)) {
-      return true;
+    return true;
   }
 
   // We're not recording extended telemetry or this is not the base
@@ -67,88 +62,76 @@ CanRecordDataset(uint32_t aDataset, bool aCanRecordBase, bool aCanRecordExtended
   return false;
 }
 
-bool
-CanRecordInProcess(RecordedProcessType processes, GeckoProcessType processType)
-{
+bool CanRecordInProcess(RecordedProcessType processes,
+                        GeckoProcessType processType) {
   bool recordAllChildren = !!(processes & RecordedProcessType::AllChildren);
-  // We can use (1 << ProcessType) due to the way RecordedProcessType is defined.
+  // We can use (1 << ProcessType) due to the way RecordedProcessType is
+  // defined.
   bool canRecordProcess =
-    !!(processes & static_cast<RecordedProcessType>(1 << processType));
+      !!(processes & static_cast<RecordedProcessType>(1 << processType));
 
   return canRecordProcess ||
          ((processType != GeckoProcessType_Default) && recordAllChildren);
 }
 
-bool
-CanRecordInProcess(RecordedProcessType processes, ProcessID processId)
-{
+bool CanRecordInProcess(RecordedProcessType processes, ProcessID processId) {
   return CanRecordInProcess(processes, GetGeckoProcessType(processId));
 }
 
-nsresult
-MsSinceProcessStart(double* aResult)
-{
+nsresult MsSinceProcessStart(double* aResult) {
   bool error;
-  *aResult = (TimeStamp::NowLoRes() -
-              TimeStamp::ProcessCreation(&error)).ToMilliseconds();
+  *aResult = (TimeStamp::NowLoRes() - TimeStamp::ProcessCreation(&error))
+                 .ToMilliseconds();
   if (error) {
     return NS_ERROR_NOT_AVAILABLE;
   }
   return NS_OK;
 }
 
-void
-LogToBrowserConsole(uint32_t aLogLevel, const nsAString& aMsg)
-{
+void LogToBrowserConsole(uint32_t aLogLevel, const nsAString& aMsg) {
   if (!NS_IsMainThread()) {
     nsString msg(aMsg);
     nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
-      "Telemetry::Common::LogToBrowserConsole",
-      [aLogLevel, msg]() { LogToBrowserConsole(aLogLevel, msg); });
+        "Telemetry::Common::LogToBrowserConsole",
+        [aLogLevel, msg]() { LogToBrowserConsole(aLogLevel, msg); });
     NS_DispatchToMainThread(task.forget(), NS_DISPATCH_NORMAL);
     return;
   }
 
-  nsCOMPtr<nsIConsoleService> console(do_GetService("@mozilla.org/consoleservice;1"));
+  nsCOMPtr<nsIConsoleService> console(
+      do_GetService("@mozilla.org/consoleservice;1"));
   if (!console) {
     NS_WARNING("Failed to log message to console.");
     return;
   }
 
   nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  error->Init(aMsg, EmptyString(), EmptyString(), 0, 0, aLogLevel, "chrome javascript");
+  error->Init(aMsg, EmptyString(), EmptyString(), 0, 0, aLogLevel,
+              "chrome javascript");
   console->LogMessage(error);
 }
 
-const char*
-GetNameForProcessID(ProcessID process)
-{
+const char* GetNameForProcessID(ProcessID process) {
   MOZ_ASSERT(process < ProcessID::Count);
   return ProcessIDToString[static_cast<uint32_t>(process)];
 }
 
-GeckoProcessType
-GetGeckoProcessType(ProcessID process)
-{
+GeckoProcessType GetGeckoProcessType(ProcessID process) {
   MOZ_ASSERT(process < ProcessID::Count);
   return ProcessIDToGeckoProcessType[static_cast<uint32_t>(process)];
 }
 
-bool
-IsStringCharValid(const char aChar, const bool aAllowInfixPeriod,
-                  const bool aAllowInfixUnderscore)
-{
-  return (aChar >= 'A' && aChar <= 'Z')
-      || (aChar >= 'a' && aChar <= 'z')
-      || (aChar >= '0' && aChar <= '9')
-      || (aAllowInfixPeriod && (aChar == '.'))
-      || (aAllowInfixUnderscore && (aChar == '_'));
+bool IsStringCharValid(const char aChar, const bool aAllowInfixPeriod,
+                       const bool aAllowInfixUnderscore) {
+  return (aChar >= 'A' && aChar <= 'Z') || (aChar >= 'a' && aChar <= 'z') ||
+         (aChar >= '0' && aChar <= '9') ||
+         (aAllowInfixPeriod && (aChar == '.')) ||
+         (aAllowInfixUnderscore && (aChar == '_'));
 }
 
-bool
-IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
-                        const bool aAllowInfixPeriod, const bool aAllowInfixUnderscore)
-{
+bool IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
+                             const bool aAllowInfixPeriod,
+                             const bool aAllowInfixUnderscore) {
   // Check string length.
   if (aStr.Length() > aMaxLength) {
     return false;
@@ -159,23 +142,20 @@ IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
   const char* end = aStr.EndReading();
 
   for (const char* cur = first; cur < end; ++cur) {
-      const bool infix = (cur != first) && (cur != (end - 1));
-      if (!IsStringCharValid(*cur,
-                             aAllowInfixPeriod && infix,
-                             aAllowInfixUnderscore && infix)) {
-        return false;
-      }
+    const bool infix = (cur != first) && (cur != (end - 1));
+    if (!IsStringCharValid(*cur, aAllowInfixPeriod && infix,
+                           aAllowInfixUnderscore && infix)) {
+      return false;
+    }
   }
 
   return true;
 }
 
-JSString*
-ToJSString(JSContext* cx, const nsAString& aStr)
-{
+JSString* ToJSString(JSContext* cx, const nsAString& aStr) {
   return JS_NewUCStringCopyN(cx, aStr.Data(), aStr.Length());
 }
 
-} // namespace Common
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Common
+}  // namespace Telemetry
+}  // namespace mozilla

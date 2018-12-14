@@ -34,12 +34,12 @@ const unsigned short SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA = 4;
 const unsigned short SVG_FECOLORMATRIX_TYPE_SEPIA = 5;
 
 // ComponentTransfer types
-const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN  = 0;
+const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_UNKNOWN = 0;
 const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY = 1;
-const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_TABLE    = 2;
+const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_TABLE = 2;
 const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE = 3;
-const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_LINEAR   = 4;
-const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_GAMMA    = 5;
+const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_LINEAR = 4;
+const unsigned short SVG_FECOMPONENTTRANSFER_TYPE_GAMMA = 5;
 
 // Blend Mode Values
 const unsigned short SVG_FEBLEND_MODE_UNKNOWN = 0;
@@ -185,13 +185,12 @@ const float kMaxStdDeviation = 500;
 // attribute was Set() with.
 // AttributeMaps can be nested because AttributeMap is a valid attribute type.
 class AttributeMap final {
-public:
+ public:
   AttributeMap();
   AttributeMap(const AttributeMap& aOther);
   AttributeMap& operator=(const AttributeMap& aOther);
   bool operator==(const AttributeMap& aOther) const;
-  bool operator!=(const AttributeMap& aOther) const
-  {
+  bool operator!=(const AttributeMap& aOther) const {
     return !(*this == aOther);
   }
   ~AttributeMap();
@@ -224,44 +223,36 @@ public:
 
   uint32_t Count() const;
 
-  nsClassHashtable<nsUint32HashKey, FilterAttribute>::Iterator ConstIter() const;
+  nsClassHashtable<nsUint32HashKey, FilterAttribute>::Iterator ConstIter()
+      const;
 
   static AttributeType GetType(FilterAttribute* aAttribute);
 
-private:
-  mutable nsClassHashtable<nsUint32HashKey, FilterAttribute>  mMap;
+ private:
+  mutable nsClassHashtable<nsUint32HashKey, FilterAttribute> mMap;
 };
 
-enum class ColorSpace {
-  SRGB,
-  LinearRGB,
-  Max
-};
+enum class ColorSpace { SRGB, LinearRGB, Max };
 
-enum class AlphaModel {
-  Unpremultiplied,
-  Premultiplied
-};
+enum class AlphaModel { Unpremultiplied, Premultiplied };
 
 class ColorModel {
-public:
-  static ColorModel PremulSRGB()
-  {
+ public:
+  static ColorModel PremulSRGB() {
     return ColorModel(ColorSpace::SRGB, AlphaModel::Premultiplied);
   }
 
-  ColorModel(ColorSpace aColorSpace, AlphaModel aAlphaModel) :
-    mColorSpace(aColorSpace), mAlphaModel(aAlphaModel) {}
-  ColorModel() :
-    mColorSpace(ColorSpace::SRGB), mAlphaModel(AlphaModel::Premultiplied) {}
+  ColorModel(ColorSpace aColorSpace, AlphaModel aAlphaModel)
+      : mColorSpace(aColorSpace), mAlphaModel(aAlphaModel) {}
+  ColorModel()
+      : mColorSpace(ColorSpace::SRGB), mAlphaModel(AlphaModel::Premultiplied) {}
   bool operator==(const ColorModel& aOther) const {
     return mColorSpace == aOther.mColorSpace &&
            mAlphaModel == aOther.mAlphaModel;
   }
 
   // Used to index FilterCachedColorModels::mFilterForColorModel.
-  uint8_t ToIndex() const
-  {
+  uint8_t ToIndex() const {
     return (uint8_t(mColorSpace) << 1) + uint8_t(mAlphaModel);
   }
 
@@ -299,7 +290,7 @@ enum class PrimitiveType {
  * Used as part of a FilterDescription.
  */
 class FilterPrimitiveDescription final {
-public:
+ public:
   enum {
     kPrimitiveIndexSourceGraphic = -1,
     kPrimitiveIndexSourceAlpha = -2,
@@ -310,7 +301,8 @@ public:
   FilterPrimitiveDescription();
   explicit FilterPrimitiveDescription(PrimitiveType aType);
   FilterPrimitiveDescription(const FilterPrimitiveDescription& aOther);
-  FilterPrimitiveDescription& operator=(const FilterPrimitiveDescription& aOther);
+  FilterPrimitiveDescription& operator=(
+      const FilterPrimitiveDescription& aOther);
 
   PrimitiveType Type() const { return mType; }
   void SetType(PrimitiveType aType) { mType = aType; }
@@ -322,59 +314,50 @@ public:
   bool IsTainted() const { return mIsTainted; }
 
   size_t NumberOfInputs() const { return mInputPrimitives.Length(); }
-  int32_t InputPrimitiveIndex(size_t aInputIndex) const
-  {
-    return aInputIndex < mInputPrimitives.Length() ?
-      mInputPrimitives[aInputIndex] : 0;
+  int32_t InputPrimitiveIndex(size_t aInputIndex) const {
+    return aInputIndex < mInputPrimitives.Length()
+               ? mInputPrimitives[aInputIndex]
+               : 0;
   }
 
-  ColorSpace InputColorSpace(size_t aInputIndex) const
-  {
-    return aInputIndex < mInputColorSpaces.Length() ?
-      mInputColorSpaces[aInputIndex] : ColorSpace();
+  ColorSpace InputColorSpace(size_t aInputIndex) const {
+    return aInputIndex < mInputColorSpaces.Length()
+               ? mInputColorSpaces[aInputIndex]
+               : ColorSpace();
   }
 
   ColorSpace OutputColorSpace() const { return mOutputColorSpace; }
 
-  void SetPrimitiveSubregion(const IntRect& aRect)
-  {
+  void SetPrimitiveSubregion(const IntRect& aRect) {
     mFilterPrimitiveSubregion = aRect;
   }
 
-  void SetFilterSpaceBounds(const IntRect& aRect)
-  {
+  void SetFilterSpaceBounds(const IntRect& aRect) {
     mFilterSpaceBounds = aRect;
   }
 
-  void SetIsTainted(bool aIsTainted)
-  {
-    mIsTainted = aIsTainted;
-  }
+  void SetIsTainted(bool aIsTainted) { mIsTainted = aIsTainted; }
 
-  void SetInputPrimitive(size_t aInputIndex, int32_t aInputPrimitiveIndex)
-  {
+  void SetInputPrimitive(size_t aInputIndex, int32_t aInputPrimitiveIndex) {
     mInputPrimitives.EnsureLengthAtLeast(aInputIndex + 1);
     mInputPrimitives[aInputIndex] = aInputPrimitiveIndex;
   }
 
-  void SetInputColorSpace(size_t aInputIndex, ColorSpace aColorSpace)
-  {
+  void SetInputColorSpace(size_t aInputIndex, ColorSpace aColorSpace) {
     mInputColorSpaces.EnsureLengthAtLeast(aInputIndex + 1);
     mInputColorSpaces[aInputIndex] = aColorSpace;
   }
 
-  void SetOutputColorSpace(const ColorSpace& aColorSpace)
-  {
+  void SetOutputColorSpace(const ColorSpace& aColorSpace) {
     mOutputColorSpace = aColorSpace;
   }
 
   bool operator==(const FilterPrimitiveDescription& aOther) const;
-  bool operator!=(const FilterPrimitiveDescription& aOther) const
-  {
+  bool operator!=(const FilterPrimitiveDescription& aOther) const {
     return !(*this == aOther);
   }
 
-private:
+ private:
   PrimitiveType mType;
   AttributeMap mAttributes;
   nsTArray<int32_t> mInputPrimitives;
@@ -392,13 +375,12 @@ private:
  */
 struct FilterDescription final {
   FilterDescription() {}
-  explicit FilterDescription(const nsTArray<FilterPrimitiveDescription>& aPrimitives)
-   : mPrimitives(aPrimitives)
-  {}
+  explicit FilterDescription(
+      const nsTArray<FilterPrimitiveDescription>& aPrimitives)
+      : mPrimitives(aPrimitives) {}
 
   bool operator==(const FilterDescription& aOther) const;
-  bool operator!=(const FilterDescription& aOther) const
-  {
+  bool operator!=(const FilterDescription& aOther) const {
     return !(*this == aOther);
   }
 
@@ -411,8 +393,7 @@ struct FilterDescription final {
  * on any thread.
  */
 class FilterSupport {
-public:
-
+ public:
   /**
    * Draw the filter described by aFilter. All rect parameters are in filter
    * space coordinates. aRenderRect specifies the part of the filter output
@@ -422,59 +403,52 @@ public:
    * aAdditionalImages carries the images that are referenced by the
    * eImageInputIndex attribute on any image primitives in the filter.
    */
-  static void
-  RenderFilterDescription(DrawTarget* aDT,
-                          const FilterDescription& aFilter,
-                          const Rect& aRenderRect,
-                          SourceSurface* aSourceGraphic,
-                          const IntRect& aSourceGraphicRect,
-                          SourceSurface* aFillPaint,
-                          const IntRect& aFillPaintRect,
-                          SourceSurface* aStrokePaint,
-                          const IntRect& aStrokePaintRect,
-                          nsTArray<RefPtr<SourceSurface>>& aAdditionalImages,
-                          const Point& aDestPoint,
-                          const DrawOptions& aOptions = DrawOptions());
+  static void RenderFilterDescription(
+      DrawTarget* aDT, const FilterDescription& aFilter,
+      const Rect& aRenderRect, SourceSurface* aSourceGraphic,
+      const IntRect& aSourceGraphicRect, SourceSurface* aFillPaint,
+      const IntRect& aFillPaintRect, SourceSurface* aStrokePaint,
+      const IntRect& aStrokePaintRect,
+      nsTArray<RefPtr<SourceSurface>>& aAdditionalImages,
+      const Point& aDestPoint, const DrawOptions& aOptions = DrawOptions());
 
   /**
    * Computes the region that changes in the filter output due to a change in
    * input.  This is primarily needed when an individual piece of content inside
    * a filtered container element changes.
    */
-  static nsIntRegion
-  ComputeResultChangeRegion(const FilterDescription& aFilter,
-                            const nsIntRegion& aSourceGraphicChange,
-                            const nsIntRegion& aFillPaintChange,
-                            const nsIntRegion& aStrokePaintChange);
+  static nsIntRegion ComputeResultChangeRegion(
+      const FilterDescription& aFilter, const nsIntRegion& aSourceGraphicChange,
+      const nsIntRegion& aFillPaintChange,
+      const nsIntRegion& aStrokePaintChange);
 
   /**
    * Computes the regions that need to be supplied in the filter inputs when
    * painting aResultNeededRegion of the filter output.
    */
-  static void
-  ComputeSourceNeededRegions(const FilterDescription& aFilter,
-                             const nsIntRegion& aResultNeededRegion,
-                             nsIntRegion& aSourceGraphicNeededRegion,
-                             nsIntRegion& aFillPaintNeededRegion,
-                             nsIntRegion& aStrokePaintNeededRegion);
+  static void ComputeSourceNeededRegions(
+      const FilterDescription& aFilter, const nsIntRegion& aResultNeededRegion,
+      nsIntRegion& aSourceGraphicNeededRegion,
+      nsIntRegion& aFillPaintNeededRegion,
+      nsIntRegion& aStrokePaintNeededRegion);
 
   /**
    * Computes the size of the filter output.
    */
-  static nsIntRegion
-  ComputePostFilterExtents(const FilterDescription& aFilter,
-                           const nsIntRegion& aSourceGraphicExtents);
+  static nsIntRegion ComputePostFilterExtents(
+      const FilterDescription& aFilter,
+      const nsIntRegion& aSourceGraphicExtents);
 
   /**
    * Computes the size of a single FilterPrimitiveDescription's output given a
    * set of input extents.
    */
-  static nsIntRegion
-  PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& aDescription,
-                                const nsTArray<nsIntRegion>& aInputExtents);
+  static nsIntRegion PostFilterExtentsForPrimitive(
+      const FilterPrimitiveDescription& aDescription,
+      const nsTArray<nsIntRegion>& aInputExtents);
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
-#endif // __FilterSupport_h
+#endif  // __FilterSupport_h

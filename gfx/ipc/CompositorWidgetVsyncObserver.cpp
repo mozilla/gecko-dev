@@ -11,18 +11,13 @@ namespace mozilla {
 namespace widget {
 
 CompositorWidgetVsyncObserver::CompositorWidgetVsyncObserver(
-    RefPtr<VsyncBridgeChild> aVsyncBridge,
-    const uint64_t& aRootLayerTreeId)
- : mVsyncBridge(aVsyncBridge),
-   mRootLayerTreeId(aRootLayerTreeId)
-{
+    RefPtr<VsyncBridgeChild> aVsyncBridge, const uint64_t& aRootLayerTreeId)
+    : mVsyncBridge(aVsyncBridge), mRootLayerTreeId(aRootLayerTreeId) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-bool
-CompositorWidgetVsyncObserver::NotifyVsync(TimeStamp aTimeStamp)
-{
+bool CompositorWidgetVsyncObserver::NotifyVsync(TimeStamp aTimeStamp) {
   // Vsync notifications should only arrive on the vsync thread.
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
@@ -31,5 +26,5 @@ CompositorWidgetVsyncObserver::NotifyVsync(TimeStamp aTimeStamp)
   return true;
 }
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla

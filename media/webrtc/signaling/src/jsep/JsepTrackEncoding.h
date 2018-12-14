@@ -16,31 +16,25 @@ namespace mozilla {
 // may be multiple. Each encoding may have some constraints (imposed by JS), and
 // may be able to use any one of multiple codecs (JsepCodecDescription) at any
 // given time.
-class JsepTrackEncoding
-{
-public:
+class JsepTrackEncoding {
+ public:
   JsepTrackEncoding() = default;
-  JsepTrackEncoding(const JsepTrackEncoding& orig) :
-    mConstraints(orig.mConstraints),
-    mRid(orig.mRid)
-  {
+  JsepTrackEncoding(const JsepTrackEncoding& orig)
+      : mConstraints(orig.mConstraints), mRid(orig.mRid) {
     for (const JsepCodecDescription* codec : orig.mCodecs.values) {
       mCodecs.values.push_back(codec->Clone());
     }
   }
 
-  const std::vector<JsepCodecDescription*>& GetCodecs() const
-  {
+  const std::vector<JsepCodecDescription*>& GetCodecs() const {
     return mCodecs.values;
   }
 
-  void AddCodec(const JsepCodecDescription& codec)
-  {
+  void AddCodec(const JsepCodecDescription& codec) {
     mCodecs.values.push_back(codec.Clone());
   }
 
-  bool HasFormat(const std::string& format) const
-  {
+  bool HasFormat(const std::string& format) const {
     for (const JsepCodecDescription* codec : mCodecs.values) {
       if (codec->mDefaultPt == format) {
         return true;
@@ -52,9 +46,9 @@ public:
   EncodingConstraints mConstraints;
   std::string mRid;
 
-private:
+ private:
   PtrVector<JsepCodecDescription> mCodecs;
 };
-}
+}  // namespace mozilla
 
-#endif // _JESPTRACKENCODING_H_
+#endif  // _JESPTRACKENCODING_H_

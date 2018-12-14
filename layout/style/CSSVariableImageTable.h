@@ -46,30 +46,29 @@ namespace detail {
 
 typedef nsTArray<RefPtr<css::ImageValue>> ImageValueArray;
 typedef nsClassHashtable<nsGenericHashKey<nsCSSPropertyID>, ImageValueArray>
-        PerPropertyImageHashtable;
-typedef nsClassHashtable<nsPtrHashKey<nsStyleContext>, PerPropertyImageHashtable>
-        CSSVariableImageHashtable;
+    PerPropertyImageHashtable;
+typedef nsClassHashtable<nsPtrHashKey<nsStyleContext>,
+                         PerPropertyImageHashtable>
+    CSSVariableImageHashtable;
 
-inline CSSVariableImageHashtable& GetTable()
-{
+inline CSSVariableImageHashtable& GetTable() {
   static CSSVariableImageHashtable imageTable;
   return imageTable;
 }
 
 #ifdef DEBUG
-inline bool& IsReplacing()
-{
+inline bool& IsReplacing() {
   static bool isReplacing = false;
   return isReplacing;
 }
 #endif
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * ReplaceAll() allows callers to replace the ImageValues associated with a
- * (nsStyleContext, nsCSSPropertyID) pair. The memory used by the previous list of
- * ImageValues is automatically released.
+ * (nsStyleContext, nsCSSPropertyID) pair. The memory used by the previous list
+ * of ImageValues is automatically released.
  *
  * @param aContext The style context the ImageValues are associated with.
  * @param aProp    The CSS property the ImageValues are associated with.
@@ -77,10 +76,8 @@ inline bool& IsReplacing()
  *                 ImageValues which will replace the old ones.
  */
 template <typename Lambda>
-inline void ReplaceAll(nsStyleContext* aContext,
-                       nsCSSPropertyID aProp,
-                       Lambda aFunc)
-{
+inline void ReplaceAll(nsStyleContext* aContext, nsCSSPropertyID aProp,
+                       Lambda aFunc) {
   MOZ_ASSERT(aContext);
 
   auto& imageTable = detail::GetTable();
@@ -88,8 +85,8 @@ inline void ReplaceAll(nsStyleContext* aContext,
   // Clear the existing image array, if any, for this property.
   {
     auto* perPropertyImageTable = imageTable.Get(aContext);
-    auto* imageList = perPropertyImageTable ? perPropertyImageTable->Get(aProp)
-                                            : nullptr;
+    auto* imageList =
+        perPropertyImageTable ? perPropertyImageTable->Get(aProp) : nullptr;
     if (imageList) {
       imageList->ClearAndRetainStorage();
     }
@@ -108,8 +105,8 @@ inline void ReplaceAll(nsStyleContext* aContext,
 
   // Clean up.
   auto* perPropertyImageTable = imageTable.Get(aContext);
-  auto* imageList = perPropertyImageTable ? perPropertyImageTable->Get(aProp)
-                                          : nullptr;
+  auto* imageList =
+      perPropertyImageTable ? perPropertyImageTable->Get(aProp) : nullptr;
   if (imageList) {
     if (imageList->IsEmpty()) {
       // We used to have an image array for this property, but now we don't.
@@ -134,9 +131,8 @@ inline void ReplaceAll(nsStyleContext* aContext,
  * It's illegal to call this function outside of a lambda passed to
  * CSSVariableImageTable::ReplaceAll().
  */
-inline void
-Add(nsStyleContext* aContext, nsCSSPropertyID aProp, css::ImageValue* aValue)
-{
+inline void Add(nsStyleContext* aContext, nsCSSPropertyID aProp,
+                css::ImageValue* aValue) {
   MOZ_ASSERT(aValue);
   MOZ_ASSERT(aContext);
   MOZ_ASSERT(detail::IsReplacing());
@@ -165,9 +161,7 @@ Add(nsStyleContext* aContext, nsCSSPropertyID aProp, css::ImageValue* aValue)
  * Removes all ImageValues stored in the CSSVariableImageTable for the provided
  * @aContext.
  */
-inline void
-RemoveAll(nsStyleContext* aContext)
-{
+inline void RemoveAll(nsStyleContext* aContext) {
   // Move all ImageValue references into removedImageList so that we can
   // release them outside of any hashtable methods.  (If we just call
   // Remove(aContext) on the table then we can end up calling back
@@ -185,7 +179,7 @@ RemoveAll(nsStyleContext* aContext)
   imageTable.Remove(aContext);
 }
 
-} // namespace CSSVariableImageTable
-} // namespace mozilla
+}  // namespace CSSVariableImageTable
+}  // namespace mozilla
 
-#endif // mozilla_CSSVariableImageTable_h
+#endif  // mozilla_CSSVariableImageTable_h

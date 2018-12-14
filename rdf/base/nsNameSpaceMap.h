@@ -11,88 +11,80 @@
 #include "nsString.h"
 #include "nsAtom.h"
 
-class nsNameSpaceMap
-{
-public:
-    class Entry {
-    public:
-        Entry(const nsACString& aURI, nsAtom* aPrefix)
-            : mURI(aURI), mPrefix(aPrefix), mNext(nullptr) {
-            MOZ_COUNT_CTOR(nsNameSpaceMap::Entry); }
+class nsNameSpaceMap {
+ public:
+  class Entry {
+   public:
+    Entry(const nsACString& aURI, nsAtom* aPrefix)
+        : mURI(aURI), mPrefix(aPrefix), mNext(nullptr) {
+      MOZ_COUNT_CTOR(nsNameSpaceMap::Entry);
+    }
 
-        ~Entry() { MOZ_COUNT_DTOR(nsNameSpaceMap::Entry); }
+    ~Entry() { MOZ_COUNT_DTOR(nsNameSpaceMap::Entry); }
 
-        nsCString mURI;
-        RefPtr<nsAtom> mPrefix;
+    nsCString mURI;
+    RefPtr<nsAtom> mPrefix;
 
-        Entry* mNext;
-    };
+    Entry* mNext;
+  };
 
-    nsNameSpaceMap();
-    ~nsNameSpaceMap();
+  nsNameSpaceMap();
+  ~nsNameSpaceMap();
 
-    nsresult
-    Put(const nsAString& aURI, nsAtom* aPrefix);
+  nsresult Put(const nsAString& aURI, nsAtom* aPrefix);
 
-    nsresult
-    Put(const nsACString& aURI, nsAtom* aPrefix);
+  nsresult Put(const nsACString& aURI, nsAtom* aPrefix);
 
-    class const_iterator {
-    protected:
-        friend class nsNameSpaceMap;
+  class const_iterator {
+   protected:
+    friend class nsNameSpaceMap;
 
-        explicit const_iterator(const Entry* aCurrent)
-            : mCurrent(aCurrent) {}
+    explicit const_iterator(const Entry* aCurrent) : mCurrent(aCurrent) {}
 
-        const Entry* mCurrent;
+    const Entry* mCurrent;
 
-    public:
-        const_iterator()
-            : mCurrent(nullptr) {}
+   public:
+    const_iterator() : mCurrent(nullptr) {}
 
-        const_iterator(const const_iterator& iter)
-            : mCurrent(iter.mCurrent) {}
+    const_iterator(const const_iterator& iter) : mCurrent(iter.mCurrent) {}
 
-        const_iterator&
-        operator=(const const_iterator& iter) {
-            mCurrent = iter.mCurrent;
-            return *this; }
+    const_iterator& operator=(const const_iterator& iter) {
+      mCurrent = iter.mCurrent;
+      return *this;
+    }
 
-        const_iterator&
-        operator++() {
-            mCurrent = mCurrent->mNext;
-            return *this; }
+    const_iterator& operator++() {
+      mCurrent = mCurrent->mNext;
+      return *this;
+    }
 
-        const_iterator
-        operator++(int) {
-            const_iterator tmp(*this);
-            mCurrent = mCurrent->mNext;
-            return tmp; }
+    const_iterator operator++(int) {
+      const_iterator tmp(*this);
+      mCurrent = mCurrent->mNext;
+      return tmp;
+    }
 
-        const Entry* operator->() const { return mCurrent; }
+    const Entry* operator->() const { return mCurrent; }
 
-        const Entry& operator*() const { return *mCurrent; }
+    const Entry& operator*() const { return *mCurrent; }
 
-        bool
-        operator==(const const_iterator& iter) const {
-            return mCurrent == iter.mCurrent; }
+    bool operator==(const const_iterator& iter) const {
+      return mCurrent == iter.mCurrent;
+    }
 
-        bool
-        operator!=(const const_iterator& iter) const {
-            return ! iter.operator==(*this); }
-    };
+    bool operator!=(const const_iterator& iter) const {
+      return !iter.operator==(*this);
+    }
+  };
 
-    const_iterator first() const {
-        return const_iterator(mEntries); }
+  const_iterator first() const { return const_iterator(mEntries); }
 
-    const_iterator last() const {
-        return const_iterator(nullptr); }
+  const_iterator last() const { return const_iterator(nullptr); }
 
-    const_iterator GetNameSpaceOf(const nsACString& aURI) const;
+  const_iterator GetNameSpaceOf(const nsACString& aURI) const;
 
-protected:
-    Entry* mEntries;
+ protected:
+  Entry* mEntries;
 };
 
-
-#endif // nsNameSpaceMap_h__
+#endif  // nsNameSpaceMap_h__

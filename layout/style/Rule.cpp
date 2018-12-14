@@ -29,15 +29,9 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(Rule)
 
-bool
-Rule::IsCCLeaf() const
-{
-  return !PreservingWrapper();
-}
+bool Rule::IsCCLeaf() const { return !PreservingWrapper(); }
 
-bool
-Rule::IsKnownLive() const
-{
+bool Rule::IsKnownLive() const {
   if (HasKnownLiveWrapper()) {
     return true;
   }
@@ -52,7 +46,7 @@ Rule::IsKnownLive() const
   }
 
   return nsCCUncollectableMarker::InGeneration(
-    sheet->GetAssociatedDocument()->GetMarkedCCGeneration());
+      sheet->GetAssociatedDocument()->GetMarkedCCGeneration());
 }
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(Rule)
@@ -63,35 +57,26 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(Rule)
   // Please see documentation for nsCycleCollectionParticipant::CanSkip* for why
   // we need to check HasNothingToTrace here but not in the other two CanSkip
   // methods.
-  return tmp->IsCCLeaf() ||
-    (tmp->IsKnownLive() && tmp->HasNothingToTrace(tmp));
+  return tmp->IsCCLeaf() || (tmp->IsKnownLive() && tmp->HasNothingToTrace(tmp));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(Rule)
   return tmp->IsCCLeaf() || tmp->IsKnownLive();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
-/* virtual */ void
-Rule::SetStyleSheet(StyleSheet* aSheet)
-{
+/* virtual */ void Rule::SetStyleSheet(StyleSheet* aSheet) {
   // We don't reference count this up reference. The style sheet
   // will tell us when it's going away or when we're detached from
   // it.
   mSheet = aSheet;
 }
 
-void
-Rule::SetCssText(const nsAString& aCssText)
-{
+void Rule::SetCssText(const nsAString& aCssText) {
   // We used to throw for some rule types, but not all.  Specifically, we did
   // not throw for StyleRule.  Let's just always not throw.
 }
 
-Rule*
-Rule::GetParentRule() const
-{
-  return mParentRule;
-}
+Rule* Rule::GetParentRule() const { return mParentRule; }
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla

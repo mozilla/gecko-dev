@@ -16,9 +16,7 @@
 namespace mozilla {
 
 /* static */
-bool
-WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+bool WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType) {
   if (!Preferences::GetBool("media.webm.enabled")) {
     return false;
   }
@@ -30,7 +28,8 @@ WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 
   const MediaCodecs& codecs = aContainerType.ExtendedType().Codecs();
   if (codecs.IsEmpty()) {
-    // WebM guarantees that the only codecs it contained are vp8, vp9, opus or vorbis.
+    // WebM guarantees that the only codecs it contained are vp8, vp9, opus or
+    // vorbis.
     return true;
   }
   // Verify that all the codecs specified are ones that we expect that
@@ -44,12 +43,12 @@ WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 
     if (isVideo) {
       UniquePtr<TrackInfo> trackInfo;
-      if (IsVP9CodecString(codec))  {
+      if (IsVP9CodecString(codec)) {
         trackInfo = CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-          NS_LITERAL_CSTRING("video/vp9"), aContainerType);
+            NS_LITERAL_CSTRING("video/vp9"), aContainerType);
       } else if (IsVP8CodecString(codec)) {
         trackInfo = CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-          NS_LITERAL_CSTRING("video/vp8"), aContainerType);
+            NS_LITERAL_CSTRING("video/vp8"), aContainerType);
       }
       // If it is vp8 or vp9, check the bit depth.
       if (trackInfo) {
@@ -79,5 +78,4 @@ WebMDecoder::IsSupportedType(const MediaContainerType& aContainerType)
   return true;
 }
 
-} // namespace mozilla
-
+}  // namespace mozilla

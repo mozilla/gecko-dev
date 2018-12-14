@@ -16,9 +16,8 @@ namespace mozilla {
 namespace dom {
 
 class ProcessingInstruction : public nsGenericDOMDataNode,
-                              public nsIDOMProcessingInstruction
-{
-public:
+                              public nsIDOMProcessingInstruction {
+ public:
   ProcessingInstruction(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                         const nsAString& aData);
 
@@ -27,7 +26,8 @@ public:
 
   // nsIDOMCharacterData
   NS_FORWARD_NSIDOMCHARACTERDATA(nsGenericDOMDataNode::)
-  using nsGenericDOMDataNode::SetData; // Prevent hiding overloaded virtual function.
+  using nsGenericDOMDataNode::SetData;  // Prevent hiding overloaded virtual
+                                        // function.
 
   // nsIDOMProcessingInstruction
   NS_DECL_NSIDOMPROCESSINGINSTRUCTION
@@ -35,22 +35,21 @@ public:
   // nsINode
   virtual bool IsNodeOfType(uint32_t aFlags) const override;
 
-  virtual nsGenericDOMDataNode* CloneDataNode(mozilla::dom::NodeInfo *aNodeInfo,
+  virtual nsGenericDOMDataNode* CloneDataNode(mozilla::dom::NodeInfo* aNodeInfo,
                                               bool aCloneText) const override;
 
 #ifdef DEBUG
   virtual void List(FILE* out, int32_t aIndent) const override;
-  virtual void DumpContent(FILE* out, int32_t aIndent, bool aDumpAll) const override;
+  virtual void DumpContent(FILE* out, int32_t aIndent,
+                           bool aDumpAll) const override;
 #endif
 
   virtual nsIDOMNode* AsDOMNode() override { return this; }
 
   // WebIDL API
-  void GetTarget(nsString& aTarget)
-  {
-    aTarget = NodeName();
-  }
-protected:
+  void GetTarget(nsString& aTarget) { aTarget = NodeName(); }
+
+ protected:
   virtual ~ProcessingInstruction();
 
   /**
@@ -63,20 +62,21 @@ protected:
    * @param aValue [out] the value for the attribute with name specified in
    *                     aAttribute. Empty if the attribute isn't present.
    */
-  bool GetAttrValue(nsAtom *aName, nsAString& aValue);
+  bool GetAttrValue(nsAtom* aName, nsAString& aValue);
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 /**
  * aNodeInfoManager must not be null.
  */
 already_AddRefed<mozilla::dom::ProcessingInstruction>
-NS_NewXMLProcessingInstruction(nsNodeInfoManager *aNodeInfoManager,
+NS_NewXMLProcessingInstruction(nsNodeInfoManager* aNodeInfoManager,
                                const nsAString& aTarget,
                                const nsAString& aData);
 
-#endif // mozilla_dom_ProcessingInstruction_h
+#endif  // mozilla_dom_ProcessingInstruction_h

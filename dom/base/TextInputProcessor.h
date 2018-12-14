@@ -19,16 +19,15 @@ namespace mozilla {
 
 namespace dom {
 class KeyboardEvent;
-} // namespace dom
+}  // namespace dom
 
-class TextInputProcessor final : public nsITextInputProcessor
-                               , public widget::TextEventDispatcherListener
-{
+class TextInputProcessor final : public nsITextInputProcessor,
+                                 public widget::TextEventDispatcherListener {
   typedef mozilla::widget::IMENotification IMENotification;
   typedef mozilla::widget::IMENotificationRequests IMENotificationRequests;
   typedef mozilla::widget::TextEventDispatcher TextEventDispatcher;
 
-public:
+ public:
   TextInputProcessor();
 
   NS_DECL_ISUPPORTS
@@ -41,82 +40,66 @@ public:
   NS_IMETHOD_(IMENotificationRequests) GetIMENotificationRequests() override;
 
   NS_IMETHOD_(void)
-    OnRemovedFrom(TextEventDispatcher* aTextEventDispatcher) override;
+  OnRemovedFrom(TextEventDispatcher* aTextEventDispatcher) override;
 
-  NS_IMETHOD_(void) WillDispatchKeyboardEvent(
-                      TextEventDispatcher* aTextEventDispatcher,
-                      WidgetKeyboardEvent& aKeyboardEvent,
-                      uint32_t aIndexOfKeypress,
-                      void* aData) override;
+  NS_IMETHOD_(void)
+  WillDispatchKeyboardEvent(TextEventDispatcher* aTextEventDispatcher,
+                            WidgetKeyboardEvent& aKeyboardEvent,
+                            uint32_t aIndexOfKeypress, void* aData) override;
 
-protected:
+ protected:
   virtual ~TextInputProcessor();
 
-private:
+ private:
   bool IsComposing() const;
   nsresult BeginInputTransactionInternal(
-             mozIDOMWindow* aWindow,
-             nsITextInputProcessorCallback* aCallback,
-             bool aForTests,
-             bool& aSucceeded);
+      mozIDOMWindow* aWindow, nsITextInputProcessorCallback* aCallback,
+      bool aForTests, bool& aSucceeded);
   nsresult CommitCompositionInternal(
-             const WidgetKeyboardEvent* aKeyboardEvent = nullptr,
-             uint32_t aKeyFlags = 0,
-             const nsAString* aCommitString = nullptr,
-             bool* aSucceeded = nullptr);
+      const WidgetKeyboardEvent* aKeyboardEvent = nullptr,
+      uint32_t aKeyFlags = 0, const nsAString* aCommitString = nullptr,
+      bool* aSucceeded = nullptr);
   nsresult CancelCompositionInternal(
-             const WidgetKeyboardEvent* aKeyboardEvent = nullptr,
-             uint32_t aKeyFlags = 0);
+      const WidgetKeyboardEvent* aKeyboardEvent = nullptr,
+      uint32_t aKeyFlags = 0);
   nsresult KeydownInternal(const WidgetKeyboardEvent& aKeyboardEvent,
-                           uint32_t aKeyFlags,
-                           bool aAllowToDispatchKeypress,
+                           uint32_t aKeyFlags, bool aAllowToDispatchKeypress,
                            uint32_t& aConsumedFlags);
   nsresult KeyupInternal(const WidgetKeyboardEvent& aKeyboardEvent,
-                         uint32_t aKeyFlags,
-                         bool& aDoDefault);
+                         uint32_t aKeyFlags, bool& aDoDefault);
   nsresult IsValidStateForComposition();
   void UnlinkFromTextEventDispatcher();
   nsresult PrepareKeyboardEventToDispatch(WidgetKeyboardEvent& aKeyboardEvent,
                                           uint32_t aKeyFlags);
   bool IsValidEventTypeForComposition(
-         const WidgetKeyboardEvent& aKeyboardEvent) const;
+      const WidgetKeyboardEvent& aKeyboardEvent) const;
   nsresult PrepareKeyboardEventForComposition(
-             dom::KeyboardEvent* aDOMKeyEvent,
-             uint32_t& aKeyFlags,
-             uint8_t aOptionalArgc,
-             WidgetKeyboardEvent*& aKeyboardEvent);
+      dom::KeyboardEvent* aDOMKeyEvent, uint32_t& aKeyFlags,
+      uint8_t aOptionalArgc, WidgetKeyboardEvent*& aKeyboardEvent);
 
-  struct EventDispatcherResult
-  {
+  struct EventDispatcherResult {
     nsresult mResult;
-    bool     mDoDefault;
-    bool     mCanContinue;
+    bool mDoDefault;
+    bool mCanContinue;
 
     EventDispatcherResult()
-      : mResult(NS_OK)
-      , mDoDefault(true)
-      , mCanContinue(true)
-    {
-    }
+        : mResult(NS_OK), mDoDefault(true), mCanContinue(true) {}
   };
   EventDispatcherResult MaybeDispatchKeydownForComposition(
-                          const WidgetKeyboardEvent* aKeyboardEvent,
-                          uint32_t aKeyFlags);
+      const WidgetKeyboardEvent* aKeyboardEvent, uint32_t aKeyFlags);
   EventDispatcherResult MaybeDispatchKeyupForComposition(
-                          const WidgetKeyboardEvent* aKeyboardEvent,
-                          uint32_t aKeyFlags);
+      const WidgetKeyboardEvent* aKeyboardEvent, uint32_t aKeyFlags);
 
   /**
    * AutoPendingCompositionResetter guarantees to clear all pending composition
    * data in its destructor.
    */
-  class MOZ_STACK_CLASS AutoPendingCompositionResetter
-  {
-  public:
+  class MOZ_STACK_CLASS AutoPendingCompositionResetter {
+   public:
     explicit AutoPendingCompositionResetter(TextInputProcessor* aTIP);
     ~AutoPendingCompositionResetter();
 
-  private:
+   private:
     RefPtr<TextInputProcessor> mTIP;
   };
 
@@ -125,8 +108,7 @@ private:
    * For example, left shift key up shouldn't cause inactivating shift state
    * while right shift key is being pressed.
    */
-  struct ModifierKeyData
-  {
+  struct ModifierKeyData {
     // One of modifier key name
     KeyNameIndex mKeyNameIndex;
     // Any code name is allowed.
@@ -136,64 +118,57 @@ private:
 
     explicit ModifierKeyData(const WidgetKeyboardEvent& aKeyboardEvent);
 
-    bool operator==(const ModifierKeyData& aOther) const
-    {
+    bool operator==(const ModifierKeyData& aOther) const {
       return mKeyNameIndex == aOther.mKeyNameIndex &&
              mCodeNameIndex == aOther.mCodeNameIndex;
     }
   };
 
-  class ModifierKeyDataArray : public nsTArray<ModifierKeyData>
-  {
+  class ModifierKeyDataArray : public nsTArray<ModifierKeyData> {
     NS_INLINE_DECL_REFCOUNTING(ModifierKeyDataArray)
 
-  public:
+   public:
     Modifiers GetActiveModifiers() const;
     void ActivateModifierKey(const ModifierKeyData& aModifierKeyData);
     void InactivateModifierKey(const ModifierKeyData& aModifierKeyData);
     void ToggleModifierKey(const ModifierKeyData& aModifierKeyData);
 
-  private:
-    virtual ~ModifierKeyDataArray() { }
+   private:
+    virtual ~ModifierKeyDataArray() {}
   };
 
-  Modifiers GetActiveModifiers() const
-  {
-    return mModifierKeyDataArray ?
-      mModifierKeyDataArray->GetActiveModifiers() : 0;
+  Modifiers GetActiveModifiers() const {
+    return mModifierKeyDataArray ? mModifierKeyDataArray->GetActiveModifiers()
+                                 : 0;
   }
-  void EnsureModifierKeyDataArray()
-  {
+  void EnsureModifierKeyDataArray() {
     if (mModifierKeyDataArray) {
       return;
     }
     mModifierKeyDataArray = new ModifierKeyDataArray();
   }
-  void ActivateModifierKey(const ModifierKeyData& aModifierKeyData)
-  {
+  void ActivateModifierKey(const ModifierKeyData& aModifierKeyData) {
     EnsureModifierKeyDataArray();
     mModifierKeyDataArray->ActivateModifierKey(aModifierKeyData);
   }
-  void InactivateModifierKey(const ModifierKeyData& aModifierKeyData)
-  {
+  void InactivateModifierKey(const ModifierKeyData& aModifierKeyData) {
     if (!mModifierKeyDataArray) {
       return;
     }
     mModifierKeyDataArray->InactivateModifierKey(aModifierKeyData);
   }
-  void ToggleModifierKey(const ModifierKeyData& aModifierKeyData)
-  {
+  void ToggleModifierKey(const ModifierKeyData& aModifierKeyData) {
     EnsureModifierKeyDataArray();
     mModifierKeyDataArray->ToggleModifierKey(aModifierKeyData);
   }
 
-  TextEventDispatcher* mDispatcher; // [Weak]
+  TextEventDispatcher* mDispatcher;  // [Weak]
   nsCOMPtr<nsITextInputProcessorCallback> mCallback;
   RefPtr<ModifierKeyDataArray> mModifierKeyDataArray;
 
   bool mForTests;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef mozilla_dom_textinputprocessor_h_
+#endif  // #ifndef mozilla_dom_textinputprocessor_h_

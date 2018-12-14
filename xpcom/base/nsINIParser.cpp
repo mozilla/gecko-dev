@@ -9,7 +9,7 @@
 #include "nsError.h"
 #include "nsIFile.h"
 #include "nsINIParser.h"
-#include "mozilla/FileUtils.h" // AutoFILE
+#include "mozilla/FileUtils.h"  // AutoFILE
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/URLPreloader.h"
 
@@ -23,17 +23,13 @@
 using namespace mozilla;
 
 #ifdef XP_WIN
-inline FILE*
-TS_tfopen(const char* aPath, const wchar_t* aMode)
-{
+inline FILE* TS_tfopen(const char* aPath, const wchar_t* aMode) {
   wchar_t wPath[MAX_PATH];
   MultiByteToWideChar(CP_UTF8, 0, aPath, -1, wPath, MAX_PATH);
   return _wfopen(wPath, aMode);
 }
 #else
-inline FILE*
-TS_tfopen(const char* aPath, const char* aMode)
-{
+inline FILE* TS_tfopen(const char* aPath, const char* aMode) {
   return fopen(aPath, aMode);
 }
 #endif
@@ -41,12 +37,10 @@ TS_tfopen(const char* aPath, const char* aMode)
 // Stack based FILE wrapper to ensure that fclose is called, copied from
 // toolkit/mozapps/update/updater/readstrings.cpp
 
-class AutoFILE
-{
-public:
+class AutoFILE {
+ public:
   explicit AutoFILE(FILE* aFp = nullptr) : fp_(aFp) {}
-  ~AutoFILE()
-  {
+  ~AutoFILE() {
     if (fp_) {
       fclose(fp_);
     }
@@ -54,13 +48,12 @@ public:
   operator FILE*() { return fp_; }
   FILE** operator&() { return &fp_; }
   void operator=(FILE* aFp) { fp_ = aFp; }
-private:
+
+ private:
   FILE* fp_;
 };
 
-nsresult
-nsINIParser::Init(nsIFile* aFile)
-{
+nsresult nsINIParser::Init(nsIFile* aFile) {
   nsCString result;
   MOZ_TRY_VAR(result, URLPreloader::ReadFile(aFile));
 
@@ -72,9 +65,7 @@ static const char kEquals[] = "=";
 static const char kWhitespace[] = " \t";
 static const char kRBracket[] = "]";
 
-nsresult
-nsINIParser::InitFromString(const nsCString& aStr)
-{
+nsresult nsINIParser::InitFromString(const nsCString& aStr) {
   char* buffer;
 
   if (StringHead(aStr, 3) == "\xEF\xBB\xBF") {
@@ -101,16 +92,16 @@ nsINIParser::InitFromString(const nsCString& aStr)
 
   // outer loop tokenizes into lines
   while (char* token = NS_strtok(kNL, &buffer)) {
-    if (token[0] == '#' || token[0] == ';') { // it's a comment
+    if (token[0] == '#' || token[0] == ';') {  // it's a comment
       continue;
     }
 
     token = (char*)NS_strspnp(kWhitespace, token);
-    if (!*token) { // empty line
+    if (!*token) {  // empty line
       continue;
     }
 
-    if (token[0] == '[') { // section header!
+    if (token[0] == '[') {  // section header!
       ++token;
       currSection = token;
 
@@ -171,10 +162,8 @@ nsINIParser::InitFromString(const nsCString& aStr)
   return NS_OK;
 }
 
-nsresult
-nsINIParser::GetString(const char* aSection, const char* aKey,
-                       nsACString& aResult)
-{
+nsresult nsINIParser::GetString(const char* aSection, const char* aKey,
+                                nsACString& aResult) {
   INIValue* val;
   mSections.Get(aSection, &val);
 
@@ -190,10 +179,8 @@ nsINIParser::GetString(const char* aSection, const char* aKey,
   return NS_ERROR_FAILURE;
 }
 
-nsresult
-nsINIParser::GetString(const char* aSection, const char* aKey,
-                       char* aResult, uint32_t aResultLen)
-{
+nsresult nsINIParser::GetString(const char* aSection, const char* aKey,
+                                char* aResult, uint32_t aResultLen) {
   INIValue* val;
   mSections.Get(aSection, &val);
 
@@ -214,9 +201,7 @@ nsINIParser::GetString(const char* aSection, const char* aKey,
   return NS_ERROR_FAILURE;
 }
 
-nsresult
-nsINIParser::GetSections(INISectionCallback aCB, void* aClosure)
-{
+nsresult nsINIParser::GetSections(INISectionCallback aCB, void* aClosure) {
   for (auto iter = mSections.Iter(); !iter.Done(); iter.Next()) {
     if (!aCB(iter.Key(), aClosure)) {
       break;
@@ -225,16 +210,11 @@ nsINIParser::GetSections(INISectionCallback aCB, void* aClosure)
   return NS_OK;
 }
 
-nsresult
-nsINIParser::GetStrings(const char* aSection,
-                        INIStringCallback aCB, void* aClosure)
-{
+nsresult nsINIParser::GetStrings(const char* aSection, INIStringCallback aCB,
+                                 void* aClosure) {
   INIValue* val;
 
-  for (mSections.Get(aSection, &val);
-       val;
-       val = val->next.get()) {
-
+  for (mSections.Get(aSection, &val); val; val = val->next.get()) {
     if (!aCB(val->key, val->value, aClosure)) {
       return NS_OK;
     }

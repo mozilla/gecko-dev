@@ -17,14 +17,13 @@
 /* Linux configuration */
 #if defined(__gnu_linux__)
 
-
 /* Windows configuration */
 #elif defined(_MSC_VER)
 
 #define inline __inline
 #define strncasecmp strnicmp
 #define snprintf _snprintf
-#define va_copy(a,b) ((a)=(b))
+#define va_copy(a, b) ((a) = (b))
 
 #endif
 

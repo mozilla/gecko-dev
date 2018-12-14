@@ -16,9 +16,8 @@ class mozIDOMWindowProxy;
 @class NSColorPanelWrapper;
 @class NSColor;
 
-class nsColorPicker final : public nsIColorPicker
-{
-public:
+class nsColorPicker final : public nsIColorPicker {
+ public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD Init(mozIDOMWindowProxy* aParent, const nsAString& aTitle,
@@ -27,14 +26,14 @@ public:
 
   // For NSColorPanelWrapper.
   void Update(NSColor* aColor);
-  // Call this method if you are done with this input, but the color picker needs to
-  // stay open as it will be associated to another input
+  // Call this method if you are done with this input, but the color picker
+  // needs to stay open as it will be associated to another input
   void DoneWithRetarget();
   // Same as DoneWithRetarget + clean the static instance of sColorPanelWrapper,
   // as it is not needed anymore for now
   void Done();
 
-private:
+ private:
   ~nsColorPicker();
 
   static NSColor* GetNSColorFromHexString(const nsAString& aColor);
@@ -42,9 +41,9 @@ private:
 
   static NSColorPanelWrapper* sColorPanelWrapper;
 
-  nsString             mTitle;
-  nsString             mColor;
+  nsString mTitle;
+  nsString mColor;
   nsCOMPtr<nsIColorPickerShownCallback> mCallback;
 };
 
-#endif // nsColorPicker_h_
+#endif  // nsColorPicker_h_

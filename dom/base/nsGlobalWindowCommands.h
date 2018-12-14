@@ -12,20 +12,18 @@
 namespace mozilla {
 namespace layers {
 struct KeyboardScrollAction;
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 class nsIControllerCommandTable;
 
-class nsWindowCommandRegistration
-{
-public:
-  static nsresult  RegisterWindowCommands(nsIControllerCommandTable *ccm);
+class nsWindowCommandRegistration {
+ public:
+  static nsresult RegisterWindowCommands(nsIControllerCommandTable* ccm);
 };
 
-class nsGlobalWindowCommands
-{
-public:
+class nsGlobalWindowCommands {
+ public:
   typedef mozilla::layers::KeyboardScrollAction KeyboardScrollAction;
 
   /**
@@ -33,7 +31,8 @@ public:
    * that would be done in response to a command.
    *
    * @param aCommandName the name of the command
-   * @param aOutAction the result of searching for this command, must not be null
+   * @param aOutAction the result of searching for this command, must not be
+   * null
    * @returns whether a keyboard action was found or not
    */
   static bool FindScrollCommand(const char* aCommandName,
@@ -41,11 +40,13 @@ public:
 };
 
 // XXX find a better home for these
-#define NS_WINDOWCONTROLLER_CID        \
- { /* 7BD05C78-6A26-11D7-B16F-0003938A9D96 */       \
-  0x7BD05C78, 0x6A26, 0x11D7, {0xB1, 0x6F, 0x00, 0x03, 0x93, 0x8A, 0x9D, 0x96} }
+#define NS_WINDOWCONTROLLER_CID                      \
+  { /* 7BD05C78-6A26-11D7-B16F-0003938A9D96 */       \
+    0x7BD05C78, 0x6A26, 0x11D7, {                    \
+      0xB1, 0x6F, 0x00, 0x03, 0x93, 0x8A, 0x9D, 0x96 \
+    }                                                \
+  }
 
 #define NS_WINDOWCONTROLLER_CONTRACTID "@mozilla.org/dom/window-controller;1"
 
-#endif // nsGlobalWindowCommands_h__
-
+#endif  // nsGlobalWindowCommands_h__

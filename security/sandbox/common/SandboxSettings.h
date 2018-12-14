@@ -17,5 +17,5 @@ int GetEffectiveContentSandboxLevel();
 // Checks whether the effective content sandbox level is > 0.
 bool IsContentSandboxEnabled();
 
-}
-#endif // mozilla_SandboxPolicies_h
+}  // namespace mozilla
+#endif  // mozilla_SandboxPolicies_h

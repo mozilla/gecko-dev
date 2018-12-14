@@ -14,7 +14,7 @@
 // Default traits for Singleton<Type>. Calls operator new and operator delete on
 // the object. Registers automatic deletion at process exit.
 // Overload if you need arguments or another memory allocation function.
-template<typename Type>
+template <typename Type>
 struct DefaultSingletonTraits {
   // Allocates the object.
   static Type* New() {
@@ -24,24 +24,20 @@ struct DefaultSingletonTraits {
   }
 
   // Destroys the object.
-  static void Delete(Type* x) {
-    delete x;
-  }
+  static void Delete(Type* x) { delete x; }
 
   // Set to true to automatically register deletion of the object on process
   // exit. See below for the required call that makes this happen.
   static const bool kRegisterAtExit = true;
 };
 
-
 // Alternate traits for use with the Singleton<Type>.  Identical to
 // DefaultSingletonTraits except that the Singleton will not be cleaned up
 // at exit.
-template<typename Type>
+template <typename Type>
 struct LeakySingletonTraits : public DefaultSingletonTraits<Type> {
   static const bool kRegisterAtExit = false;
 };
-
 
 // The Singleton<Type, Traits, DifferentiatingType> class manages a single
 // instance of Type which will be created on first use and will be destroyed at
@@ -103,8 +99,7 @@ struct LeakySingletonTraits : public DefaultSingletonTraits<Type> {
 // (b) Your factory function must never throw an exception. This class is not
 //     exception-safe.
 //
-template <typename Type,
-          typename Traits = DefaultSingletonTraits<Type>,
+template <typename Type, typename Traits = DefaultSingletonTraits<Type>,
           typename DifferentiatingType = Type>
 class Singleton {
  public:
@@ -122,8 +117,7 @@ class Singleton {
       return reinterpret_cast<Type*>(value);
 
     // Object isn't created yet, maybe we will get to create it, let's try...
-    if (base::subtle::Acquire_CompareAndSwap(&instance_,
-                                             0,
+    if (base::subtle::Acquire_CompareAndSwap(&instance_, 0,
                                              kBeingCreatedMarker) == 0) {
       // instance_ was NULL and is now kBeingCreatedMarker.  Only one thread
       // will ever get here.  Threads might be spinning on us, and they will
@@ -147,8 +141,7 @@ class Singleton {
     // the object has been created.
     while (true) {
       value = base::subtle::NoBarrier_Load(&instance_);
-      if (value != kBeingCreatedMarker)
-        break;
+      if (value != kBeingCreatedMarker) break;
       PlatformThread::YieldCurrentThread();
     }
 
@@ -156,13 +149,9 @@ class Singleton {
   }
 
   // Shortcuts.
-  Type& operator*() {
-    return *get();
-  }
+  Type& operator*() { return *get(); }
 
-  Type* operator->() {
-    return get();
-  }
+  Type* operator->() { return get(); }
 
  private:
   // Adapter function for use with AtExit().  This should be called single
@@ -177,7 +166,7 @@ class Singleton {
 };
 
 template <typename Type, typename Traits, typename DifferentiatingType>
-base::subtle::AtomicWord Singleton<Type, Traits, DifferentiatingType>::
-    instance_ = 0;
+base::subtle::AtomicWord
+    Singleton<Type, Traits, DifferentiatingType>::instance_ = 0;
 
 #endif  // BASE_SINGLETON_H_

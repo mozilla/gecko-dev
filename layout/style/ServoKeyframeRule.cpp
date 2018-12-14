@@ -17,19 +17,16 @@ namespace mozilla {
 // ServoKeyframeDeclaration
 //
 
-class ServoKeyframeDeclaration : public nsDOMCSSDeclaration
-{
-public:
-  explicit ServoKeyframeDeclaration(ServoKeyframeRule* aRule)
-    : mRule(aRule)
-  {
+class ServoKeyframeDeclaration : public nsDOMCSSDeclaration {
+ public:
+  explicit ServoKeyframeDeclaration(ServoKeyframeRule* aRule) : mRule(aRule) {
     mDecls = new ServoDeclarationBlock(
-      Servo_Keyframe_GetStyle(aRule->Raw()).Consume());
+        Servo_Keyframe_GetStyle(aRule->Raw()).Consume());
   }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(
-    ServoKeyframeDeclaration, nsICSSDeclaration)
+      ServoKeyframeDeclaration, nsICSSDeclaration)
 
   css::Rule* GetParentRule() final { return mRule; }
 
@@ -38,12 +35,10 @@ public:
     mDecls->SetOwningRule(nullptr);
   }
 
-  DeclarationBlock* GetCSSDeclaration(Operation aOperation) final
-  {
+  DeclarationBlock* GetCSSDeclaration(Operation aOperation) final {
     return mDecls;
   }
-  nsresult SetCSSDeclaration(DeclarationBlock* aDecls) final
-  {
+  nsresult SetCSSDeclaration(DeclarationBlock* aDecls) final {
     if (!mRule) {
       return NS_OK;
     }
@@ -58,32 +53,29 @@ public:
     return NS_OK;
   }
   void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv,
-                                nsIPrincipal* aSubjectPrincipal) final
-  {
-    MOZ_ASSERT_UNREACHABLE("GetCSSParsingEnvironment "
-                           "shouldn't be calling for a Servo rule");
+                                nsIPrincipal* aSubjectPrincipal) final {
+    MOZ_ASSERT_UNREACHABLE(
+        "GetCSSParsingEnvironment "
+        "shouldn't be calling for a Servo rule");
     GetCSSParsingEnvironmentForRule(mRule, aCSSParseEnv);
   }
   ServoCSSParsingEnvironment GetServoCSSParsingEnvironment(
-      nsIPrincipal* aSubjectPrincipal) const final
-  {
+      nsIPrincipal* aSubjectPrincipal) const final {
     return GetServoCSSParsingEnvironmentForRule(mRule);
   }
   nsIDocument* DocToUpdate() final { return nullptr; }
 
-  nsINode* GetParentObject() final
-  {
+  nsINode* GetParentObject() final {
     return mRule ? mRule->GetDocument() : nullptr;
   }
 
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-  {
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
     size_t n = aMallocSizeOf(this);
     // TODO we may want to add size of mDecls as well
     return n;
   }
 
-private:
+ private:
   virtual ~ServoKeyframeDeclaration() {
     MOZ_ASSERT(!mRule, "Backpointer should have been cleared");
   }
@@ -105,8 +97,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMCSSDeclaration)
 // ServoKeyframeRule
 //
 
-ServoKeyframeRule::~ServoKeyframeRule()
-{
+ServoKeyframeRule::~ServoKeyframeRule() {
   if (mDeclaration) {
     mDeclaration->DropReference();
   }
@@ -133,15 +124,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ServoKeyframeRule,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDeclaration)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-bool
-ServoKeyframeRule::IsCCLeaf() const
-{
+bool ServoKeyframeRule::IsCCLeaf() const {
   return Rule::IsCCLeaf() && !mDeclaration;
 }
 
-/* virtual */ already_AddRefed<css::Rule>
-ServoKeyframeRule::Clone() const
-{
+/* virtual */ already_AddRefed<css::Rule> ServoKeyframeRule::Clone() const {
   // Rule::Clone is only used when CSSStyleSheetInner is cloned in
   // preparation of being mutated. However, ServoStyleSheet never clones
   // anything, so this method should never be called.
@@ -150,9 +137,7 @@ ServoKeyframeRule::Clone() const
 }
 
 #ifdef DEBUG
-/* virtual */ void
-ServoKeyframeRule::List(FILE* out, int32_t aIndent) const
-{
+/* virtual */ void ServoKeyframeRule::List(FILE* out, int32_t aIndent) const {
   nsAutoCString str;
   for (int32_t i = 0; i < aIndent; i++) {
     str.AppendLiteral("  ");
@@ -162,10 +147,8 @@ ServoKeyframeRule::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
-template<typename Func>
-void
-ServoKeyframeRule::UpdateRule(Func aCallback)
-{
+template <typename Func>
+void ServoKeyframeRule::UpdateRule(Func aCallback) {
   nsIDocument* doc = GetDocument();
   MOZ_AUTO_DOC_UPDATE(doc, UPDATE_STYLE, true);
 
@@ -176,39 +159,28 @@ ServoKeyframeRule::UpdateRule(Func aCallback)
   }
 }
 
-void
-ServoKeyframeRule::GetKeyText(nsAString& aKeyText)
-{
+void ServoKeyframeRule::GetKeyText(nsAString& aKeyText) {
   Servo_Keyframe_GetKeyText(mRaw, &aKeyText);
 }
 
-void
-ServoKeyframeRule::SetKeyText(const nsAString& aKeyText)
-{
+void ServoKeyframeRule::SetKeyText(const nsAString& aKeyText) {
   NS_ConvertUTF16toUTF8 keyText(aKeyText);
-  UpdateRule([this, &keyText]() {
-    Servo_Keyframe_SetKeyText(mRaw, &keyText);
-  });
+  UpdateRule([this, &keyText]() { Servo_Keyframe_SetKeyText(mRaw, &keyText); });
 }
 
-void
-ServoKeyframeRule::GetCssText(nsAString& aCssText) const
-{
+void ServoKeyframeRule::GetCssText(nsAString& aCssText) const {
   Servo_Keyframe_GetCssText(mRaw, &aCssText);
 }
 
-nsICSSDeclaration*
-ServoKeyframeRule::Style()
-{
+nsICSSDeclaration* ServoKeyframeRule::Style() {
   if (!mDeclaration) {
     mDeclaration = new ServoKeyframeDeclaration(this);
   }
   return mDeclaration;
 }
 
-size_t
-ServoKeyframeRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
+size_t ServoKeyframeRule::SizeOfIncludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   size_t n = aMallocSizeOf(this);
   if (mDeclaration) {
     n += mDeclaration->SizeOfIncludingThis(aMallocSizeOf);
@@ -216,4 +188,4 @@ ServoKeyframeRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
   return n;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

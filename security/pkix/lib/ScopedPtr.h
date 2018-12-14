@@ -25,7 +25,8 @@
 #ifndef mozilla_pkix_ScopedPtr_h
 #define mozilla_pkix_ScopedPtr_h
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 // A subset polyfill of std::unique_ptr that does not support move construction
 // or move assignment. This is used instead of std::unique_ptr because some
@@ -33,15 +34,13 @@ namespace mozilla { namespace pkix {
 // particular Android NDK projects with APP_STL=stlport_static or
 // ALL_STL=stlport_shared.
 template <typename T, void (&Destroyer)(T*)>
-class ScopedPtr final
-{
-public:
-  explicit ScopedPtr(T* value = nullptr) : mValue(value) { }
+class ScopedPtr final {
+ public:
+  explicit ScopedPtr(T* value = nullptr) : mValue(value) {}
 
   ScopedPtr(const ScopedPtr&) = delete;
 
-  ~ScopedPtr()
-  {
+  ~ScopedPtr() {
     if (mValue) {
       Destroyer(mValue);
     }
@@ -56,15 +55,13 @@ public:
 
   T* get() const { return mValue; }
 
-  T* release()
-  {
+  T* release() {
     T* result = mValue;
     mValue = nullptr;
     return result;
   }
 
-  void reset(T* newValue = nullptr)
-  {
+  void reset(T* newValue = nullptr) {
     // The C++ standard requires std::unique_ptr to destroy the old value
     // pointed to by mValue, if any, *after* assigning the new value to mValue.
     T* oldValue = mValue;
@@ -74,10 +71,11 @@ public:
     }
   }
 
-private:
+ private:
   T* mValue;
 };
 
-} } // namespace mozilla::pkix
+}  // namespace pkix
+}  // namespace mozilla
 
-#endif // mozilla_pkix_ScopedPtr_h
+#endif  // mozilla_pkix_ScopedPtr_h

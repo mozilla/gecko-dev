@@ -15,41 +15,36 @@
  * This frame is used by filter primitive elements that don't
  * have special child elements that provide parameters.
  */
-class SVGFELeafFrame final : public nsFrame
-{
-  friend nsIFrame*
-  NS_NewSVGFELeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-protected:
+class SVGFELeafFrame final : public nsFrame {
+  friend nsIFrame* NS_NewSVGFELeafFrame(nsIPresShell* aPresShell,
+                                        nsStyleContext* aContext);
+
+ protected:
   explicit SVGFELeafFrame(nsStyleContext* aContext)
-    : nsFrame(aContext, kClassID)
-  {
+      : nsFrame(aContext, kClassID) {
     AddStateBits(NS_FRAME_SVG_LAYOUT | NS_FRAME_IS_NONDISPLAY);
   }
 
-public:
+ public:
   NS_DECL_FRAMEARENA_HELPERS(SVGFELeafFrame)
 
 #ifdef DEBUG
-  virtual void Init(nsIContent*       aContent,
-                    nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) override;
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* aPrevInFlow) override;
 #endif
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const override
-  {
+  virtual bool IsFrameOfType(uint32_t aFlags) const override {
     return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override
-  {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("SVGFELeaf"), aResult);
   }
 #endif
 
-  virtual nsresult AttributeChanged(int32_t  aNameSpaceID,
-                                    nsAtom* aAttribute,
-                                    int32_t  aModType) override;
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                                    int32_t aModType) override;
 
   virtual bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) override {
     // We don't maintain a visual overflow rect
@@ -57,20 +52,16 @@ public:
   }
 };
 
-nsIFrame*
-NS_NewSVGFELeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewSVGFELeafFrame(nsIPresShell* aPresShell,
+                               nsStyleContext* aContext) {
   return new (aPresShell) SVGFELeafFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(SVGFELeafFrame)
 
 #ifdef DEBUG
-void
-SVGFELeafFrame::Init(nsIContent*       aContent,
-                     nsContainerFrame* aParent,
-                     nsIFrame*         aPrevInFlow)
-{
+void SVGFELeafFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
+                          nsIFrame* aPrevInFlow) {
   NS_ASSERTION(aContent->IsNodeOfType(nsINode::eFILTER),
                "Trying to construct an SVGFELeafFrame for a "
                "content element that doesn't support the right interfaces");
@@ -79,15 +70,14 @@ SVGFELeafFrame::Init(nsIContent*       aContent,
 }
 #endif /* DEBUG */
 
-nsresult
-SVGFELeafFrame::AttributeChanged(int32_t  aNameSpaceID,
-                                 nsAtom* aAttribute,
-                                 int32_t  aModType)
-{
-  nsSVGFE *element = static_cast<nsSVGFE*>(GetContent());
+nsresult SVGFELeafFrame::AttributeChanged(int32_t aNameSpaceID,
+                                          nsAtom* aAttribute,
+                                          int32_t aModType) {
+  nsSVGFE* element = static_cast<nsSVGFE*>(GetContent());
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {
-    MOZ_ASSERT(GetParent()->IsSVGFilterFrame(),
-               "Observers observe the filter, so that's what we must invalidate");
+    MOZ_ASSERT(
+        GetParent()->IsSVGFilterFrame(),
+        "Observers observe the filter, so that's what we must invalidate");
     SVGObserverUtils::InvalidateDirectRenderingObservers(GetParent());
   }
 

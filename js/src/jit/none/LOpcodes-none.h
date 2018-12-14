@@ -11,4 +11,4 @@
 
 #define LIR_CPU_OPCODE_LIST(_)
 
-#endif // jit_none_LOpcodes_none_h__
+#endif  // jit_none_LOpcodes_none_h__

@@ -14,9 +14,8 @@
 namespace mozilla {
 namespace widget {
 
-class MOZ_STACK_CLASS ModifierKeyState final
-{
-public:
+class MOZ_STACK_CLASS ModifierKeyState final {
+ public:
   ModifierKeyState();
   ModifierKeyState(bool aIsShiftDown, bool aIsControlDown, bool aIsAltDown);
   explicit ModifierKeyState(Modifiers aModifiers);
@@ -40,12 +39,9 @@ public:
   bool IsNumLocked() const;
   bool IsScrollLocked() const;
 
-  MOZ_ALWAYS_INLINE Modifiers GetModifiers() const
-  {
-    return mModifiers;
-  }
+  MOZ_ALWAYS_INLINE Modifiers GetModifiers() const { return mModifiers; }
 
-private:
+ private:
   Modifiers mModifiers;
 
   MOZ_ALWAYS_INLINE void EnsureAltGr();
@@ -55,7 +51,7 @@ private:
 
 const nsCString ToString(const ModifierKeyState& aModifierKeyState);
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // #ifndef mozilla_widget_WinModifierKeyState_h_
+#endif  // #ifndef mozilla_widget_WinModifierKeyState_h_

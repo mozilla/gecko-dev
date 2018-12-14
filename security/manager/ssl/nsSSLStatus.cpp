@@ -14,8 +14,7 @@
 #include "ssl.h"
 
 NS_IMETHODIMP
-nsSSLStatus::GetServerCert(nsIX509Cert** aServerCert)
-{
+nsSSLStatus::GetServerCert(nsIX509Cert** aServerCert) {
   NS_ENSURE_ARG_POINTER(aServerCert);
 
   nsCOMPtr<nsIX509Cert> cert = mServerCert;
@@ -24,16 +23,15 @@ nsSSLStatus::GetServerCert(nsIX509Cert** aServerCert)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetKeyLength(uint32_t* aKeyLength)
-{
+nsSSLStatus::GetKeyLength(uint32_t* aKeyLength) {
   NS_ENSURE_ARG_POINTER(aKeyLength);
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   SSLCipherSuiteInfo cipherInfo;
-  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo,
-                             sizeof(cipherInfo)) != SECSuccess) {
+  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo, sizeof(cipherInfo)) !=
+      SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
@@ -42,16 +40,15 @@ nsSSLStatus::GetKeyLength(uint32_t* aKeyLength)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetSecretKeyLength(uint32_t* aSecretKeyLength)
-{
+nsSSLStatus::GetSecretKeyLength(uint32_t* aSecretKeyLength) {
   NS_ENSURE_ARG_POINTER(aSecretKeyLength);
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   SSLCipherSuiteInfo cipherInfo;
-  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo,
-                             sizeof(cipherInfo)) != SECSuccess) {
+  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo, sizeof(cipherInfo)) !=
+      SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
@@ -60,15 +57,14 @@ nsSSLStatus::GetSecretKeyLength(uint32_t* aSecretKeyLength)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetCipherName(nsACString& aCipherName)
-{
+nsSSLStatus::GetCipherName(nsACString& aCipherName) {
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   SSLCipherSuiteInfo cipherInfo;
-  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo,
-                             sizeof(cipherInfo)) != SECSuccess) {
+  if (SSL_GetCipherSuiteInfo(mCipherSuite, &cipherInfo, sizeof(cipherInfo)) !=
+      SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
@@ -77,8 +73,7 @@ nsSSLStatus::GetCipherName(nsACString& aCipherName)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetKeaGroupName(nsACString& aKeaGroup)
-{
+nsSSLStatus::GetKeaGroupName(nsACString& aKeaGroup) {
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -88,8 +83,7 @@ nsSSLStatus::GetKeaGroupName(nsACString& aKeaGroup)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetSignatureSchemeName(nsACString& aSignatureScheme)
-{
+nsSSLStatus::GetSignatureSchemeName(nsACString& aSignatureScheme) {
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -99,8 +93,7 @@ nsSSLStatus::GetSignatureSchemeName(nsACString& aSignatureScheme)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetProtocolVersion(uint16_t* aProtocolVersion)
-{
+nsSSLStatus::GetProtocolVersion(uint16_t* aProtocolVersion) {
   NS_ENSURE_ARG_POINTER(aProtocolVersion);
   if (!mHaveCipherSuiteAndProtocol) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -112,8 +105,7 @@ nsSSLStatus::GetProtocolVersion(uint16_t* aProtocolVersion)
 
 NS_IMETHODIMP
 nsSSLStatus::GetCertificateTransparencyStatus(
-  uint16_t* aCertificateTransparencyStatus)
-{
+    uint16_t* aCertificateTransparencyStatus) {
   NS_ENSURE_ARG_POINTER(aCertificateTransparencyStatus);
 
   *aCertificateTransparencyStatus = mCertificateTransparencyStatus;
@@ -121,8 +113,7 @@ nsSSLStatus::GetCertificateTransparencyStatus(
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetIsDomainMismatch(bool* aIsDomainMismatch)
-{
+nsSSLStatus::GetIsDomainMismatch(bool* aIsDomainMismatch) {
   NS_ENSURE_ARG_POINTER(aIsDomainMismatch);
 
   *aIsDomainMismatch = mHaveCertErrorBits && mIsDomainMismatch;
@@ -130,8 +121,7 @@ nsSSLStatus::GetIsDomainMismatch(bool* aIsDomainMismatch)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetIsNotValidAtThisTime(bool* aIsNotValidAtThisTime)
-{
+nsSSLStatus::GetIsNotValidAtThisTime(bool* aIsNotValidAtThisTime) {
   NS_ENSURE_ARG_POINTER(aIsNotValidAtThisTime);
 
   *aIsNotValidAtThisTime = mHaveCertErrorBits && mIsNotValidAtThisTime;
@@ -139,8 +129,7 @@ nsSSLStatus::GetIsNotValidAtThisTime(bool* aIsNotValidAtThisTime)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetIsUntrusted(bool* aIsUntrusted)
-{
+nsSSLStatus::GetIsUntrusted(bool* aIsUntrusted) {
   NS_ENSURE_ARG_POINTER(aIsUntrusted);
 
   *aIsUntrusted = mHaveCertErrorBits && mIsUntrusted;
@@ -148,8 +137,7 @@ nsSSLStatus::GetIsUntrusted(bool* aIsUntrusted)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
-{
+nsSSLStatus::GetIsExtendedValidation(bool* aIsEV) {
   NS_ENSURE_ARG_POINTER(aIsEV);
   *aIsEV = false;
 
@@ -167,8 +155,7 @@ nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::Read(nsIObjectInputStream* aStream)
-{
+nsSSLStatus::Read(nsIObjectInputStream* aStream) {
   nsCOMPtr<nsISupports> cert;
   nsresult rv = aStream->ReadObject(true, getter_AddRefs(cert));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -192,7 +179,7 @@ nsSSLStatus::Read(nsIObjectInputStream* aStream)
   NS_ENSURE_SUCCESS(rv, rv);
   mProtocolVersion = protocolVersionAndStreamFormatVersion & 0xFF;
   const uint8_t streamFormatVersion =
-    (protocolVersionAndStreamFormatVersion >> 8) & 0xFF;
+      (protocolVersionAndStreamFormatVersion >> 8) & 0xFF;
 
   rv = aStream->ReadBoolean(&mIsDomainMismatch);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -228,14 +215,16 @@ nsSSLStatus::Read(nsIObjectInputStream* aStream)
   // Added in version 3 (see bug 1406856).
   if (streamFormatVersion >= 3) {
     nsCOMPtr<nsISupports> succeededCertChainSupports;
-    rv = NS_ReadOptionalObject(aStream, true, getter_AddRefs(succeededCertChainSupports));
+    rv = NS_ReadOptionalObject(aStream, true,
+                               getter_AddRefs(succeededCertChainSupports));
     if (NS_FAILED(rv)) {
       return rv;
     }
     mSucceededCertChain = do_QueryInterface(succeededCertChainSupports);
 
     nsCOMPtr<nsISupports> failedCertChainSupports;
-    rv = NS_ReadOptionalObject(aStream, true, getter_AddRefs(failedCertChainSupports));
+    rv = NS_ReadOptionalObject(aStream, true,
+                               getter_AddRefs(failedCertChainSupports));
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -246,22 +235,20 @@ nsSSLStatus::Read(nsIObjectInputStream* aStream)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::Write(nsIObjectOutputStream* aStream)
-{
+nsSSLStatus::Write(nsIObjectOutputStream* aStream) {
   // The current version of the binary stream format.
   const uint8_t STREAM_FORMAT_VERSION = 3;
 
-  nsresult rv = aStream->WriteCompoundObject(mServerCert,
-                                             NS_GET_IID(nsIX509Cert),
-                                             true);
+  nsresult rv =
+      aStream->WriteCompoundObject(mServerCert, NS_GET_IID(nsIX509Cert), true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aStream->Write16(mCipherSuite);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint16_t protocolVersionAndStreamFormatVersion =
-    mozilla::AssertedCast<uint8_t>(mProtocolVersion) |
-    (STREAM_FORMAT_VERSION << 8);
+      mozilla::AssertedCast<uint8_t>(mProtocolVersion) |
+      (STREAM_FORMAT_VERSION << 8);
   rv = aStream->Write16(protocolVersionAndStreamFormatVersion);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -293,18 +280,14 @@ nsSSLStatus::Write(nsIObjectOutputStream* aStream)
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Added in version 3.
-  rv = NS_WriteOptionalCompoundObject(aStream,
-                                      mSucceededCertChain,
-                                      NS_GET_IID(nsIX509CertList),
-                                      true);
+  rv = NS_WriteOptionalCompoundObject(aStream, mSucceededCertChain,
+                                      NS_GET_IID(nsIX509CertList), true);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  rv = NS_WriteOptionalCompoundObject(aStream,
-                                      mFailedCertChain,
-                                      NS_GET_IID(nsIX509CertList),
-                                      true);
+  rv = NS_WriteOptionalCompoundObject(aStream, mFailedCertChain,
+                                      NS_GET_IID(nsIX509CertList), true);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -313,38 +296,33 @@ nsSSLStatus::Write(nsIObjectOutputStream* aStream)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetInterfaces(uint32_t* aCount, nsIID*** aArray)
-{
+nsSSLStatus::GetInterfaces(uint32_t* aCount, nsIID*** aArray) {
   *aCount = 0;
   *aArray = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetScriptableHelper(nsIXPCScriptable** aHelper)
-{
+nsSSLStatus::GetScriptableHelper(nsIXPCScriptable** aHelper) {
   *aHelper = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetContractID(nsACString& aContractID)
-{
+nsSSLStatus::GetContractID(nsACString& aContractID) {
   aContractID.SetIsVoid(true);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetClassDescription(nsACString& aClassDescription)
-{
+nsSSLStatus::GetClassDescription(nsACString& aClassDescription) {
   aClassDescription.SetIsVoid(true);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetClassID(nsCID** aClassID)
-{
-  *aClassID = (nsCID*) moz_xmalloc(sizeof(nsCID));
+nsSSLStatus::GetClassID(nsCID** aClassID) {
+  *aClassID = (nsCID*)moz_xmalloc(sizeof(nsCID));
   if (!*aClassID) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -352,8 +330,7 @@ nsSSLStatus::GetClassID(nsCID** aClassID)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetFlags(uint32_t* aFlags)
-{
+nsSSLStatus::GetFlags(uint32_t* aFlags) {
   *aFlags = 0;
   return NS_OK;
 }
@@ -361,34 +338,30 @@ nsSSLStatus::GetFlags(uint32_t* aFlags)
 static NS_DEFINE_CID(kSSLStatusCID, NS_SSLSTATUS_CID);
 
 NS_IMETHODIMP
-nsSSLStatus::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc)
-{
+nsSSLStatus::GetClassIDNoAlloc(nsCID* aClassIDNoAlloc) {
   *aClassIDNoAlloc = kSSLStatusCID;
   return NS_OK;
 }
 
 nsSSLStatus::nsSSLStatus()
-: mCipherSuite(0)
-, mProtocolVersion(0)
-, mCertificateTransparencyStatus(nsISSLStatus::
-    CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE)
-, mKeaGroup()
-, mSignatureSchemeName()
-, mIsDomainMismatch(false)
-, mIsNotValidAtThisTime(false)
-, mIsUntrusted(false)
-, mIsEV(false)
-, mHasIsEVStatus(false)
-, mHaveCipherSuiteAndProtocol(false)
-, mHaveCertErrorBits(false)
-{
-}
+    : mCipherSuite(0),
+      mProtocolVersion(0),
+      mCertificateTransparencyStatus(
+          nsISSLStatus::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE),
+      mKeaGroup(),
+      mSignatureSchemeName(),
+      mIsDomainMismatch(false),
+      mIsNotValidAtThisTime(false),
+      mIsUntrusted(false),
+      mIsEV(false),
+      mHasIsEVStatus(false),
+      mHaveCipherSuiteAndProtocol(false),
+      mHaveCertErrorBits(false) {}
 
 NS_IMPL_ISUPPORTS(nsSSLStatus, nsISSLStatus, nsISerializable, nsIClassInfo)
 
-void
-nsSSLStatus::SetServerCert(nsNSSCertificate* aServerCert, EVStatus aEVStatus)
-{
+void nsSSLStatus::SetServerCert(nsNSSCertificate* aServerCert,
+                                EVStatus aEVStatus) {
   MOZ_ASSERT(aServerCert);
 
   mServerCert = aServerCert;
@@ -396,24 +369,19 @@ nsSSLStatus::SetServerCert(nsNSSCertificate* aServerCert, EVStatus aEVStatus)
   mHasIsEVStatus = true;
 }
 
-nsresult
-nsSSLStatus::SetSucceededCertChain(UniqueCERTCertList aCertList)
-{
+nsresult nsSSLStatus::SetSucceededCertChain(UniqueCERTCertList aCertList) {
   // nsNSSCertList takes ownership of certList
   mSucceededCertChain = new nsNSSCertList(Move(aCertList));
 
   return NS_OK;
 }
 
-void
-nsSSLStatus::SetFailedCertChain(nsIX509CertList* aX509CertList)
-{
+void nsSSLStatus::SetFailedCertChain(nsIX509CertList* aX509CertList) {
   mFailedCertChain = aX509CertList;
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetSucceededCertChain(nsIX509CertList** _result)
-{
+nsSSLStatus::GetSucceededCertChain(nsIX509CertList** _result) {
   NS_ENSURE_ARG_POINTER(_result);
 
   nsCOMPtr<nsIX509CertList> tmpList = mSucceededCertChain;
@@ -423,8 +391,7 @@ nsSSLStatus::GetSucceededCertChain(nsIX509CertList** _result)
 }
 
 NS_IMETHODIMP
-nsSSLStatus::GetFailedCertChain(nsIX509CertList** _result)
-{
+nsSSLStatus::GetFailedCertChain(nsIX509CertList** _result) {
   NS_ENSURE_ARG_POINTER(_result);
 
   nsCOMPtr<nsIX509CertList> tmpList = mFailedCertChain;
@@ -433,14 +400,12 @@ nsSSLStatus::GetFailedCertChain(nsIX509CertList** _result)
   return NS_OK;
 }
 
-void
-nsSSLStatus::SetCertificateTransparencyInfo(
-  const mozilla::psm::CertificateTransparencyInfo& info)
-{
+void nsSSLStatus::SetCertificateTransparencyInfo(
+    const mozilla::psm::CertificateTransparencyInfo& info) {
   using mozilla::ct::CTPolicyCompliance;
 
   mCertificateTransparencyStatus =
-    nsISSLStatus::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
+      nsISSLStatus::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE;
 
   if (!info.enabled) {
     // CT disabled.
@@ -450,15 +415,15 @@ nsSSLStatus::SetCertificateTransparencyInfo(
   switch (info.policyCompliance) {
     case CTPolicyCompliance::Compliant:
       mCertificateTransparencyStatus =
-        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
+          nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT;
       break;
     case CTPolicyCompliance::NotEnoughScts:
       mCertificateTransparencyStatus =
-        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS;
+          nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS;
       break;
     case CTPolicyCompliance::NotDiverseScts:
       mCertificateTransparencyStatus =
-        nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS;
+          nsISSLStatus::CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS;
       break;
     case CTPolicyCompliance::Unknown:
     default:

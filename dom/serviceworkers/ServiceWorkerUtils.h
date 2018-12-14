@@ -9,10 +9,9 @@
 namespace mozilla {
 namespace dom {
 
-bool
-ServiceWorkerParentInterceptEnabled();
+bool ServiceWorkerParentInterceptEnabled();
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // _mozilla_dom_ServiceWorkerUtils_h
+#endif  // _mozilla_dom_ServiceWorkerUtils_h

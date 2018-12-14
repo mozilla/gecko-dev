@@ -26,39 +26,27 @@ namespace mozilla {
  * initialized to 0 in order to initialize mMutex.  It is only safe to use
  * StaticMutex as a global or static variable.
  */
-class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex
-{
-public:
+class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS StaticMutex {
+ public:
   // In debug builds, check that mMutex is initialized for us as we expect by
   // the compiler.  In non-debug builds, don't declare a constructor so that
   // the compiler can see that the constructor is trivial.
 #ifdef DEBUG
-  StaticMutex()
-  {
-    MOZ_ASSERT(!mMutex);
-  }
+  StaticMutex() { MOZ_ASSERT(!mMutex); }
 #endif
 
-  void Lock()
-  {
-    Mutex()->Lock();
-  }
+  void Lock() { Mutex()->Lock(); }
 
-  void Unlock()
-  {
-    Mutex()->Unlock();
-  }
+  void Unlock() { Mutex()->Unlock(); }
 
-  void AssertCurrentThreadOwns()
-  {
+  void AssertCurrentThreadOwns() {
 #ifdef DEBUG
     Mutex()->AssertCurrentThreadOwns();
 #endif
   }
 
-private:
-  OffTheBooksMutex* Mutex()
-  {
+ private:
+  OffTheBooksMutex* Mutex() {
     if (mMutex) {
       return mMutex;
     }
@@ -72,7 +60,6 @@ private:
   }
 
   Atomic<OffTheBooksMutex*> mMutex;
-
 
   // Disallow copy constructor, but only in debug mode.  We only define
   // a default constructor in debug mode (see above); if we declared
@@ -91,6 +78,6 @@ private:
 typedef BaseAutoLock<StaticMutex> StaticMutexAutoLock;
 typedef BaseAutoUnlock<StaticMutex> StaticMutexAutoUnlock;
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

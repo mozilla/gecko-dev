@@ -28,10 +28,7 @@ static int32_t sActivationDelayMs = 100;
 static bool sActivationDelayMsSet = false;
 
 ActiveElementManager::ActiveElementManager()
-  : mCanBePan(false),
-    mCanBePanSet(false),
-    mSetActiveTask(nullptr)
-{
+    : mCanBePan(false), mCanBePanSet(false), mSetActiveTask(nullptr) {
   if (!sActivationDelayMsSet) {
     Preferences::AddIntVarCache(&sActivationDelayMs,
                                 "ui.touch_activation.delay_ms",
@@ -42,9 +39,7 @@ ActiveElementManager::ActiveElementManager()
 
 ActiveElementManager::~ActiveElementManager() {}
 
-void
-ActiveElementManager::SetTargetElement(dom::EventTarget* aTarget)
-{
+void ActiveElementManager::SetTargetElement(dom::EventTarget* aTarget) {
   if (mTarget) {
     // Multiple fingers on screen (since HandleTouchEnd clears mTarget).
     AEM_LOG("Multiple fingers on-screen, clearing target element\n");
@@ -59,9 +54,7 @@ ActiveElementManager::SetTargetElement(dom::EventTarget* aTarget)
   TriggerElementActivation();
 }
 
-void
-ActiveElementManager::HandleTouchStart(bool aCanBePan)
-{
+void ActiveElementManager::HandleTouchStart(bool aCanBePan) {
   AEM_LOG("Touch start, aCanBePan: %d\n", aCanBePan);
   if (mCanBePanSet) {
     // Multiple fingers on screen (since HandleTouchEnd clears mCanBePanSet).
@@ -77,9 +70,7 @@ ActiveElementManager::HandleTouchStart(bool aCanBePan)
   TriggerElementActivation();
 }
 
-void
-ActiveElementManager::TriggerElementActivation()
-{
+void ActiveElementManager::TriggerElementActivation() {
   // Both HandleTouchStart() and SetTargetElement() call this. They can be
   // called in either order. One will set mCanBePanSet, and the other, mTarget.
   // We want to actually trigger the activation once both are set.
@@ -92,33 +83,27 @@ ActiveElementManager::TriggerElementActivation()
   if (!mCanBePan) {
     SetActive(mTarget);
   } else {
-    CancelTask();   // this is only needed because of bug 1169802. Fixing that
-                    // bug properly should make this unnecessary.
+    CancelTask();  // this is only needed because of bug 1169802. Fixing that
+                   // bug properly should make this unnecessary.
     MOZ_ASSERT(mSetActiveTask == nullptr);
 
     RefPtr<CancelableRunnable> task =
-      NewCancelableRunnableMethod<nsCOMPtr<dom::Element>>(
-        "layers::ActiveElementManager::SetActiveTask",
-        this,
-        &ActiveElementManager::SetActiveTask,
-        mTarget);
+        NewCancelableRunnableMethod<nsCOMPtr<dom::Element>>(
+            "layers::ActiveElementManager::SetActiveTask", this,
+            &ActiveElementManager::SetActiveTask, mTarget);
     mSetActiveTask = task;
     MessageLoop::current()->PostDelayedTask(task.forget(), sActivationDelayMs);
     AEM_LOG("Scheduling mSetActiveTask %p\n", mSetActiveTask);
   }
 }
 
-void
-ActiveElementManager::ClearActivation()
-{
+void ActiveElementManager::ClearActivation() {
   AEM_LOG("Clearing element activation\n");
   CancelTask();
   ResetActive();
 }
 
-void
-ActiveElementManager::HandleTouchEndEvent(bool aWasClick)
-{
+void ActiveElementManager::HandleTouchEndEvent(bool aWasClick) {
   AEM_LOG("Touch end event, aWasClick: %d\n", aWasClick);
 
   // If the touch was a click, make mTarget :active right away.
@@ -142,16 +127,12 @@ ActiveElementManager::HandleTouchEndEvent(bool aWasClick)
   ResetTouchBlockState();
 }
 
-void
-ActiveElementManager::HandleTouchEnd()
-{
+void ActiveElementManager::HandleTouchEnd() {
   AEM_LOG("Touch end, clearing pan state\n");
   mCanBePanSet = false;
 }
 
-static nsPresContext*
-GetPresContextFor(nsIContent* aContent)
-{
+static nsPresContext* GetPresContextFor(nsIContent* aContent) {
   if (!aContent) {
     return nullptr;
   }
@@ -162,9 +143,7 @@ GetPresContextFor(nsIContent* aContent)
   return shell->GetPresContext();
 }
 
-void
-ActiveElementManager::SetActive(dom::Element* aTarget)
-{
+void ActiveElementManager::SetActive(dom::Element* aTarget) {
   AEM_LOG("Setting active %p\n", aTarget);
 
   if (nsPresContext* pc = GetPresContextFor(aTarget)) {
@@ -172,9 +151,7 @@ ActiveElementManager::SetActive(dom::Element* aTarget)
   }
 }
 
-void
-ActiveElementManager::ResetActive()
-{
+void ActiveElementManager::ResetActive() {
   AEM_LOG("Resetting active from %p\n", mTarget.get());
 
   // Clear the :active flag from mTarget by setting it on the document root.
@@ -187,16 +164,13 @@ ActiveElementManager::ResetActive()
   }
 }
 
-void
-ActiveElementManager::ResetTouchBlockState()
-{
+void ActiveElementManager::ResetTouchBlockState() {
   mTarget = nullptr;
   mCanBePanSet = false;
 }
 
-void
-ActiveElementManager::SetActiveTask(const nsCOMPtr<dom::Element>& aTarget)
-{
+void ActiveElementManager::SetActiveTask(
+    const nsCOMPtr<dom::Element>& aTarget) {
   AEM_LOG("mSetActiveTask %p running\n", mSetActiveTask);
 
   // This gets called from mSetActiveTask's Run() method. The message loop
@@ -206,9 +180,7 @@ ActiveElementManager::SetActiveTask(const nsCOMPtr<dom::Element>& aTarget)
   SetActive(aTarget);
 }
 
-void
-ActiveElementManager::CancelTask()
-{
+void ActiveElementManager::CancelTask() {
   AEM_LOG("Cancelling task %p\n", mSetActiveTask);
 
   if (mSetActiveTask) {
@@ -217,5 +189,5 @@ ActiveElementManager::CancelTask()
   }
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

@@ -23,10 +23,8 @@ class MediaStream;
 
 namespace dom {
 
-struct AudioTimelineEvent final
-{
-  enum Type : uint32_t
-  {
+struct AudioTimelineEvent final {
+  enum Type : uint32_t {
     SetValue,
     SetValueAtTime,
     LinearRamp,
@@ -37,13 +35,9 @@ struct AudioTimelineEvent final
     Cancel
   };
 
-  AudioTimelineEvent(Type aType,
-                     double aTime,
-                     float aValue,
-                     double aTimeConstant = 0.0,
-                     double aDuration = 0.0,
-                     const float* aCurve = nullptr,
-                     uint32_t aCurveLength = 0);
+  AudioTimelineEvent(Type aType, double aTime, float aValue,
+                     double aTimeConstant = 0.0, double aDuration = 0.0,
+                     const float* aCurve = nullptr, uint32_t aCurveLength = 0);
   explicit AudioTimelineEvent(MediaStream* aStream);
   AudioTimelineEvent(const AudioTimelineEvent& rhs);
   ~AudioTimelineEvent();
@@ -51,8 +45,7 @@ struct AudioTimelineEvent final
   template <class TimeType>
   TimeType Time() const;
 
-  void SetTimeInTicks(int64_t aTimeInTicks)
-  {
+  void SetTimeInTicks(int64_t aTimeInTicks) {
     mTimeInTicks = aTimeInTicks;
 #ifdef DEBUG
     mTimeIsInTicks = true;
@@ -87,7 +80,7 @@ struct AudioTimelineEvent final
   bool mTimeIsInTicks;
 #endif
 
-private:
+ private:
   // This member is accessed using the `Time` method, for safety.
   //
   // The time for an event can either be in absolute value or in ticks.
@@ -102,15 +95,13 @@ private:
 };
 
 template <>
-inline double AudioTimelineEvent::Time<double>() const
-{
+inline double AudioTimelineEvent::Time<double>() const {
   MOZ_ASSERT(!mTimeIsInTicks);
   return mTime;
 }
 
 template <>
-inline int64_t AudioTimelineEvent::Time<int64_t>() const
-{
+inline int64_t AudioTimelineEvent::Time<int64_t>() const {
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(mTimeIsInTicks);
   return mTimeInTicks;
@@ -121,20 +112,18 @@ inline int64_t AudioTimelineEvent::Time<int64_t>() const
  * template arguments for testing and production code.
  *
  * ErrorResult is a type which satisfies the following:
- *  - Implements a Throw() method taking an nsresult argument, representing an error code.
+ *  - Implements a Throw() method taking an nsresult argument, representing an
+ * error code.
  */
-class AudioEventTimeline
-{
-public:
+class AudioEventTimeline {
+ public:
   explicit AudioEventTimeline(float aDefaultValue)
-    : mValue(aDefaultValue),
-      mComputedValue(aDefaultValue),
-      mLastComputedValue(aDefaultValue)
-  { }
+      : mValue(aDefaultValue),
+        mComputedValue(aDefaultValue),
+        mLastComputedValue(aDefaultValue) {}
 
   template <class ErrorResult>
-  bool ValidateEvent(AudioTimelineEvent& aEvent, ErrorResult& aRv)
-  {
+  bool ValidateEvent(AudioTimelineEvent& aEvent, ErrorResult& aRv) {
     MOZ_ASSERT(NS_IsMainThread());
 
     auto TimeOf = [](const AudioTimelineEvent& aEvent) -> double {
@@ -161,8 +150,8 @@ public:
       }
     }
 
-    bool timeAndValueValid = IsValid(aEvent.mValue) &&
-                             IsValid(aEvent.mDuration);
+    bool timeAndValueValid =
+        IsValid(aEvent.mValue) && IsValid(aEvent.mDuration);
     if (!timeAndValueValid) {
       aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
       return false;
@@ -204,7 +193,8 @@ public:
         aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
         return false;
       }
-      const AudioTimelineEvent* previousEvent = GetPreviousEvent(TimeOf(aEvent));
+      const AudioTimelineEvent* previousEvent =
+          GetPreviousEvent(TimeOf(aEvent));
       if (previousEvent) {
         if (previousEvent->mValue <= 0.f) {
           aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
@@ -220,11 +210,11 @@ public:
     return true;
   }
 
-  template<typename TimeType>
-  void InsertEvent(const AudioTimelineEvent& aEvent)
-  {
+  template <typename TimeType>
+  void InsertEvent(const AudioTimelineEvent& aEvent) {
     for (unsigned i = 0; i < mEvents.Length(); ++i) {
-      if (aEvent.template Time<TimeType>() == mEvents[i].template Time<TimeType>()) {
+      if (aEvent.template Time<TimeType>() ==
+          mEvents[i].template Time<TimeType>()) {
         if (aEvent.mType == mEvents[i].mType) {
           // If times and types are equal, replace the event
           mEvents.ReplaceElementAt(i, aEvent);
@@ -232,15 +222,16 @@ public:
           // Otherwise, place the element after the last event of another type
           do {
             ++i;
-          } while (i < mEvents.Length() &&
-                   aEvent.mType != mEvents[i].mType &&
-                   aEvent.template Time<TimeType>() == mEvents[i].template Time<TimeType>());
+          } while (i < mEvents.Length() && aEvent.mType != mEvents[i].mType &&
+                   aEvent.template Time<TimeType>() ==
+                       mEvents[i].template Time<TimeType>());
           mEvents.InsertElementAt(i, aEvent);
         }
         return;
       }
       // Otherwise, place the event right after the latest existing event
-      if (aEvent.template Time<TimeType>() < mEvents[i].template Time<TimeType>()) {
+      if (aEvent.template Time<TimeType>() <
+          mEvents[i].template Time<TimeType>()) {
         mEvents.InsertElementAt(i, aEvent);
         return;
       }
@@ -250,26 +241,20 @@ public:
     mEvents.AppendElement(aEvent);
   }
 
-  bool HasSimpleValue() const
-  {
-    return mEvents.IsEmpty();
-  }
+  bool HasSimpleValue() const { return mEvents.IsEmpty(); }
 
-  float GetValue() const
-  {
+  float GetValue() const {
     // This method should only be called if HasSimpleValue() returns true
     MOZ_ASSERT(HasSimpleValue());
     return mValue;
   }
 
-  float Value() const
-  {
+  float Value() const {
     // TODO: Return the current value based on the timeline of the AudioContext
     return mValue;
   }
 
-  void SetValue(float aValue)
-  {
+  void SetValue(float aValue) {
     // Silently don't change anything if there are any events
     if (mEvents.IsEmpty()) {
       mLastComputedValue = mComputedValue = mValue = aValue;
@@ -277,9 +262,9 @@ public:
   }
 
   template <class ErrorResult>
-  void SetValueAtTime(float aValue, double aStartTime, ErrorResult& aRv)
-  {
-    AudioTimelineEvent event(AudioTimelineEvent::SetValueAtTime, aStartTime, aValue);
+  void SetValueAtTime(float aValue, double aStartTime, ErrorResult& aRv) {
+    AudioTimelineEvent event(AudioTimelineEvent::SetValueAtTime, aStartTime,
+                             aValue);
 
     if (ValidateEvent(event, aRv)) {
       InsertEvent<double>(event);
@@ -287,8 +272,8 @@ public:
   }
 
   template <class ErrorResult>
-  void LinearRampToValueAtTime(float aValue, double aEndTime, ErrorResult& aRv)
-  {
+  void LinearRampToValueAtTime(float aValue, double aEndTime,
+                               ErrorResult& aRv) {
     AudioTimelineEvent event(AudioTimelineEvent::LinearRamp, aEndTime, aValue);
 
     if (ValidateEvent(event, aRv)) {
@@ -297,9 +282,10 @@ public:
   }
 
   template <class ErrorResult>
-  void ExponentialRampToValueAtTime(float aValue, double aEndTime, ErrorResult& aRv)
-  {
-    AudioTimelineEvent event(AudioTimelineEvent::ExponentialRamp, aEndTime, aValue);
+  void ExponentialRampToValueAtTime(float aValue, double aEndTime,
+                                    ErrorResult& aRv) {
+    AudioTimelineEvent event(AudioTimelineEvent::ExponentialRamp, aEndTime,
+                             aValue);
 
     if (ValidateEvent(event, aRv)) {
       InsertEvent<double>(event);
@@ -307,9 +293,10 @@ public:
   }
 
   template <class ErrorResult>
-  void SetTargetAtTime(float aTarget, double aStartTime, double aTimeConstant, ErrorResult& aRv)
-  {
-    AudioTimelineEvent event(AudioTimelineEvent::SetTarget, aStartTime, aTarget, aTimeConstant);
+  void SetTargetAtTime(float aTarget, double aStartTime, double aTimeConstant,
+                       ErrorResult& aRv) {
+    AudioTimelineEvent event(AudioTimelineEvent::SetTarget, aStartTime, aTarget,
+                             aTimeConstant);
 
     if (ValidateEvent(event, aRv)) {
       InsertEvent<double>(event);
@@ -317,17 +304,18 @@ public:
   }
 
   template <class ErrorResult>
-  void SetValueCurveAtTime(const float* aValues, uint32_t aValuesLength, double aStartTime, double aDuration, ErrorResult& aRv)
-  {
-    AudioTimelineEvent event(AudioTimelineEvent::SetValueCurve, aStartTime, 0.0f, 0.0f, aDuration, aValues, aValuesLength);
+  void SetValueCurveAtTime(const float* aValues, uint32_t aValuesLength,
+                           double aStartTime, double aDuration,
+                           ErrorResult& aRv) {
+    AudioTimelineEvent event(AudioTimelineEvent::SetValueCurve, aStartTime,
+                             0.0f, 0.0f, aDuration, aValues, aValuesLength);
     if (ValidateEvent(event, aRv)) {
       InsertEvent<double>(event);
     }
   }
 
-  template<typename TimeType>
-  void CancelScheduledValues(TimeType aStartTime)
-  {
+  template <typename TimeType>
+  void CancelScheduledValues(TimeType aStartTime) {
     for (unsigned i = 0; i < mEvents.Length(); ++i) {
       if (mEvents[i].template Time<TimeType>() >= aStartTime) {
 #ifdef DEBUG
@@ -343,94 +331,78 @@ public:
     }
   }
 
-  void CancelAllEvents()
-  {
-    mEvents.Clear();
-  }
+  void CancelAllEvents() { mEvents.Clear(); }
 
-  static bool TimesEqual(int64_t aLhs, int64_t aRhs)
-  {
-    return aLhs == aRhs;
-  }
+  static bool TimesEqual(int64_t aLhs, int64_t aRhs) { return aLhs == aRhs; }
 
   // Since we are going to accumulate error by adding 0.01 multiple time in a
   // loop, we want to fuzz the equality check in GetValueAtTime.
-  static bool TimesEqual(double aLhs, double aRhs)
-  {
+  static bool TimesEqual(double aLhs, double aRhs) {
     const float kEpsilon = 0.0000000001f;
     return fabs(aLhs - aRhs) < kEpsilon;
   }
 
-  template<class TimeType>
-  float GetValueAtTime(TimeType aTime)
-  {
+  template <class TimeType>
+  float GetValueAtTime(TimeType aTime) {
     float result;
     GetValuesAtTimeHelper(aTime, &result, 1);
     return result;
   }
 
-  template<class TimeType>
-  void GetValuesAtTime(TimeType aTime, float* aBuffer, const size_t aSize)
-  {
+  template <class TimeType>
+  void GetValuesAtTime(TimeType aTime, float* aBuffer, const size_t aSize) {
     MOZ_ASSERT(aBuffer);
     GetValuesAtTimeHelper(aTime, aBuffer, aSize);
   }
 
   // Return the number of events scheduled
-  uint32_t GetEventCount() const
-  {
-    return mEvents.Length();
-  }
+  uint32_t GetEventCount() const { return mEvents.Length(); }
 
-  template<class TimeType>
-  void CleanupEventsOlderThan(TimeType aTime)
-  {
+  template <class TimeType>
+  void CleanupEventsOlderThan(TimeType aTime) {
     while (mEvents.Length() > 1 &&
-        aTime > mEvents[1].template Time<TimeType>()) {
-
+           aTime > mEvents[1].template Time<TimeType>()) {
       if (mEvents[1].mType == AudioTimelineEvent::SetTarget) {
         mLastComputedValue = GetValuesAtTimeHelperInternal(
-                                mEvents[1].template Time<TimeType>(),
-                                &mEvents[0], nullptr);
+            mEvents[1].template Time<TimeType>(), &mEvents[0], nullptr);
       }
 
       mEvents.RemoveElementAt(0);
     }
   }
 
-private:
-  template<class TimeType>
-  void GetValuesAtTimeHelper(TimeType aTime, float* aBuffer, const size_t aSize);
+ private:
+  template <class TimeType>
+  void GetValuesAtTimeHelper(TimeType aTime, float* aBuffer,
+                             const size_t aSize);
 
-  template<class TimeType>
+  template <class TimeType>
   float GetValueAtTimeOfEvent(const AudioTimelineEvent* aNext);
 
-  template<class TimeType>
+  template <class TimeType>
   float GetValuesAtTimeHelperInternal(TimeType aTime,
                                       const AudioTimelineEvent* aPrevious,
                                       const AudioTimelineEvent* aNext);
 
   const AudioTimelineEvent* GetPreviousEvent(double aTime) const;
 
-  static bool IsValid(double value)
-  {
-    return mozilla::IsFinite(value);
-  }
+  static bool IsValid(double value) { return mozilla::IsFinite(value); }
 
   // This is a sorted array of the events in the timeline.  Queries of this
   // data structure should probably be more frequent than modifications to it,
-  // and that is the reason why we're using a simple array as the data structure.
-  // We can optimize this in the future if the performance of the array ends up
-  // being a bottleneck.
+  // and that is the reason why we're using a simple array as the data
+  // structure. We can optimize this in the future if the performance of the
+  // array ends up being a bottleneck.
   nsTArray<AudioTimelineEvent> mEvents;
   float mValue;
   // This is the value of this AudioParam we computed at the last tick.
   float mComputedValue;
-  // This is the value of this AudioParam at the last tick of the previous event.
+  // This is the value of this AudioParam at the last tick of the previous
+  // event.
   float mLastComputedValue;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

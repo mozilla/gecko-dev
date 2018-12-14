@@ -26,19 +26,12 @@ namespace {
 
 // This class is used to get quota usage, request persist and check persisted
 // status callbacks.
-class RequestResolver final
-  : public nsIQuotaCallback
-  , public nsIQuotaUsageCallback
-{
-public:
-  enum Type
-  {
-    Estimate,
-    Persist,
-    Persisted
-  };
+class RequestResolver final : public nsIQuotaCallback,
+                              public nsIQuotaUsageCallback {
+ public:
+  enum Type { Estimate, Persist, Persisted };
 
-private:
+ private:
   class FinishWorkerRunnable;
 
   // If this resolver was created for a window then mPromise must be non-null.
@@ -51,111 +44,89 @@ private:
   const Type mType;
   bool mPersisted;
 
-public:
+ public:
   RequestResolver(Type aType, Promise* aPromise)
-    : mPromise(aPromise)
-    , mResultCode(NS_OK)
-    , mType(aType)
-    , mPersisted(false)
-  {
+      : mPromise(aPromise),
+        mResultCode(NS_OK),
+        mType(aType),
+        mPersisted(false) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aPromise);
   }
 
   RequestResolver(Type aType, PromiseWorkerProxy* aProxy)
-    : mProxy(aProxy)
-    , mResultCode(NS_OK)
-    , mType(aType)
-    , mPersisted(false)
-  {
+      : mProxy(aProxy), mResultCode(NS_OK), mType(aType), mPersisted(false) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aProxy);
   }
 
-  void
-  ResolveOrReject();
+  void ResolveOrReject();
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIQUOTACALLBACK
   NS_DECL_NSIQUOTAUSAGECALLBACK
 
-private:
-  ~RequestResolver()
-  { }
+ private:
+  ~RequestResolver() {}
 
-  nsresult
-  GetStorageEstimate(nsIVariant* aResult);
+  nsresult GetStorageEstimate(nsIVariant* aResult);
 
-  nsresult
-  GetPersisted(nsIVariant* aResult);
+  nsresult GetPersisted(nsIVariant* aResult);
 
   template <typename T>
-  nsresult
-  OnCompleteOrUsageResult(T* aRequest);
+  nsresult OnCompleteOrUsageResult(T* aRequest);
 
-  nsresult
-  Finish();
+  nsresult Finish();
 };
 
 // This class is used to return promise on worker thread.
-class RequestResolver::FinishWorkerRunnable final
-  : public WorkerRunnable
-{
+class RequestResolver::FinishWorkerRunnable final : public WorkerRunnable {
   RefPtr<RequestResolver> mResolver;
 
-public:
+ public:
   explicit FinishWorkerRunnable(RequestResolver* aResolver)
-    : WorkerRunnable(aResolver->mProxy->GetWorkerPrivate())
-    , mResolver(aResolver)
-  {
+      : WorkerRunnable(aResolver->mProxy->GetWorkerPrivate()),
+        mResolver(aResolver) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aResolver);
   }
 
-  bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 };
 
-class EstimateWorkerMainThreadRunnable final
-  : public WorkerMainThreadRunnable
-{
+class EstimateWorkerMainThreadRunnable final : public WorkerMainThreadRunnable {
   RefPtr<PromiseWorkerProxy> mProxy;
 
-public:
+ public:
   EstimateWorkerMainThreadRunnable(WorkerPrivate* aWorkerPrivate,
                                    PromiseWorkerProxy* aProxy)
-    : WorkerMainThreadRunnable(aWorkerPrivate,
-                               NS_LITERAL_CSTRING("StorageManager :: Estimate"))
-    , mProxy(aProxy)
-  {
+      : WorkerMainThreadRunnable(
+            aWorkerPrivate, NS_LITERAL_CSTRING("StorageManager :: Estimate")),
+        mProxy(aProxy) {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aProxy);
   }
 
-  bool
-  MainThreadRun() override;
+  bool MainThreadRun() override;
 };
 
 class PersistedWorkerMainThreadRunnable final
-  : public WorkerMainThreadRunnable
-{
+    : public WorkerMainThreadRunnable {
   RefPtr<PromiseWorkerProxy> mProxy;
 
-public:
+ public:
   PersistedWorkerMainThreadRunnable(WorkerPrivate* aWorkerPrivate,
                                     PromiseWorkerProxy* aProxy)
-    : WorkerMainThreadRunnable(aWorkerPrivate,
-                               NS_LITERAL_CSTRING("StorageManager :: Persisted"))
-    , mProxy(aProxy)
-  {
+      : WorkerMainThreadRunnable(
+            aWorkerPrivate, NS_LITERAL_CSTRING("StorageManager :: Persisted")),
+        mProxy(aProxy) {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aProxy);
   }
 
-  bool
-  MainThreadRun() override;
+  bool MainThreadRun() override;
 };
 
 /*******************************************************************************
@@ -163,24 +134,22 @@ public:
  ******************************************************************************/
 
 class PersistentStoragePermissionRequest final
-  : public nsIContentPermissionRequest
-{
+    : public nsIContentPermissionRequest {
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   bool mIsHandlingUserInput;
   RefPtr<Promise> mPromise;
   nsCOMPtr<nsIContentPermissionRequester> mRequester;
 
-public:
+ public:
   PersistentStoragePermissionRequest(nsIPrincipal* aPrincipal,
                                      nsPIDOMWindowInner* aWindow,
                                      bool aIsHandlingUserInput,
                                      Promise* aPromise)
-    : mPrincipal(aPrincipal)
-    , mWindow(aWindow)
-    , mIsHandlingUserInput(aIsHandlingUserInput)
-    , mPromise(aPromise)
-  {
+      : mPrincipal(aPrincipal),
+        mWindow(aWindow),
+        mIsHandlingUserInput(aIsHandlingUserInput),
+        mPromise(aPromise) {
     MOZ_ASSERT(aPrincipal);
     MOZ_ASSERT(aWindow);
     MOZ_ASSERT(aPromise);
@@ -188,23 +157,19 @@ public:
     mRequester = new nsContentPermissionRequester(mWindow);
   }
 
-  nsresult
-  Start();
+  nsresult Start();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSICONTENTPERMISSIONREQUEST
   NS_DECL_CYCLE_COLLECTION_CLASS(PersistentStoragePermissionRequest)
 
-private:
-  ~PersistentStoragePermissionRequest()
-  { }
+ private:
+  ~PersistentStoragePermissionRequest() {}
 };
 
-nsresult
-GetUsageForPrincipal(nsIPrincipal* aPrincipal,
-                     nsIQuotaUsageCallback* aCallback,
-                     nsIQuotaUsageRequest** aRequest)
-{
+nsresult GetUsageForPrincipal(nsIPrincipal* aPrincipal,
+                              nsIQuotaUsageCallback* aCallback,
+                              nsIQuotaUsageRequest** aRequest) {
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCallback);
   MOZ_ASSERT(aRequest);
@@ -214,10 +179,8 @@ GetUsageForPrincipal(nsIPrincipal* aPrincipal,
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = qms->GetUsageForPrincipal(aPrincipal,
-                                          aCallback,
-                                          true,
-                                          aRequest);
+  nsresult rv =
+      qms->GetUsageForPrincipal(aPrincipal, aCallback, true, aRequest);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -225,11 +188,8 @@ GetUsageForPrincipal(nsIPrincipal* aPrincipal,
   return NS_OK;
 };
 
-nsresult
-Persisted(nsIPrincipal* aPrincipal,
-          nsIQuotaCallback* aCallback,
-          nsIQuotaRequest** aRequest)
-{
+nsresult Persisted(nsIPrincipal* aPrincipal, nsIQuotaCallback* aCallback,
+                   nsIQuotaRequest** aRequest) {
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCallback);
   MOZ_ASSERT(aRequest);
@@ -256,14 +216,10 @@ Persisted(nsIPrincipal* aPrincipal,
   return NS_OK;
 };
 
-already_AddRefed<Promise>
-ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
-                              RequestResolver::Type aType,
-                              ErrorResult& aRv)
-{
+already_AddRefed<Promise> ExecuteOpOnMainOrWorkerThread(
+    nsIGlobalObject* aGlobal, RequestResolver::Type aType, ErrorResult& aRv) {
   MOZ_ASSERT(aGlobal);
-  MOZ_ASSERT_IF(aType == RequestResolver::Type::Persist,
-                NS_IsMainThread());
+  MOZ_ASSERT_IF(aType == RequestResolver::Type::Persist, NS_IsMainThread());
 
   RefPtr<Promise> promise = Promise::Create(aGlobal, aRv);
   if (NS_WARN_IF(!promise)) {
@@ -296,7 +252,7 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
     switch (aType) {
       case RequestResolver::Type::Persisted: {
         RefPtr<RequestResolver> resolver =
-          new RequestResolver(RequestResolver::Type::Persisted, promise);
+            new RequestResolver(RequestResolver::Type::Persisted, promise);
 
         RefPtr<nsIQuotaRequest> request;
         aRv = Persisted(principal, resolver, getter_AddRefs(request));
@@ -306,10 +262,9 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
 
       case RequestResolver::Type::Persist: {
         RefPtr<PersistentStoragePermissionRequest> request =
-          new PersistentStoragePermissionRequest(principal,
-                                                 window,
-                                                 EventStateManager::IsHandlingUserInput(),
-                                                 promise);
+            new PersistentStoragePermissionRequest(
+                principal, window, EventStateManager::IsHandlingUserInput(),
+                promise);
 
         // In private browsing mode, no permission prompt.
         if (nsContentUtils::IsInPrivateBrowsing(doc)) {
@@ -323,12 +278,11 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
 
       case RequestResolver::Type::Estimate: {
         RefPtr<RequestResolver> resolver =
-          new RequestResolver(RequestResolver::Type::Estimate, promise);
+            new RequestResolver(RequestResolver::Type::Estimate, promise);
 
         RefPtr<nsIQuotaUsageRequest> request;
-        aRv = GetUsageForPrincipal(principal,
-                                   resolver,
-                                   getter_AddRefs(request));
+        aRv =
+            GetUsageForPrincipal(principal, resolver, getter_AddRefs(request));
 
         break;
       }
@@ -348,7 +302,7 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
   MOZ_ASSERT(workerPrivate);
 
   RefPtr<PromiseWorkerProxy> promiseProxy =
-    PromiseWorkerProxy::Create(workerPrivate, promise);
+      PromiseWorkerProxy::Create(workerPrivate, promise);
   if (NS_WARN_IF(!promiseProxy)) {
     return nullptr;
   }
@@ -356,8 +310,8 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
   switch (aType) {
     case RequestResolver::Type::Estimate: {
       RefPtr<EstimateWorkerMainThreadRunnable> runnnable =
-        new EstimateWorkerMainThreadRunnable(promiseProxy->GetWorkerPrivate(),
-                                             promiseProxy);
+          new EstimateWorkerMainThreadRunnable(promiseProxy->GetWorkerPrivate(),
+                                               promiseProxy);
       runnnable->Dispatch(Terminating, aRv);
 
       break;
@@ -365,8 +319,8 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
 
     case RequestResolver::Type::Persisted: {
       RefPtr<PersistedWorkerMainThreadRunnable> runnnable =
-        new PersistedWorkerMainThreadRunnable(promiseProxy->GetWorkerPrivate(),
-                                              promiseProxy);
+          new PersistedWorkerMainThreadRunnable(
+              promiseProxy->GetWorkerPrivate(), promiseProxy);
       runnnable->Dispatch(Terminating, aRv);
 
       break;
@@ -383,28 +337,22 @@ ExecuteOpOnMainOrWorkerThread(nsIGlobalObject* aGlobal,
   return promise.forget();
 };
 
-} // namespace
+}  // namespace
 
 /*******************************************************************************
  * Local class implementations
  ******************************************************************************/
 
-void
-RequestResolver::ResolveOrReject()
-{
-  class MOZ_STACK_CLASS AutoCleanup final
-  {
+void RequestResolver::ResolveOrReject() {
+  class MOZ_STACK_CLASS AutoCleanup final {
     RefPtr<PromiseWorkerProxy> mProxy;
 
-  public:
-    explicit AutoCleanup(PromiseWorkerProxy* aProxy)
-      : mProxy(aProxy)
-    {
+   public:
+    explicit AutoCleanup(PromiseWorkerProxy* aProxy) : mProxy(aProxy) {
       MOZ_ASSERT(aProxy);
     }
 
-    ~AutoCleanup()
-    {
+    ~AutoCleanup() {
       MOZ_ASSERT(mProxy);
 
       mProxy->CleanUp();
@@ -448,9 +396,7 @@ RequestResolver::ResolveOrReject()
 
 NS_IMPL_ISUPPORTS(RequestResolver, nsIQuotaUsageCallback, nsIQuotaCallback)
 
-nsresult
-RequestResolver::GetStorageEstimate(nsIVariant* aResult)
-{
+nsresult RequestResolver::GetStorageEstimate(nsIVariant* aResult) {
   MOZ_ASSERT(aResult);
   MOZ_ASSERT(mType == Type::Estimate);
 
@@ -470,21 +416,19 @@ RequestResolver::GetStorageEstimate(nsIVariant* aResult)
   free(iid);
 
   nsCOMPtr<nsIQuotaOriginUsageResult> originUsageResult =
-    do_QueryInterface(supports);
+      do_QueryInterface(supports);
   MOZ_ASSERT(originUsageResult);
 
   MOZ_ALWAYS_SUCCEEDS(
-    originUsageResult->GetUsage(&mStorageEstimate.mUsage.Construct()));
+      originUsageResult->GetUsage(&mStorageEstimate.mUsage.Construct()));
 
   MOZ_ALWAYS_SUCCEEDS(
-    originUsageResult->GetLimit(&mStorageEstimate.mQuota.Construct()));
+      originUsageResult->GetLimit(&mStorageEstimate.mQuota.Construct()));
 
   return NS_OK;
 }
 
-nsresult
-RequestResolver::GetPersisted(nsIVariant* aResult)
-{
+nsresult RequestResolver::GetPersisted(nsIVariant* aResult) {
   MOZ_ASSERT(aResult);
   MOZ_ASSERT(mType == Type::Persist || mType == Type::Persisted);
 
@@ -513,9 +457,7 @@ RequestResolver::GetPersisted(nsIVariant* aResult)
 }
 
 template <typename T>
-nsresult
-RequestResolver::OnCompleteOrUsageResult(T* aRequest)
-{
+nsresult RequestResolver::OnCompleteOrUsageResult(T* aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRequest);
 
@@ -549,9 +491,7 @@ RequestResolver::OnCompleteOrUsageResult(T* aRequest)
   return NS_OK;
 }
 
-nsresult
-RequestResolver::Finish()
-{
+nsresult RequestResolver::Finish() {
   // In a main thread request.
   if (!mProxy) {
     MOZ_ASSERT(mPromise);
@@ -578,8 +518,7 @@ RequestResolver::Finish()
 }
 
 NS_IMETHODIMP
-RequestResolver::OnComplete(nsIQuotaRequest *aRequest)
-{
+RequestResolver::OnComplete(nsIQuotaRequest* aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRequest);
 
@@ -594,8 +533,7 @@ RequestResolver::OnComplete(nsIQuotaRequest *aRequest)
 }
 
 NS_IMETHODIMP
-RequestResolver::OnUsageResult(nsIQuotaUsageRequest *aRequest)
-{
+RequestResolver::OnUsageResult(nsIQuotaUsageRequest* aRequest) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRequest);
 
@@ -609,10 +547,8 @@ RequestResolver::OnUsageResult(nsIQuotaUsageRequest *aRequest)
   return NS_OK;
 }
 
-bool
-RequestResolver::
-FinishWorkerRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
-{
+bool RequestResolver::FinishWorkerRunnable::WorkerRun(
+    JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
@@ -623,9 +559,7 @@ FinishWorkerRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   return true;
 }
 
-bool
-EstimateWorkerMainThreadRunnable::MainThreadRun()
-{
+bool EstimateWorkerMainThreadRunnable::MainThreadRun() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsIPrincipal> principal;
@@ -641,11 +575,11 @@ EstimateWorkerMainThreadRunnable::MainThreadRun()
   MOZ_ASSERT(principal);
 
   RefPtr<RequestResolver> resolver =
-    new RequestResolver(RequestResolver::Type::Estimate, mProxy);
+      new RequestResolver(RequestResolver::Type::Estimate, mProxy);
 
   RefPtr<nsIQuotaUsageRequest> request;
   nsresult rv =
-    GetUsageForPrincipal(principal, resolver, getter_AddRefs(request));
+      GetUsageForPrincipal(principal, resolver, getter_AddRefs(request));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
@@ -653,9 +587,7 @@ EstimateWorkerMainThreadRunnable::MainThreadRun()
   return true;
 }
 
-bool
-PersistedWorkerMainThreadRunnable::MainThreadRun()
-{
+bool PersistedWorkerMainThreadRunnable::MainThreadRun() {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsCOMPtr<nsIPrincipal> principal;
@@ -671,7 +603,7 @@ PersistedWorkerMainThreadRunnable::MainThreadRun()
   MOZ_ASSERT(principal);
 
   RefPtr<RequestResolver> resolver =
-    new RequestResolver(RequestResolver::Type::Persisted, mProxy);
+      new RequestResolver(RequestResolver::Type::Persisted, mProxy);
 
   RefPtr<nsIQuotaRequest> request;
   nsresult rv = Persisted(principal, resolver, getter_AddRefs(request));
@@ -682,9 +614,7 @@ PersistedWorkerMainThreadRunnable::MainThreadRun()
   return true;
 }
 
-nsresult
-PersistentStoragePermissionRequest::Start()
-{
+nsresult PersistentStoragePermissionRequest::Start() {
   MOZ_ASSERT(NS_IsMainThread());
 
   // Grant permission if pref'ed on.
@@ -711,8 +641,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION(PersistentStoragePermissionRequest, mWindow, mPromise)
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::GetPrincipal(nsIPrincipal** aPrincipal)
-{
+PersistentStoragePermissionRequest::GetPrincipal(nsIPrincipal** aPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(mPrincipal);
@@ -723,15 +652,15 @@ PersistentStoragePermissionRequest::GetPrincipal(nsIPrincipal** aPrincipal)
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::GetIsHandlingUserInput(bool* aIsHandlingUserInput)
-{
+PersistentStoragePermissionRequest::GetIsHandlingUserInput(
+    bool* aIsHandlingUserInput) {
   *aIsHandlingUserInput = mIsHandlingUserInput;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::GetWindow(mozIDOMWindow** aRequestingWindow)
-{
+PersistentStoragePermissionRequest::GetWindow(
+    mozIDOMWindow** aRequestingWindow) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRequestingWindow);
   MOZ_ASSERT(mWindow);
@@ -742,8 +671,7 @@ PersistentStoragePermissionRequest::GetWindow(mozIDOMWindow** aRequestingWindow)
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::GetElement(nsIDOMElement** aElement)
-{
+PersistentStoragePermissionRequest::GetElement(nsIDOMElement** aElement) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aElement);
 
@@ -752,13 +680,12 @@ PersistentStoragePermissionRequest::GetElement(nsIDOMElement** aElement)
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::Cancel()
-{
+PersistentStoragePermissionRequest::Cancel() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPromise);
 
   RefPtr<RequestResolver> resolver =
-    new RequestResolver(RequestResolver::Type::Persisted, mPromise);
+      new RequestResolver(RequestResolver::Type::Persisted, mPromise);
 
   RefPtr<nsIQuotaRequest> request;
 
@@ -766,12 +693,11 @@ PersistentStoragePermissionRequest::Cancel()
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::Allow(JS::HandleValue aChoices)
-{
+PersistentStoragePermissionRequest::Allow(JS::HandleValue aChoices) {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<RequestResolver> resolver =
-    new RequestResolver(RequestResolver::Type::Persist, mPromise);
+      new RequestResolver(RequestResolver::Type::Persist, mPromise);
 
   nsCOMPtr<nsIQuotaManagerService> qms = QuotaManagerService::GetOrCreate();
   if (NS_WARN_IF(!qms)) {
@@ -792,8 +718,7 @@ PersistentStoragePermissionRequest::Allow(JS::HandleValue aChoices)
 
 NS_IMETHODIMP
 PersistentStoragePermissionRequest::GetRequester(
-                                     nsIContentPermissionRequester** aRequester)
-{
+    nsIContentPermissionRequester** aRequester) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRequester);
 
@@ -804,63 +729,47 @@ PersistentStoragePermissionRequest::GetRequester(
 }
 
 NS_IMETHODIMP
-PersistentStoragePermissionRequest::GetTypes(nsIArray** aTypes)
-{
+PersistentStoragePermissionRequest::GetTypes(nsIArray** aTypes) {
   MOZ_ASSERT(aTypes);
 
   nsTArray<nsString> emptyOptions;
 
   return nsContentPermissionUtils::CreatePermissionArray(
-                                       NS_LITERAL_CSTRING("persistent-storage"),
-                                       NS_LITERAL_CSTRING("unused"),
-                                       emptyOptions,
-                                       aTypes);
+      NS_LITERAL_CSTRING("persistent-storage"), NS_LITERAL_CSTRING("unused"),
+      emptyOptions, aTypes);
 }
 
 /*******************************************************************************
  * StorageManager
  ******************************************************************************/
 
-StorageManager::StorageManager(nsIGlobalObject* aGlobal)
-  : mOwner(aGlobal)
-{
+StorageManager::StorageManager(nsIGlobalObject* aGlobal) : mOwner(aGlobal) {
   MOZ_ASSERT(aGlobal);
 }
 
-StorageManager::~StorageManager()
-{
-}
+StorageManager::~StorageManager() {}
 
-already_AddRefed<Promise>
-StorageManager::Persisted(ErrorResult& aRv)
-{
+already_AddRefed<Promise> StorageManager::Persisted(ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
 
-  return ExecuteOpOnMainOrWorkerThread(mOwner,
-                                       RequestResolver::Type::Persisted,
+  return ExecuteOpOnMainOrWorkerThread(mOwner, RequestResolver::Type::Persisted,
                                        aRv);
 }
 
-already_AddRefed<Promise>
-StorageManager::Persist(ErrorResult& aRv)
-{
+already_AddRefed<Promise> StorageManager::Persist(ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
 
   Telemetry::ScalarAdd(Telemetry::ScalarID::NAVIGATOR_STORAGE_PERSIST_COUNT, 1);
-  return ExecuteOpOnMainOrWorkerThread(mOwner,
-                                       RequestResolver::Type::Persist,
+  return ExecuteOpOnMainOrWorkerThread(mOwner, RequestResolver::Type::Persist,
                                        aRv);
 }
 
-already_AddRefed<Promise>
-StorageManager::Estimate(ErrorResult& aRv)
-{
+already_AddRefed<Promise> StorageManager::Estimate(ErrorResult& aRv) {
   MOZ_ASSERT(mOwner);
 
   Telemetry::ScalarAdd(Telemetry::ScalarID::NAVIGATOR_STORAGE_ESTIMATE_COUNT,
                        1);
-  return ExecuteOpOnMainOrWorkerThread(mOwner,
-                                       RequestResolver::Type::Estimate,
+  return ExecuteOpOnMainOrWorkerThread(mOwner, RequestResolver::Type::Estimate,
                                        aRv);
 }
 
@@ -874,12 +783,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(StorageManager)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject*
-StorageManager::WrapObject(JSContext* aCx,
-                           JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* StorageManager::WrapObject(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return StorageManagerBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

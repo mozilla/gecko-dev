@@ -128,21 +128,22 @@
 using namespace mozilla;
 
 struct ComponentsInterfaceShimEntry {
-  constexpr
-  ComponentsInterfaceShimEntry(const char* aName, const nsIID& aIID,
-                               const dom::NativePropertyHooks* aNativePropHooks)
-    : geckoName(aName), iid(aIID), nativePropHooks(aNativePropHooks) {}
+  constexpr ComponentsInterfaceShimEntry(
+      const char* aName, const nsIID& aIID,
+      const dom::NativePropertyHooks* aNativePropHooks)
+      : geckoName(aName), iid(aIID), nativePropHooks(aNativePropHooks) {}
 
-  const char *geckoName;
+  const char* geckoName;
   const nsIID& iid;
   const dom::NativePropertyHooks* nativePropHooks;
 };
 
 #define DEFINE_SHIM_WITH_CUSTOM_INTERFACE(geckoName, domName) \
-  { #geckoName, NS_GET_IID(geckoName), \
-     mozilla::dom::domName ## Binding::sNativePropertyHooks }
-#define DEFINE_SHIM(name) \
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOM ## name, name)
+  {                                                           \
+    #geckoName, NS_GET_IID(geckoName),                        \
+        mozilla::dom::domName##Binding::sNativePropertyHooks  \
+  }
+#define DEFINE_SHIM(name) DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOM##name, name)
 
 /**
  * These shim entries allow us to make old XPIDL interfaces implementing DOM
@@ -178,57 +179,56 @@ struct ComponentsInterfaceShimEntry {
  *   interface.  Otherwise, use DEFINE_SHIM_WITH_CUSTOM_INTERFACE.
  */
 
-const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
-{
-  DEFINE_SHIM(CharacterData),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMClientRect, DOMRectReadOnly),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMClientRectList, DOMRectList),
-  DEFINE_SHIM(ClipboardEvent),
-  DEFINE_SHIM(Comment),
-  DEFINE_SHIM(CustomEvent),
-  DEFINE_SHIM(DataTransfer),
-  DEFINE_SHIM(DOMCursor),
-  DEFINE_SHIM(DOMException),
-  DEFINE_SHIM(DOMRequest),
-  DEFINE_SHIM(Document),
-  DEFINE_SHIM(DocumentFragment),
-  DEFINE_SHIM(DocumentType),
-  DEFINE_SHIM(DragEvent),
-  DEFINE_SHIM(Element),
-  DEFINE_SHIM(Event),
-  DEFINE_SHIM(EventTarget),
-  DEFINE_SHIM(FileList),
-  DEFINE_SHIM(FocusEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIFrameLoader, FrameLoader),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMGeoPositionError, PositionError),
-  DEFINE_SHIM(HTMLFormElement),
-  DEFINE_SHIM(HTMLInputElement),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIListBoxObject, ListBoxObject),
-  DEFINE_SHIM(MouseEvent),
-  DEFINE_SHIM(MouseScrollEvent),
-  DEFINE_SHIM(NodeList),
-  DEFINE_SHIM(Node),
-  DEFINE_SHIM(NotifyPaintEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMNSEvent, Event),
-  DEFINE_SHIM(OfflineResourceList),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMParser, DOMParser),
-  DEFINE_SHIM(ProcessingInstruction),
-  DEFINE_SHIM(Range),
+const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] = {
+    DEFINE_SHIM(CharacterData),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMClientRect, DOMRectReadOnly),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMClientRectList, DOMRectList),
+    DEFINE_SHIM(ClipboardEvent),
+    DEFINE_SHIM(Comment),
+    DEFINE_SHIM(CustomEvent),
+    DEFINE_SHIM(DataTransfer),
+    DEFINE_SHIM(DOMCursor),
+    DEFINE_SHIM(DOMException),
+    DEFINE_SHIM(DOMRequest),
+    DEFINE_SHIM(Document),
+    DEFINE_SHIM(DocumentFragment),
+    DEFINE_SHIM(DocumentType),
+    DEFINE_SHIM(DragEvent),
+    DEFINE_SHIM(Element),
+    DEFINE_SHIM(Event),
+    DEFINE_SHIM(EventTarget),
+    DEFINE_SHIM(FileList),
+    DEFINE_SHIM(FocusEvent),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIFrameLoader, FrameLoader),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMGeoPositionError, PositionError),
+    DEFINE_SHIM(HTMLFormElement),
+    DEFINE_SHIM(HTMLInputElement),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIListBoxObject, ListBoxObject),
+    DEFINE_SHIM(MouseEvent),
+    DEFINE_SHIM(MouseScrollEvent),
+    DEFINE_SHIM(NodeList),
+    DEFINE_SHIM(Node),
+    DEFINE_SHIM(NotifyPaintEvent),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMNSEvent, Event),
+    DEFINE_SHIM(OfflineResourceList),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMParser, DOMParser),
+    DEFINE_SHIM(ProcessingInstruction),
+    DEFINE_SHIM(Range),
 #ifdef MOZ_WEBRTC
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMDataChannel, RTCDataChannel),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMDataChannel, RTCDataChannel),
 #endif
-  DEFINE_SHIM(Screen),
-  DEFINE_SHIM(ScrollAreaEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMSerializer, XMLSerializer),
-  DEFINE_SHIM(Text),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsITreeBoxObject, TreeBoxObject),
-  DEFINE_SHIM(UIEvent),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIWebBrowserPersistable, FrameLoader),
-  DEFINE_SHIM(WheelEvent),
-  DEFINE_SHIM(XMLDocument),
-  DEFINE_SHIM(XULCommandEvent),
-  DEFINE_SHIM(XULElement),
-  DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsISelection, Selection),
+    DEFINE_SHIM(Screen),
+    DEFINE_SHIM(ScrollAreaEvent),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIDOMSerializer, XMLSerializer),
+    DEFINE_SHIM(Text),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsITreeBoxObject, TreeBoxObject),
+    DEFINE_SHIM(UIEvent),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsIWebBrowserPersistable, FrameLoader),
+    DEFINE_SHIM(WheelEvent),
+    DEFINE_SHIM(XMLDocument),
+    DEFINE_SHIM(XULCommandEvent),
+    DEFINE_SHIM(XULElement),
+    DEFINE_SHIM_WITH_CUSTOM_INTERFACE(nsISelection, Selection),
 };
 
 #undef DEFINE_SHIM
@@ -236,240 +236,223 @@ const ComponentsInterfaceShimEntry kComponentsInterfaceShimMap[] =
 
 NS_IMPL_ISUPPORTS(ShimInterfaceInfo, nsISupports, nsIInterfaceInfo)
 
-already_AddRefed<ShimInterfaceInfo>
-ShimInterfaceInfo::MaybeConstruct(const char* aName, JSContext* cx)
-{
-    RefPtr<ShimInterfaceInfo> info;
-    for (uint32_t i = 0; i < ArrayLength(kComponentsInterfaceShimMap); ++i) {
-        if (!strcmp(aName, kComponentsInterfaceShimMap[i].geckoName)) {
-            const ComponentsInterfaceShimEntry& shimEntry =
-                kComponentsInterfaceShimMap[i];
-            info = new ShimInterfaceInfo(shimEntry.iid,
-                                         shimEntry.geckoName,
-                                         shimEntry.nativePropHooks);
-            break;
-        }
+already_AddRefed<ShimInterfaceInfo> ShimInterfaceInfo::MaybeConstruct(
+    const char* aName, JSContext* cx) {
+  RefPtr<ShimInterfaceInfo> info;
+  for (uint32_t i = 0; i < ArrayLength(kComponentsInterfaceShimMap); ++i) {
+    if (!strcmp(aName, kComponentsInterfaceShimMap[i].geckoName)) {
+      const ComponentsInterfaceShimEntry& shimEntry =
+          kComponentsInterfaceShimMap[i];
+      info = new ShimInterfaceInfo(shimEntry.iid, shimEntry.geckoName,
+                                   shimEntry.nativePropHooks);
+      break;
     }
-    return info.forget();
+  }
+  return info.forget();
 }
 
-ShimInterfaceInfo::ShimInterfaceInfo(const nsIID& aIID,
-                                     const char* aName,
-                                     const mozilla::dom::NativePropertyHooks* aNativePropHooks)
-    : mIID(aIID)
-    , mName(aName)
-    , mNativePropHooks(aNativePropHooks)
-{
+ShimInterfaceInfo::ShimInterfaceInfo(
+    const nsIID& aIID, const char* aName,
+    const mozilla::dom::NativePropertyHooks* aNativePropHooks)
+    : mIID(aIID), mName(aName), mNativePropHooks(aNativePropHooks) {}
+
+NS_IMETHODIMP
+ShimInterfaceInfo::GetName(char** aName) {
+  *aName = ToNewCString(mName);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetName(char** aName)
-{
-    *aName = ToNewCString(mName);
-    return NS_OK;
+ShimInterfaceInfo::GetInterfaceIID(nsIID** aIID) {
+  *aIID = mIID.Clone();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetInterfaceIID(nsIID** aIID)
-{
-    *aIID = mIID.Clone();
-    return NS_OK;
+ShimInterfaceInfo::IsScriptable(bool* aRetVal) {
+  // This class should pretend that the interface is scriptable because
+  // that's what nsJSIID assumes.
+  *aRetVal = true;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::IsScriptable(bool* aRetVal)
-{
-    // This class should pretend that the interface is scriptable because
-    // that's what nsJSIID assumes.
-    *aRetVal = true;
-    return NS_OK;
+ShimInterfaceInfo::IsBuiltinClass(bool* aRetVal) {
+  *aRetVal = true;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::IsBuiltinClass(bool* aRetVal)
-{
-    *aRetVal = true;
-    return NS_OK;
+ShimInterfaceInfo::IsMainProcessScriptableOnly(bool* aRetVal) {
+  *aRetVal = false;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::IsMainProcessScriptableOnly(bool* aRetVal)
-{
-    *aRetVal = false;
-    return NS_OK;
+ShimInterfaceInfo::GetParent(nsIInterfaceInfo** aParent) {
+  *aParent = nullptr;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetParent(nsIInterfaceInfo** aParent)
-{
-    *aParent = nullptr;
-    return NS_OK;
+ShimInterfaceInfo::GetMethodCount(uint16_t* aCount) {
+  // Pretend we don't have any methods.
+  *aCount = 0;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetMethodCount(uint16_t* aCount)
-{
-    // Pretend we don't have any methods.
-    *aCount = 0;
-    return NS_OK;
-}
+ShimInterfaceInfo::GetConstantCount(uint16_t* aCount) {
+  // We assume that we never have interfaces with more than UINT16_MAX
+  // constants defined on them.
+  uint16_t count = 0;
 
-NS_IMETHODIMP
-ShimInterfaceInfo::GetConstantCount(uint16_t* aCount)
-{
-    // We assume that we never have interfaces with more than UINT16_MAX
-    // constants defined on them.
-    uint16_t count = 0;
-
-    // NOTE: The structure of this loop must be kept in sync with the loop
-    // in GetConstant.
-    const mozilla::dom::NativePropertyHooks* propHooks = mNativePropHooks;
-    do {
-        const mozilla::dom::NativeProperties* props[] = {
-            propHooks->mNativeProperties.regular,
-            propHooks->mNativeProperties.chromeOnly
-        };
-        for (size_t i = 0; i < ArrayLength(props); ++i) {
-            auto prop = props[i];
-            if (prop && prop->HasConstants()) {
-                for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
-                    // We have found one constant here.  We explicitly do not
-                    // bother calling isEnabled() here because it's OK to define
-                    // potentially extra constants on these shim interfaces.
-                    ++count;
-                }
-            }
+  // NOTE: The structure of this loop must be kept in sync with the loop
+  // in GetConstant.
+  const mozilla::dom::NativePropertyHooks* propHooks = mNativePropHooks;
+  do {
+    const mozilla::dom::NativeProperties* props[] = {
+        propHooks->mNativeProperties.regular,
+        propHooks->mNativeProperties.chromeOnly};
+    for (size_t i = 0; i < ArrayLength(props); ++i) {
+      auto prop = props[i];
+      if (prop && prop->HasConstants()) {
+        for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
+          // We have found one constant here.  We explicitly do not
+          // bother calling isEnabled() here because it's OK to define
+          // potentially extra constants on these shim interfaces.
+          ++count;
         }
-    } while ((propHooks = propHooks->mProtoHooks));
-    *aCount = count;
-    return NS_OK;
+      }
+    }
+  } while ((propHooks = propHooks->mProtoHooks));
+  *aCount = count;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetMethodInfo(uint16_t aIndex, const nsXPTMethodInfo** aInfo)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetMethodInfo(uint16_t aIndex,
+                                 const nsXPTMethodInfo** aInfo) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetMethodInfoForName(const char* aName, uint16_t* aIndex, const nsXPTMethodInfo** aInfo)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetMethodInfoForName(const char* aName, uint16_t* aIndex,
+                                        const nsXPTMethodInfo** aInfo) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetConstant(uint16_t aIndex, JS::MutableHandleValue aConstant,
-                               char** aName)
-{
-    // We assume that we never have interfaces with more than UINT16_MAX
-    // constants defined on them.
-    uint16_t index = 0;
+ShimInterfaceInfo::GetConstant(uint16_t aIndex,
+                               JS::MutableHandleValue aConstant, char** aName) {
+  // We assume that we never have interfaces with more than UINT16_MAX
+  // constants defined on them.
+  uint16_t index = 0;
 
-    // NOTE: The structure of this loop must be kept in sync with the loop
-    // in GetConstantCount.
-    const mozilla::dom::NativePropertyHooks* propHooks = mNativePropHooks;
-    do {
-        const mozilla::dom::NativeProperties* props[] = {
-            propHooks->mNativeProperties.regular,
-            propHooks->mNativeProperties.chromeOnly
-        };
-        for (size_t i = 0; i < ArrayLength(props); ++i) {
-            auto prop = props[i];
-            if (prop && prop->HasConstants()) {
-                for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
-                    // We have found one constant here.  We explicitly do not
-                    // bother calling isEnabled() here because it's OK to define
-                    // potentially extra constants on these shim interfaces.
-                    if (index == aIndex) {
-                        aConstant.set(cs->value);
-                        *aName = ToNewCString(nsDependentCString(cs->name));
-                        return NS_OK;
-                    }
-                    ++index;
-                }
-            }
+  // NOTE: The structure of this loop must be kept in sync with the loop
+  // in GetConstantCount.
+  const mozilla::dom::NativePropertyHooks* propHooks = mNativePropHooks;
+  do {
+    const mozilla::dom::NativeProperties* props[] = {
+        propHooks->mNativeProperties.regular,
+        propHooks->mNativeProperties.chromeOnly};
+    for (size_t i = 0; i < ArrayLength(props); ++i) {
+      auto prop = props[i];
+      if (prop && prop->HasConstants()) {
+        for (auto cs = prop->Constants()->specs; cs->name; ++cs) {
+          // We have found one constant here.  We explicitly do not
+          // bother calling isEnabled() here because it's OK to define
+          // potentially extra constants on these shim interfaces.
+          if (index == aIndex) {
+            aConstant.set(cs->value);
+            *aName = ToNewCString(nsDependentCString(cs->name));
+            return NS_OK;
+          }
+          ++index;
         }
-    } while ((propHooks = propHooks->mProtoHooks));
+      }
+    }
+  } while ((propHooks = propHooks->mProtoHooks));
 
-    // aIndex was bigger than the number of constants we have.
-    return NS_ERROR_INVALID_ARG;
+  // aIndex was bigger than the number of constants we have.
+  return NS_ERROR_INVALID_ARG;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetInfoForParam(uint16_t aIndex, const nsXPTParamInfo* aParam, nsIInterfaceInfo** aRetVal)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetInfoForParam(uint16_t aIndex,
+                                   const nsXPTParamInfo* aParam,
+                                   nsIInterfaceInfo** aRetVal) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetIIDForParam(uint16_t aIndex, const nsXPTParamInfo* aParam, nsIID** aRetVal)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetIIDForParam(uint16_t aIndex, const nsXPTParamInfo* aParam,
+                                  nsIID** aRetVal) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetTypeForParam(uint16_t aInex, const nsXPTParamInfo* aParam, uint16_t aDimension, nsXPTType* aRetVal)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetTypeForParam(uint16_t aInex, const nsXPTParamInfo* aParam,
+                                   uint16_t aDimension, nsXPTType* aRetVal) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetSizeIsArgNumberForParam(uint16_t aInex, const nsXPTParamInfo* aParam, uint16_t aDimension, uint8_t* aRetVal)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetSizeIsArgNumberForParam(uint16_t aInex,
+                                              const nsXPTParamInfo* aParam,
+                                              uint16_t aDimension,
+                                              uint8_t* aRetVal) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetInterfaceIsArgNumberForParam(uint16_t aInex, const nsXPTParamInfo* aParam, uint8_t* aRetVal)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetInterfaceIsArgNumberForParam(uint16_t aInex,
+                                                   const nsXPTParamInfo* aParam,
+                                                   uint8_t* aRetVal) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::IsIID(const nsIID* aIID, bool* aRetVal)
-{
-    *aRetVal = mIID.Equals(*aIID);
-    return NS_OK;
+ShimInterfaceInfo::IsIID(const nsIID* aIID, bool* aRetVal) {
+  *aRetVal = mIID.Equals(*aIID);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetNameShared(const char** aName)
-{
-    *aName = mName.get();
-    return NS_OK;
+ShimInterfaceInfo::GetNameShared(const char** aName) {
+  *aName = mName.get();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::GetIIDShared(const nsIID** aIID)
-{
-    *aIID = &mIID;
-    return NS_OK;
+ShimInterfaceInfo::GetIIDShared(const nsIID** aIID) {
+  *aIID = &mIID;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::IsFunction(bool* aRetVal)
-{
-    *aRetVal = false;
-    return NS_OK;
+ShimInterfaceInfo::IsFunction(bool* aRetVal) {
+  *aRetVal = false;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-ShimInterfaceInfo::HasAncestor(const nsIID* aIID, bool* aRetVal)
-{
-    *aRetVal = false;
-    return NS_OK;
+ShimInterfaceInfo::HasAncestor(const nsIID* aIID, bool* aRetVal) {
+  *aRetVal = false;
+  return NS_OK;
 }
 
 NS_IMETHODIMP_(nsresult)
-ShimInterfaceInfo::GetIIDForParamNoAlloc(uint16_t aIndex, const nsXPTParamInfo* aInfo, nsIID* aIID)
-{
-    MOZ_ASSERT(false, "This should never be called");
-    return NS_ERROR_NOT_IMPLEMENTED;
+ShimInterfaceInfo::GetIIDForParamNoAlloc(uint16_t aIndex,
+                                         const nsXPTParamInfo* aInfo,
+                                         nsIID* aIID) {
+  MOZ_ASSERT(false, "This should never be called");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }

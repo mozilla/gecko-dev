@@ -17,8 +17,7 @@
 using namespace mozilla;
 using namespace mozilla::gfx;
 
-static float ClampFactor(float aFactor)
-{
+static float ClampFactor(float aFactor) {
   if (aFactor > 1) {
     return 1;
   } else if (aFactor < 0) {
@@ -29,83 +28,71 @@ static float ClampFactor(float aFactor)
   return aFactor;
 }
 
-nsCSSFilterInstance::nsCSSFilterInstance(const nsStyleFilter& aFilter,
-                                         nscolor aShadowFallbackColor,
-                                         const nsIntRect& aTargetBoundsInFilterSpace,
-                                         const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform)
-  : mFilter(aFilter)
-  , mShadowFallbackColor(aShadowFallbackColor)
-  , mTargetBoundsInFilterSpace(aTargetBoundsInFilterSpace)
-  , mFrameSpaceInCSSPxToFilterSpaceTransform(aFrameSpaceInCSSPxToFilterSpaceTransform)
-{
-}
+nsCSSFilterInstance::nsCSSFilterInstance(
+    const nsStyleFilter& aFilter, nscolor aShadowFallbackColor,
+    const nsIntRect& aTargetBoundsInFilterSpace,
+    const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform)
+    : mFilter(aFilter),
+      mShadowFallbackColor(aShadowFallbackColor),
+      mTargetBoundsInFilterSpace(aTargetBoundsInFilterSpace),
+      mFrameSpaceInCSSPxToFilterSpaceTransform(
+          aFrameSpaceInCSSPxToFilterSpaceTransform) {}
 
-nsresult
-nsCSSFilterInstance::BuildPrimitives(nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
-                                     bool aInputIsTainted)
-{
+nsresult nsCSSFilterInstance::BuildPrimitives(
+    nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
+    bool aInputIsTainted) {
   FilterPrimitiveDescription descr;
   nsresult result;
 
-  switch(mFilter.GetType()) {
+  switch (mFilter.GetType()) {
     case NS_STYLE_FILTER_BLUR:
       descr = CreatePrimitiveDescription(PrimitiveType::GaussianBlur,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForBlur(descr);
       break;
     case NS_STYLE_FILTER_BRIGHTNESS:
       descr = CreatePrimitiveDescription(PrimitiveType::ComponentTransfer,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForBrightness(descr);
       break;
     case NS_STYLE_FILTER_CONTRAST:
       descr = CreatePrimitiveDescription(PrimitiveType::ComponentTransfer,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForContrast(descr);
       break;
     case NS_STYLE_FILTER_DROP_SHADOW:
       descr = CreatePrimitiveDescription(PrimitiveType::DropShadow,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForDropShadow(descr);
       break;
     case NS_STYLE_FILTER_GRAYSCALE:
       descr = CreatePrimitiveDescription(PrimitiveType::ColorMatrix,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForGrayscale(descr);
       break;
     case NS_STYLE_FILTER_HUE_ROTATE:
       descr = CreatePrimitiveDescription(PrimitiveType::ColorMatrix,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForHueRotate(descr);
       break;
     case NS_STYLE_FILTER_INVERT:
       descr = CreatePrimitiveDescription(PrimitiveType::ComponentTransfer,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForInvert(descr);
       break;
     case NS_STYLE_FILTER_OPACITY:
       descr = CreatePrimitiveDescription(PrimitiveType::ComponentTransfer,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForOpacity(descr);
       break;
     case NS_STYLE_FILTER_SATURATE:
       descr = CreatePrimitiveDescription(PrimitiveType::ColorMatrix,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForSaturate(descr);
       break;
     case NS_STYLE_FILTER_SEPIA:
       descr = CreatePrimitiveDescription(PrimitiveType::ColorMatrix,
-                                         aPrimitiveDescrs,
-                                         aInputIsTainted);
+                                         aPrimitiveDescrs, aInputIsTainted);
       result = SetAttributesForSepia(descr);
       break;
     default:
@@ -126,36 +113,36 @@ nsCSSFilterInstance::BuildPrimitives(nsTArray<FilterPrimitiveDescription>& aPrim
   return NS_OK;
 }
 
-FilterPrimitiveDescription
-nsCSSFilterInstance::CreatePrimitiveDescription(PrimitiveType aType,
-                                                const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
-                                                bool aInputIsTainted) {
+FilterPrimitiveDescription nsCSSFilterInstance::CreatePrimitiveDescription(
+    PrimitiveType aType,
+    const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs,
+    bool aInputIsTainted) {
   FilterPrimitiveDescription descr(aType);
   int32_t inputIndex = GetLastResultIndex(aPrimitiveDescrs);
   descr.SetInputPrimitive(0, inputIndex);
-  descr.SetIsTainted(inputIndex < 0 ? aInputIsTainted : aPrimitiveDescrs[inputIndex].IsTainted());
+  descr.SetIsTainted(inputIndex < 0 ? aInputIsTainted
+                                    : aPrimitiveDescrs[inputIndex].IsTainted());
   descr.SetInputColorSpace(0, ColorSpace::SRGB);
   descr.SetOutputColorSpace(ColorSpace::SRGB);
   return descr;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForBlur(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForBlur(
+    FilterPrimitiveDescription& aDescr) {
   const nsStyleCoord& radiusInFrameSpace = mFilter.GetFilterParameter();
   if (radiusInFrameSpace.GetUnit() != eStyleUnit_Coord) {
     NS_NOTREACHED("unexpected unit");
     return NS_ERROR_FAILURE;
   }
 
-  Size radiusInFilterSpace = BlurRadiusToFilterSpace(radiusInFrameSpace.GetCoordValue());
+  Size radiusInFilterSpace =
+      BlurRadiusToFilterSpace(radiusInFrameSpace.GetCoordValue());
   aDescr.Attributes().Set(eGaussianBlurStdDeviation, radiusInFilterSpace);
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForBrightness(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForBrightness(
+    FilterPrimitiveDescription& aDescr) {
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
   float value = styleValue.GetFactorOrPercentValue();
 
@@ -178,9 +165,8 @@ nsCSSFilterInstance::SetAttributesForBrightness(FilterPrimitiveDescription& aDes
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForContrast(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForContrast(
+    FilterPrimitiveDescription& aDescr) {
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
   float value = styleValue.GetFactorOrPercentValue();
   float intercept = -(0.5 * value) + 0.5;
@@ -204,9 +190,8 @@ nsCSSFilterInstance::SetAttributesForContrast(FilterPrimitiveDescription& aDescr
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForDropShadow(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForDropShadow(
+    FilterPrimitiveDescription& aDescr) {
   nsCSSShadowArray* shadows = mFilter.GetDropShadow();
   if (!shadows || shadows->Length() != 1) {
     NS_NOTREACHED("Exactly one drop shadow should have been parsed.");
@@ -220,21 +205,23 @@ nsCSSFilterInstance::SetAttributesForDropShadow(FilterPrimitiveDescription& aDes
   aDescr.Attributes().Set(eDropShadowStdDeviation, radiusInFilterSpace);
 
   // Set offset.
-  IntPoint offsetInFilterSpace = OffsetToFilterSpace(shadow->mXOffset, shadow->mYOffset);
+  IntPoint offsetInFilterSpace =
+      OffsetToFilterSpace(shadow->mXOffset, shadow->mYOffset);
   aDescr.Attributes().Set(eDropShadowOffset, offsetInFilterSpace);
 
   // Set color. If unspecified, use the CSS color property.
-  nscolor shadowColor = shadow->mHasColor ? shadow->mColor : mShadowFallbackColor;
+  nscolor shadowColor =
+      shadow->mHasColor ? shadow->mColor : mShadowFallbackColor;
   aDescr.Attributes().Set(eDropShadowColor, ToAttributeColor(shadowColor));
 
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForGrayscale(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForGrayscale(
+    FilterPrimitiveDescription& aDescr) {
   // Set color matrix type.
-  aDescr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
+  aDescr.Attributes().Set(eColorMatrixType,
+                          (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
 
   // Set color matrix values.
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
@@ -244,11 +231,11 @@ nsCSSFilterInstance::SetAttributesForGrayscale(FilterPrimitiveDescription& aDesc
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForHueRotate(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForHueRotate(
+    FilterPrimitiveDescription& aDescr) {
   // Set color matrix type.
-  aDescr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_HUE_ROTATE);
+  aDescr.Attributes().Set(eColorMatrixType,
+                          (uint32_t)SVG_FECOLORMATRIX_TYPE_HUE_ROTATE);
 
   // Set color matrix values.
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
@@ -258,9 +245,8 @@ nsCSSFilterInstance::SetAttributesForHueRotate(FilterPrimitiveDescription& aDesc
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForInvert(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForInvert(
+    FilterPrimitiveDescription& aDescr) {
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
   float value = ClampFactor(styleValue.GetFactorOrPercentValue());
 
@@ -285,9 +271,8 @@ nsCSSFilterInstance::SetAttributesForInvert(FilterPrimitiveDescription& aDescr)
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForOpacity(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForOpacity(
+    FilterPrimitiveDescription& aDescr) {
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
   float value = ClampFactor(styleValue.GetFactorOrPercentValue());
 
@@ -305,18 +290,19 @@ nsCSSFilterInstance::SetAttributesForOpacity(FilterPrimitiveDescription& aDescr)
   opacityTableValues[0] = 0;
   opacityTableValues[1] = value;
   opacityAttrs.Set(eComponentTransferFunctionType,
-                  (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_TABLE);
-  opacityAttrs.Set(eComponentTransferFunctionTableValues, opacityTableValues, 2);
+                   (uint32_t)SVG_FECOMPONENTTRANSFER_TYPE_TABLE);
+  opacityAttrs.Set(eComponentTransferFunctionTableValues, opacityTableValues,
+                   2);
   aDescr.Attributes().Set(eComponentTransferFunctionA, opacityAttrs);
 
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForSaturate(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForSaturate(
+    FilterPrimitiveDescription& aDescr) {
   // Set color matrix type.
-  aDescr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
+  aDescr.Attributes().Set(eColorMatrixType,
+                          (uint32_t)SVG_FECOLORMATRIX_TYPE_SATURATE);
 
   // Set color matrix values.
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
@@ -326,11 +312,11 @@ nsCSSFilterInstance::SetAttributesForSaturate(FilterPrimitiveDescription& aDescr
   return NS_OK;
 }
 
-nsresult
-nsCSSFilterInstance::SetAttributesForSepia(FilterPrimitiveDescription& aDescr)
-{
+nsresult nsCSSFilterInstance::SetAttributesForSepia(
+    FilterPrimitiveDescription& aDescr) {
   // Set color matrix type.
-  aDescr.Attributes().Set(eColorMatrixType, (uint32_t)SVG_FECOLORMATRIX_TYPE_SEPIA);
+  aDescr.Attributes().Set(eColorMatrixType,
+                          (uint32_t)SVG_FECOLORMATRIX_TYPE_SEPIA);
 
   // Set color matrix values.
   const nsStyleCoord& styleValue = mFilter.GetFilterParameter();
@@ -340,17 +326,15 @@ nsCSSFilterInstance::SetAttributesForSepia(FilterPrimitiveDescription& aDescr)
   return NS_OK;
 }
 
-Size
-nsCSSFilterInstance::BlurRadiusToFilterSpace(nscoord aRadiusInFrameSpace)
-{
+Size nsCSSFilterInstance::BlurRadiusToFilterSpace(nscoord aRadiusInFrameSpace) {
   float radiusInFrameSpaceInCSSPx =
-    nsPresContext::AppUnitsToFloatCSSPixels(aRadiusInFrameSpace);
+      nsPresContext::AppUnitsToFloatCSSPixels(aRadiusInFrameSpace);
 
   // Convert the radius to filter space.
   Size radiusInFilterSpace(radiusInFrameSpaceInCSSPx,
                            radiusInFrameSpaceInCSSPx);
   gfxSize frameSpaceInCSSPxToFilterSpaceScale =
-    mFrameSpaceInCSSPxToFilterSpaceTransform.ScaleFactors(true);
+      mFrameSpaceInCSSPxToFilterSpaceTransform.ScaleFactors(true);
   radiusInFilterSpace.Scale(frameSpaceInCSSPxToFilterSpaceScale.width,
                             frameSpaceInCSSPxToFilterSpaceScale.height);
 
@@ -360,61 +344,56 @@ nsCSSFilterInstance::BlurRadiusToFilterSpace(nscoord aRadiusInFrameSpace)
     return Size();
   }
   Float maxStdDeviation = (Float)kMaxStdDeviation;
-  radiusInFilterSpace.width = std::min(radiusInFilterSpace.width, maxStdDeviation);
-  radiusInFilterSpace.height = std::min(radiusInFilterSpace.height, maxStdDeviation);
+  radiusInFilterSpace.width =
+      std::min(radiusInFilterSpace.width, maxStdDeviation);
+  radiusInFilterSpace.height =
+      std::min(radiusInFilterSpace.height, maxStdDeviation);
 
   return radiusInFilterSpace;
 }
 
-IntPoint
-nsCSSFilterInstance::OffsetToFilterSpace(nscoord aXOffsetInFrameSpace,
-                                         nscoord aYOffsetInFrameSpace)
-{
-  gfxPoint offsetInFilterSpace(nsPresContext::AppUnitsToFloatCSSPixels(aXOffsetInFrameSpace),
-                               nsPresContext::AppUnitsToFloatCSSPixels(aYOffsetInFrameSpace));
+IntPoint nsCSSFilterInstance::OffsetToFilterSpace(
+    nscoord aXOffsetInFrameSpace, nscoord aYOffsetInFrameSpace) {
+  gfxPoint offsetInFilterSpace(
+      nsPresContext::AppUnitsToFloatCSSPixels(aXOffsetInFrameSpace),
+      nsPresContext::AppUnitsToFloatCSSPixels(aYOffsetInFrameSpace));
 
   // Convert the radius to filter space.
   gfxSize frameSpaceInCSSPxToFilterSpaceScale =
-    mFrameSpaceInCSSPxToFilterSpaceTransform.ScaleFactors(true);
+      mFrameSpaceInCSSPxToFilterSpaceTransform.ScaleFactors(true);
   offsetInFilterSpace.x *= frameSpaceInCSSPxToFilterSpaceScale.width;
   offsetInFilterSpace.y *= frameSpaceInCSSPxToFilterSpaceScale.height;
 
-  return IntPoint(int32_t(offsetInFilterSpace.x), int32_t(offsetInFilterSpace.y));
+  return IntPoint(int32_t(offsetInFilterSpace.x),
+                  int32_t(offsetInFilterSpace.y));
 }
 
-Color
-nsCSSFilterInstance::ToAttributeColor(nscolor aColor)
-{
-  return Color(
-    NS_GET_R(aColor) / 255.0,
-    NS_GET_G(aColor) / 255.0,
-    NS_GET_B(aColor) / 255.0,
-    NS_GET_A(aColor) / 255.0
-  );
+Color nsCSSFilterInstance::ToAttributeColor(nscolor aColor) {
+  return Color(NS_GET_R(aColor) / 255.0, NS_GET_G(aColor) / 255.0,
+               NS_GET_B(aColor) / 255.0, NS_GET_A(aColor) / 255.0);
 }
 
-int32_t
-nsCSSFilterInstance::GetLastResultIndex(const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs)
-{
+int32_t nsCSSFilterInstance::GetLastResultIndex(
+    const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs) {
   uint32_t numPrimitiveDescrs = aPrimitiveDescrs.Length();
-  return !numPrimitiveDescrs ?
-    FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic :
-    numPrimitiveDescrs - 1;
+  return !numPrimitiveDescrs
+             ? FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic
+             : numPrimitiveDescrs - 1;
 }
 
-void
-nsCSSFilterInstance::SetBounds(FilterPrimitiveDescription& aDescr,
-                               const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs)
-{
+void nsCSSFilterInstance::SetBounds(
+    FilterPrimitiveDescription& aDescr,
+    const nsTArray<FilterPrimitiveDescription>& aPrimitiveDescrs) {
   int32_t inputIndex = GetLastResultIndex(aPrimitiveDescrs);
-  nsIntRect inputBounds = (inputIndex < 0) ?
-    mTargetBoundsInFilterSpace : aPrimitiveDescrs[inputIndex].PrimitiveSubregion();
+  nsIntRect inputBounds =
+      (inputIndex < 0) ? mTargetBoundsInFilterSpace
+                       : aPrimitiveDescrs[inputIndex].PrimitiveSubregion();
 
   nsTArray<nsIntRegion> inputExtents;
   inputExtents.AppendElement(inputBounds);
 
   nsIntRegion outputExtents =
-    FilterSupport::PostFilterExtentsForPrimitive(aDescr, inputExtents);
+      FilterSupport::PostFilterExtentsForPrimitive(aDescr, inputExtents);
   IntRect outputBounds = outputExtents.GetBounds();
 
   aDescr.SetPrimitiveSubregion(outputBounds);

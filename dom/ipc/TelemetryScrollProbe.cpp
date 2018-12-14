@@ -15,25 +15,21 @@
 namespace mozilla {
 namespace dom {
 
-/* static */ void
-TelemetryScrollProbe::Create(TabChildGlobal* aWebFrame)
-{
+/* static */ void TelemetryScrollProbe::Create(TabChildGlobal* aWebFrame) {
   nsWeakPtr webNav = do_GetWeakReference(aWebFrame->mTabChild->WebNavigation());
   RefPtr<TelemetryScrollProbe> probe = new TelemetryScrollProbe(webNav);
 
-  aWebFrame->AddEventListener(NS_LITERAL_STRING("pagehide"), probe, true, false, 0);
+  aWebFrame->AddEventListener(NS_LITERAL_STRING("pagehide"), probe, true, false,
+                              0);
 }
 
-already_AddRefed<nsIWebNavigation>
-TelemetryScrollProbe::GetWebNavigation() const
-{
+already_AddRefed<nsIWebNavigation> TelemetryScrollProbe::GetWebNavigation()
+    const {
   nsCOMPtr<nsIWebNavigation> webNav = do_QueryReferent(mWebNav);
   return webNav.forget();
 }
 
-already_AddRefed<nsIDocument>
-TelemetryScrollProbe::GetDocument() const
-{
+already_AddRefed<nsIDocument> TelemetryScrollProbe::GetDocument() const {
   nsCOMPtr<nsIDocument> result;
   if (nsCOMPtr<nsIWebNavigation> webNav = GetWebNavigation()) {
     nsCOMPtr<nsIDOMDocument> domDoc;
@@ -43,9 +39,7 @@ TelemetryScrollProbe::GetDocument() const
   return result.forget();
 }
 
-already_AddRefed<nsIPresShell>
-TelemetryScrollProbe::GetPresShell() const
-{
+already_AddRefed<nsIPresShell> TelemetryScrollProbe::GetPresShell() const {
   nsCOMPtr<nsIPresShell> result;
   if (nsCOMPtr<nsIDocument> doc = GetDocument()) {
     result = doc->GetShell();
@@ -53,22 +47,20 @@ TelemetryScrollProbe::GetPresShell() const
   return result.forget();
 }
 
-bool
-TelemetryScrollProbe::ShouldIgnore(nsIDOMEvent* aEvent) const
-{
+bool TelemetryScrollProbe::ShouldIgnore(nsIDOMEvent* aEvent) const {
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetTarget(getter_AddRefs(target));
   nsCOMPtr<nsIDocument> targetDocument = do_QueryInterface(target);
   RefPtr<nsIDocument> document = GetDocument();
 
-  return !document || targetDocument != document || nsContentUtils::IsSystemPrincipal(document->NodePrincipal());
+  return !document || targetDocument != document ||
+         nsContentUtils::IsSystemPrincipal(document->NodePrincipal());
 }
 
 NS_IMPL_ISUPPORTS(TelemetryScrollProbe, nsIDOMEventListener)
 
 NS_IMETHODIMP
-TelemetryScrollProbe::HandleEvent(nsIDOMEvent* aEvent)
-{
+TelemetryScrollProbe::HandleEvent(nsIDOMEvent* aEvent) {
   RefPtr<nsIPresShell> presShell = GetPresShell();
 
   if (!presShell || ShouldIgnore(aEvent)) {
@@ -83,11 +75,13 @@ TelemetryScrollProbe::HandleEvent(nsIDOMEvent* aEvent)
   float maxCSSPixels = nsPresContext::AppUnitsToFloatCSSPixels(maxAppUnits);
   float totalCSSPixels = nsPresContext::AppUnitsToFloatCSSPixels(totalAppUnits);
 
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::TOTAL_SCROLL_Y, totalCSSPixels);
-  mozilla::Telemetry::Accumulate(mozilla::Telemetry::PAGE_MAX_SCROLL_Y, maxCSSPixels);
+  mozilla::Telemetry::Accumulate(mozilla::Telemetry::TOTAL_SCROLL_Y,
+                                 totalCSSPixels);
+  mozilla::Telemetry::Accumulate(mozilla::Telemetry::PAGE_MAX_SCROLL_Y,
+                                 maxCSSPixels);
 
   return NS_OK;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_PaymentResponse_h
 #define mozilla_dom_PaymentResponse_h
 
-#include "mozilla/dom/PaymentResponseBinding.h" // PaymentComplete
+#include "mozilla/dom/PaymentResponseBinding.h"  // PaymentComplete
 #include "nsPIDOMWindow.h"
 #include "nsWrapperCache.h"
 
@@ -17,28 +17,19 @@ namespace dom {
 class PaymentAddress;
 class Promise;
 
-class PaymentResponse final : public nsISupports,
-                              public nsWrapperCache
-{
-public:
+class PaymentResponse final : public nsISupports, public nsWrapperCache {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(PaymentResponse)
 
-  PaymentResponse(nsPIDOMWindowInner* aWindow,
-                  const nsAString& aInternalId,
-                  const nsAString& aRequestId,
-                  const nsAString& aMethodName,
+  PaymentResponse(nsPIDOMWindowInner* aWindow, const nsAString& aInternalId,
+                  const nsAString& aRequestId, const nsAString& aMethodName,
                   const nsAString& aShippingOption,
                   RefPtr<PaymentAddress> aShippingAddress,
-                  const nsAString& aDetails,
-                  const nsAString& aPayerName,
-                  const nsAString& aPayerEmail,
-                  const nsAString& aPayerPhone);
+                  const nsAString& aDetails, const nsAString& aPayerName,
+                  const nsAString& aPayerEmail, const nsAString& aPayerPhone);
 
-  nsPIDOMWindowInner* GetParentObject() const
-  {
-    return mOwner;
-  }
+  nsPIDOMWindowInner* GetParentObject() const { return mOwner; }
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
@@ -65,10 +56,10 @@ public:
 
   void RespondComplete();
 
-protected:
+ protected:
   ~PaymentResponse();
 
-private:
+ private:
   nsCOMPtr<nsPIDOMWindowInner> mOwner;
   bool mCompleteCalled;
   nsString mInternalId;
@@ -84,7 +75,7 @@ private:
   RefPtr<Promise> mPromise;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PaymentResponse_h
+#endif  // mozilla_dom_PaymentResponse_h

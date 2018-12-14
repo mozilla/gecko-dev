@@ -33,62 +33,48 @@
 using namespace mozilla::services;
 using namespace mozilla::dom;
 
-#define PROXY_IF_SANDBOXED(_call)                 \
-  do {                                            \
-    if (InSandbox()) {                            \
-      if (!hal_sandbox::HalChildDestroyed()) {    \
-        hal_sandbox::_call;                       \
-      }                                           \
-    } else {                                      \
-      hal_impl::_call;                            \
-    }                                             \
+#define PROXY_IF_SANDBOXED(_call)              \
+  do {                                         \
+    if (InSandbox()) {                         \
+      if (!hal_sandbox::HalChildDestroyed()) { \
+        hal_sandbox::_call;                    \
+      }                                        \
+    } else {                                   \
+      hal_impl::_call;                         \
+    }                                          \
   } while (0)
 
-#define RETURN_PROXY_IF_SANDBOXED(_call, defValue)\
-  do {                                            \
-    if (InSandbox()) {                            \
-      if (hal_sandbox::HalChildDestroyed()) {     \
-        return defValue;                          \
-      }                                           \
-      return hal_sandbox::_call;                  \
-    } else {                                      \
-      return hal_impl::_call;                     \
-    }                                             \
+#define RETURN_PROXY_IF_SANDBOXED(_call, defValue) \
+  do {                                             \
+    if (InSandbox()) {                             \
+      if (hal_sandbox::HalChildDestroyed()) {      \
+        return defValue;                           \
+      }                                            \
+      return hal_sandbox::_call;                   \
+    } else {                                       \
+      return hal_impl::_call;                      \
+    }                                              \
   } while (0)
 
 namespace mozilla {
 namespace hal {
 
-mozilla::LogModule *
-GetHalLog()
-{
+mozilla::LogModule* GetHalLog() {
   static mozilla::LazyLogModule sHalLog("hal");
   return sHalLog;
 }
 
 namespace {
 
-void
-AssertMainThread()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-}
+void AssertMainThread() { MOZ_ASSERT(NS_IsMainThread()); }
 
-bool
-InSandbox()
-{
-  return GeckoProcessType_Content == XRE_GetProcessType();
-}
+bool InSandbox() { return GeckoProcessType_Content == XRE_GetProcessType(); }
 
-void
-AssertMainProcess()
-{
+void AssertMainProcess() {
   MOZ_ASSERT(GeckoProcessType_Default == XRE_GetProcessType());
 }
 
-bool
-WindowIsActive(nsPIDOMWindowInner* aWindow)
-{
+bool WindowIsActive(nsPIDOMWindowInner* aWindow) {
   nsIDocument* document = aWindow->GetDoc();
   NS_ENSURE_TRUE(document, false);
 
@@ -97,23 +83,18 @@ WindowIsActive(nsPIDOMWindowInner* aWindow)
 
 StaticAutoPtr<WindowIdentifier::IDArrayType> gLastIDToVibrate;
 
-void InitLastIDToVibrate()
-{
+void InitLastIDToVibrate() {
   gLastIDToVibrate = new WindowIdentifier::IDArrayType();
   ClearOnShutdown(&gLastIDToVibrate);
 }
 
-} // namespace
+}  // namespace
 
-void
-Vibrate(const nsTArray<uint32_t>& pattern, nsPIDOMWindowInner* window)
-{
+void Vibrate(const nsTArray<uint32_t>& pattern, nsPIDOMWindowInner* window) {
   Vibrate(pattern, WindowIdentifier(window));
 }
 
-void
-Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
-{
+void Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier& id) {
   AssertMainThread();
 
   // Only active windows may start vibrations.  If |id| hasn't gone
@@ -140,15 +121,11 @@ Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
   PROXY_IF_SANDBOXED(Vibrate(pattern, InSandbox() ? id : WindowIdentifier()));
 }
 
-void
-CancelVibrate(nsPIDOMWindowInner* window)
-{
+void CancelVibrate(nsPIDOMWindowInner* window) {
   CancelVibrate(WindowIdentifier(window));
 }
 
-void
-CancelVibrate(const WindowIdentifier &id)
-{
+void CancelVibrate(const WindowIdentifier& id) {
   AssertMainThread();
 
   // Although only active windows may start vibrations, a window may
@@ -177,9 +154,8 @@ CancelVibrate(const WindowIdentifier &id)
 }
 
 template <class InfoType>
-class ObserversManager
-{
-public:
+class ObserversManager {
+ public:
   void AddObserver(Observer<InfoType>* aObserver) {
     if (!mObservers) {
       mObservers = new mozilla::ObserverList<InfoType>();
@@ -220,19 +196,18 @@ public:
     mObservers->Broadcast(aInfo);
   }
 
-protected:
+ protected:
   virtual void EnableNotifications() = 0;
   virtual void DisableNotifications() = 0;
   virtual void OnNotificationsDisabled() {}
 
-private:
+ private:
   mozilla::ObserverList<InfoType>* mObservers;
 };
 
 template <class InfoType>
-class CachingObserversManager : public ObserversManager<InfoType>
-{
-public:
+class CachingObserversManager : public ObserversManager<InfoType> {
+ public:
   InfoType GetCurrentInformation() {
     if (mHasValidCache) {
       return mInfo;
@@ -248,25 +223,21 @@ public:
     mInfo = aInfo;
   }
 
-  void BroadcastCachedInformation() {
-    this->BroadcastInformation(mInfo);
-  }
+  void BroadcastCachedInformation() { this->BroadcastInformation(mInfo); }
 
-protected:
+ protected:
   virtual void GetCurrentInformationInternal(InfoType*) = 0;
 
-  void OnNotificationsDisabled() override {
-    mHasValidCache = false;
-  }
+  void OnNotificationsDisabled() override { mHasValidCache = false; }
 
-private:
-  InfoType                mInfo;
-  bool                    mHasValidCache;
+ private:
+  InfoType mInfo;
+  bool mHasValidCache;
 };
 
-class BatteryObserversManager : public CachingObserversManager<BatteryInformation>
-{
-protected:
+class BatteryObserversManager
+    : public CachingObserversManager<BatteryInformation> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableBatteryNotifications());
   }
@@ -280,17 +251,15 @@ protected:
   }
 };
 
-static BatteryObserversManager&
-BatteryObservers()
-{
+static BatteryObserversManager& BatteryObservers() {
   static BatteryObserversManager sBatteryObservers;
   AssertMainThread();
   return sBatteryObservers;
 }
 
-class NetworkObserversManager : public CachingObserversManager<NetworkInformation>
-{
-protected:
+class NetworkObserversManager
+    : public CachingObserversManager<NetworkInformation> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableNetworkNotifications());
   }
@@ -304,17 +273,14 @@ protected:
   }
 };
 
-static NetworkObserversManager&
-NetworkObservers()
-{
+static NetworkObserversManager& NetworkObservers() {
   static NetworkObserversManager sNetworkObservers;
   AssertMainThread();
   return sNetworkObservers;
 }
 
-class WakeLockObserversManager : public ObserversManager<WakeLockInformation>
-{
-protected:
+class WakeLockObserversManager : public ObserversManager<WakeLockInformation> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableWakeLockNotifications());
   }
@@ -324,17 +290,15 @@ protected:
   }
 };
 
-static WakeLockObserversManager&
-WakeLockObservers()
-{
+static WakeLockObserversManager& WakeLockObservers() {
   static WakeLockObserversManager sWakeLockObservers;
   AssertMainThread();
   return sWakeLockObservers;
 }
 
-class ScreenConfigurationObserversManager : public CachingObserversManager<ScreenConfiguration>
-{
-protected:
+class ScreenConfigurationObserversManager
+    : public CachingObserversManager<ScreenConfiguration> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableScreenConfigurationNotifications());
   }
@@ -348,46 +312,35 @@ protected:
   }
 };
 
-static ScreenConfigurationObserversManager&
-ScreenConfigurationObservers()
-{
+static ScreenConfigurationObserversManager& ScreenConfigurationObservers() {
   AssertMainThread();
   static ScreenConfigurationObserversManager sScreenConfigurationObservers;
   return sScreenConfigurationObservers;
 }
 
-void
-RegisterBatteryObserver(BatteryObserver* aObserver)
-{
+void RegisterBatteryObserver(BatteryObserver* aObserver) {
   AssertMainThread();
   BatteryObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterBatteryObserver(BatteryObserver* aObserver)
-{
+void UnregisterBatteryObserver(BatteryObserver* aObserver) {
   AssertMainThread();
   BatteryObservers().RemoveObserver(aObserver);
 }
 
-void
-GetCurrentBatteryInformation(BatteryInformation* aInfo)
-{
+void GetCurrentBatteryInformation(BatteryInformation* aInfo) {
   AssertMainThread();
   *aInfo = BatteryObservers().GetCurrentInformation();
 }
 
-void
-NotifyBatteryChange(const BatteryInformation& aInfo)
-{
+void NotifyBatteryChange(const BatteryInformation& aInfo) {
   AssertMainThread();
   BatteryObservers().CacheInformation(aInfo);
   BatteryObservers().BroadcastCachedInformation();
 }
 
-class SystemClockChangeObserversManager : public ObserversManager<int64_t>
-{
-protected:
+class SystemClockChangeObserversManager : public ObserversManager<int64_t> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableSystemClockChangeNotifications());
   }
@@ -397,37 +350,29 @@ protected:
   }
 };
 
-static SystemClockChangeObserversManager&
-SystemClockChangeObservers()
-{
+static SystemClockChangeObserversManager& SystemClockChangeObservers() {
   static SystemClockChangeObserversManager sSystemClockChangeObservers;
   AssertMainThread();
   return sSystemClockChangeObservers;
 }
 
-void
-RegisterSystemClockChangeObserver(SystemClockChangeObserver* aObserver)
-{
+void RegisterSystemClockChangeObserver(SystemClockChangeObserver* aObserver) {
   AssertMainThread();
   SystemClockChangeObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterSystemClockChangeObserver(SystemClockChangeObserver* aObserver)
-{
+void UnregisterSystemClockChangeObserver(SystemClockChangeObserver* aObserver) {
   AssertMainThread();
   SystemClockChangeObservers().RemoveObserver(aObserver);
 }
 
-void
-NotifySystemClockChange(const int64_t& aClockDeltaMS)
-{
+void NotifySystemClockChange(const int64_t& aClockDeltaMS) {
   SystemClockChangeObservers().BroadcastInformation(aClockDeltaMS);
 }
 
-class SystemTimezoneChangeObserversManager : public ObserversManager<SystemTimezoneChangeInformation>
-{
-protected:
+class SystemTimezoneChangeObserversManager
+    : public ObserversManager<SystemTimezoneChangeInformation> {
+ protected:
   void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableSystemTimezoneChangeNotifications());
   }
@@ -437,49 +382,41 @@ protected:
   }
 };
 
-static SystemTimezoneChangeObserversManager&
-SystemTimezoneChangeObservers()
-{
+static SystemTimezoneChangeObserversManager& SystemTimezoneChangeObservers() {
   static SystemTimezoneChangeObserversManager sSystemTimezoneChangeObservers;
   return sSystemTimezoneChangeObservers;
 }
 
-void
-RegisterSystemTimezoneChangeObserver(SystemTimezoneChangeObserver* aObserver)
-{
+void RegisterSystemTimezoneChangeObserver(
+    SystemTimezoneChangeObserver* aObserver) {
   AssertMainThread();
   SystemTimezoneChangeObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterSystemTimezoneChangeObserver(SystemTimezoneChangeObserver* aObserver)
-{
+void UnregisterSystemTimezoneChangeObserver(
+    SystemTimezoneChangeObserver* aObserver) {
   AssertMainThread();
   SystemTimezoneChangeObservers().RemoveObserver(aObserver);
 }
 
-void
-NotifySystemTimezoneChange(const SystemTimezoneChangeInformation& aSystemTimezoneChangeInfo)
-{
+void NotifySystemTimezoneChange(
+    const SystemTimezoneChangeInformation& aSystemTimezoneChangeInfo) {
   nsJSUtils::ResetTimeZone();
-  SystemTimezoneChangeObservers().BroadcastInformation(aSystemTimezoneChangeInfo);
+  SystemTimezoneChangeObservers().BroadcastInformation(
+      aSystemTimezoneChangeInfo);
 }
 
-void
-AdjustSystemClock(int64_t aDeltaMilliseconds)
-{
+void AdjustSystemClock(int64_t aDeltaMilliseconds) {
   AssertMainThread();
   PROXY_IF_SANDBOXED(AdjustSystemClock(aDeltaMilliseconds));
 }
 
-void
-EnableSensorNotifications(SensorType aSensor) {
+void EnableSensorNotifications(SensorType aSensor) {
   AssertMainThread();
   PROXY_IF_SANDBOXED(EnableSensorNotifications(aSensor));
 }
 
-void
-DisableSensorNotifications(SensorType aSensor) {
+void DisableSensorNotifications(SensorType aSensor) {
   AssertMainThread();
   PROXY_IF_SANDBOXED(DisableSensorNotifications(aSensor));
 }
@@ -487,30 +424,27 @@ DisableSensorNotifications(SensorType aSensor) {
 typedef mozilla::ObserverList<SensorData> SensorObserverList;
 static SensorObserverList* gSensorObservers = nullptr;
 
-static SensorObserverList &
-GetSensorObservers(SensorType sensor_type) {
+static SensorObserverList& GetSensorObservers(SensorType sensor_type) {
   MOZ_ASSERT(sensor_type < NUM_SENSOR_TYPE);
 
-  if(!gSensorObservers) {
+  if (!gSensorObservers) {
     gSensorObservers = new SensorObserverList[NUM_SENSOR_TYPE];
   }
   return gSensorObservers[sensor_type];
 }
 
-void
-RegisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
-  SensorObserverList &observers = GetSensorObservers(aSensor);
+void RegisterSensorObserver(SensorType aSensor, ISensorObserver* aObserver) {
+  SensorObserverList& observers = GetSensorObservers(aSensor);
 
   AssertMainThread();
 
   observers.AddObserver(aObserver);
-  if(observers.Length() == 1) {
+  if (observers.Length() == 1) {
     EnableSensorNotifications(aSensor);
   }
 }
 
-void
-UnregisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
+void UnregisterSensorObserver(SensorType aSensor, ISensorObserver* aObserver) {
   AssertMainThread();
 
   if (!gSensorObservers) {
@@ -518,7 +452,7 @@ UnregisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
     return;
   }
 
-  SensorObserverList &observers = GetSensorObservers(aSensor);
+  SensorObserverList& observers = GetSensorObservers(aSensor);
   if (!observers.RemoveObserver(aObserver) || observers.Length() > 0) {
     return;
   }
@@ -537,199 +471,158 @@ UnregisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
   SensorObserverList* sensorlists = gSensorObservers;
   gSensorObservers = nullptr;
 
-  // Unlike DispatchToMainThread, DispatchToCurrentThread doesn't leak a runnable if
-  // it fails (and we assert we're on MainThread).
-  if (NS_FAILED(NS_DispatchToCurrentThread(NS_NewRunnableFunction("UnregisterSensorObserver",
-                                                                  [sensorlists]() -> void {
-      delete [] sensorlists;
-      }))))
-  {
+  // Unlike DispatchToMainThread, DispatchToCurrentThread doesn't leak a
+  // runnable if it fails (and we assert we're on MainThread).
+  if (NS_FAILED(NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+          "UnregisterSensorObserver",
+          [sensorlists]() -> void { delete[] sensorlists; })))) {
     // Still need to delete sensorlists if the dispatch fails
-    delete [] sensorlists;
+    delete[] sensorlists;
   }
 }
 
-void
-NotifySensorChange(const SensorData &aSensorData) {
-  SensorObserverList &observers = GetSensorObservers(aSensorData.sensor());
+void NotifySensorChange(const SensorData& aSensorData) {
+  SensorObserverList& observers = GetSensorObservers(aSensorData.sensor());
 
   AssertMainThread();
 
   observers.Broadcast(aSensorData);
 }
 
-void
-RegisterNetworkObserver(NetworkObserver* aObserver)
-{
+void RegisterNetworkObserver(NetworkObserver* aObserver) {
   AssertMainThread();
   NetworkObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterNetworkObserver(NetworkObserver* aObserver)
-{
+void UnregisterNetworkObserver(NetworkObserver* aObserver) {
   AssertMainThread();
   NetworkObservers().RemoveObserver(aObserver);
 }
 
-void
-GetCurrentNetworkInformation(NetworkInformation* aInfo)
-{
+void GetCurrentNetworkInformation(NetworkInformation* aInfo) {
   AssertMainThread();
   *aInfo = NetworkObservers().GetCurrentInformation();
 }
 
-void
-NotifyNetworkChange(const NetworkInformation& aInfo)
-{
+void NotifyNetworkChange(const NetworkInformation& aInfo) {
   NetworkObservers().CacheInformation(aInfo);
   NetworkObservers().BroadcastCachedInformation();
 }
 
-void
-RegisterWakeLockObserver(WakeLockObserver* aObserver)
-{
+void RegisterWakeLockObserver(WakeLockObserver* aObserver) {
   AssertMainThread();
   WakeLockObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterWakeLockObserver(WakeLockObserver* aObserver)
-{
+void UnregisterWakeLockObserver(WakeLockObserver* aObserver) {
   AssertMainThread();
   WakeLockObservers().RemoveObserver(aObserver);
 }
 
-void
-ModifyWakeLock(const nsAString& aTopic,
-               WakeLockControl aLockAdjust,
-               WakeLockControl aHiddenAdjust,
-               uint64_t aProcessID /* = CONTENT_PROCESS_ID_UNKNOWN */)
-{
+void ModifyWakeLock(const nsAString& aTopic, WakeLockControl aLockAdjust,
+                    WakeLockControl aHiddenAdjust,
+                    uint64_t aProcessID /* = CONTENT_PROCESS_ID_UNKNOWN */) {
   AssertMainThread();
 
   if (aProcessID == CONTENT_PROCESS_ID_UNKNOWN) {
-    aProcessID = InSandbox() ? ContentChild::GetSingleton()->GetID() :
-                               CONTENT_PROCESS_ID_MAIN;
+    aProcessID = InSandbox() ? ContentChild::GetSingleton()->GetID()
+                             : CONTENT_PROCESS_ID_MAIN;
   }
 
-  PROXY_IF_SANDBOXED(ModifyWakeLock(aTopic, aLockAdjust,
-                                    aHiddenAdjust, aProcessID));
+  PROXY_IF_SANDBOXED(
+      ModifyWakeLock(aTopic, aLockAdjust, aHiddenAdjust, aProcessID));
 }
 
-void
-GetWakeLockInfo(const nsAString& aTopic, WakeLockInformation* aWakeLockInfo)
-{
+void GetWakeLockInfo(const nsAString& aTopic,
+                     WakeLockInformation* aWakeLockInfo) {
   AssertMainThread();
   PROXY_IF_SANDBOXED(GetWakeLockInfo(aTopic, aWakeLockInfo));
 }
 
-void
-NotifyWakeLockChange(const WakeLockInformation& aInfo)
-{
+void NotifyWakeLockChange(const WakeLockInformation& aInfo) {
   AssertMainThread();
   WakeLockObservers().BroadcastInformation(aInfo);
 }
 
-void
-RegisterScreenConfigurationObserver(ScreenConfigurationObserver* aObserver)
-{
+void RegisterScreenConfigurationObserver(
+    ScreenConfigurationObserver* aObserver) {
   AssertMainThread();
   ScreenConfigurationObservers().AddObserver(aObserver);
 }
 
-void
-UnregisterScreenConfigurationObserver(ScreenConfigurationObserver* aObserver)
-{
+void UnregisterScreenConfigurationObserver(
+    ScreenConfigurationObserver* aObserver) {
   AssertMainThread();
   ScreenConfigurationObservers().RemoveObserver(aObserver);
 }
 
-void
-GetCurrentScreenConfiguration(ScreenConfiguration* aScreenConfiguration)
-{
+void GetCurrentScreenConfiguration(ScreenConfiguration* aScreenConfiguration) {
   AssertMainThread();
-  *aScreenConfiguration = ScreenConfigurationObservers().GetCurrentInformation();
+  *aScreenConfiguration =
+      ScreenConfigurationObservers().GetCurrentInformation();
 }
 
-void
-NotifyScreenConfigurationChange(const ScreenConfiguration& aScreenConfiguration)
-{
+void NotifyScreenConfigurationChange(
+    const ScreenConfiguration& aScreenConfiguration) {
   ScreenConfigurationObservers().CacheInformation(aScreenConfiguration);
   ScreenConfigurationObservers().BroadcastCachedInformation();
 }
 
-bool
-LockScreenOrientation(const dom::ScreenOrientationInternal& aOrientation)
-{
+bool LockScreenOrientation(const dom::ScreenOrientationInternal& aOrientation) {
   AssertMainThread();
   RETURN_PROXY_IF_SANDBOXED(LockScreenOrientation(aOrientation), false);
 }
 
-void
-UnlockScreenOrientation()
-{
+void UnlockScreenOrientation() {
   AssertMainThread();
   PROXY_IF_SANDBOXED(UnlockScreenOrientation());
 }
 
-bool
-SetProcessPrioritySupported()
-{
+bool SetProcessPrioritySupported() {
   RETURN_PROXY_IF_SANDBOXED(SetProcessPrioritySupported(), false);
 }
 
-void
-SetProcessPriority(int aPid, ProcessPriority aPriority)
-{
+void SetProcessPriority(int aPid, ProcessPriority aPriority) {
   // n.b. The sandboxed implementation crashes; SetProcessPriority works only
   // from the main process.
   PROXY_IF_SANDBOXED(SetProcessPriority(aPid, aPriority));
 }
 
-void
-SetCurrentThreadPriority(hal::ThreadPriority aThreadPriority)
-{
+void SetCurrentThreadPriority(hal::ThreadPriority aThreadPriority) {
   PROXY_IF_SANDBOXED(SetCurrentThreadPriority(aThreadPriority));
 }
 
-void
-SetThreadPriority(PlatformThreadId aThreadId,
-                  hal::ThreadPriority aThreadPriority)
-{
+void SetThreadPriority(PlatformThreadId aThreadId,
+                       hal::ThreadPriority aThreadPriority) {
   PROXY_IF_SANDBOXED(SetThreadPriority(aThreadId, aThreadPriority));
 }
 
 // From HalTypes.h.
-const char*
-ProcessPriorityToString(ProcessPriority aPriority)
-{
+const char* ProcessPriorityToString(ProcessPriority aPriority) {
   switch (aPriority) {
-  case PROCESS_PRIORITY_MASTER:
-    return "MASTER";
-  case PROCESS_PRIORITY_PREALLOC:
-    return "PREALLOC";
-  case PROCESS_PRIORITY_FOREGROUND_HIGH:
-    return "FOREGROUND_HIGH";
-  case PROCESS_PRIORITY_FOREGROUND:
-    return "FOREGROUND";
-  case PROCESS_PRIORITY_FOREGROUND_KEYBOARD:
-    return "FOREGROUND_KEYBOARD";
-  case PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE:
-    return "BACKGROUND_PERCEIVABLE";
-  case PROCESS_PRIORITY_BACKGROUND:
-    return "BACKGROUND";
-  case PROCESS_PRIORITY_UNKNOWN:
-    return "UNKNOWN";
-  default:
-    MOZ_ASSERT(false);
-    return "???";
+    case PROCESS_PRIORITY_MASTER:
+      return "MASTER";
+    case PROCESS_PRIORITY_PREALLOC:
+      return "PREALLOC";
+    case PROCESS_PRIORITY_FOREGROUND_HIGH:
+      return "FOREGROUND_HIGH";
+    case PROCESS_PRIORITY_FOREGROUND:
+      return "FOREGROUND";
+    case PROCESS_PRIORITY_FOREGROUND_KEYBOARD:
+      return "FOREGROUND_KEYBOARD";
+    case PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE:
+      return "BACKGROUND_PERCEIVABLE";
+    case PROCESS_PRIORITY_BACKGROUND:
+      return "BACKGROUND";
+    case PROCESS_PRIORITY_UNKNOWN:
+      return "UNKNOWN";
+    default:
+      MOZ_ASSERT(false);
+      return "???";
   }
 }
 
-const char *
-ThreadPriorityToString(ThreadPriority aPriority)
-{
+const char* ThreadPriorityToString(ThreadPriority aPriority) {
   switch (aPriority) {
     case THREAD_PRIORITY_COMPOSITOR:
       return "COMPOSITOR";
@@ -739,21 +632,17 @@ ThreadPriorityToString(ThreadPriority aPriority)
   }
 }
 
-void
-StartDiskSpaceWatcher()
-{
+void StartDiskSpaceWatcher() {
   AssertMainProcess();
   AssertMainThread();
   PROXY_IF_SANDBOXED(StartDiskSpaceWatcher());
 }
 
-void
-StopDiskSpaceWatcher()
-{
+void StopDiskSpaceWatcher() {
   AssertMainProcess();
   AssertMainThread();
   PROXY_IF_SANDBOXED(StopDiskSpaceWatcher());
 }
 
-} // namespace hal
-} // namespace mozilla
+}  // namespace hal
+}  // namespace mozilla

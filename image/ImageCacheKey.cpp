@@ -21,9 +21,7 @@ using namespace dom;
 
 namespace image {
 
-bool
-URISchemeIs(ImageURL* aURI, const char* aScheme)
-{
+bool URISchemeIs(ImageURL* aURI, const char* aScheme) {
   bool schemeMatches = false;
   if (NS_WARN_IF(NS_FAILED(aURI->SchemeIs(aScheme, &schemeMatches)))) {
     return false;
@@ -31,9 +29,7 @@ URISchemeIs(ImageURL* aURI, const char* aScheme)
   return schemeMatches;
 }
 
-static Maybe<uint64_t>
-BlobSerial(ImageURL* aURI)
-{
+static Maybe<uint64_t> BlobSerial(ImageURL* aURI) {
   nsAutoCString spec;
   aURI->GetSpec(spec);
 
@@ -46,16 +42,13 @@ BlobSerial(ImageURL* aURI)
   return Nothing();
 }
 
-ImageCacheKey::ImageCacheKey(nsIURI* aURI,
-                             const OriginAttributes& aAttrs,
-                             nsIDocument* aDocument,
-                             nsresult& aRv)
-  : mURI(new ImageURL(aURI, aRv))
-  , mOriginAttributes(aAttrs)
-  , mControlledDocument(GetControlledDocumentToken(aDocument))
-  , mIsChrome(URISchemeIs(mURI, "chrome"))
-  , mIsStyloEnabled(nsLayoutUtils::StyloEnabled())
-{
+ImageCacheKey::ImageCacheKey(nsIURI* aURI, const OriginAttributes& aAttrs,
+                             nsIDocument* aDocument, nsresult& aRv)
+    : mURI(new ImageURL(aURI, aRv)),
+      mOriginAttributes(aAttrs),
+      mControlledDocument(GetControlledDocumentToken(aDocument)),
+      mIsChrome(URISchemeIs(mURI, "chrome")),
+      mIsStyloEnabled(nsLayoutUtils::StyloEnabled()) {
   NS_ENSURE_SUCCESS_VOID(aRv);
 
   MOZ_ASSERT(NS_IsMainThread());
@@ -68,15 +61,13 @@ ImageCacheKey::ImageCacheKey(nsIURI* aURI,
                       mIsStyloEnabled);
 }
 
-ImageCacheKey::ImageCacheKey(ImageURL* aURI,
-                             const OriginAttributes& aAttrs,
+ImageCacheKey::ImageCacheKey(ImageURL* aURI, const OriginAttributes& aAttrs,
                              nsIDocument* aDocument)
-  : mURI(aURI)
-  , mOriginAttributes(aAttrs)
-  , mControlledDocument(GetControlledDocumentToken(aDocument))
-  , mIsChrome(URISchemeIs(mURI, "chrome"))
-  , mIsStyloEnabled(nsLayoutUtils::StyloEnabled())
-{
+    : mURI(aURI),
+      mOriginAttributes(aAttrs),
+      mControlledDocument(GetControlledDocumentToken(aDocument)),
+      mIsChrome(URISchemeIs(mURI, "chrome")),
+      mIsStyloEnabled(nsLayoutUtils::StyloEnabled()) {
   MOZ_ASSERT(aURI);
 
   if (URISchemeIs(mURI, "blob")) {
@@ -88,32 +79,29 @@ ImageCacheKey::ImageCacheKey(ImageURL* aURI,
 }
 
 ImageCacheKey::ImageCacheKey(const ImageCacheKey& aOther)
-  : mURI(aOther.mURI)
-  , mBlobSerial(aOther.mBlobSerial)
-  , mOriginAttributes(aOther.mOriginAttributes)
-  , mControlledDocument(aOther.mControlledDocument)
-  , mHash(aOther.mHash)
-  , mIsChrome(aOther.mIsChrome)
-  , mIsStyloEnabled(aOther.mIsStyloEnabled)
-{ }
+    : mURI(aOther.mURI),
+      mBlobSerial(aOther.mBlobSerial),
+      mOriginAttributes(aOther.mOriginAttributes),
+      mControlledDocument(aOther.mControlledDocument),
+      mHash(aOther.mHash),
+      mIsChrome(aOther.mIsChrome),
+      mIsStyloEnabled(aOther.mIsStyloEnabled) {}
 
 ImageCacheKey::ImageCacheKey(ImageCacheKey&& aOther)
-  : mURI(Move(aOther.mURI))
-  , mBlobSerial(Move(aOther.mBlobSerial))
-  , mOriginAttributes(aOther.mOriginAttributes)
-  , mControlledDocument(aOther.mControlledDocument)
-  , mHash(aOther.mHash)
-  , mIsChrome(aOther.mIsChrome)
-  , mIsStyloEnabled(aOther.mIsStyloEnabled)
-{ }
+    : mURI(Move(aOther.mURI)),
+      mBlobSerial(Move(aOther.mBlobSerial)),
+      mOriginAttributes(aOther.mOriginAttributes),
+      mControlledDocument(aOther.mControlledDocument),
+      mHash(aOther.mHash),
+      mIsChrome(aOther.mIsChrome),
+      mIsStyloEnabled(aOther.mIsStyloEnabled) {}
 
-bool
-ImageCacheKey::operator==(const ImageCacheKey& aOther) const
-{
+bool ImageCacheKey::operator==(const ImageCacheKey& aOther) const {
   if (mIsStyloEnabled != aOther.mIsStyloEnabled) {
     return false;
   }
-  // Don't share the image cache between a controlled document and anything else.
+  // Don't share the image cache between a controlled document and anything
+  // else.
   if (mControlledDocument != aOther.mControlledDocument) {
     return false;
   }
@@ -124,27 +112,19 @@ ImageCacheKey::operator==(const ImageCacheKey& aOther) const
   if (mBlobSerial || aOther.mBlobSerial) {
     // If at least one of us has a blob serial, just compare the blob serial and
     // the ref portion of the URIs.
-    return mBlobSerial == aOther.mBlobSerial &&
-           mURI->HasSameRef(*aOther.mURI);
+    return mBlobSerial == aOther.mBlobSerial && mURI->HasSameRef(*aOther.mURI);
   }
 
   // For non-blob URIs, compare the URIs.
   return *mURI == *aOther.mURI;
 }
 
-const char*
-ImageCacheKey::Spec() const
-{
-  return mURI->Spec();
-}
+const char* ImageCacheKey::Spec() const { return mURI->Spec(); }
 
-/* static */ PLDHashNumber
-ImageCacheKey::ComputeHash(ImageURL* aURI,
-                           const Maybe<uint64_t>& aBlobSerial,
-                           const OriginAttributes& aAttrs,
-                           void* aControlledDocument,
-                           bool aIsStyloEnabled)
-{
+/* static */ PLDHashNumber ImageCacheKey::ComputeHash(
+    ImageURL* aURI, const Maybe<uint64_t>& aBlobSerial,
+    const OriginAttributes& aAttrs, void* aControlledDocument,
+    bool aIsStyloEnabled) {
   // Since we frequently call Hash() several times in a row on the same
   // ImageCacheKey, as an optimization we compute our hash once and store it.
 
@@ -152,14 +132,12 @@ ImageCacheKey::ComputeHash(ImageURL* aURI,
   nsAutoCString suffix;
   aAttrs.CreateSuffix(suffix);
 
-  return AddToHash(0, aURI->ComputeHash(aBlobSerial),
-                   HashString(suffix), HashString(ptr),
-                   aIsStyloEnabled);
+  return AddToHash(0, aURI->ComputeHash(aBlobSerial), HashString(suffix),
+                   HashString(ptr), aIsStyloEnabled);
 }
 
-/* static */ void*
-ImageCacheKey::GetControlledDocumentToken(nsIDocument* aDocument)
-{
+/* static */ void* ImageCacheKey::GetControlledDocumentToken(
+    nsIDocument* aDocument) {
   // For non-controlled documents, we just return null.  For controlled
   // documents, we cast the pointer into a void* to avoid dereferencing
   // it (since we only use it for comparisons), and return it.
@@ -174,5 +152,5 @@ ImageCacheKey::GetControlledDocumentToken(nsIDocument* aDocument)
   return pointer;
 }
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla

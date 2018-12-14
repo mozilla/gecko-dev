@@ -9,18 +9,19 @@
 #include "InputUtils.h"
 
 class APZEventRegionsTester : public APZCTreeManagerTester {
-protected:
+ protected:
   UniquePtr<ScopedLayerTreeRegistration> registration;
   TestAsyncPanZoomController* rootApzc;
 
   void CreateEventRegionsLayerTree1() {
     const char* layerTreeSyntax = "c(tt)";
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(IntRect(0, 0, 200, 200)),     // root
-      nsIntRegion(IntRect(0, 0, 100, 200)),     // left half
-      nsIntRegion(IntRect(0, 100, 200, 100)),   // bottom half
+        nsIntRegion(IntRect(0, 0, 200, 200)),    // root
+        nsIntRegion(IntRect(0, 0, 100, 200)),    // left half
+        nsIntRegion(IntRect(0, 100, 200, 100)),  // bottom half
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
+                           layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
     SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 2);
@@ -35,13 +36,15 @@ protected:
     // respond).
     EventRegions regions(nsIntRegion(IntRect(0, 0, 200, 200)));
     root->SetEventRegions(regions);
-    regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 100, 100, 100));
+    regions.mDispatchToContentHitRegion =
+        nsIntRegion(IntRect(0, 100, 100, 100));
     regions.mHitRegion = nsIntRegion(IntRect(0, 0, 100, 200));
     layers[1]->SetEventRegions(regions);
     regions.mHitRegion = nsIntRegion(IntRect(0, 100, 200, 100));
     layers[2]->SetEventRegions(regions);
 
-    registration = MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
+    registration =
+        MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
     manager->UpdateHitTestingTree(0, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
@@ -49,10 +52,11 @@ protected:
   void CreateEventRegionsLayerTree2() {
     const char* layerTreeSyntax = "c(t)";
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(IntRect(0, 0, 100, 500)),
-      nsIntRegion(IntRect(0, 150, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 500)),
+        nsIntRegion(IntRect(0, 150, 100, 100)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
+                           layers);
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
 
     // Set up the event regions so that the child thebes layer is positioned far
@@ -62,7 +66,8 @@ protected:
     regions.mHitRegion = nsIntRegion(IntRect(0, 150, 100, 100));
     layers[1]->SetEventRegions(regions);
 
-    registration = MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
+    registration =
+        MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
     manager->UpdateHitTestingTree(0, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
@@ -76,16 +81,20 @@ protected:
     // 3 is the Obscurer, who ruins everything.
     nsIntRegion layerVisibleRegions[] = {
         // x coordinates are uninteresting
-        nsIntRegion(IntRect(0,   0, 200, 200)),  // [0, 200]
-        nsIntRegion(IntRect(0,   0, 200, 200)),  // [0, 200]
-        nsIntRegion(IntRect(0, 100, 200,  50)),  // [100, 150]
-        nsIntRegion(IntRect(0, 100, 200, 100))   // [100, 200]
+        nsIntRegion(IntRect(0, 0, 200, 200)),   // [0, 200]
+        nsIntRegion(IntRect(0, 0, 200, 200)),   // [0, 200]
+        nsIntRegion(IntRect(0, 100, 200, 50)),  // [100, 150]
+        nsIntRegion(IntRect(0, 100, 200, 100))  // [100, 200]
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
+                           layers);
 
-    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 200, 200));
-    SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 200, 300));
-    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 2, CSSRect(0, 0, 200, 100));
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID,
+                              CSSRect(0, 0, 200, 200));
+    SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1,
+                              CSSRect(0, 0, 200, 300));
+    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 2,
+                              CSSRect(0, 0, 200, 100));
     SetScrollHandoff(layers[2], layers[1]);
     SetScrollHandoff(layers[1], root);
 
@@ -96,7 +105,8 @@ protected:
     regions.mHitRegion = nsIntRegion(IntRect(0, 100, 200, 100));
     layers[2]->SetEventRegions(regions);
 
-    registration = MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
+    registration =
+        MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
     manager->UpdateHitTestingTree(0, root, false, 0, 0);
     rootApzc = ApzcOf(root);
   }
@@ -109,16 +119,18 @@ protected:
     // 2 entirely covers 1 and should take all the input events, but has no APZC
     // so hits to 2 should go to to the root APZC
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(IntRect(0, 0, 100, 100)),
-      nsIntRegion(IntRect(0, 0, 100, 100)),
-      nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
+                           layers);
 
     SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
 
-    registration = MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
+    registration =
+        MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
     manager->UpdateHitTestingTree(0, root, false, 0, 0);
   }
 
@@ -132,21 +144,24 @@ protected:
     // 2 is a small layer that is the actual target
     // 3 is a big layer obscuring 2 with a dispatch-to-content region
     nsIntRegion layerVisibleRegions[] = {
-      nsIntRegion(IntRect(0, 0, 100, 100)),
-      nsIntRegion(IntRect(0, 0, 0, 0)),
-      nsIntRegion(IntRect(0, 0, 10, 10)),
-      nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 0, 0)),
+        nsIntRegion(IntRect(0, 0, 10, 10)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
     };
     Matrix4x4 layerTransforms[] = {
-      Matrix4x4(),
-      Matrix4x4::Translation(50, 0, 0),
-      Matrix4x4(),
-      Matrix4x4(),
+        Matrix4x4(),
+        Matrix4x4::Translation(50, 0, 0),
+        Matrix4x4(),
+        Matrix4x4(),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, layerTransforms, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions,
+                           layerTransforms, lm, layers);
 
-    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 10, 10));
-    SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 1, CSSRect(0, 0, 100, 100));
+    SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID,
+                              CSSRect(0, 0, 10, 10));
+    SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID + 1,
+                              CSSRect(0, 0, 100, 100));
     SetScrollHandoff(layers[3], layers[2]);
 
     EventRegions regions(nsIntRegion(IntRect(0, 0, 10, 10)));
@@ -155,7 +170,8 @@ protected:
     regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
     layers[3]->SetEventRegions(regions);
 
-    registration = MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
+    registration =
+        MakeUnique<ScopedLayerTreeRegistration>(manager, 0, root, mcc);
     manager->UpdateHitTestingTree(0, root, false, 0, 0);
   }
 };
@@ -172,16 +188,23 @@ TEST_F(APZEventRegionsTester, HitRegionImmediateResponse) {
   MockFunction<void(std::string checkPointName)> check;
   {
     InSequence s;
-    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, left->GetGuid(), _)).Times(1);
+    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, left->GetGuid(), _))
+        .Times(1);
     EXPECT_CALL(check, Call("Tapped on left"));
-    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, bottom->GetGuid(), _)).Times(1);
+    EXPECT_CALL(*mcc,
+                HandleTap(TapType::eSingleTap, _, _, bottom->GetGuid(), _))
+        .Times(1);
     EXPECT_CALL(check, Call("Tapped on bottom"));
-    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, root->GetGuid(), _)).Times(1);
+    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, root->GetGuid(), _))
+        .Times(1);
     EXPECT_CALL(check, Call("Tapped on root"));
     EXPECT_CALL(check, Call("Tap pending on d-t-c region"));
-    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, bottom->GetGuid(), _)).Times(1);
+    EXPECT_CALL(*mcc,
+                HandleTap(TapType::eSingleTap, _, _, bottom->GetGuid(), _))
+        .Times(1);
     EXPECT_CALL(check, Call("Tapped on bottom again"));
-    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, left->GetGuid(), _)).Times(1);
+    EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, left->GetGuid(), _))
+        .Times(1);
     EXPECT_CALL(check, Call("Tapped on left this time"));
   }
 
@@ -190,20 +213,20 @@ TEST_F(APZEventRegionsTester, HitRegionImmediateResponse) {
   // Tap in the exposed hit regions of each of the layers once and ensure
   // the clicks are dispatched right away
   Tap(manager, ScreenIntPoint(10, 10), tapDuration);
-  mcc->RunThroughDelayedTasks();    // this runs the tap event
+  mcc->RunThroughDelayedTasks();  // this runs the tap event
   check.Call("Tapped on left");
   Tap(manager, ScreenIntPoint(110, 110), tapDuration);
-  mcc->RunThroughDelayedTasks();    // this runs the tap event
+  mcc->RunThroughDelayedTasks();  // this runs the tap event
   check.Call("Tapped on bottom");
   Tap(manager, ScreenIntPoint(110, 10), tapDuration);
-  mcc->RunThroughDelayedTasks();    // this runs the tap event
+  mcc->RunThroughDelayedTasks();  // this runs the tap event
   check.Call("Tapped on root");
 
   // Now tap on the dispatch-to-content region where the layers overlap
   Tap(manager, ScreenIntPoint(10, 110), tapDuration);
-  mcc->RunThroughDelayedTasks();    // this runs the main-thread timeout
+  mcc->RunThroughDelayedTasks();  // this runs the main-thread timeout
   check.Call("Tap pending on d-t-c region");
-  mcc->RunThroughDelayedTasks();    // this runs the tap event
+  mcc->RunThroughDelayedTasks();  // this runs the tap event
   check.Call("Tapped on bottom again");
 
   // Now let's do that again, but simulate a main-thread response
@@ -212,7 +235,8 @@ TEST_F(APZEventRegionsTester, HitRegionImmediateResponse) {
   nsTArray<ScrollableLayerGuid> targets;
   targets.AppendElement(left->GetGuid());
   manager->SetTargetAPZC(inputBlockId, targets);
-  while (mcc->RunThroughDelayedTasks());    // this runs the tap event
+  while (mcc->RunThroughDelayedTasks())
+    ;  // this runs the tap event
   check.Call("Tapped on left this time");
 }
 
@@ -223,7 +247,9 @@ TEST_F(APZEventRegionsTester, HitRegionAccumulatesChildren) {
   // parent layer's hit region. Verify that it comes out of the APZC's
   // content controller, which indicates the input events got routed correctly
   // to the APZC.
-  EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, _, _, rootApzc->GetGuid(), _)).Times(1);
+  EXPECT_CALL(*mcc,
+              HandleTap(TapType::eSingleTap, _, _, rootApzc->GetGuid(), _))
+      .Times(1);
   Tap(manager, ScreenIntPoint(10, 160), TimeDuration::FromMilliseconds(100));
 }
 
@@ -241,7 +267,8 @@ TEST_F(APZEventRegionsTester, Obscuration) {
   ApzcPanNoFling(parent, 75, 25);
 
   gfx::CompositorHitTestInfo result;
-  RefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 75), &result);
+  RefPtr<AsyncPanZoomController> hit =
+      manager->GetTargetAPZC(ScreenPoint(50, 75), &result);
   EXPECT_EQ(child, hit.get());
   EXPECT_EQ(CompositorHitTestInfo::eVisibleToHitTest, result);
 }
@@ -250,9 +277,10 @@ TEST_F(APZEventRegionsTester, Bug1119497) {
   CreateBug1119497LayerTree();
 
   gfx::CompositorHitTestInfo result;
-  RefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(50, 50), &result);
-  // We should hit layers[2], so |result| will be eVisibleToHitTest but there's no
-  // actual APZC on layers[2], so it will be the APZC of the root layer.
+  RefPtr<AsyncPanZoomController> hit =
+      manager->GetTargetAPZC(ScreenPoint(50, 50), &result);
+  // We should hit layers[2], so |result| will be eVisibleToHitTest but there's
+  // no actual APZC on layers[2], so it will be the APZC of the root layer.
   EXPECT_EQ(ApzcOf(layers[0]), hit.get());
   EXPECT_EQ(CompositorHitTestInfo::eVisibleToHitTest, result);
 }
@@ -265,10 +293,13 @@ TEST_F(APZEventRegionsTester, Bug1117712) {
   // These touch events should hit the dispatch-to-content region of layers[3]
   // and so get queued with that APZC as the tentative target.
   uint64_t inputBlockId = 0;
-  Tap(manager, ScreenIntPoint(55, 5), TimeDuration::FromMilliseconds(100), nullptr, &inputBlockId);
+  Tap(manager, ScreenIntPoint(55, 5), TimeDuration::FromMilliseconds(100),
+      nullptr, &inputBlockId);
   // But now we tell the APZ that really it hit layers[2], and expect the tap
   // to be delivered at the correct coordinates.
-  EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, LayoutDevicePoint(55, 5), 0, apzc2->GetGuid(), _)).Times(1);
+  EXPECT_CALL(*mcc, HandleTap(TapType::eSingleTap, LayoutDevicePoint(55, 5), 0,
+                              apzc2->GetGuid(), _))
+      .Times(1);
 
   nsTArray<ScrollableLayerGuid> targets;
   targets.AppendElement(apzc2->GetGuid());

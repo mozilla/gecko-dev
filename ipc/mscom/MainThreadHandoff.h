@@ -20,17 +20,15 @@ namespace mscom {
 
 struct ArrayData;
 
-class MainThreadHandoff final : public IInterceptorSink
-                              , public ICallFrameWalker
-{
-public:
+class MainThreadHandoff final : public IInterceptorSink,
+                                public ICallFrameWalker {
+ public:
   static HRESULT Create(IHandlerProvider* aHandlerProvider,
                         IInterceptorSink** aOutput);
 
   template <typename Interface>
   static HRESULT WrapInterface(STAUniquePtr<Interface> aTargetInterface,
-                               Interface** aOutInterface)
-  {
+                               Interface** aOutInterface) {
     return WrapInterface<Interface>(Move(aTargetInterface), nullptr,
                                     aOutInterface);
   }
@@ -38,12 +36,11 @@ public:
   template <typename Interface>
   static HRESULT WrapInterface(STAUniquePtr<Interface> aTargetInterface,
                                IHandlerProvider* aHandlerProvider,
-                               Interface** aOutInterface)
-  {
+                               Interface** aOutInterface) {
     MOZ_ASSERT(!IsProxy(aTargetInterface.get()));
     RefPtr<IInterceptorSink> handoff;
-    HRESULT hr = MainThreadHandoff::Create(aHandlerProvider,
-                                           getter_AddRefs(handoff));
+    HRESULT hr =
+        MainThreadHandoff::Create(aHandlerProvider, getter_AddRefs(handoff));
     if (FAILED(hr)) {
       return hr;
     }
@@ -72,20 +69,19 @@ public:
   STDMETHODIMP OnWalkInterface(REFIID aIid, PVOID* aInterface, BOOL aIsInParam,
                                BOOL aIsOutParam) override;
 
-private:
+ private:
   explicit MainThreadHandoff(IHandlerProvider* aHandlerProvider);
   ~MainThreadHandoff();
-  HRESULT FixArrayElements(ICallFrame* aFrame,
-                           const ArrayData& aArrayData);
+  HRESULT FixArrayElements(ICallFrame* aFrame, const ArrayData& aArrayData);
   HRESULT FixIServiceProvider(ICallFrame* aFrame);
 
-private:
-  ULONG                     mRefCnt;
-  RefPtr<IWeakReference>    mInterceptor;
-  RefPtr<IHandlerProvider>  mHandlerProvider;
+ private:
+  ULONG mRefCnt;
+  RefPtr<IWeakReference> mInterceptor;
+  RefPtr<IHandlerProvider> mHandlerProvider;
 };
 
-} // namespace mscom
-} // namespace mozilla
+}  // namespace mscom
+}  // namespace mozilla
 
-#endif // mozilla_mscom_MainThreadHandoff_h
+#endif  // mozilla_mscom_MainThreadHandoff_h

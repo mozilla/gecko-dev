@@ -16,19 +16,17 @@ namespace gfx {
 
 // On Linux and Android our "platform" font is a cairo_scaled_font_t and we use
 // an SkFontHost implementation that allows Skia to render using this.
-// This is mainly because FT_Face is not good for sharing between libraries, which
-// is a requirement when we consider runtime switchable backends and so on
+// This is mainly because FT_Face is not good for sharing between libraries,
+// which is a requirement when we consider runtime switchable backends and so on
 ScaledFontCairo::ScaledFontCairo(cairo_scaled_font_t* aScaledFont,
                                  const RefPtr<UnscaledFont>& aUnscaledFont,
                                  Float aSize)
-  : ScaledFontBase(aUnscaledFont, aSize)
-{
+    : ScaledFontBase(aUnscaledFont, aSize) {
   SetCairoScaledFont(aScaledFont);
 }
 
 #if defined(USE_SKIA) && defined(MOZ_ENABLE_FREETYPE)
-SkTypeface* ScaledFontCairo::GetSkTypeface()
-{
+SkTypeface* ScaledFontCairo::GetSkTypeface() {
   if (!mTypeface) {
     mTypeface = SkCreateTypefaceFromCairoFTFont(mScaledFont);
   }
@@ -37,5 +35,5 @@ SkTypeface* ScaledFontCairo::GetSkTypeface()
 }
 #endif
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

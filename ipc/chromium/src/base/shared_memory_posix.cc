@@ -25,12 +25,9 @@ SharedMemory::SharedMemory()
       inode_(0),
       memory_(NULL),
       read_only_(false),
-      max_size_(0) {
-}
+      max_size_(0) {}
 
-SharedMemory::~SharedMemory() {
-  Close();
-}
+SharedMemory::~SharedMemory() { Close(); }
 
 bool SharedMemory::SetHandle(SharedMemoryHandle handle, bool read_only) {
   DCHECK(mapped_file_ == -1);
@@ -47,14 +44,12 @@ bool SharedMemory::SetHandle(SharedMemoryHandle handle, bool read_only) {
 }
 
 // static
-bool SharedMemory::IsHandleValid(const SharedMemoryHandle& handle) {
+bool SharedMemory::IsHandleValid(const SharedMemoryHandle &handle) {
   return handle.fd >= 0;
 }
 
 // static
-SharedMemoryHandle SharedMemory::NULLHandle() {
-  return SharedMemoryHandle();
-}
+SharedMemoryHandle SharedMemory::NULLHandle() { return SharedMemoryHandle(); }
 
 bool SharedMemory::Create(const std::string &cname, bool read_only,
                           bool open_existing, size_t size) {
@@ -64,11 +59,9 @@ bool SharedMemory::Create(const std::string &cname, bool read_only,
 
   int posix_flags = 0;
   posix_flags |= read_only ? O_RDONLY : O_RDWR;
-  if (!open_existing || mapped_file_ <= 0)
-    posix_flags |= O_CREAT;
+  if (!open_existing || mapped_file_ <= 0) posix_flags |= O_CREAT;
 
-  if (!CreateOrOpen(name, posix_flags, size))
-    return false;
+  if (!CreateOrOpen(name, posix_flags, size)) return false;
 
   max_size_ = size;
   return true;
@@ -77,10 +70,9 @@ bool SharedMemory::Create(const std::string &cname, bool read_only,
 // Our current implementation of shmem is with mmap()ing of files.
 // These files need to be deleted explicitly.
 // In practice this call is only needed for unit tests.
-bool SharedMemory::Delete(const std::wstring& name) {
+bool SharedMemory::Delete(const std::wstring &name) {
   std::wstring mem_filename;
-  if (FilenameForMemoryName(name, &mem_filename) == false)
-    return false;
+  if (FilenameForMemoryName(name, &mem_filename) == false) return false;
 
   FilePath path(WideToUTF8(mem_filename));
   if (file_util::PathExists(path)) {
@@ -113,8 +105,7 @@ bool SharedMemory::FilenameForMemoryName(const std::wstring &memname,
   DCHECK(memname.find_first_of(L"\0") == std::string::npos);
 
   FilePath temp_dir;
-  if (file_util::GetShmemTempDir(&temp_dir) == false)
-    return false;
+  if (file_util::GetShmemTempDir(&temp_dir) == false) return false;
 
   mem_filename = UTF8ToWide(temp_dir.value());
   file_util::AppendToPath(&mem_filename, L"com.google.chrome.shmem." + memname);
@@ -127,7 +118,7 @@ namespace {
 // A class to handle auto-closing of FILE*'s.
 class ScopedFILEClose {
  public:
-  inline void operator()(FILE* x) const {
+  inline void operator()(FILE *x) const {
     if (x) {
       fclose(x);
     }
@@ -136,7 +127,7 @@ class ScopedFILEClose {
 
 typedef mozilla::UniquePtr<FILE, ScopedFILEClose> ScopedFILE;
 
-}
+}  // namespace
 
 // Chromium mostly only use the unique/private shmem as specified by
 // "name == L"". The exception is in the StatsTable.
@@ -144,8 +135,8 @@ typedef mozilla::UniquePtr<FILE, ScopedFILEClose> ScopedFILE;
 // we restart from a crash.  (That isn't a new problem, but it is a problem.)
 // In case we want to delete it later, it may be useful to save the value
 // of mem_filename after FilenameForMemoryName().
-bool SharedMemory::CreateOrOpen(const std::wstring &name,
-                                int posix_flags, size_t size) {
+bool SharedMemory::CreateOrOpen(const std::wstring &name, int posix_flags,
+                                size_t size) {
   DCHECK(mapped_file_ == -1);
 
   ScopedFILE file_closer;
@@ -164,8 +155,7 @@ bool SharedMemory::CreateOrOpen(const std::wstring &name,
     file_util::Delete(path);
   } else {
     std::wstring mem_filename;
-    if (FilenameForMemoryName(name, &mem_filename) == false)
-      return false;
+    if (FilenameForMemoryName(name, &mem_filename) == false) return false;
 
     std::string mode;
     switch (posix_flags) {
@@ -187,8 +177,7 @@ bool SharedMemory::CreateOrOpen(const std::wstring &name,
     fp = file_util::OpenFile(mem_filename, mode.c_str());
   }
 
-  if (fp == NULL)
-    return false;
+  if (fp == NULL) return false;
   file_closer.reset(fp);  // close when we go out of scope
 
   // Make sure the (new) file is the right size.
@@ -197,14 +186,11 @@ bool SharedMemory::CreateOrOpen(const std::wstring &name,
   if (size && (posix_flags & (O_RDWR | O_CREAT))) {
     // Get current size.
     struct stat stat;
-    if (fstat(fileno(fp), &stat) != 0)
-      return false;
+    if (fstat(fileno(fp), &stat) != 0) return false;
     size_t current_size = stat.st_size;
     if (current_size != size) {
-      if (ftruncate(fileno(fp), size) != 0)
-        return false;
-      if (fseeko(fp, size, SEEK_SET) != 0)
-        return false;
+      if (ftruncate(fileno(fp), size) != 0) return false;
+      if (fseeko(fp, size, SEEK_SET) != 0) return false;
     }
   }
 
@@ -212,31 +198,27 @@ bool SharedMemory::CreateOrOpen(const std::wstring &name,
   DCHECK(mapped_file_ >= 0);
 
   struct stat st;
-  if (fstat(mapped_file_, &st))
-    NOTREACHED();
+  if (fstat(mapped_file_, &st)) NOTREACHED();
   inode_ = st.st_ino;
 
   return true;
 }
 
 bool SharedMemory::Map(size_t bytes) {
-  if (mapped_file_ == -1)
-    return false;
+  if (mapped_file_ == -1) return false;
 
   memory_ = mmap(NULL, bytes, PROT_READ | (read_only_ ? 0 : PROT_WRITE),
                  MAP_SHARED, mapped_file_, 0);
 
-  if (memory_)
-    max_size_ = bytes;
+  if (memory_) max_size_ = bytes;
 
-  bool mmap_succeeded = (memory_ != (void*)-1);
+  bool mmap_succeeded = (memory_ != (void *)-1);
   DCHECK(mmap_succeeded) << "Call to mmap failed, errno=" << errno;
   return mmap_succeeded;
 }
 
 bool SharedMemory::Unmap() {
-  if (memory_ == NULL)
-    return false;
+  if (memory_ == NULL) return false;
 
   munmap(memory_, max_size_);
   memory_ = NULL;
@@ -252,12 +234,10 @@ bool SharedMemory::ShareToProcessCommon(ProcessId processId,
   new_handle->fd = new_fd;
   new_handle->auto_close = true;
 
-  if (close_self)
-    Close();
+  if (close_self) Close();
 
   return true;
 }
-
 
 void SharedMemory::Close(bool unmap_view) {
   if (unmap_view) {
@@ -287,21 +267,15 @@ void SharedMemory::LockOrUnlockCommon(int function) {
       continue;
     } else {
       NOTREACHED() << "lockf() failed."
-                   << " function:" << function
-                   << " fd:" << mapped_file_
-                   << " errno:" << errno
-                   << " msg:" << strerror(errno);
+                   << " function:" << function << " fd:" << mapped_file_
+                   << " errno:" << errno << " msg:" << strerror(errno);
     }
   }
 }
 
-void SharedMemory::Lock() {
-  LockOrUnlockCommon(F_WRLCK);
-}
+void SharedMemory::Lock() { LockOrUnlockCommon(F_WRLCK); }
 
-void SharedMemory::Unlock() {
-  LockOrUnlockCommon(F_UNLCK);
-}
+void SharedMemory::Unlock() { LockOrUnlockCommon(F_UNLCK); }
 #else
 void SharedMemory::LockOrUnlockCommon(int function) {
   DCHECK(mapped_file_ >= 0);
@@ -314,21 +288,15 @@ void SharedMemory::LockOrUnlockCommon(int function) {
       continue;
     } else {
       NOTREACHED() << "lockf() failed."
-                   << " function:" << function
-                   << " fd:" << mapped_file_
-                   << " errno:" << errno
-                   << " msg:" << strerror(errno);
+                   << " function:" << function << " fd:" << mapped_file_
+                   << " errno:" << errno << " msg:" << strerror(errno);
     }
   }
 }
 
-void SharedMemory::Lock() {
-  LockOrUnlockCommon(F_LOCK);
-}
+void SharedMemory::Lock() { LockOrUnlockCommon(F_LOCK); }
 
-void SharedMemory::Unlock() {
-  LockOrUnlockCommon(F_ULOCK);
-}
+void SharedMemory::Unlock() { LockOrUnlockCommon(F_ULOCK); }
 #endif
 
 SharedMemoryHandle SharedMemory::handle() const {

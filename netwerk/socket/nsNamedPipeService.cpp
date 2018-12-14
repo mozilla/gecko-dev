@@ -20,21 +20,13 @@ static mozilla::LazyLogModule gNamedPipeServiceLog("NamedPipeWin");
 #define LOG_NPS_ERROR(...) \
   MOZ_LOG(gNamedPipeServiceLog, mozilla::LogLevel::Error, (__VA_ARGS__))
 
-NS_IMPL_ISUPPORTS(NamedPipeService,
-                  nsINamedPipeService,
-                  nsIObserver,
+NS_IMPL_ISUPPORTS(NamedPipeService, nsINamedPipeService, nsIObserver,
                   nsIRunnable)
 
 NamedPipeService::NamedPipeService()
-  : mIocp(nullptr)
-  , mIsShutdown(false)
-  , mLock("NamedPipeServiceLock")
-{
-}
+    : mIocp(nullptr), mIsShutdown(false), mLock("NamedPipeServiceLock") {}
 
-nsresult
-NamedPipeService::Init()
-{
+nsresult NamedPipeService::Init() {
   MOZ_ASSERT(!mIsShutdown);
 
   nsresult rv;
@@ -42,22 +34,22 @@ NamedPipeService::Init()
   // nsIObserverService must be accessed in main thread.
   // register shutdown event to stop NamedPipeSrv thread.
   nsCOMPtr<nsIObserver> self(this);
-  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction("NamedPipeService::Init",
-                                                   [self = Move(self)] () -> void {
-    MOZ_ASSERT(NS_IsMainThread());
+  nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+      "NamedPipeService::Init", [self = Move(self)]()->void {
+        MOZ_ASSERT(NS_IsMainThread());
 
-    nsCOMPtr<nsIObserverService> svc = mozilla::services::GetObserverService();
+        nsCOMPtr<nsIObserverService> svc =
+            mozilla::services::GetObserverService();
 
-    if (NS_WARN_IF(!svc)) {
-      return;
-    }
+        if (NS_WARN_IF(!svc)) {
+          return;
+        }
 
-    if (NS_WARN_IF(NS_FAILED(svc->AddObserver(self,
-                                              NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                              false)))) {
-      return;
-    }
-  });
+        if (NS_WARN_IF(NS_FAILED(svc->AddObserver(
+                self, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false)))) {
+          return;
+        }
+      });
 
   if (NS_IsMainThread()) {
     rv = r->Run();
@@ -83,9 +75,7 @@ NamedPipeService::Init()
   return NS_OK;
 }
 
-void
-NamedPipeService::Shutdown()
-{
+void NamedPipeService::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
 
   // remove observer
@@ -112,9 +102,7 @@ NamedPipeService::Shutdown()
   }
 }
 
-void
-NamedPipeService::RemoveRetiredObjects()
-{
+void NamedPipeService::RemoveRetiredObjects() {
   MOZ_ASSERT(NS_GetCurrentThread() == mThread);
   mLock.AssertCurrentThreadOwns();
 
@@ -134,26 +122,23 @@ NamedPipeService::RemoveRetiredObjects()
 
 NS_IMETHODIMP
 NamedPipeService::AddDataObserver(void* aHandle,
-                                  nsINamedPipeDataObserver* aObserver)
-{
+                                  nsINamedPipeDataObserver* aObserver) {
   if (!aHandle || aHandle == INVALID_HANDLE_VALUE || !aObserver) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
   nsresult rv;
 
-  HANDLE h = CreateIoCompletionPort(aHandle,
-                                    mIocp,
-                                    reinterpret_cast<ULONG_PTR>(aObserver),
-                                    1);
+  HANDLE h = CreateIoCompletionPort(aHandle, mIocp,
+                                    reinterpret_cast<ULONG_PTR>(aObserver), 1);
   if (NS_WARN_IF(!h)) {
     LOG_NPS_ERROR("CreateIoCompletionPort error (%d)", GetLastError());
     return NS_ERROR_FAILURE;
   }
   if (NS_WARN_IF(h != mIocp)) {
-    LOG_NPS_ERROR("CreateIoCompletionPort got unexpected value %p (should be %p)",
-              h,
-              mIocp);
+    LOG_NPS_ERROR(
+        "CreateIoCompletionPort got unexpected value %p (should be %p)", h,
+        mIocp);
     CloseHandle(h);
     return NS_ERROR_FAILURE;
   }
@@ -180,8 +165,7 @@ NamedPipeService::AddDataObserver(void* aHandle,
 
 NS_IMETHODIMP
 NamedPipeService::RemoveDataObserver(void* aHandle,
-                                     nsINamedPipeDataObserver* aObserver)
-{
+                                     nsINamedPipeDataObserver* aObserver) {
   MutexAutoLock lock(mLock);
   mObservers.RemoveElement(aObserver);
 
@@ -192,8 +176,7 @@ NamedPipeService::RemoveDataObserver(void* aHandle,
 }
 
 NS_IMETHODIMP
-NamedPipeService::IsOnCurrentThread(bool* aRetVal)
-{
+NamedPipeService::IsOnCurrentThread(bool* aRetVal) {
   MOZ_ASSERT(mThread);
   MOZ_ASSERT(aRetVal);
 
@@ -210,10 +193,8 @@ NamedPipeService::IsOnCurrentThread(bool* aRetVal)
  */
 
 NS_IMETHODIMP
-NamedPipeService::Observe(nsISupports* aSubject,
-                          const char* aTopic,
-                          const char16_t* aData)
-{
+NamedPipeService::Observe(nsISupports* aSubject, const char* aTopic,
+                          const char16_t* aData) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!strcmp(NS_XPCOM_SHUTDOWN_OBSERVER_ID, aTopic)) {
@@ -228,8 +209,7 @@ NamedPipeService::Observe(nsISupports* aSubject,
  */
 
 NS_IMETHODIMP
-NamedPipeService::Run()
-{
+NamedPipeService::Run() {
   MOZ_ASSERT(NS_GetCurrentThread() == mThread);
   MOZ_ASSERT(mIocp && mIocp != INVALID_HANDLE_VALUE);
 
@@ -247,16 +227,14 @@ NamedPipeService::Run()
     DWORD bytesTransferred = 0;
     ULONG_PTR key = 0;
     LPOVERLAPPED overlapped = nullptr;
-    BOOL success = GetQueuedCompletionStatus(mIocp,
-                                             &bytesTransferred,
-                                             &key,
-                                             &overlapped,
-                                             1000); // timeout, 1s
+    BOOL success =
+        GetQueuedCompletionStatus(mIocp, &bytesTransferred, &key, &overlapped,
+                                  1000);  // timeout, 1s
     auto err = GetLastError();
     if (!success) {
       if (err == WAIT_TIMEOUT) {
         continue;
-      } else if (err == ERROR_ABANDONED_WAIT_0) { // mIocp was closed
+      } else if (err == ERROR_ABANDONED_WAIT_0) {  // mIocp was closed
         break;
       } else if (!overlapped) {
         /**
@@ -281,7 +259,7 @@ NamedPipeService::Run()
      * here.
      */
     nsINamedPipeDataObserver* target =
-      reinterpret_cast<nsINamedPipeDataObserver*>(key);
+        reinterpret_cast<nsINamedPipeDataObserver*>(key);
 
     nsCOMPtr<nsINamedPipeDataObserver> obs;
     {
@@ -298,17 +276,14 @@ NamedPipeService::Run()
     MOZ_ASSERT(obs.get());
 
     if (success) {
-      LOG_NPS_DEBUG("OnDataAvailable: obs=%p, bytes=%d",
-                    obs.get(),
+      LOG_NPS_DEBUG("OnDataAvailable: obs=%p, bytes=%d", obs.get(),
                     bytesTransferred);
       obs->OnDataAvailable(bytesTransferred, overlapped);
     } else {
-      LOG_NPS_ERROR("GetQueuedCompletionStatus %p failed, error=%d",
-                    obs.get(),
+      LOG_NPS_ERROR("GetQueuedCompletionStatus %p failed, error=%d", obs.get(),
                     err);
       obs->OnError(err, overlapped);
     }
-
   }
 
   {
@@ -321,5 +296,5 @@ NamedPipeService::Run()
 
 static NS_DEFINE_CID(kNamedPipeServiceCID, NS_NAMEDPIPESERVICE_CID);
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

@@ -25,13 +25,11 @@
 
 int wmain(int argc, WCHAR **argv);
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   LPWSTR commandLine = GetCommandLineW();
   int argcw = 0;
   LPWSTR *argvw = CommandLineToArgvW(commandLine, &argcw);
-  if (!argvw)
-    return 127;
+  if (!argvw) return 127;
 
   int result = wmain(argcw, argvw);
   LocalFree(argvw);
@@ -47,20 +45,16 @@ int main(int argc, char **argv);
 int main(int argc, char **argv, char **envp);
 #endif
 
-static void
-SanitizeEnvironmentVariables()
-{
+static void SanitizeEnvironmentVariables() {
   DWORD bufferSize = GetEnvironmentVariableW(L"PATH", nullptr, 0);
   if (bufferSize) {
-    wchar_t* originalPath = new wchar_t[bufferSize];
-    if (bufferSize - 1 == GetEnvironmentVariableW(L"PATH", originalPath,
-                                                  bufferSize)) {
+    wchar_t *originalPath = new wchar_t[bufferSize];
+    if (bufferSize - 1 ==
+        GetEnvironmentVariableW(L"PATH", originalPath, bufferSize)) {
       bufferSize = ExpandEnvironmentStringsW(originalPath, nullptr, 0);
       if (bufferSize) {
-        wchar_t* newPath = new wchar_t[bufferSize];
-        if (ExpandEnvironmentStringsW(originalPath,
-                                      newPath,
-                                      bufferSize)) {
+        wchar_t *newPath = new wchar_t[bufferSize];
+        if (ExpandEnvironmentStringsW(originalPath, newPath, bufferSize)) {
           SetEnvironmentVariableW(L"PATH", newPath);
         }
         delete[] newPath;
@@ -70,14 +64,11 @@ SanitizeEnvironmentVariables()
   }
 }
 
-static char*
-AllocConvertUTF16toUTF8(char16ptr_t arg)
-{
+static char *AllocConvertUTF16toUTF8(char16ptr_t arg) {
   // be generous... UTF16 units can expand up to 3 UTF8 units
   int len = wcslen(arg);
   char *s = new char[len * 3 + 1];
-  if (!s)
-    return nullptr;
+  if (!s) return nullptr;
 
   ConvertUTF16toUTF8 convert(s);
   convert.write(arg, len);
@@ -85,25 +76,21 @@ AllocConvertUTF16toUTF8(char16ptr_t arg)
   return s;
 }
 
-static void
-FreeAllocStrings(int argc, char **argv)
-{
+static void FreeAllocStrings(int argc, char **argv) {
   while (argc) {
     --argc;
-    delete [] argv[argc];
+    delete[] argv[argc];
   }
 
-  delete [] argv;
+  delete[] argv;
 }
 
-int wmain(int argc, WCHAR **argv)
-{
+int wmain(int argc, WCHAR **argv) {
   SanitizeEnvironmentVariables();
   SetDllDirectoryW(L"");
 
-  char **argvConverted = new char*[argc + 1];
-  if (!argvConverted)
-    return 127;
+  char **argvConverted = new char *[argc + 1];
+  if (!argvConverted) return 127;
 
   for (int i = 0; i < argc; ++i) {
     argvConverted[i] = AllocConvertUTF16toUTF8(argv[i]);
@@ -114,13 +101,12 @@ int wmain(int argc, WCHAR **argv)
   argvConverted[argc] = nullptr;
 
   // need to save argvConverted copy for later deletion.
-  char **deleteUs = new char*[argc+1];
+  char **deleteUs = new char *[argc + 1];
   if (!deleteUs) {
     FreeAllocStrings(argc, argvConverted);
     return 127;
   }
-  for (int i = 0; i < argc; i++)
-    deleteUs[i] = argvConverted[i];
+  for (int i = 0; i < argc; i++) deleteUs[i] = argvConverted[i];
 #ifndef XRE_WANT_ENVIRON
   int result = main(argc, argvConverted);
 #else

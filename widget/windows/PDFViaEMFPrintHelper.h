@@ -21,7 +21,7 @@ class nsFileInputStream;
 namespace mozilla {
 
 namespace ipc {
-  class IShmemAllocator;
+class IShmemAllocator;
 }
 
 namespace widget {
@@ -32,9 +32,8 @@ namespace widget {
  * Windows EMF:
  * https://msdn.microsoft.com/en-us/windows/hardware/drivers/print/emf-data-type
  */
-class PDFViaEMFPrintHelper
-{
-public:
+class PDFViaEMFPrintHelper {
+ public:
   typedef mozilla::ipc::FileDescriptor FileDescriptor;
 
   PDFViaEMFPrintHelper();
@@ -53,8 +52,8 @@ public:
    * Convert the specified PDF page to EMF and draw the EMF onto the
    * given DC.
    */
-  bool DrawPage(HDC aPrinterDC, unsigned int aPageIndex,
-                int aPageWidth, int aPageHeight);
+  bool DrawPage(HDC aPrinterDC, unsigned int aPageIndex, int aPageWidth,
+                int aPageHeight);
 
   /** Convert the specified PDF page to EMF and save it to file. */
   bool SavePageToFile(const wchar_t* aFilePath, unsigned int aPageIndex,
@@ -65,17 +64,17 @@ public:
                         int aPageHeight, ipc::Shmem& aMem,
                         mozilla::ipc::IShmemAllocator* aAllocator);
 
-protected:
+ protected:
   virtual bool CreatePDFiumEngineIfNeed();
-  bool RenderPageToDC(HDC aDC, unsigned int aPageIndex,
-                      int aPageWidth, int aPageHeight);
+  bool RenderPageToDC(HDC aDC, unsigned int aPageIndex, int aPageWidth,
+                      int aPageHeight);
 
-  RefPtr<PDFiumEngineShim>    mPDFiumEngine;
-  FPDF_DOCUMENT               mPDFDoc;
-  PRFileDesc*                 mPrfile;
+  RefPtr<PDFiumEngineShim> mPDFiumEngine;
+  FPDF_DOCUMENT mPDFDoc;
+  PRFileDesc* mPrfile;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
 #endif /* PDFVIAEMFPRINTHELPER_H_ */

@@ -13,17 +13,13 @@
 namespace mozilla {
 namespace dom {
 
-ClientSource*
-ClientSourceOpChild::GetSource() const
-{
+ClientSource* ClientSourceOpChild::GetSource() const {
   auto actor = static_cast<ClientSourceChild*>(Manager());
   return actor->GetSource();
 }
 
-template<typename Method, typename Args>
-void
-ClientSourceOpChild::DoSourceOp(Method aMethod, const Args& aArgs)
-{
+template <typename Method, typename Args>
+void ClientSourceOpChild::DoSourceOp(Method aMethod, const Args& aArgs) {
   RefPtr<ClientOpPromise> promise;
   nsCOMPtr<nsISerialEventTarget> target;
 
@@ -34,7 +30,8 @@ ClientSourceOpChild::DoSourceOp(Method aMethod, const Args& aArgs)
   {
     ClientSource* source = GetSource();
     if (!source) {
-      Unused << PClientSourceOpChild::Send__delete__(this, NS_ERROR_DOM_ABORT_ERR);
+      Unused << PClientSourceOpChild::Send__delete__(this,
+                                                     NS_ERROR_DOM_ABORT_ERR);
       return;
     }
 
@@ -53,60 +50,52 @@ ClientSourceOpChild::DoSourceOp(Method aMethod, const Args& aArgs)
   // Capture 'this' is safe here because we disconnect the promise
   // ActorDestroy() which ensures nethier lambda is called if the
   // actor is destroyed before the source operation completes.
-  promise->Then(target, __func__,
-    [this] (const mozilla::dom::ClientOpResult& aResult) {
-      mPromiseRequestHolder.Complete();
-      Unused << PClientSourceOpChild::Send__delete__(this, aResult);
-    },
-    [this] (nsresult aRv) {
-      mPromiseRequestHolder.Complete();
-      Unused << PClientSourceOpChild::Send__delete__(this, aRv);
-    })->Track(mPromiseRequestHolder);
+  promise
+      ->Then(target, __func__,
+             [this](const mozilla::dom::ClientOpResult& aResult) {
+               mPromiseRequestHolder.Complete();
+               Unused << PClientSourceOpChild::Send__delete__(this, aResult);
+             },
+             [this](nsresult aRv) {
+               mPromiseRequestHolder.Complete();
+               Unused << PClientSourceOpChild::Send__delete__(this, aRv);
+             })
+      ->Track(mPromiseRequestHolder);
 }
 
-void
-ClientSourceOpChild::ActorDestroy(ActorDestroyReason aReason)
-{
+void ClientSourceOpChild::ActorDestroy(ActorDestroyReason aReason) {
   mPromiseRequestHolder.DisconnectIfExists();
 }
 
-void
-ClientSourceOpChild::Init(const ClientOpConstructorArgs& aArgs)
-{
+void ClientSourceOpChild::Init(const ClientOpConstructorArgs& aArgs) {
   switch (aArgs.type()) {
-    case ClientOpConstructorArgs::TClientControlledArgs:
-    {
+    case ClientOpConstructorArgs::TClientControlledArgs: {
       DoSourceOp(&ClientSource::Control, aArgs.get_ClientControlledArgs());
       break;
     }
-    case ClientOpConstructorArgs::TClientFocusArgs:
-    {
+    case ClientOpConstructorArgs::TClientFocusArgs: {
       DoSourceOp(&ClientSource::Focus, aArgs.get_ClientFocusArgs());
       break;
     }
-    case ClientOpConstructorArgs::TClientPostMessageArgs:
-    {
+    case ClientOpConstructorArgs::TClientPostMessageArgs: {
       DoSourceOp(&ClientSource::PostMessage, aArgs.get_ClientPostMessageArgs());
       break;
     }
-    case ClientOpConstructorArgs::TClientClaimArgs:
-    {
+    case ClientOpConstructorArgs::TClientClaimArgs: {
       DoSourceOp(&ClientSource::Claim, aArgs.get_ClientClaimArgs());
       break;
     }
-    case ClientOpConstructorArgs::TClientGetInfoAndStateArgs:
-    {
+    case ClientOpConstructorArgs::TClientGetInfoAndStateArgs: {
       DoSourceOp(&ClientSource::GetInfoAndState,
                  aArgs.get_ClientGetInfoAndStateArgs());
       break;
     }
-    default:
-    {
+    default: {
       MOZ_ASSERT_UNREACHABLE("unknown client operation!");
       break;
     }
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

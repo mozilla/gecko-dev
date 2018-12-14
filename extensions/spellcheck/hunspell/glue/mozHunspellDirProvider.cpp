@@ -40,40 +40,34 @@
 #include "mozISpellCheckingEngine.h"
 #include "nsICategoryManager.h"
 
-NS_IMPL_ISUPPORTS(mozHunspellDirProvider,
-		   nsIDirectoryServiceProvider,
-		   nsIDirectoryServiceProvider2)
+NS_IMPL_ISUPPORTS(mozHunspellDirProvider, nsIDirectoryServiceProvider,
+                  nsIDirectoryServiceProvider2)
 
 NS_IMETHODIMP
 mozHunspellDirProvider::GetFile(const char *aKey, bool *aPersist,
-			       nsIFile* *aResult)
-{
+                                nsIFile **aResult) {
   return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
 mozHunspellDirProvider::GetFiles(const char *aKey,
-				nsISimpleEnumerator* *aResult)
-{
+                                 nsISimpleEnumerator **aResult) {
   if (strcmp(aKey, DICTIONARY_SEARCH_DIRECTORY_LIST) != 0) {
     return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIProperties> dirSvc =
-    do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
-  if (!dirSvc)
-    return NS_ERROR_FAILURE;
+      do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
+  if (!dirSvc) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsISimpleEnumerator> list;
-  nsresult rv = dirSvc->Get(XRE_EXTENSIONS_DIR_LIST,
-			    NS_GET_IID(nsISimpleEnumerator),
-			    getter_AddRefs(list));
-  if (NS_FAILED(rv))
-    return rv;
+  nsresult rv =
+      dirSvc->Get(XRE_EXTENSIONS_DIR_LIST, NS_GET_IID(nsISimpleEnumerator),
+                  getter_AddRefs(list));
+  if (NS_FAILED(rv)) return rv;
 
   nsCOMPtr<nsISimpleEnumerator> e = new AppendingEnumerator(list);
-  if (!e)
-    return NS_ERROR_OUT_OF_MEMORY;
+  if (!e) return NS_ERROR_OUT_OF_MEMORY;
 
   *aResult = nullptr;
   e.swap(*aResult);
@@ -81,20 +75,17 @@ mozHunspellDirProvider::GetFiles(const char *aKey,
 }
 
 NS_IMPL_ISUPPORTS(mozHunspellDirProvider::AppendingEnumerator,
-		   nsISimpleEnumerator)
+                  nsISimpleEnumerator)
 
 NS_IMETHODIMP
-mozHunspellDirProvider::AppendingEnumerator::HasMoreElements(bool *aResult)
-{
+mozHunspellDirProvider::AppendingEnumerator::HasMoreElements(bool *aResult) {
   *aResult = mNext ? true : false;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-mozHunspellDirProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
-{
-  if (aResult)
-    NS_ADDREF(*aResult = mNext);
+mozHunspellDirProvider::AppendingEnumerator::GetNext(nsISupports **aResult) {
+  if (aResult) NS_ADDREF(*aResult = mNext);
 
   mNext = nullptr;
 
@@ -108,19 +99,16 @@ mozHunspellDirProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
     mBase->GetNext(getter_AddRefs(nextbasesupp));
 
     nsCOMPtr<nsIFile> nextbase(do_QueryInterface(nextbasesupp));
-    if (!nextbase)
-      continue;
+    if (!nextbase) continue;
 
     nextbase->Clone(getter_AddRefs(mNext));
-    if (!mNext)
-      continue;
+    if (!mNext) continue;
 
     mNext->AppendNative(NS_LITERAL_CSTRING("dictionaries"));
 
     bool exists;
     rv = mNext->Exists(&exists);
-    if (NS_SUCCEEDED(rv) && exists)
-      break;
+    if (NS_SUCCEEDED(rv) && exists) break;
 
     mNext = nullptr;
   }
@@ -128,13 +116,12 @@ mozHunspellDirProvider::AppendingEnumerator::GetNext(nsISupports* *aResult)
   return NS_OK;
 }
 
-mozHunspellDirProvider::AppendingEnumerator::AppendingEnumerator
-    (nsISimpleEnumerator* aBase) :
-  mBase(aBase)
-{
+mozHunspellDirProvider::AppendingEnumerator::AppendingEnumerator(
+    nsISimpleEnumerator *aBase)
+    : mBase(aBase) {
   // Initialize mNext to begin
   GetNext(nullptr);
 }
 
-char const *const
-mozHunspellDirProvider::kContractID = "@mozilla.org/spellcheck/dir-provider;1";
+char const *const mozHunspellDirProvider::kContractID =
+    "@mozilla.org/spellcheck/dir-provider;1";

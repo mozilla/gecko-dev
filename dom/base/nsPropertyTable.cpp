@@ -20,18 +20,16 @@
 #include "nsAtom.h"
 
 struct PropertyListMapEntry : public PLDHashEntryHdr {
-  const void  *key;
-  void        *value;
+  const void *key;
+  void *value;
 };
 
 //----------------------------------------------------------------------
 
 class nsPropertyTable::PropertyList {
-public:
-  PropertyList(nsAtom*           aName,
-               NSPropertyDtorFunc aDtorFunc,
-               void*              aDtorData,
-               bool               aTransfer);
+ public:
+  PropertyList(nsAtom *aName, NSPropertyDtorFunc aDtorFunc, void *aDtorData,
+               bool aTransfer);
   ~PropertyList();
 
   // Removes the property associated with the given object, and destroys
@@ -41,28 +39,23 @@ public:
   // Destroy all remaining properties (without removing them)
   void Destroy();
 
-  bool Equals(nsAtom *aPropertyName)
-  {
-    return mName == aPropertyName;
-  }
+  bool Equals(nsAtom *aPropertyName) { return mName == aPropertyName; }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-  RefPtr<nsAtom>  mName;           // property name
-  PLDHashTable       mObjectValueMap; // map of object/value pairs
-  NSPropertyDtorFunc mDtorFunc;       // property specific value dtor function
-  void*              mDtorData;       // pointer to pass to dtor
-  bool               mTransfer;       // whether to transfer in
-                                      // TransferOrDeleteAllPropertiesFor
+  RefPtr<nsAtom> mName;          // property name
+  PLDHashTable mObjectValueMap;  // map of object/value pairs
+  NSPropertyDtorFunc mDtorFunc;  // property specific value dtor function
+  void *mDtorData;               // pointer to pass to dtor
+  bool mTransfer;                // whether to transfer in
+                                 // TransferOrDeleteAllPropertiesFor
 
-  PropertyList*      mNext;
+  PropertyList *mNext;
 };
 
-void
-nsPropertyTable::DeleteAllProperties()
-{
+void nsPropertyTable::DeleteAllProperties() {
   while (mPropertyList) {
-    PropertyList* tmp = mPropertyList;
+    PropertyList *tmp = mPropertyList;
 
     mPropertyList = mPropertyList->mNext;
     tmp->Destroy();
@@ -70,27 +63,23 @@ nsPropertyTable::DeleteAllProperties()
   }
 }
 
-void
-nsPropertyTable::DeleteAllPropertiesFor(nsPropertyOwner aObject)
-{
-  for (PropertyList* prop = mPropertyList; prop; prop = prop->mNext) {
+void nsPropertyTable::DeleteAllPropertiesFor(nsPropertyOwner aObject) {
+  for (PropertyList *prop = mPropertyList; prop; prop = prop->mNext) {
     prop->DeletePropertyFor(aObject);
   }
 }
 
-nsresult
-nsPropertyTable::TransferOrDeleteAllPropertiesFor(nsPropertyOwner aObject,
-                                                  nsPropertyTable *aOtherTable)
-{
+nsresult nsPropertyTable::TransferOrDeleteAllPropertiesFor(
+    nsPropertyOwner aObject, nsPropertyTable *aOtherTable) {
   nsresult rv = NS_OK;
-  for (PropertyList* prop = mPropertyList; prop; prop = prop->mNext) {
+  for (PropertyList *prop = mPropertyList; prop; prop = prop->mNext) {
     if (prop->mTransfer) {
-      auto entry = static_cast<PropertyListMapEntry*>
-                              (prop->mObjectValueMap.Search(aObject));
+      auto entry = static_cast<PropertyListMapEntry *>(
+          prop->mObjectValueMap.Search(aObject));
       if (entry) {
-        rv = aOtherTable->SetProperty(aObject, prop->mName,
-                                      entry->value, prop->mDtorFunc,
-                                      prop->mDtorData, prop->mTransfer);
+        rv = aOtherTable->SetProperty(aObject, prop->mName, entry->value,
+                                      prop->mDtorFunc, prop->mDtorData,
+                                      prop->mTransfer);
         if (NS_FAILED(rv)) {
           DeleteAllPropertiesFor(aObject);
           aOtherTable->DeleteAllPropertiesFor(aObject);
@@ -100,8 +89,7 @@ nsPropertyTable::TransferOrDeleteAllPropertiesFor(nsPropertyOwner aObject,
 
         prop->mObjectValueMap.RemoveEntry(entry);
       }
-    }
-    else {
+    } else {
       prop->DeletePropertyFor(aObject);
     }
   }
@@ -109,47 +97,40 @@ nsPropertyTable::TransferOrDeleteAllPropertiesFor(nsPropertyOwner aObject,
   return rv;
 }
 
-void
-nsPropertyTable::Enumerate(nsPropertyOwner aObject,
-                           NSPropertyFunc aCallback, void *aData)
-{
-  PropertyList* prop;
+void nsPropertyTable::Enumerate(nsPropertyOwner aObject,
+                                NSPropertyFunc aCallback, void *aData) {
+  PropertyList *prop;
   for (prop = mPropertyList; prop; prop = prop->mNext) {
-    auto entry = static_cast<PropertyListMapEntry*>
-                            (prop->mObjectValueMap.Search(aObject));
+    auto entry = static_cast<PropertyListMapEntry *>(
+        prop->mObjectValueMap.Search(aObject));
     if (entry) {
-      aCallback(const_cast<void*>(aObject.get()), prop->mName, entry->value,
+      aCallback(const_cast<void *>(aObject.get()), prop->mName, entry->value,
                 aData);
     }
   }
 }
 
-void
-nsPropertyTable::EnumerateAll(NSPropertyFunc aCallBack, void* aData)
-{
-  for (PropertyList* prop = mPropertyList; prop; prop = prop->mNext) {
+void nsPropertyTable::EnumerateAll(NSPropertyFunc aCallBack, void *aData) {
+  for (PropertyList *prop = mPropertyList; prop; prop = prop->mNext) {
     for (auto iter = prop->mObjectValueMap.Iter(); !iter.Done(); iter.Next()) {
-      auto entry = static_cast<PropertyListMapEntry*>(iter.Get());
-      aCallBack(const_cast<void*>(entry->key), prop->mName, entry->value,
+      auto entry = static_cast<PropertyListMapEntry *>(iter.Get());
+      aCallBack(const_cast<void *>(entry->key), prop->mName, entry->value,
                 aData);
     }
   }
 }
 
-void*
-nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
-                                     nsAtom    *aPropertyName,
-                                     bool        aRemove,
-                                     nsresult   *aResult)
-{
+void *nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
+                                           nsAtom *aPropertyName, bool aRemove,
+                                           nsresult *aResult) {
   NS_PRECONDITION(aPropertyName && aObject, "unexpected null param");
   nsresult rv = NS_PROPTABLE_PROP_NOT_THERE;
   void *propValue = nullptr;
 
-  PropertyList* propertyList = GetPropertyListFor(aPropertyName);
+  PropertyList *propertyList = GetPropertyListFor(aPropertyName);
   if (propertyList) {
-    auto entry = static_cast<PropertyListMapEntry*>
-                            (propertyList->mObjectValueMap.Search(aObject));
+    auto entry = static_cast<PropertyListMapEntry *>(
+        propertyList->mObjectValueMap.Search(aObject));
     if (entry) {
       propValue = entry->value;
       if (aRemove) {
@@ -160,24 +141,18 @@ nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
     }
   }
 
-  if (aResult)
-    *aResult = rv;
+  if (aResult) *aResult = rv;
 
   return propValue;
 }
 
-nsresult
-nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
-                                     nsAtom            *aPropertyName,
-                                     void               *aPropertyValue,
-                                     NSPropertyDtorFunc  aPropDtorFunc,
-                                     void               *aPropDtorData,
-                                     bool                aTransfer,
-                                     void              **aOldValue)
-{
+nsresult nsPropertyTable::SetPropertyInternal(
+    nsPropertyOwner aObject, nsAtom *aPropertyName, void *aPropertyValue,
+    NSPropertyDtorFunc aPropDtorFunc, void *aPropDtorData, bool aTransfer,
+    void **aOldValue) {
   NS_PRECONDITION(aPropertyName && aObject, "unexpected null param");
 
-  PropertyList* propertyList = GetPropertyListFor(aPropertyName);
+  PropertyList *propertyList = GetPropertyListFor(aPropertyName);
 
   if (propertyList) {
     // Make sure the dtor function and data and the transfer flag match
@@ -189,8 +164,8 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
     }
 
   } else {
-    propertyList = new PropertyList(aPropertyName, aPropDtorFunc,
-                                    aPropDtorData, aTransfer);
+    propertyList = new PropertyList(aPropertyName, aPropDtorFunc, aPropDtorData,
+                                    aTransfer);
     propertyList->mNext = mPropertyList;
     mPropertyList = propertyList;
   }
@@ -198,21 +173,19 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
   // The current property value (if there is one) is replaced and the current
   // value is destroyed
   nsresult result = NS_OK;
-  auto entry = static_cast<PropertyListMapEntry*>
-    (propertyList->mObjectValueMap.Add(aObject, mozilla::fallible));
-  if (!entry)
-    return NS_ERROR_OUT_OF_MEMORY;
+  auto entry = static_cast<PropertyListMapEntry *>(
+      propertyList->mObjectValueMap.Add(aObject, mozilla::fallible));
+  if (!entry) return NS_ERROR_OUT_OF_MEMORY;
   // A nullptr entry->key is the sign that the entry has just been allocated
   // for us.  If it's non-nullptr then we have an existing entry.
   if (entry->key) {
     if (aOldValue)
       *aOldValue = entry->value;
     else if (propertyList->mDtorFunc)
-      propertyList->mDtorFunc(const_cast<void*>(entry->key), aPropertyName,
+      propertyList->mDtorFunc(const_cast<void *>(entry->key), aPropertyName,
                               entry->value, propertyList->mDtorData);
     result = NS_PROPTABLE_PROP_OVERWRITTEN;
-  }
-  else if (aOldValue) {
+  } else if (aOldValue) {
     *aOldValue = nullptr;
   }
   entry->key = aObject;
@@ -221,25 +194,21 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
   return result;
 }
 
-nsresult
-nsPropertyTable::DeleteProperty(nsPropertyOwner aObject,
-                                nsAtom    *aPropertyName)
-{
+nsresult nsPropertyTable::DeleteProperty(nsPropertyOwner aObject,
+                                         nsAtom *aPropertyName) {
   NS_PRECONDITION(aPropertyName && aObject, "unexpected null param");
 
-  PropertyList* propertyList = GetPropertyListFor(aPropertyName);
+  PropertyList *propertyList = GetPropertyListFor(aPropertyName);
   if (propertyList) {
-    if (propertyList->DeletePropertyFor(aObject))
-      return NS_OK;
+    if (propertyList->DeletePropertyFor(aObject)) return NS_OK;
   }
 
   return NS_PROPTABLE_PROP_NOT_THERE;
 }
 
-nsPropertyTable::PropertyList*
-nsPropertyTable::GetPropertyListFor(nsAtom* aPropertyName) const
-{
-  PropertyList* result;
+nsPropertyTable::PropertyList *nsPropertyTable::GetPropertyListFor(
+    nsAtom *aPropertyName) const {
+  PropertyList *result;
 
   for (result = mPropertyList; result; result = result->mNext) {
     if (result->Equals(aPropertyName)) {
@@ -252,63 +221,51 @@ nsPropertyTable::GetPropertyListFor(nsAtom* aPropertyName) const
 
 //----------------------------------------------------------------------
 
-nsPropertyTable::PropertyList::PropertyList(nsAtom            *aName,
-                                            NSPropertyDtorFunc  aDtorFunc,
-                                            void               *aDtorData,
-                                            bool                aTransfer)
-  : mName(aName),
-    mObjectValueMap(PLDHashTable::StubOps(), sizeof(PropertyListMapEntry)),
-    mDtorFunc(aDtorFunc),
-    mDtorData(aDtorData),
-    mTransfer(aTransfer),
-    mNext(nullptr)
-{
-}
+nsPropertyTable::PropertyList::PropertyList(nsAtom *aName,
+                                            NSPropertyDtorFunc aDtorFunc,
+                                            void *aDtorData, bool aTransfer)
+    : mName(aName),
+      mObjectValueMap(PLDHashTable::StubOps(), sizeof(PropertyListMapEntry)),
+      mDtorFunc(aDtorFunc),
+      mDtorData(aDtorData),
+      mTransfer(aTransfer),
+      mNext(nullptr) {}
 
-nsPropertyTable::PropertyList::~PropertyList()
-{
-}
+nsPropertyTable::PropertyList::~PropertyList() {}
 
-void
-nsPropertyTable::PropertyList::Destroy()
-{
+void nsPropertyTable::PropertyList::Destroy() {
   // Enumerate any remaining object/value pairs and destroy the value object.
   if (mDtorFunc) {
     for (auto iter = mObjectValueMap.Iter(); !iter.Done(); iter.Next()) {
-      auto entry = static_cast<PropertyListMapEntry*>(iter.Get());
-      mDtorFunc(const_cast<void*>(entry->key), mName, entry->value, mDtorData);
+      auto entry = static_cast<PropertyListMapEntry *>(iter.Get());
+      mDtorFunc(const_cast<void *>(entry->key), mName, entry->value, mDtorData);
     }
   }
 }
 
-bool
-nsPropertyTable::PropertyList::DeletePropertyFor(nsPropertyOwner aObject)
-{
+bool nsPropertyTable::PropertyList::DeletePropertyFor(nsPropertyOwner aObject) {
   auto entry =
-    static_cast<PropertyListMapEntry*>(mObjectValueMap.Search(aObject));
-  if (!entry)
-    return false;
+      static_cast<PropertyListMapEntry *>(mObjectValueMap.Search(aObject));
+  if (!entry) return false;
 
-  void* value = entry->value;
+  void *value = entry->value;
   mObjectValueMap.RemoveEntry(entry);
 
   if (mDtorFunc)
-    mDtorFunc(const_cast<void*>(aObject.get()), mName, value, mDtorData);
+    mDtorFunc(const_cast<void *>(aObject.get()), mName, value, mDtorData);
 
   return true;
 }
 
-size_t
-nsPropertyTable::PropertyList::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-{
+size_t nsPropertyTable::PropertyList::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) {
   size_t n = aMallocSizeOf(this);
   n += mObjectValueMap.ShallowSizeOfExcludingThis(aMallocSizeOf);
   return n;
 }
 
-size_t
-nsPropertyTable::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t nsPropertyTable::SizeOfExcludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = 0;
 
   for (PropertyList *prop = mPropertyList; prop; prop = prop->mNext) {
@@ -318,17 +275,14 @@ nsPropertyTable::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   return n;
 }
 
-size_t
-nsPropertyTable::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t nsPropertyTable::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
 /* static */
-void
-nsPropertyTable::SupportsDtorFunc(void *aObject, nsAtom *aPropertyName,
-                                  void *aPropertyValue, void *aData)
-{
-  nsISupports *propertyValue = static_cast<nsISupports*>(aPropertyValue);
+void nsPropertyTable::SupportsDtorFunc(void *aObject, nsAtom *aPropertyName,
+                                       void *aPropertyValue, void *aData) {
+  nsISupports *propertyValue = static_cast<nsISupports *>(aPropertyValue);
   NS_IF_RELEASE(propertyValue);
 }

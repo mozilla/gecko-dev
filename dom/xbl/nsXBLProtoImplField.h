@@ -17,24 +17,20 @@ class nsIObjectInputStream;
 class nsIObjectOutputStream;
 class nsIURI;
 
-class nsXBLProtoImplField
-{
-public:
+class nsXBLProtoImplField {
+ public:
   nsXBLProtoImplField(const char16_t* aName, const char16_t* aReadOnly);
   explicit nsXBLProtoImplField(const bool aIsReadOnly);
   ~nsXBLProtoImplField();
 
   void AppendFieldText(const nsAString& aText);
-  void SetLineNumber(uint32_t aLineNumber) {
-    mLineNumber = aLineNumber;
-  }
+  void SetLineNumber(uint32_t aLineNumber) { mLineNumber = aLineNumber; }
 
   nsXBLProtoImplField* GetNext() const { return mNext; }
   void SetNext(nsXBLProtoImplField* aNext) { mNext = aNext; }
 
   nsresult InstallField(JS::Handle<JSObject*> aBoundNode,
-                        nsIURI* aBindingDocURI,
-                        bool* aDidInstall) const;
+                        nsIURI* aBindingDocURI, bool* aDidInstall) const;
 
   nsresult InstallAccessors(JSContext* aCx,
                             JS::Handle<JSObject*> aTargetClassObject);
@@ -51,7 +47,7 @@ public:
 
   bool IsEmpty() const { return mFieldTextLength == 0; }
 
-protected:
+ protected:
   nsXBLProtoImplField* mNext;
   char16_t* mName;
   char16_t* mFieldText;
@@ -60,4 +56,4 @@ protected:
   unsigned mJSAttributes;
 };
 
-#endif // nsXBLProtoImplField_h__
+#endif  // nsXBLProtoImplField_h__

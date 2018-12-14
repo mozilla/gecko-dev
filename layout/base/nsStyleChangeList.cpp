@@ -15,9 +15,8 @@
 #include "nsIContent.h"
 #include "nsIFrame.h"
 
-void
-nsStyleChangeList::AppendChange(nsIFrame* aFrame, nsIContent* aContent, nsChangeHint aHint)
-{
+void nsStyleChangeList::AppendChange(nsIFrame* aFrame, nsIContent* aContent,
+                                     nsChangeHint aHint) {
   MOZ_ASSERT(aFrame || (aHint & nsChangeHint_ReconstructFrame),
              "must have frame");
   MOZ_ASSERT(aHint, "No hint to process?");
@@ -27,45 +26,46 @@ nsStyleChangeList::AppendChange(nsIFrame* aFrame, nsIContent* aContent, nsChange
   MOZ_ASSERT(aContent || !(aHint & nsChangeHint_ReconstructFrame),
              "must have content");
   // XXXbz we should make this take Element instead of nsIContent
-  MOZ_ASSERT(!aContent || aContent->IsElement() ||
-             // display:contents elements posts the changes for their children:
-             (aFrame && aContent->GetParent() &&
-             aFrame->PresContext()->FrameConstructor()->
-               GetDisplayContentsStyleFor(aContent->GetParent())) ||
-             (aContent->IsNodeOfType(nsINode::eTEXT) &&
-              aContent->IsStyledByServo() &&
-              aContent->HasFlag(NODE_NEEDS_FRAME) &&
-              aHint & nsChangeHint_ReconstructFrame),
-             "Shouldn't be trying to restyle non-elements directly, "
-             "except if it's a display:contents child or a text node "
-             "doing lazy frame construction");
+  MOZ_ASSERT(
+      !aContent || aContent->IsElement() ||
+          // display:contents elements posts the changes for their children:
+          (aFrame && aContent->GetParent() &&
+           aFrame->PresContext()
+               ->FrameConstructor()
+               ->GetDisplayContentsStyleFor(aContent->GetParent())) ||
+          (aContent->IsNodeOfType(nsINode::eTEXT) &&
+           aContent->IsStyledByServo() && aContent->HasFlag(NODE_NEEDS_FRAME) &&
+           aHint & nsChangeHint_ReconstructFrame),
+      "Shouldn't be trying to restyle non-elements directly, "
+      "except if it's a display:contents child or a text node "
+      "doing lazy frame construction");
   MOZ_ASSERT(!(aHint & nsChangeHint_AllReflowHints) ||
-             (aHint & nsChangeHint_NeedReflow),
+                 (aHint & nsChangeHint_NeedReflow),
              "Reflow hint bits set without actually asking for a reflow");
 
   if (aHint & nsChangeHint_ReconstructFrame) {
     // If Servo fires reconstruct at a node, it is the only change hint fired at
     // that node.
     if (IsServo()) {
-      // Note: Because we check whether |aHint| is a reconstruct above (which is
-      // necessary to avoid debug test timeouts on certain crashtests), this check
-      // will not find bugs where we add a non-reconstruct hint for an element after
-      // adding a reconstruct. This is ok though, since ProcessRestyledFrames will
-      // handle that case via mDestroyedFrames.
+    // Note: Because we check whether |aHint| is a reconstruct above (which is
+    // necessary to avoid debug test timeouts on certain crashtests), this check
+    // will not find bugs where we add a non-reconstruct hint for an element
+    // after adding a reconstruct. This is ok though, since
+    // ProcessRestyledFrames will handle that case via mDestroyedFrames.
 #ifdef DEBUG
       for (size_t i = 0; i < Length(); ++i) {
         MOZ_ASSERT(aContent != (*this)[i].mContent ||
-                   !((*this)[i].mHint & nsChangeHint_ReconstructFrame),
+                       !((*this)[i].mHint & nsChangeHint_ReconstructFrame),
                    "Should not append a non-ReconstructFrame hint after \
                    appending a ReconstructFrame hint for the same \
                    content.");
       }
 #endif
     } else {
-      // Filter out all other changes for same content for Gecko (Servo asserts against this
-      // case above).
-      // NOTE: This is captured by reference to please static analysis.
-      // Capturing it by value as a pointer should be fine in this case.
+      // Filter out all other changes for same content for Gecko (Servo asserts
+      // against this case above). NOTE: This is captured by reference to please
+      // static analysis. Capturing it by value as a pointer should be fine in
+      // this case.
       RemoveElementsBy([&](const nsStyleChangeData& aData) {
         return aData.mContent == aContent;
       });
@@ -77,5 +77,5 @@ nsStyleChangeList::AppendChange(nsIFrame* aFrame, nsIContent* aContent, nsChange
     return;
   }
 
-  AppendElement(nsStyleChangeData { aFrame, aContent, aHint });
+  AppendElement(nsStyleChangeData{aFrame, aContent, aHint});
 }

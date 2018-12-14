@@ -37,9 +37,8 @@ NS_IMPL_RELEASE_INHERITED(ServiceWorkerContainer, DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ServiceWorkerContainer, DOMEventTargetHelper,
                                    mControllerWorker, mReadyPromise)
 
-/* static */ bool
-ServiceWorkerContainer::IsEnabled(JSContext* aCx, JSObject* aGlobal)
-{
+/* static */ bool ServiceWorkerContainer::IsEnabled(JSContext* aCx,
+                                                    JSObject* aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
 
   JS::Rooted<JSObject*> global(aCx, aGlobal);
@@ -57,36 +56,25 @@ ServiceWorkerContainer::IsEnabled(JSContext* aCx, JSObject* aGlobal)
 }
 
 ServiceWorkerContainer::ServiceWorkerContainer(nsPIDOMWindowInner* aWindow)
-  : DOMEventTargetHelper(aWindow)
-{
-}
+    : DOMEventTargetHelper(aWindow) {}
 
-ServiceWorkerContainer::~ServiceWorkerContainer()
-{
-  RemoveReadyPromise();
-}
+ServiceWorkerContainer::~ServiceWorkerContainer() { RemoveReadyPromise(); }
 
-void
-ServiceWorkerContainer::DisconnectFromOwner()
-{
+void ServiceWorkerContainer::DisconnectFromOwner() {
   mControllerWorker = nullptr;
   RemoveReadyPromise();
   DOMEventTargetHelper::DisconnectFromOwner();
 }
 
-void
-ServiceWorkerContainer::ControllerChanged(ErrorResult& aRv)
-{
+void ServiceWorkerContainer::ControllerChanged(ErrorResult& aRv) {
   mControllerWorker = nullptr;
   aRv = DispatchTrustedEvent(NS_LITERAL_STRING("controllerchange"));
 }
 
-void
-ServiceWorkerContainer::RemoveReadyPromise()
-{
+void ServiceWorkerContainer::RemoveReadyPromise() {
   if (nsCOMPtr<nsPIDOMWindowInner> window = GetOwner()) {
     nsCOMPtr<nsIServiceWorkerManager> swm =
-      mozilla::services::GetServiceWorkerManager();
+        mozilla::services::GetServiceWorkerManager();
     if (!swm) {
       // If the browser is shutting down, we don't need to remove the promise.
       return;
@@ -96,15 +84,12 @@ ServiceWorkerContainer::RemoveReadyPromise()
   }
 }
 
-JSObject*
-ServiceWorkerContainer::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ServiceWorkerContainer::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ServiceWorkerContainerBinding::Wrap(aCx, this, aGivenProto);
 }
 
-static nsresult
-CheckForSlashEscapedCharsInPath(nsIURI* aURI)
-{
+static nsresult CheckForSlashEscapedCharsInPath(nsIURI* aURI) {
   MOZ_ASSERT(aURI);
 
   // A URL that can't be downcast to a standard URL is an invalid URL and should
@@ -121,22 +106,20 @@ CheckForSlashEscapedCharsInPath(nsIURI* aURI)
   }
 
   ToLowerCase(path);
-  if (path.Find("%2f") != kNotFound ||
-      path.Find("%5c") != kNotFound) {
+  if (path.Find("%2f") != kNotFound || path.Find("%5c") != kNotFound) {
     return NS_ERROR_DOM_TYPE_ERR;
   }
 
   return NS_OK;
 }
 
-already_AddRefed<Promise>
-ServiceWorkerContainer::Register(const nsAString& aScriptURL,
-                                 const RegistrationOptions& aOptions,
-                                 ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerContainer::Register(
+    const nsAString& aScriptURL, const RegistrationOptions& aOptions,
+    ErrorResult& aRv) {
   nsCOMPtr<nsISupports> promise;
 
-  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+      mozilla::services::GetServiceWorkerManager();
   if (!swm) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -171,8 +154,7 @@ ServiceWorkerContainer::Register(const nsAString& aScriptURL,
   // Step 4. If none passed, parse against script's URL
   if (!aOptions.mScope.WasPassed()) {
     NS_NAMED_LITERAL_STRING(defaultScope, "./");
-    rv = NS_NewURI(getter_AddRefs(scopeURI), defaultScope,
-                   nullptr, scriptURI);
+    rv = NS_NewURI(getter_AddRefs(scopeURI), defaultScope, nullptr, scriptURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       nsAutoCString spec;
       scriptURI->GetSpec(spec);
@@ -182,8 +164,8 @@ ServiceWorkerContainer::Register(const nsAString& aScriptURL,
     }
   } else {
     // Step 5. Parse against entry settings object's base URL.
-    rv = NS_NewURI(getter_AddRefs(scopeURI), aOptions.mScope.Value(),
-                   nullptr, baseURI);
+    rv = NS_NewURI(getter_AddRefs(scopeURI), aOptions.mScope.Value(), nullptr,
+                   baseURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       nsIURI* uri = baseURI ? baseURI : scriptURI;
       nsAutoCString spec;
@@ -213,9 +195,7 @@ ServiceWorkerContainer::Register(const nsAString& aScriptURL,
   return ret.forget();
 }
 
-already_AddRefed<ServiceWorker>
-ServiceWorkerContainer::GetController()
-{
+already_AddRefed<ServiceWorker> ServiceWorkerContainer::GetController() {
   if (!mControllerWorker) {
     // If we don't have a controller reference cached, then we need to
     // check if we should create one.  We try to do this in a thread-agnostic
@@ -237,9 +217,8 @@ ServiceWorkerContainer::GetController()
 
     // This is a main thread only call.  We will need to replace it with
     // something for worker threads.
-    RefPtr<ServiceWorkerRegistrationInfo> reg =
-      swm->GetRegistration(controller.ref().PrincipalInfo(),
-                           controller.ref().Scope());
+    RefPtr<ServiceWorkerRegistrationInfo> reg = swm->GetRegistration(
+        controller.ref().PrincipalInfo(), controller.ref().Scope());
     NS_ENSURE_TRUE(reg, nullptr);
 
     ServiceWorkerInfo* info = reg->GetActive();
@@ -258,11 +237,11 @@ ServiceWorkerContainer::GetController()
   return ref.forget();
 }
 
-already_AddRefed<Promise>
-ServiceWorkerContainer::GetRegistrations(ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerContainer::GetRegistrations(
+    ErrorResult& aRv) {
   nsresult rv;
-  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID, &rv);
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+      do_GetService(SERVICEWORKERMANAGER_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return nullptr;
@@ -279,12 +258,11 @@ ServiceWorkerContainer::GetRegistrations(ErrorResult& aRv)
   return ret.forget();
 }
 
-already_AddRefed<Promise>
-ServiceWorkerContainer::GetRegistration(const nsAString& aDocumentURL,
-                                        ErrorResult& aRv)
-{
+already_AddRefed<Promise> ServiceWorkerContainer::GetRegistration(
+    const nsAString& aDocumentURL, ErrorResult& aRv) {
   nsresult rv;
-  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID, &rv);
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+      do_GetService(SERVICEWORKERMANAGER_CONTRACTID, &rv);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return nullptr;
@@ -301,14 +279,13 @@ ServiceWorkerContainer::GetRegistration(const nsAString& aDocumentURL,
   return ret.forget();
 }
 
-Promise*
-ServiceWorkerContainer::GetReady(ErrorResult& aRv)
-{
+Promise* ServiceWorkerContainer::GetReady(ErrorResult& aRv) {
   if (mReadyPromise) {
     return mReadyPromise;
   }
 
-  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+      mozilla::services::GetServiceWorkerManager();
   if (!swm) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -322,12 +299,11 @@ ServiceWorkerContainer::GetReady(ErrorResult& aRv)
 }
 
 // Testing only.
-void
-ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
-                                       nsString& aScope,
-                                       ErrorResult& aRv)
-{
-  nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
+void ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
+                                            nsString& aScope,
+                                            ErrorResult& aRv) {
+  nsCOMPtr<nsIServiceWorkerManager> swm =
+      mozilla::services::GetServiceWorkerManager();
   if (!swm) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
@@ -345,9 +321,8 @@ ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
     return;
   }
 
-  aRv = swm->GetScopeForUrl(doc->NodePrincipal(),
-                            aUrl, aScope);
+  aRv = swm->GetScopeForUrl(doc->NodePrincipal(), aUrl, aScope);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

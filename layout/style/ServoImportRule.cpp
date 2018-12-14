@@ -15,17 +15,14 @@ namespace mozilla {
 
 ServoImportRule::ServoImportRule(RefPtr<RawServoImportRule> aRawRule,
                                  uint32_t aLine, uint32_t aColumn)
-  : CSSImportRule(aLine, aColumn)
-  , mRawRule(Move(aRawRule))
-{
+    : CSSImportRule(aLine, aColumn), mRawRule(Move(aRawRule)) {
   const auto* sheet = Servo_ImportRule_GetSheet(mRawRule.get());
   MOZ_ASSERT(sheet);
   mChildSheet = const_cast<ServoStyleSheet*>(sheet);
   mChildSheet->SetOwnerRule(this);
 }
 
-ServoImportRule::~ServoImportRule()
-{
+ServoImportRule::~ServoImportRule() {
   if (mChildSheet) {
     mChildSheet->SetOwnerRule(nullptr);
   }
@@ -60,9 +57,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ServoImportRule)
   tmp->mRawRule = nullptr;
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(dom::CSSImportRule)
 
-/* virtual */ already_AddRefed<css::Rule>
-ServoImportRule::Clone() const
-{
+/* virtual */ already_AddRefed<css::Rule> ServoImportRule::Clone() const {
   // Rule::Clone is only used when CSSStyleSheetInner is cloned in
   // preparation of being mutated. However, ServoStyleSheet never clones
   // anything, so this method should never be called.
@@ -71,9 +66,7 @@ ServoImportRule::Clone() const
 }
 
 #ifdef DEBUG
-/* virtual */ void
-ServoImportRule::List(FILE* out, int32_t aIndent) const
-{
+/* virtual */ void ServoImportRule::List(FILE* out, int32_t aIndent) const {
   nsAutoCString str;
   for (int32_t i = 0; i < aIndent; i++) {
     str.AppendLiteral("  ");
@@ -83,36 +76,25 @@ ServoImportRule::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
-dom::MediaList*
-ServoImportRule::GetMedia() const
-{
+dom::MediaList* ServoImportRule::GetMedia() const {
   // When Bug 1326509 is fixed, we can assert mChildSheet instead.
   return mChildSheet ? mChildSheet->Media() : nullptr;
 }
 
-StyleSheet*
-ServoImportRule::GetStyleSheet() const
-{
-  return mChildSheet;
-}
+StyleSheet* ServoImportRule::GetStyleSheet() const { return mChildSheet; }
 
-void
-ServoImportRule::GetHref(nsAString& aHref) const
-{
+void ServoImportRule::GetHref(nsAString& aHref) const {
   Servo_ImportRule_GetHref(mRawRule, &aHref);
 }
 
-/* virtual */ void
-ServoImportRule::GetCssText(nsAString& aCssText) const
-{
+/* virtual */ void ServoImportRule::GetCssText(nsAString& aCssText) const {
   Servo_ImportRule_GetCssText(mRawRule, &aCssText);
 }
 
-/* virtual */ size_t
-ServoImportRule::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+/* virtual */ size_t ServoImportRule::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   // TODO Implement this!
   return aMallocSizeOf(this);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

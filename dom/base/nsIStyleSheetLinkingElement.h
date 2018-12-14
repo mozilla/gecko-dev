@@ -6,19 +6,21 @@
 #ifndef nsIStyleSheetLinkingElement_h__
 #define nsIStyleSheetLinkingElement_h__
 
-
 #include "nsISupports.h"
 #include "mozilla/StyleSheet.h"
 
 class nsICSSLoaderObserver;
 class nsIURI;
 
-#define NS_ISTYLESHEETLINKINGELEMENT_IID          \
-{ 0xa8b79f3b, 0x9d18, 0x4f9c, \
-  { 0xb1, 0xaa, 0x8c, 0x9b, 0x1b, 0xaa, 0xac, 0xad } }
+#define NS_ISTYLESHEETLINKINGELEMENT_IID             \
+  {                                                  \
+    0xa8b79f3b, 0x9d18, 0x4f9c, {                    \
+      0xb1, 0xaa, 0x8c, 0x9b, 0x1b, 0xaa, 0xac, 0xad \
+    }                                                \
+  }
 
 class nsIStyleSheetLinkingElement : public nsISupports {
-public:
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISTYLESHEETLINKINGELEMENT_IID)
 
   /**
@@ -62,8 +64,7 @@ public:
    *                     cached version if any.
    */
   virtual nsresult UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
-                                    bool *aWillNotify,
-                                    bool *aIsAlternate,
+                                    bool* aWillNotify, bool* aIsAlternate,
                                     bool aForceUpdate = false) = 0;
 
   /**
@@ -109,4 +110,4 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleSheetLinkingElement,
                               NS_ISTYLESHEETLINKINGELEMENT_IID)
 
-#endif // nsILinkingElement_h__
+#endif  // nsILinkingElement_h__

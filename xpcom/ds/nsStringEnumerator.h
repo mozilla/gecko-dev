@@ -43,17 +43,14 @@
 // InternalMethod(enumerator);
 // NS_RELEASE(enumerator);
 //
-MOZ_MUST_USE nsresult
-NS_NewStringEnumerator(nsIStringEnumerator** aResult,
-                       const nsTArray<nsString>* aArray,
-                       nsISupports* aOwner);
-MOZ_MUST_USE nsresult
-NS_NewUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult,
-                           const nsTArray<nsCString>* aArray);
+MOZ_MUST_USE nsresult NS_NewStringEnumerator(nsIStringEnumerator** aResult,
+                                             const nsTArray<nsString>* aArray,
+                                             nsISupports* aOwner);
+MOZ_MUST_USE nsresult NS_NewUTF8StringEnumerator(
+    nsIUTF8StringEnumerator** aResult, const nsTArray<nsCString>* aArray);
 
-MOZ_MUST_USE nsresult
-NS_NewStringEnumerator(nsIStringEnumerator** aResult,
-                       const nsTArray<nsString>* aArray);
+MOZ_MUST_USE nsresult NS_NewStringEnumerator(nsIStringEnumerator** aResult,
+                                             const nsTArray<nsString>* aArray);
 
 // Adopting string enumerators assume ownership of the array and will
 // call |operator delete| on the array when the enumerator is destroyed
@@ -64,14 +61,11 @@ NS_NewStringEnumerator(nsIStringEnumerator** aResult,
 // nsTArray<nsCString>* array = new nsTArray<nsCString>;
 // array->AppendString("abcd");
 // NS_NewAdoptingStringEnumerator(&result, array);
-MOZ_MUST_USE nsresult
-NS_NewAdoptingStringEnumerator(nsIStringEnumerator** aResult,
-                               nsTArray<nsString>* aArray);
+MOZ_MUST_USE nsresult NS_NewAdoptingStringEnumerator(
+    nsIStringEnumerator** aResult, nsTArray<nsString>* aArray);
 
-MOZ_MUST_USE nsresult
-NS_NewAdoptingUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult,
-                                   nsTArray<nsCString>* aArray);
-
+MOZ_MUST_USE nsresult NS_NewAdoptingUTF8StringEnumerator(
+    nsIUTF8StringEnumerator** aResult, nsTArray<nsCString>* aArray);
 
 // these versions take a refcounted "owner" which will be addreffed
 // when the enumerator is created, and destroyed when the enumerator
@@ -85,7 +79,6 @@ NS_NewAdoptingUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult,
 //     return NS_NewStringEnumerator(aResult, mCategoryList, this);
 // }
 //
-MOZ_MUST_USE nsresult
-NS_NewUTF8StringEnumerator(nsIUTF8StringEnumerator** aResult,
-                           const nsTArray<nsCString>* aArray,
-                           nsISupports* aOwner);
+MOZ_MUST_USE nsresult NS_NewUTF8StringEnumerator(
+    nsIUTF8StringEnumerator** aResult, const nsTArray<nsCString>* aArray,
+    nsISupports* aOwner);

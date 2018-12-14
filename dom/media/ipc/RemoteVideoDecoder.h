@@ -16,8 +16,7 @@ namespace mozilla {
 namespace dom {
 class RemoteVideoDecoder;
 }
-DDLoggedTypeCustomNameAndBase(dom::RemoteVideoDecoder,
-                              RemoteVideoDecoder,
+DDLoggedTypeCustomNameAndBase(dom::RemoteVideoDecoder, RemoteVideoDecoder,
                               MediaDataDecoder);
 
 namespace dom {
@@ -29,11 +28,9 @@ class RemoteDecoderModule;
 // to a 'real' decoder in the GPU process.
 // All requests get forwarded to a VideoDecoderChild instance that
 // operates solely on the VideoDecoderManagerChild thread.
-class RemoteVideoDecoder
-  : public MediaDataDecoder
-  , public DecoderDoctorLifeLogger<RemoteVideoDecoder>
-{
-public:
+class RemoteVideoDecoder : public MediaDataDecoder,
+                           public DecoderDoctorLifeLogger<RemoteVideoDecoder> {
+ public:
   friend class RemoteDecoderModule;
 
   // MediaDataDecoder
@@ -47,7 +44,7 @@ public:
   nsCString GetDescriptionName() const override;
   ConversionRequired NeedsConversion() const override;
 
-private:
+ private:
   RemoteVideoDecoder();
   ~RemoteVideoDecoder();
 
@@ -64,15 +61,13 @@ private:
 };
 
 // A PDM implementation that creates RemoteVideoDecoders.
-// We currently require a 'wrapped' PDM in order to be able to answer SupportsMimeType
-// and DecoderNeedsConversion. Ideally we'd check these over IPDL using the manager
-// protocol
-class RemoteDecoderModule : public PlatformDecoderModule
-{
-public:
+// We currently require a 'wrapped' PDM in order to be able to answer
+// SupportsMimeType and DecoderNeedsConversion. Ideally we'd check these over
+// IPDL using the manager protocol
+class RemoteDecoderModule : public PlatformDecoderModule {
+ public:
   explicit RemoteDecoderModule(PlatformDecoderModule* aWrapped)
-    : mWrapped(aWrapped)
-  {}
+      : mWrapped(aWrapped) {}
 
   nsresult Startup() override;
 
@@ -82,19 +77,18 @@ public:
                 DecoderDoctorDiagnostics* aDiagnostics) const override;
 
   already_AddRefed<MediaDataDecoder> CreateVideoDecoder(
-    const CreateDecoderParams& aParams) override;
+      const CreateDecoderParams& aParams) override;
 
   already_AddRefed<MediaDataDecoder> CreateAudioDecoder(
-    const CreateDecoderParams& aParams) override
-  {
+      const CreateDecoderParams& aParams) override {
     return nullptr;
   }
 
-private:
+ private:
   RefPtr<PlatformDecoderModule> mWrapped;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // include_dom_ipc_RemoteVideoDecoder_h
+#endif  // include_dom_ipc_RemoteVideoDecoder_h

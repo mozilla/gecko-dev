@@ -6,7 +6,7 @@
 
 #include "mozilla/IncrementalClearCOMRuleArray.h"
 
-#include <algorithm> // For std::min
+#include <algorithm>  // For std::min
 #include "nsCycleCollector.h"
 #include "mozilla/DeferredFinalize.h"
 #include "nsTArray.h"
@@ -17,12 +17,9 @@ using namespace mozilla;
 typedef nsCOMArray<css::Rule> RuleArray;
 typedef nsTArray<RuleArray> RuleArrayArray;
 
-
 // These methods are based on those in DeferredFinalizerImpl.
 
-static void*
-AppendRulesArrayPointer(void* aData, void* aObject)
-{
+static void* AppendRulesArrayPointer(void* aData, void* aObject) {
   RuleArrayArray* rulesArray = static_cast<RuleArrayArray*>(aData);
   RuleArray* oldRules = static_cast<RuleArray*>(aObject);
 
@@ -38,10 +35,9 @@ AppendRulesArrayPointer(void* aData, void* aObject)
 
 // Remove up to |aSliceBudget| css::Rules from the arrays, starting at
 // the end of the last array.
-static bool
-DeferredFinalizeRulesArray(uint32_t aSliceBudget, void* aData)
-{
-  MOZ_ASSERT(aSliceBudget > 0, "nonsensical/useless call with aSliceBudget == 0");
+static bool DeferredFinalizeRulesArray(uint32_t aSliceBudget, void* aData) {
+  MOZ_ASSERT(aSliceBudget > 0,
+             "nonsensical/useless call with aSliceBudget == 0");
   RuleArrayArray* rulesArray = static_cast<RuleArrayArray*>(aData);
 
   size_t newOuterLen = rulesArray->Length();
@@ -67,9 +63,7 @@ DeferredFinalizeRulesArray(uint32_t aSliceBudget, void* aData)
   return false;
 }
 
-void
-IncrementalClearCOMRuleArray::Clear()
-{
+void IncrementalClearCOMRuleArray::Clear() {
   // Destroy the array incrementally if it is long and we
   // haven't started shutting down.
   if (Length() > 10 && nsCCUncollectableMarker::sGeneration) {

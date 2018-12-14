@@ -9,38 +9,39 @@
 
 #include "nsSVGFilters.h"
 
-nsresult NS_NewSVGFEMergeNodeElement(nsIContent** aResult,
-                                     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGFEMergeNodeElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 
 typedef SVGFEUnstyledElement SVGFEMergeNodeElementBase;
 
-class SVGFEMergeNodeElement : public SVGFEMergeNodeElementBase
-{
-  friend nsresult (::NS_NewSVGFEMergeNodeElement(nsIContent **aResult,
-                                                 already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-protected:
-  explicit SVGFEMergeNodeElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : SVGFEMergeNodeElementBase(aNodeInfo)
-  {
-  }
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+class SVGFEMergeNodeElement : public SVGFEMergeNodeElementBase {
+  friend nsresult(::NS_NewSVGFEMergeNodeElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
 
-public:
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+ protected:
+  explicit SVGFEMergeNodeElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : SVGFEMergeNodeElementBase(aNodeInfo) {}
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+
+ public:
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
-  virtual bool AttributeAffectsRendering(
-          int32_t aNameSpaceID, nsAtom* aAttribute) const override;
+  virtual bool AttributeAffectsRendering(int32_t aNameSpaceID,
+                                         nsAtom* aAttribute) const override;
 
   const nsSVGString* GetIn1() { return &mStringAttributes[IN1]; }
 
   // WebIDL
   already_AddRefed<SVGAnimatedString> In1();
 
-protected:
+ protected:
   virtual StringAttributesInfo GetStringInfo() override;
 
   enum { IN1 };
@@ -48,7 +49,7 @@ protected:
   static StringInfo sStringInfo[1];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGFEMergeNodeElement_h
+#endif  // mozilla_dom_SVGFEMergeNodeElement_h

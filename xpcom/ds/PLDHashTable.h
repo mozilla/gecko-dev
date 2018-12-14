@@ -8,7 +8,7 @@
 #define PLDHashTable_h
 
 #include "mozilla/Atomics.h"
-#include "mozilla/Attributes.h" // for MOZ_ALWAYS_INLINE
+#include "mozilla/Attributes.h"  // for MOZ_ALWAYS_INLINE
 #include "mozilla/fallible.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
@@ -36,9 +36,8 @@ struct PLDHashTableOps;
 // then constraining the result to avoid the magic 0 and 1 values. The stored
 // mKeyHash value is table size invariant, and it is maintained automatically
 // -- users need never access it.
-struct PLDHashEntryHdr
-{
-private:
+struct PLDHashEntryHdr {
+ private:
   friend class PLDHashTable;
 
   PLDHashNumber mKeyHash;
@@ -72,9 +71,8 @@ private:
 //
 // - mIsWritable, which indicates if the table is mutable.
 //
-class Checker
-{
-public:
+class Checker {
+ public:
   constexpr Checker() : mState(kIdle), mIsWritable(1) {}
 
   Checker& operator=(Checker&& aOther) {
@@ -87,9 +85,10 @@ public:
     return *this;
   }
 
-  static bool IsIdle(uint32_t aState)  { return aState == kIdle; }
-  static bool IsRead(uint32_t aState)  { return kRead1 <= aState &&
-                                                aState <= kReadMax; }
+  static bool IsIdle(uint32_t aState) { return aState == kIdle; }
+  static bool IsRead(uint32_t aState) {
+    return kRead1 <= aState && aState <= kReadMax;
+  }
   static bool IsRead1(uint32_t aState) { return aState == kRead1; }
   static bool IsWrite(uint32_t aState) { return aState == kWrite; }
 
@@ -112,28 +111,24 @@ public:
   // For |mIsWritable| we don't need to be as careful because it can only in
   // transition in one direction (from writable to non-writable).
 
-  void StartReadOp()
-  {
-    uint32_t oldState = mState++;     // this is an atomic increment
+  void StartReadOp() {
+    uint32_t oldState = mState++;  // this is an atomic increment
     MOZ_ASSERT(IsIdle(oldState) || IsRead(oldState));
     MOZ_ASSERT(oldState < kReadMax);  // check for overflow
   }
 
-  void EndReadOp()
-  {
-    uint32_t oldState = mState--;     // this is an atomic decrement
+  void EndReadOp() {
+    uint32_t oldState = mState--;  // this is an atomic decrement
     MOZ_ASSERT(IsRead(oldState));
   }
 
-  void StartWriteOp()
-  {
+  void StartWriteOp() {
     MOZ_ASSERT(IsWritable());
     uint32_t oldState = mState.exchange(kWrite);
     MOZ_ASSERT(IsIdle(oldState));
   }
 
-  void EndWriteOp()
-  {
+  void EndWriteOp() {
     // Check again that the table is writable, in case it was marked as
     // non-writable just after the IsWritable() assertion in StartWriteOp()
     // occurred.
@@ -142,8 +137,7 @@ public:
     MOZ_ASSERT(IsWrite(oldState));
   }
 
-  void StartIteratorRemovalOp()
-  {
+  void StartIteratorRemovalOp() {
     // When doing removals at the end of iteration, we go from Read1 state to
     // Write and then back.
     MOZ_ASSERT(IsWritable());
@@ -151,8 +145,7 @@ public:
     MOZ_ASSERT(IsRead1(oldState));
   }
 
-  void EndIteratorRemovalOp()
-  {
+  void EndIteratorRemovalOp() {
     // Check again that the table is writable, in case it was marked as
     // non-writable just after the IsWritable() assertion in
     // StartIteratorRemovalOp() occurred.
@@ -161,30 +154,28 @@ public:
     MOZ_ASSERT(IsWrite(oldState));
   }
 
-  void StartDestructorOp()
-  {
+  void StartDestructorOp() {
     // A destructor op is like a write, but the table doesn't need to be
     // writable.
     uint32_t oldState = mState.exchange(kWrite);
     MOZ_ASSERT(IsIdle(oldState));
   }
 
-  void EndDestructorOp()
-  {
+  void EndDestructorOp() {
     uint32_t oldState = mState.exchange(kIdle);
     MOZ_ASSERT(IsWrite(oldState));
   }
 
-private:
+ private:
   // Things of note about the representation of |mState|.
   // - The values between kRead1..kReadMax represent valid Read(n) values.
   // - kIdle and kRead1 are deliberately chosen so that incrementing the -
   //   former gives the latter.
   // - 9999 concurrent readers should be enough for anybody.
-  static const uint32_t kIdle    = 0;
-  static const uint32_t kRead1   = 1;
+  static const uint32_t kIdle = 0;
+  static const uint32_t kRead1 = 1;
   static const uint32_t kReadMax = 9999;
-  static const uint32_t kWrite   = 10000;
+  static const uint32_t kWrite = 10000;
 
   mutable mozilla::Atomic<uint32_t> mState;
   mutable mozilla::Atomic<uint32_t> mIsWritable;
@@ -204,9 +195,8 @@ private:
 // and use it after an add or remove operation, unless you sample Generation()
 // before adding or removing, and compare the sample after, dereferencing the
 // entry pointer only if Generation() has not changed.
-class PLDHashTable
-{
-private:
+class PLDHashTable {
+ private:
   // This class maintains the invariant that every time the entry store is
   // changed, the generation is updated.
   //
@@ -214,16 +204,14 @@ private:
   // we can't do that without bloating sizeof(PLDHashTable) on 64-bit machines.
   // So instead we store it outside this class, and Set() takes a pointer to it
   // and ensures it is updated as necessary.
-  class EntryStore
-  {
-  private:
+  class EntryStore {
+   private:
     char* mEntryStore;
 
-  public:
+   public:
     EntryStore() : mEntryStore(nullptr) {}
 
-    ~EntryStore()
-    {
+    ~EntryStore() {
       free(mEntryStore);
       mEntryStore = nullptr;
     }
@@ -231,8 +219,7 @@ private:
     char* Get() { return mEntryStore; }
     const char* Get() const { return mEntryStore; }
 
-    void Set(char* aEntryStore, uint16_t* aGeneration)
-    {
+    void Set(char* aEntryStore, uint16_t* aGeneration) {
       mEntryStore = aEntryStore;
       *aGeneration += 1;
     }
@@ -242,18 +229,18 @@ private:
   // sizeof(PLDHashTable) is 20. On 64-bit platforms, sizeof(PLDHashTable) is
   // 32; 28 bytes of data followed by 4 bytes of padding for alignment.
   const PLDHashTableOps* const mOps;  // Virtual operations; see below.
-  EntryStore          mEntryStore;    // (Lazy) entry storage and generation.
-  uint16_t            mGeneration;    // The storage generation.
-  uint8_t             mHashShift;     // Multiplicative hash shift.
-  const uint8_t       mEntrySize;     // Number of bytes in an entry.
-  uint32_t            mEntryCount;    // Number of entries in table.
-  uint32_t            mRemovedCount;  // Removed entry sentinels in table.
+  EntryStore mEntryStore;             // (Lazy) entry storage and generation.
+  uint16_t mGeneration;               // The storage generation.
+  uint8_t mHashShift;                 // Multiplicative hash shift.
+  const uint8_t mEntrySize;           // Number of bytes in an entry.
+  uint32_t mEntryCount;               // Number of entries in table.
+  uint32_t mRemovedCount;             // Removed entry sentinels in table.
 
 #ifdef DEBUG
   mutable Checker mChecker;
 #endif
 
-public:
+ public:
   // Table capacity limit; do not exceed. The max capacity used to be 1<<23 but
   // that occasionally that wasn't enough. Making it much bigger than 1<<26
   // probably isn't worthwhile -- tables that big are kind of ridiculous.
@@ -289,12 +276,13 @@ public:
       // the destructor, which the move assignment operator does.
       // We initialize mGeneration because it is modified by the move
       // assignment operator.
-    : mOps(aOther.mOps)
-    , mEntryStore()
-    , mGeneration(0)
-    , mEntrySize(aOther.mEntrySize)
+      : mOps(aOther.mOps),
+        mEntryStore(),
+        mGeneration(0),
+        mEntrySize(aOther.mEntrySize)
 #ifdef DEBUG
-    , mChecker()
+        ,
+        mChecker()
 #endif
   {
     *this = mozilla::Move(aOther);
@@ -310,12 +298,11 @@ public:
   // Size in entries (gross, not net of free and removed sentinels) for table.
   // This can be zero if no elements have been added yet, in which case the
   // entry storage will not have yet been allocated.
-  uint32_t Capacity() const
-  {
+  uint32_t Capacity() const {
     return mEntryStore.Get() ? CapacityFromHashShift() : 0;
   }
 
-  uint32_t EntrySize()  const { return mEntrySize; }
+  uint32_t EntrySize() const { return mEntrySize; }
   uint32_t EntryCount() const { return mEntryCount; }
   uint32_t Generation() const { return mGeneration; }
 
@@ -440,9 +427,8 @@ public:
   // The latter form is more verbose but is easier to work with when
   // making subclasses of Iterator.
   //
-  class Iterator
-  {
-  public:
+  class Iterator {
+   public:
     explicit Iterator(PLDHashTable* aTable);
     Iterator(Iterator&& aOther);
     ~Iterator();
@@ -451,8 +437,7 @@ public:
     bool Done() const { return mNexts == mNextsLimit; }
 
     // Get the current entry.
-    PLDHashEntryHdr* Get() const
-    {
+    PLDHashEntryHdr* Get() const {
       MOZ_ASSERT(!Done());
 
       PLDHashEntryHdr* entry = reinterpret_cast<PLDHashEntryHdr*>(mCurrent);
@@ -467,17 +452,17 @@ public:
     // must not be called on that entry afterwards.
     void Remove();
 
-  protected:
-    PLDHashTable* mTable;             // Main table pointer.
+   protected:
+    PLDHashTable* mTable;  // Main table pointer.
 
-  private:
-    char* mStart;                     // The first entry.
-    char* mLimit;                     // One past the last entry.
-    char* mCurrent;                   // Pointer to the current entry.
-    uint32_t mNexts;                  // Number of Next() calls.
-    uint32_t mNextsLimit;             // Next() call limit.
+   private:
+    char* mStart;          // The first entry.
+    char* mLimit;          // One past the last entry.
+    char* mCurrent;        // Pointer to the current entry.
+    uint32_t mNexts;       // Number of Next() calls.
+    uint32_t mNextsLimit;  // Next() call limit.
 
-    bool mHaveRemoved;                // Have any elements been removed?
+    bool mHaveRemoved;  // Have any elements been removed?
 
     bool IsOnNonLiveEntry() const;
     void MoveToNextEntry();
@@ -492,12 +477,11 @@ public:
 
   // Use this if you need to initialize an Iterator in a const method. If you
   // use this case, you should not call Remove() on the iterator.
-  Iterator ConstIter() const
-  {
+  Iterator ConstIter() const {
     return Iterator(const_cast<PLDHashTable*>(this));
   }
 
-private:
+ private:
   // Multiplicative hash uses an unsigned 32 bit integer and the golden ratio,
   // expressed as a fixed-point 32-bit fraction.
   static const uint32_t kHashBits = 32;
@@ -507,25 +491,18 @@ private:
 
   static const PLDHashNumber kCollisionFlag = 1;
 
-  static bool EntryIsFree(PLDHashEntryHdr* aEntry)
-  {
+  static bool EntryIsFree(PLDHashEntryHdr* aEntry) {
     return aEntry->mKeyHash == 0;
   }
-  static bool EntryIsRemoved(PLDHashEntryHdr* aEntry)
-  {
+  static bool EntryIsRemoved(PLDHashEntryHdr* aEntry) {
     return aEntry->mKeyHash == 1;
   }
-  static bool EntryIsLive(PLDHashEntryHdr* aEntry)
-  {
+  static bool EntryIsLive(PLDHashEntryHdr* aEntry) {
     return aEntry->mKeyHash >= 2;
   }
 
-  static void MarkEntryFree(PLDHashEntryHdr* aEntry)
-  {
-    aEntry->mKeyHash = 0;
-  }
-  static void MarkEntryRemoved(PLDHashEntryHdr* aEntry)
-  {
+  static void MarkEntryFree(PLDHashEntryHdr* aEntry) { aEntry->mKeyHash = 0; }
+  static void MarkEntryRemoved(PLDHashEntryHdr* aEntry) {
     aEntry->mKeyHash = 1;
   }
 
@@ -537,8 +514,7 @@ private:
 
   // We store mHashShift rather than sizeLog2 to optimize the collision-free
   // case in SearchTable.
-  uint32_t CapacityFromHashShift() const
-  {
+  uint32_t CapacityFromHashShift() const {
     return ((uint32_t)1 << (kHashBits - mHashShift));
   }
 
@@ -547,8 +523,8 @@ private:
   enum SearchReason { ForSearchOrRemove, ForAdd };
 
   template <SearchReason Reason>
-  PLDHashEntryHdr* NS_FASTCALL
-    SearchTable(const void* aKey, PLDHashNumber aKeyHash);
+  PLDHashEntryHdr* NS_FASTCALL SearchTable(const void* aKey,
+                                           PLDHashNumber aKeyHash);
 
   PLDHashEntryHdr* FindFreeEntry(PLDHashNumber aKeyHash);
 
@@ -608,21 +584,19 @@ typedef void (*PLDHashInitEntry)(PLDHashEntryHdr* aEntry, const void* aKey);
 // null appropriately.
 //
 // XXX assumes 0 is null for pointer types.
-struct PLDHashTableOps
-{
+struct PLDHashTableOps {
   // Mandatory hooks. All implementations must provide these.
-  PLDHashHashKey      hashKey;
-  PLDHashMatchEntry   matchEntry;
-  PLDHashMoveEntry    moveEntry;
-  PLDHashClearEntry   clearEntry;
+  PLDHashHashKey hashKey;
+  PLDHashMatchEntry matchEntry;
+  PLDHashMoveEntry moveEntry;
+  PLDHashClearEntry clearEntry;
 
   // Optional hooks start here. If null, these are not called.
-  PLDHashInitEntry    initEntry;
+  PLDHashInitEntry initEntry;
 };
 
 // A minimal entry is a subclass of PLDHashEntryHdr and has a void* key pointer.
-struct PLDHashEntryStub : public PLDHashEntryHdr
-{
+struct PLDHashEntryStub : public PLDHashEntryHdr {
   const void* key;
 };
 

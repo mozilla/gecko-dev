@@ -7,20 +7,18 @@
 
 namespace mozilla {
 namespace detail {
-void log_print(const PRLogModuleInfo* aModule,
-                      LogLevel aLevel,
-                      const char* aFmt, ...)
-  {
-    // copied from Logging.cpp:#48-53
-    va_list ap;
-    va_start(ap, aFmt);
-    char* buff = PR_vsmprintf(aFmt, ap);
-    PR_LogPrint("%s", buff);
-    PR_smprintf_free(buff);
-    va_end(ap);
-  }
+void log_print(const PRLogModuleInfo* aModule, LogLevel aLevel,
+               const char* aFmt, ...) {
+  // copied from Logging.cpp:#48-53
+  va_list ap;
+  va_start(ap, aFmt);
+  char* buff = PR_vsmprintf(aFmt, ap);
+  PR_LogPrint("%s", buff);
+  PR_smprintf_free(buff);
+  va_end(ap);
+}
 
-}
-}
+}  // namespace detail
+}  // namespace mozilla
 
 #endif

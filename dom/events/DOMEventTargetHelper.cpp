@@ -35,8 +35,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(DOMEventTargetHelper)
     nsXPCOMCycleCollectionParticipant* participant = nullptr;
     CallQueryInterface(tmp, &participant);
 
-    SprintfLiteral(name, "%s %s",
-                   participant->ClassName(),
+    SprintfLiteral(name, "%s %s", participant->ClassName(),
                    NS_ConvertUTF16toUTF8(uri).get());
     cb.DescribeRefCountedNode(tmp->mRefCnt.get(), name);
   } else {
@@ -87,8 +86,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(DOMEventTargetHelper,
 
 NS_IMPL_DOMTARGET_DEFAULTS(DOMEventTargetHelper)
 
-DOMEventTargetHelper::~DOMEventTargetHelper()
-{
+DOMEventTargetHelper::~DOMEventTargetHelper() {
   if (mParentObject) {
     mParentObject->RemoveEventTargetObject(this);
   }
@@ -98,15 +96,11 @@ DOMEventTargetHelper::~DOMEventTargetHelper()
   ReleaseWrapper(this);
 }
 
-void
-DOMEventTargetHelper::BindToOwner(nsPIDOMWindowInner* aOwner)
-{
+void DOMEventTargetHelper::BindToOwner(nsPIDOMWindowInner* aOwner) {
   BindToOwner(aOwner ? aOwner->AsGlobal() : nullptr);
 }
 
-void
-DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
-{
+void DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner) {
   if (mParentObject) {
     mParentObject->RemoveEventTargetObject(this);
     if (mOwnerWindow) {
@@ -118,17 +112,17 @@ DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
   if (aOwner) {
     mParentObject = aOwner;
     aOwner->AddEventTargetObject(this);
-    // Let's cache the result of this QI for fast access and off main thread usage
-    mOwnerWindow = nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOwner)).get();
+    // Let's cache the result of this QI for fast access and off main thread
+    // usage
+    mOwnerWindow =
+        nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOwner)).get();
     if (mOwnerWindow) {
       mHasOrHasHadOwnerWindow = true;
     }
   }
 }
 
-void
-DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
-{
+void DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther) {
   if (!aOther) {
     BindToOwner(static_cast<nsIGlobalObject*>(nullptr));
     return;
@@ -137,9 +131,7 @@ DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
   mHasOrHasHadOwnerWindow = aOther->HasOrHasHadOwner();
 }
 
-void
-DOMEventTargetHelper::DisconnectFromOwner()
-{
+void DOMEventTargetHelper::DisconnectFromOwner() {
   if (mParentObject) {
     mParentObject->RemoveEventTargetObject(this);
   }
@@ -154,9 +146,7 @@ DOMEventTargetHelper::DisconnectFromOwner()
   MaybeDontKeepAlive();
 }
 
-nsPIDOMWindowInner*
-DOMEventTargetHelper::GetWindowIfCurrent() const
-{
+nsPIDOMWindowInner* DOMEventTargetHelper::GetWindowIfCurrent() const {
   if (NS_FAILED(CheckInnerWindowCorrectness())) {
     return nullptr;
   }
@@ -164,9 +154,7 @@ DOMEventTargetHelper::GetWindowIfCurrent() const
   return GetOwner();
 }
 
-nsIDocument*
-DOMEventTargetHelper::GetDocumentIfCurrent() const
-{
+nsIDocument* DOMEventTargetHelper::GetDocumentIfCurrent() const {
   nsPIDOMWindowInner* win = GetWindowIfCurrent();
   if (!win) {
     return nullptr;
@@ -178,8 +166,7 @@ DOMEventTargetHelper::GetDocumentIfCurrent() const
 NS_IMETHODIMP
 DOMEventTargetHelper::RemoveEventListener(const nsAString& aType,
                                           nsIDOMEventListener* aListener,
-                                          bool aUseCapture)
-{
+                                          bool aUseCapture) {
   EventListenerManager* elm = GetExistingListenerManager();
   if (elm) {
     elm->RemoveEventListener(aType, aListener, aUseCapture);
@@ -193,10 +180,8 @@ NS_IMPL_REMOVE_SYSTEM_EVENT_LISTENER(DOMEventTargetHelper)
 NS_IMETHODIMP
 DOMEventTargetHelper::AddEventListener(const nsAString& aType,
                                        nsIDOMEventListener* aListener,
-                                       bool aUseCapture,
-                                       bool aWantsUntrusted,
-                                       uint8_t aOptionalArgc)
-{
+                                       bool aUseCapture, bool aWantsUntrusted,
+                                       uint8_t aOptionalArgc) {
   NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
                "Won't check if this is chrome, you want to set "
                "aWantsUntrusted to false or make the aWantsUntrusted "
@@ -213,13 +198,10 @@ DOMEventTargetHelper::AddEventListener(const nsAString& aType,
   return NS_OK;
 }
 
-void
-DOMEventTargetHelper::AddEventListener(const nsAString& aType,
-                                       EventListener* aListener,
-                                       const AddEventListenerOptionsOrBoolean& aOptions,
-                                       const Nullable<bool>& aWantsUntrusted,
-                                       ErrorResult& aRv)
-{
+void DOMEventTargetHelper::AddEventListener(
+    const nsAString& aType, EventListener* aListener,
+    const AddEventListenerOptionsOrBoolean& aOptions,
+    const Nullable<bool>& aWantsUntrusted, ErrorResult& aRv) {
   bool wantsUntrusted;
   if (aWantsUntrusted.IsNull()) {
     nsresult rv = WantsUntrusted(&wantsUntrusted);
@@ -245,8 +227,7 @@ DOMEventTargetHelper::AddSystemEventListener(const nsAString& aType,
                                              nsIDOMEventListener* aListener,
                                              bool aUseCapture,
                                              bool aWantsUntrusted,
-                                             uint8_t aOptionalArgc)
-{
+                                             uint8_t aOptionalArgc) {
   NS_ASSERTION(!aWantsUntrusted || aOptionalArgc > 1,
                "Won't check if this is chrome, you want to set "
                "aWantsUntrusted to false or make the aWantsUntrusted "
@@ -262,51 +243,43 @@ DOMEventTargetHelper::AddSystemEventListener(const nsAString& aType,
 }
 
 NS_IMETHODIMP
-DOMEventTargetHelper::DispatchEvent(nsIDOMEvent* aEvent, bool* aRetVal)
-{
+DOMEventTargetHelper::DispatchEvent(nsIDOMEvent* aEvent, bool* aRetVal) {
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsresult rv =
-    EventDispatcher::DispatchDOMEvent(this, nullptr, aEvent, nullptr, &status);
+  nsresult rv = EventDispatcher::DispatchDOMEvent(this, nullptr, aEvent,
+                                                  nullptr, &status);
 
   *aRetVal = (status != nsEventStatus_eConsumeNoDefault);
   return rv;
 }
 
-nsresult
-DOMEventTargetHelper::DispatchTrustedEvent(const nsAString& aEventName)
-{
+nsresult DOMEventTargetHelper::DispatchTrustedEvent(
+    const nsAString& aEventName) {
   RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
   event->InitEvent(aEventName, false, false);
 
   return DispatchTrustedEvent(event);
 }
 
-nsresult
-DOMEventTargetHelper::DispatchTrustedEvent(nsIDOMEvent* event)
-{
+nsresult DOMEventTargetHelper::DispatchTrustedEvent(nsIDOMEvent* event) {
   event->SetTrusted(true);
 
   bool dummy;
   return DispatchEvent(event, &dummy);
 }
 
-nsresult
-DOMEventTargetHelper::GetEventTargetParent(EventChainPreVisitor& aVisitor)
-{
+nsresult DOMEventTargetHelper::GetEventTargetParent(
+    EventChainPreVisitor& aVisitor) {
   aVisitor.mCanHandle = true;
   aVisitor.SetParentTarget(nullptr, false);
   return NS_OK;
 }
 
-nsresult
-DOMEventTargetHelper::PostHandleEvent(EventChainPostVisitor& aVisitor)
-{
+nsresult DOMEventTargetHelper::PostHandleEvent(
+    EventChainPostVisitor& aVisitor) {
   return NS_OK;
 }
 
-EventListenerManager*
-DOMEventTargetHelper::GetOrCreateListenerManager()
-{
+EventListenerManager* DOMEventTargetHelper::GetOrCreateListenerManager() {
   if (!mListenerManager) {
     mListenerManager = new EventListenerManager(this);
   }
@@ -314,15 +287,12 @@ DOMEventTargetHelper::GetOrCreateListenerManager()
   return mListenerManager;
 }
 
-EventListenerManager*
-DOMEventTargetHelper::GetExistingListenerManager() const
-{
+EventListenerManager* DOMEventTargetHelper::GetExistingListenerManager() const {
   return mListenerManager;
 }
 
-nsIScriptContext*
-DOMEventTargetHelper::GetContextForEventHandlers(nsresult* aRv)
-{
+nsIScriptContext* DOMEventTargetHelper::GetContextForEventHandlers(
+    nsresult* aRv) {
   *aRv = CheckInnerWindowCorrectness();
   if (NS_FAILED(*aRv)) {
     return nullptr;
@@ -332,9 +302,7 @@ DOMEventTargetHelper::GetContextForEventHandlers(nsresult* aRv)
                : nullptr;
 }
 
-nsresult
-DOMEventTargetHelper::WantsUntrusted(bool* aRetVal)
-{
+nsresult DOMEventTargetHelper::WantsUntrusted(bool* aRetVal) {
   nsresult rv = CheckInnerWindowCorrectness();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -344,67 +312,50 @@ DOMEventTargetHelper::WantsUntrusted(bool* aRetVal)
   return rv;
 }
 
-void
-DOMEventTargetHelper::EventListenerAdded(nsAtom* aType)
-{
+void DOMEventTargetHelper::EventListenerAdded(nsAtom* aType) {
   EventListenerWasAdded(Substring(nsDependentAtomString(aType), 2),
                         IgnoreErrors());
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::EventListenerAdded(const nsAString& aType)
-{
+void DOMEventTargetHelper::EventListenerAdded(const nsAString& aType) {
   EventListenerWasAdded(aType, IgnoreErrors());
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::EventListenerRemoved(nsAtom* aType)
-{
+void DOMEventTargetHelper::EventListenerRemoved(nsAtom* aType) {
   EventListenerWasRemoved(Substring(nsDependentAtomString(aType), 2),
                           IgnoreErrors());
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::EventListenerRemoved(const nsAString& aType)
-{
+void DOMEventTargetHelper::EventListenerRemoved(const nsAString& aType) {
   EventListenerWasRemoved(aType, IgnoreErrors());
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::KeepAliveIfHasListenersFor(const nsAString& aType)
-{
+void DOMEventTargetHelper::KeepAliveIfHasListenersFor(const nsAString& aType) {
   mKeepingAliveTypes.mStrings.AppendElement(aType);
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::KeepAliveIfHasListenersFor(nsAtom* aType)
-{
+void DOMEventTargetHelper::KeepAliveIfHasListenersFor(nsAtom* aType) {
   mKeepingAliveTypes.mAtoms.AppendElement(aType);
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(const nsAString& aType)
-{
+void DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(
+    const nsAString& aType) {
   mKeepingAliveTypes.mStrings.RemoveElement(aType);
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(nsAtom* aType)
-{
+void DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(nsAtom* aType) {
   mKeepingAliveTypes.mAtoms.RemoveElement(aType);
   MaybeUpdateKeepAlive();
 }
 
-void
-DOMEventTargetHelper::MaybeUpdateKeepAlive()
-{
+void DOMEventTargetHelper::MaybeUpdateKeepAlive() {
   bool shouldBeKeptAlive = false;
 
   if (!mKeepingAliveTypes.mAtoms.IsEmpty()) {
@@ -437,13 +388,11 @@ DOMEventTargetHelper::MaybeUpdateKeepAlive()
   }
 }
 
-void
-DOMEventTargetHelper::MaybeDontKeepAlive()
-{
+void DOMEventTargetHelper::MaybeDontKeepAlive() {
   if (mIsKeptAlive) {
     mIsKeptAlive = false;
     Release();
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

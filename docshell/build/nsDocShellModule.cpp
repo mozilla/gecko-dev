@@ -41,7 +41,6 @@
 #include "nsDownloadHistory.h"
 #endif
 
-
 // LoadContexts (used for testing)
 #include "LoadContext.h"
 
@@ -50,9 +49,7 @@ using mozilla::dom::ContentHandlerService;
 static bool gInitialized = false;
 
 // The one time initialization for this module
-static nsresult
-Initialize()
-{
+static nsresult Initialize() {
   NS_PRECONDITION(!gInitialized, "docshell module already initialized");
   if (gInitialized) {
     return NS_OK;
@@ -65,9 +62,7 @@ Initialize()
   return NS_OK;
 }
 
-static void
-Shutdown()
-{
+static void Shutdown() {
   nsSHistory::Shutdown();
   nsSHEntryShared::Shutdown();
   gInitialized = false;
@@ -84,8 +79,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsDocLoader, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsOSHelperAppService, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsExternalProtocolHandler)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrefetchService, Init)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsOfflineCacheUpdateService,
-                                         nsOfflineCacheUpdateService::GetInstance)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(
+    nsOfflineCacheUpdateService, nsOfflineCacheUpdateService::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsOfflineCacheUpdate)
 NS_GENERIC_FACTORY_CONSTRUCTOR(PlatformLocalHandlerApp_t)
 #ifdef MOZ_ENABLE_DBUS
@@ -138,7 +133,7 @@ NS_DEFINE_NAMED_CID(NS_LOADCONTEXT_CID);
 NS_DEFINE_NAMED_CID(NS_PRIVATELOADCONTEXT_CID);
 
 const mozilla::Module::CIDEntry kDocShellCIDs[] = {
-  // clang-format off
+    // clang-format off
   { &kNS_DOCSHELL_CID, false, nullptr, nsDocShellConstructor },
   { &kNS_DEFAULTURIFIXUP_CID, false, nullptr, nsDefaultURIFixupConstructor },
   { &kNS_WEBNAVIGATION_INFO_CID, false, nullptr, nsWebNavigationInfoConstructor },
@@ -170,11 +165,11 @@ const mozilla::Module::CIDEntry kDocShellCIDs[] = {
   { &kNS_LOADCONTEXT_CID, false, nullptr, mozilla::CreateTestLoadContext },
   { &kNS_PRIVATELOADCONTEXT_CID, false, nullptr, mozilla::CreatePrivateTestLoadContext },
   { nullptr }
-  // clang-format on
+    // clang-format on
 };
 
 const mozilla::Module::ContractIDEntry kDocShellContracts[] = {
-  // clang-format off
+    // clang-format off
   { "@mozilla.org/docshell;1", &kNS_DOCSHELL_CID },
   { NS_URIFIXUP_CONTRACTID, &kNS_DEFAULTURIFIXUP_CID },
   { NS_WEBNAVIGATION_INFO_CONTRACTID, &kNS_WEBNAVIGATION_INFO_CID },
@@ -234,17 +229,15 @@ const mozilla::Module::ContractIDEntry kDocShellContracts[] = {
   { NS_LOADCONTEXT_CONTRACTID, &kNS_LOADCONTEXT_CID },
   { NS_PRIVATELOADCONTEXT_CONTRACTID, &kNS_PRIVATELOADCONTEXT_CID },
   { nullptr }
-  // clang-format on
+    // clang-format on
 };
 
-static const mozilla::Module kDocShellModule = {
-  mozilla::Module::kVersion,
-  kDocShellCIDs,
-  kDocShellContracts,
-  nullptr,
-  nullptr,
-  Initialize,
-  Shutdown
-};
+static const mozilla::Module kDocShellModule = {mozilla::Module::kVersion,
+                                                kDocShellCIDs,
+                                                kDocShellContracts,
+                                                nullptr,
+                                                nullptr,
+                                                Initialize,
+                                                Shutdown};
 
 NSMODULE_DEFN(docshell_provider) = &kDocShellModule;

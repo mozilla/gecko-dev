@@ -16,48 +16,45 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace layers {
 
-class DXGIYCbCrTextureAllocationHelper : public ITextureClientAllocationHelper
-{
-public:
+class DXGIYCbCrTextureAllocationHelper : public ITextureClientAllocationHelper {
+ public:
   DXGIYCbCrTextureAllocationHelper(const PlanarYCbCrData& aData,
                                    TextureFlags aTextureFlags,
                                    ID3D11Device* aDevice);
 
   bool IsCompatible(TextureClient* aTextureClient) override;
 
-  already_AddRefed<TextureClient> Allocate(KnowsCompositor* aAllocator) override;
+  already_AddRefed<TextureClient> Allocate(
+      KnowsCompositor* aAllocator) override;
 
-protected:
+ protected:
   const PlanarYCbCrData& mData;
   RefPtr<ID3D11Device> mDevice;
 };
 
 D3D11YCbCrImage::D3D11YCbCrImage()
- : Image(NULL, ImageFormat::D3D11_YCBCR_IMAGE)
-{
-}
+    : Image(NULL, ImageFormat::D3D11_YCBCR_IMAGE) {}
 
-D3D11YCbCrImage::~D3D11YCbCrImage() { }
+D3D11YCbCrImage::~D3D11YCbCrImage() {}
 
-bool
-D3D11YCbCrImage::SetData(KnowsCompositor* aAllocator,
-                         ImageContainer* aContainer,
-                         const PlanarYCbCrData& aData)
-{
-  mPictureRect = IntRect(
-    aData.mPicX, aData.mPicY, aData.mPicSize.width, aData.mPicSize.height);
+bool D3D11YCbCrImage::SetData(KnowsCompositor* aAllocator,
+                              ImageContainer* aContainer,
+                              const PlanarYCbCrData& aData) {
+  mPictureRect = IntRect(aData.mPicX, aData.mPicY, aData.mPicSize.width,
+                         aData.mPicSize.height);
   mYSize = aData.mYSize;
   mCbCrSize = aData.mCbCrSize;
   mColorSpace = aData.mYUVColorSpace;
 
   D3D11YCbCrRecycleAllocator* allocator =
-    aContainer->GetD3D11YCbCrRecycleAllocator(aAllocator);
+      aContainer->GetD3D11YCbCrRecycleAllocator(aAllocator);
   if (!allocator) {
     return false;
   }
 
   {
-    DXGIYCbCrTextureAllocationHelper helper(aData, TextureFlags::DEFAULT, allocator->GetDevice());
+    DXGIYCbCrTextureAllocationHelper helper(aData, TextureFlags::DEFAULT,
+                                            allocator->GetDevice());
     mTextureClient = allocator->CreateOrRecycle(helper);
   }
 
@@ -66,7 +63,7 @@ D3D11YCbCrImage::SetData(KnowsCompositor* aAllocator,
   }
 
   DXGIYCbCrTextureData* data =
-    mTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
+      mTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
 
   ID3D11Texture2D* textureY = data->GetD3D11Texture(0);
   ID3D11Texture2D* textureCb = data->GetD3D11Texture(1);
@@ -74,7 +71,7 @@ D3D11YCbCrImage::SetData(KnowsCompositor* aAllocator,
 
   RefPtr<ID3D10Multithread> mt;
   HRESULT hr = allocator->GetDevice()->QueryInterface(
-    (ID3D10Multithread**)getter_AddRefs(mt));
+      (ID3D10Multithread**)getter_AddRefs(mt));
 
   if (FAILED(hr) || !mt) {
     gfxCriticalError() << "Multithread safety interface not supported. " << hr;
@@ -99,68 +96,46 @@ D3D11YCbCrImage::SetData(KnowsCompositor* aAllocator,
   AutoLockD3D11Texture lockCb(textureCb);
   AutoLockD3D11Texture lockCr(textureCr);
 
-  ctx->UpdateSubresource(textureY,
-                         0,
-                         nullptr,
-                         aData.mYChannel,
-                         aData.mYStride,
+  ctx->UpdateSubresource(textureY, 0, nullptr, aData.mYChannel, aData.mYStride,
                          aData.mYStride * aData.mYSize.height);
-  ctx->UpdateSubresource(textureCb,
-                         0,
-                         nullptr,
-                         aData.mCbChannel,
+  ctx->UpdateSubresource(textureCb, 0, nullptr, aData.mCbChannel,
                          aData.mCbCrStride,
                          aData.mCbCrStride * aData.mCbCrSize.height);
-  ctx->UpdateSubresource(textureCr,
-                         0,
-                         nullptr,
-                         aData.mCrChannel,
+  ctx->UpdateSubresource(textureCr, 0, nullptr, aData.mCrChannel,
                          aData.mCbCrStride,
                          aData.mCbCrStride * aData.mCbCrSize.height);
-
 
   return true;
 }
 
-IntSize
-D3D11YCbCrImage::GetSize() const
-{
-  return mPictureRect.Size();
-}
+IntSize D3D11YCbCrImage::GetSize() const { return mPictureRect.Size(); }
 
-TextureClient*
-D3D11YCbCrImage::GetTextureClient(KnowsCompositor* aForwarder)
-{
+TextureClient* D3D11YCbCrImage::GetTextureClient(KnowsCompositor* aForwarder) {
   return mTextureClient;
 }
 
-const DXGIYCbCrTextureData*
-D3D11YCbCrImage::GetData() const
-{
-  if (!mTextureClient)
-    return nullptr;
+const DXGIYCbCrTextureData* D3D11YCbCrImage::GetData() const {
+  if (!mTextureClient) return nullptr;
 
   return mTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
 }
 
-already_AddRefed<SourceSurface>
-D3D11YCbCrImage::GetAsSourceSurface()
-{
+already_AddRefed<SourceSurface> D3D11YCbCrImage::GetAsSourceSurface() {
   if (!mTextureClient) {
     gfxWarning()
-      << "GetAsSourceSurface() called on uninitialized D3D11YCbCrImage.";
+        << "GetAsSourceSurface() called on uninitialized D3D11YCbCrImage.";
     return nullptr;
   }
 
   gfx::IntSize size(mPictureRect.Size());
   gfx::SurfaceFormat format =
-    gfx::ImageFormatToSurfaceFormat(gfxVars::OffscreenFormat());
+      gfx::ImageFormatToSurfaceFormat(gfxVars::OffscreenFormat());
   HRESULT hr;
 
   PlanarYCbCrData data;
 
   DXGIYCbCrTextureData* dxgiData =
-    mTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
+      mTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
 
   if (!dxgiData) {
     gfxCriticalError() << "Failed to get texture client internal data.";
@@ -287,8 +262,8 @@ D3D11YCbCrImage::GetAsSourceSurface()
     return nullptr;
   }
 
-  gfx::ConvertYCbCrToRGB(
-    data, format, size, mapping.GetData(), mapping.GetStride());
+  gfx::ConvertYCbCrToRGB(data, format, size, mapping.GetData(),
+                         mapping.GetStride());
 
   ctx->Unmap(softTexY, 0);
   ctx->Unmap(softTexCb, 0);
@@ -297,27 +272,22 @@ D3D11YCbCrImage::GetAsSourceSurface()
   return surface.forget();
 }
 
-DXGIYCbCrTextureAllocationHelper::DXGIYCbCrTextureAllocationHelper(const PlanarYCbCrData& aData,
-                                                                   TextureFlags aTextureFlags,
-                                                                   ID3D11Device* aDevice)
-  : ITextureClientAllocationHelper(gfx::SurfaceFormat::YUV,
-                                   aData.mYSize,
-                                   BackendSelector::Content,
-                                   aTextureFlags,
-                                   ALLOC_DEFAULT)
-  , mData(aData)
-  , mDevice(aDevice)
-{
-}
+DXGIYCbCrTextureAllocationHelper::DXGIYCbCrTextureAllocationHelper(
+    const PlanarYCbCrData& aData, TextureFlags aTextureFlags,
+    ID3D11Device* aDevice)
+    : ITextureClientAllocationHelper(gfx::SurfaceFormat::YUV, aData.mYSize,
+                                     BackendSelector::Content, aTextureFlags,
+                                     ALLOC_DEFAULT),
+      mData(aData),
+      mDevice(aDevice) {}
 
-bool
-DXGIYCbCrTextureAllocationHelper::IsCompatible(TextureClient* aTextureClient)
-{
+bool DXGIYCbCrTextureAllocationHelper::IsCompatible(
+    TextureClient* aTextureClient) {
   MOZ_ASSERT(aTextureClient->GetFormat() == gfx::SurfaceFormat::YUV);
 
-  DXGIYCbCrTextureData* dxgiData = aTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
-  if (!dxgiData ||
-      aTextureClient->GetSize() != mData.mYSize ||
+  DXGIYCbCrTextureData* dxgiData =
+      aTextureClient->GetInternalData()->AsDXGIYCbCrTextureData();
+  if (!dxgiData || aTextureClient->GetSize() != mData.mYSize ||
       dxgiData->GetYSize() != mData.mYSize ||
       dxgiData->GetCbCrSize() != mData.mCbCrSize ||
       dxgiData->GetYUVColorSpace() != mData.mYUVColorSpace) {
@@ -326,16 +296,14 @@ DXGIYCbCrTextureAllocationHelper::IsCompatible(TextureClient* aTextureClient)
   return true;
 }
 
-already_AddRefed<TextureClient>
-DXGIYCbCrTextureAllocationHelper::Allocate(KnowsCompositor* aAllocator)
-{
-  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM, mData.mYSize.width, mData.mYSize.height,
-                                1, 1);
+already_AddRefed<TextureClient> DXGIYCbCrTextureAllocationHelper::Allocate(
+    KnowsCompositor* aAllocator) {
+  CD3D11_TEXTURE2D_DESC newDesc(DXGI_FORMAT_R8_UNORM, mData.mYSize.width,
+                                mData.mYSize.height, 1, 1);
   newDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 
   RefPtr<ID3D10Multithread> mt;
-  HRESULT hr = mDevice->QueryInterface(
-    (ID3D10Multithread**)getter_AddRefs(mt));
+  HRESULT hr = mDevice->QueryInterface((ID3D10Multithread**)getter_AddRefs(mt));
 
   if (FAILED(hr) || !mt) {
     gfxCriticalError() << "Multithread safety interface not supported. " << hr;
@@ -365,28 +333,18 @@ DXGIYCbCrTextureAllocationHelper::Allocate(KnowsCompositor* aAllocator)
   NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   return TextureClient::CreateWithData(
-    DXGIYCbCrTextureData::Create(
-      textureY,
-      textureCb,
-      textureCr,
-      mData.mYSize,
-      mData.mYSize,
-      mData.mCbCrSize,
-      mData.mYUVColorSpace),
-    mTextureFlags,
-    aAllocator->GetTextureForwarder());
+      DXGIYCbCrTextureData::Create(textureY, textureCb, textureCr, mData.mYSize,
+                                   mData.mYSize, mData.mCbCrSize,
+                                   mData.mYUVColorSpace),
+      mTextureFlags, aAllocator->GetTextureForwarder());
 }
 
-already_AddRefed<TextureClient>
-D3D11YCbCrRecycleAllocator::Allocate(SurfaceFormat aFormat,
-                                     IntSize aSize,
-                                     BackendSelector aSelector,
-                                     TextureFlags aTextureFlags,
-                                     TextureAllocationFlags aAllocFlags)
-{
+already_AddRefed<TextureClient> D3D11YCbCrRecycleAllocator::Allocate(
+    SurfaceFormat aFormat, IntSize aSize, BackendSelector aSelector,
+    TextureFlags aTextureFlags, TextureAllocationFlags aAllocFlags) {
   MOZ_ASSERT_UNREACHABLE("unexpected to be called");
   return nullptr;
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

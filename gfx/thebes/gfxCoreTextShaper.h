@@ -13,63 +13,56 @@
 class gfxMacFont;
 
 class gfxCoreTextShaper : public gfxFontShaper {
-public:
-    explicit gfxCoreTextShaper(gfxMacFont *aFont);
+ public:
+  explicit gfxCoreTextShaper(gfxMacFont *aFont);
 
-    virtual ~gfxCoreTextShaper();
+  virtual ~gfxCoreTextShaper();
 
-    bool ShapeText(DrawTarget      *aDrawTarget,
-                   const char16_t *aText,
-                   uint32_t         aOffset,
-                   uint32_t         aLength,
-                   Script           aScript,
-                   bool             aVertical,
-                   RoundingFlags    aRounding,
-                   gfxShapedText   *aShapedText) override;
+  bool ShapeText(DrawTarget *aDrawTarget, const char16_t *aText,
+                 uint32_t aOffset, uint32_t aLength, Script aScript,
+                 bool aVertical, RoundingFlags aRounding,
+                 gfxShapedText *aShapedText) override;
 
-    // clean up static objects that may have been cached
-    static void Shutdown();
+  // clean up static objects that may have been cached
+  static void Shutdown();
 
-protected:
-    CTFontRef mCTFont;
+ protected:
+  CTFontRef mCTFont;
 
-    // attributes for shaping text with LTR or RTL directionality
-    CFDictionaryRef mAttributesDictLTR;
-    CFDictionaryRef mAttributesDictRTL;
+  // attributes for shaping text with LTR or RTL directionality
+  CFDictionaryRef mAttributesDictLTR;
+  CFDictionaryRef mAttributesDictRTL;
 
-    nsresult SetGlyphsFromRun(gfxShapedText *aShapedText,
-                              uint32_t       aOffset,
-                              uint32_t       aLength,
-                              CTRunRef       aCTRun);
+  nsresult SetGlyphsFromRun(gfxShapedText *aShapedText, uint32_t aOffset,
+                            uint32_t aLength, CTRunRef aCTRun);
 
-    CTFontRef CreateCTFontWithFeatures(CGFloat aSize,
-                                       CTFontDescriptorRef aDescriptor);
+  CTFontRef CreateCTFontWithFeatures(CGFloat aSize,
+                                     CTFontDescriptorRef aDescriptor);
 
-    CFDictionaryRef CreateAttrDict(bool aRightToLeft);
-    CFDictionaryRef CreateAttrDictWithoutDirection();
+  CFDictionaryRef CreateAttrDict(bool aRightToLeft);
+  CFDictionaryRef CreateAttrDictWithoutDirection();
 
-    static CTFontDescriptorRef
-    CreateFontFeaturesDescriptor(const std::pair<SInt16,SInt16> aFeatures[],
-                                 size_t aCount);
+  static CTFontDescriptorRef CreateFontFeaturesDescriptor(
+      const std::pair<SInt16, SInt16> aFeatures[], size_t aCount);
 
-    static CTFontDescriptorRef GetDefaultFeaturesDescriptor();
-    static CTFontDescriptorRef GetSmallCapsDescriptor();
-    static CTFontDescriptorRef GetDisableLigaturesDescriptor();
-    static CTFontDescriptorRef GetSmallCapDisableLigDescriptor();
-    static CTFontDescriptorRef GetIndicFeaturesDescriptor();
-    static CTFontDescriptorRef GetIndicDisableLigaturesDescriptor();
+  static CTFontDescriptorRef GetDefaultFeaturesDescriptor();
+  static CTFontDescriptorRef GetSmallCapsDescriptor();
+  static CTFontDescriptorRef GetDisableLigaturesDescriptor();
+  static CTFontDescriptorRef GetSmallCapDisableLigDescriptor();
+  static CTFontDescriptorRef GetIndicFeaturesDescriptor();
+  static CTFontDescriptorRef GetIndicDisableLigaturesDescriptor();
 
-    // cached font descriptor, created the first time it's needed
-    static CTFontDescriptorRef    sDefaultFeaturesDescriptor;
-    static CTFontDescriptorRef    sSmallCapsDescriptor;
+  // cached font descriptor, created the first time it's needed
+  static CTFontDescriptorRef sDefaultFeaturesDescriptor;
+  static CTFontDescriptorRef sSmallCapsDescriptor;
 
-    // cached descriptor for adding disable-ligatures setting to a font
-    static CTFontDescriptorRef    sDisableLigaturesDescriptor;
-    static CTFontDescriptorRef    sSmallCapDisableLigDescriptor;
+  // cached descriptor for adding disable-ligatures setting to a font
+  static CTFontDescriptorRef sDisableLigaturesDescriptor;
+  static CTFontDescriptorRef sSmallCapDisableLigDescriptor;
 
-    // feature descriptors for buggy Indic AAT font workaround
-    static CTFontDescriptorRef    sIndicFeaturesDescriptor;
-    static CTFontDescriptorRef    sIndicDisableLigaturesDescriptor;
+  // feature descriptors for buggy Indic AAT font workaround
+  static CTFontDescriptorRef sIndicFeaturesDescriptor;
+  static CTFontDescriptorRef sIndicDisableLigaturesDescriptor;
 };
 
 #endif /* GFX_CORETEXTSHAPER_H */

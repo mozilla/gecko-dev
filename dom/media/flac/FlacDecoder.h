@@ -11,15 +11,14 @@ namespace mozilla {
 
 class MediaContainerType;
 
-class FlacDecoder
-{
-public:
+class FlacDecoder {
+ public:
   // Returns true if the Flac backend is pref'ed on, and we're running on a
   // platform that is likely to have decoders for the format.
   static bool IsEnabled();
   static bool IsSupportedType(const MediaContainerType& aContainerType);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // !FLAC_DECODER_H_
+#endif  // !FLAC_DECODER_H_

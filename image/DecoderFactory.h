@@ -29,20 +29,10 @@ class SourceBufferIterator;
  * The type of decoder; this is usually determined from a MIME type using
  * DecoderFactory::GetDecoderType().
  */
-enum class DecoderType
-{
-  PNG,
-  GIF,
-  JPEG,
-  BMP,
-  ICO,
-  ICON,
-  UNKNOWN
-};
+enum class DecoderType { PNG, GIF, JPEG, BMP, ICO, ICON, UNKNOWN };
 
-class DecoderFactory
-{
-public:
+class DecoderFactory {
+ public:
   /// @return the type of decoder which is appropriate for @aMimeType.
   static DecoderType GetDecoderType(const char* aMimeType);
 
@@ -70,15 +60,13 @@ public:
    *           for this image;
    *         Else some other unrecoverable error occurred.
    */
-  static nsresult
-  CreateDecoder(DecoderType aType,
-                NotNull<RasterImage*> aImage,
-                NotNull<SourceBuffer*> aSourceBuffer,
-                const gfx::IntSize& aIntrinsicSize,
-                const gfx::IntSize& aOutputSize,
-                DecoderFlags aDecoderFlags,
-                SurfaceFlags aSurfaceFlags,
-                IDecodingTask** aOutTask);
+  static nsresult CreateDecoder(DecoderType aType, NotNull<RasterImage*> aImage,
+                                NotNull<SourceBuffer*> aSourceBuffer,
+                                const gfx::IntSize& aIntrinsicSize,
+                                const gfx::IntSize& aOutputSize,
+                                DecoderFlags aDecoderFlags,
+                                SurfaceFlags aSurfaceFlags,
+                                IDecodingTask** aOutTask);
 
   /**
    * Creates and initializes a decoder for animated images of type @aType.
@@ -101,15 +89,11 @@ public:
    *           for this image;
    *         Else some other unrecoverable error occurred.
    */
-  static nsresult
-  CreateAnimationDecoder(DecoderType aType,
-                         NotNull<RasterImage*> aImage,
-                         NotNull<SourceBuffer*> aSourceBuffer,
-                         const gfx::IntSize& aIntrinsicSize,
-                         DecoderFlags aDecoderFlags,
-                         SurfaceFlags aSurfaceFlags,
-                         size_t aCurrentFrame,
-                         IDecodingTask** aOutTask);
+  static nsresult CreateAnimationDecoder(
+      DecoderType aType, NotNull<RasterImage*> aImage,
+      NotNull<SourceBuffer*> aSourceBuffer, const gfx::IntSize& aIntrinsicSize,
+      DecoderFlags aDecoderFlags, SurfaceFlags aSurfaceFlags,
+      size_t aCurrentFrame, IDecodingTask** aOutTask);
 
   /**
    * Creates and initializes a decoder for animated images, cloned from the
@@ -117,8 +101,7 @@ public:
    *
    * @param aDecoder Decoder to clone.
    */
-  static already_AddRefed<Decoder>
-  CloneAnimationDecoder(Decoder* aDecoder);
+  static already_AddRefed<Decoder> CloneAnimationDecoder(Decoder* aDecoder);
 
   /**
    * Creates and initializes a metadata decoder of type @aType. This decoder
@@ -132,10 +115,9 @@ public:
    * @param aSourceBuffer The SourceBuffer which the decoder will read its data
    *                      from.
    */
-  static already_AddRefed<IDecodingTask>
-  CreateMetadataDecoder(DecoderType aType,
-                        NotNull<RasterImage*> aImage,
-                        NotNull<SourceBuffer*> aSourceBuffer);
+  static already_AddRefed<IDecodingTask> CreateMetadataDecoder(
+      DecoderType aType, NotNull<RasterImage*> aImage,
+      NotNull<SourceBuffer*> aSourceBuffer);
 
   /**
    * Creates and initializes a decoder for an ICO resource, which may be either
@@ -158,13 +140,11 @@ public:
    *                    begins in the BMP resource. Must be Some() if and only
    *                    if @aType is BMP.
    */
-  static already_AddRefed<Decoder>
-  CreateDecoderForICOResource(DecoderType aType,
-                              SourceBufferIterator&& aIterator,
-                              NotNull<nsICODecoder*> aICODecoder,
-                              bool aIsMetadataDecode,
-                              const Maybe<gfx::IntSize>& aExpectedSize,
-                              const Maybe<uint32_t>& aDataOffset = Nothing());
+  static already_AddRefed<Decoder> CreateDecoderForICOResource(
+      DecoderType aType, SourceBufferIterator&& aIterator,
+      NotNull<nsICODecoder*> aICODecoder, bool aIsMetadataDecode,
+      const Maybe<gfx::IntSize>& aExpectedSize,
+      const Maybe<uint32_t>& aDataOffset = Nothing());
 
   /**
    * Creates and initializes an anonymous decoder (one which isn't associated
@@ -180,11 +160,9 @@ public:
    * @param aSurfaceFlags Flags specifying the type of output this decoder
    *                      should produce.
    */
-  static already_AddRefed<Decoder>
-  CreateAnonymousDecoder(DecoderType aType,
-                         NotNull<SourceBuffer*> aSourceBuffer,
-                         const Maybe<gfx::IntSize>& aOutputSize,
-                         SurfaceFlags aSurfaceFlags);
+  static already_AddRefed<Decoder> CreateAnonymousDecoder(
+      DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer,
+      const Maybe<gfx::IntSize>& aOutputSize, SurfaceFlags aSurfaceFlags);
 
   /**
    * Creates and initializes an anonymous metadata decoder (one which isn't
@@ -196,11 +174,10 @@ public:
    * @param aSourceBuffer The SourceBuffer which the decoder will read its data
    *                      from.
    */
-  static already_AddRefed<Decoder>
-  CreateAnonymousMetadataDecoder(DecoderType aType,
-                                 NotNull<SourceBuffer*> aSourceBuffer);
+  static already_AddRefed<Decoder> CreateAnonymousMetadataDecoder(
+      DecoderType aType, NotNull<SourceBuffer*> aSourceBuffer);
 
-private:
+ private:
   virtual ~DecoderFactory() = 0;
 
   /**
@@ -211,7 +188,7 @@ private:
                                               bool aIsRedecode);
 };
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla
 
-#endif // mozilla_image_DecoderFactory_h
+#endif  // mozilla_image_DecoderFactory_h

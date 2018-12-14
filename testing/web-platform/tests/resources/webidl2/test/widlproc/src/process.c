@@ -36,50 +36,46 @@ static const char ntnames[] = { NTNAMES };
  * This also escapes double quote mark so it can be used for an
  * attribute value. It also turns a tab into spaces.
  */
-void
-printtext(const char *s, unsigned int len, int escamp)
-{
-    const char *p = s, *end = s + len;
-    unsigned int count = 0;
-    while (p != end) {
-        int ch = *p;
-        char buf[9];
-        const char *seq = 0;
-        count++;
-        switch (ch) {
-        case '<':
-            seq = "&lt;";
-            break;
-        case '&':
-            seq = escamp ? "&amp;" : "&";
-            break;
-        case '"':
-            seq = "&quot;";
-            break;
-        case '\n':
-            p++;
-            count = 0;
-            continue;
-        case '\t':
-            seq = "        " + ((count - 1) & 7);
-            count = 0;
-            break;
-        default:
-            if ((unsigned char)ch >= 0x20) {
-                p++;
-                continue;
-            }
-            snprintf(buf, 9, "&#%i;", ch);
-            seq = buf;
-            break;
+void printtext(const char *s, unsigned int len, int escamp) {
+  const char *p = s, *end = s + len;
+  unsigned int count = 0;
+  while (p != end) {
+    int ch = *p;
+    char buf[9];
+    const char *seq = 0;
+    count++;
+    switch (ch) {
+      case '<':
+        seq = "&lt;";
+        break;
+      case '&':
+        seq = escamp ? "&amp;" : "&";
+        break;
+      case '"':
+        seq = "&quot;";
+        break;
+      case '\n':
+        p++;
+        count = 0;
+        continue;
+      case '\t':
+        seq = "        " + ((count - 1) & 7);
+        count = 0;
+        break;
+      default:
+        if ((unsigned char)ch >= 0x20) {
+          p++;
+          continue;
         }
-        if (p - s != fwrite(s, 1, p - s, stdout))
-            errorexit("write error");
-        fputs(seq, stdout);
-        s = ++p;
+        snprintf(buf, 9, "&#%i;", ch);
+        seq = buf;
+        break;
     }
-    if (p - s != fwrite(s, 1, p - s, stdout))
-        errorexit("write error");
+    if (p - s != fwrite(s, 1, p - s, stdout)) errorexit("write error");
+    fputs(seq, stdout);
+    s = ++p;
+  }
+  if (p - s != fwrite(s, 1, p - s, stdout)) errorexit("write error");
 }
 
 #if 0
@@ -304,16 +300,12 @@ outputchildren(struct node *node, struct node *identifier, unsigned int indent)
  *
  * Enter:   name = filename
  */
-void
-processfiles(const char *const *names, int dtdref)
-{
-    struct node *root;
-    readinput(names);
-    root = parse();
-    processcomments(root);
-    printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    if(dtdref)
-        printf("<!DOCTYPE Definitions SYSTEM \"widlprocxml.dtd\">\n");
-    outputnode(root, 0);
+void processfiles(const char *const *names, int dtdref) {
+  struct node *root;
+  readinput(names);
+  root = parse();
+  processcomments(root);
+  printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+  if (dtdref) printf("<!DOCTYPE Definitions SYSTEM \"widlprocxml.dtd\">\n");
+  outputnode(root, 0);
 }
-

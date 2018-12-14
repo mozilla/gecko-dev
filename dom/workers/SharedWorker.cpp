@@ -25,41 +25,34 @@
 #undef PostMessage
 #endif
 
+using mozilla::dom::MessagePort;
 using mozilla::dom::Optional;
 using mozilla::dom::Sequence;
-using mozilla::dom::MessagePort;
 using namespace mozilla;
 using namespace mozilla::dom;
 
 SharedWorker::SharedWorker(nsPIDOMWindowInner* aWindow,
                            WorkerPrivate* aWorkerPrivate,
                            MessagePort* aMessagePort)
-  : DOMEventTargetHelper(aWindow)
-  , mWorkerPrivate(aWorkerPrivate)
-  , mMessagePort(aMessagePort)
-  , mFrozen(false)
-{
+    : DOMEventTargetHelper(aWindow),
+      mWorkerPrivate(aWorkerPrivate),
+      mMessagePort(aMessagePort),
+      mFrozen(false) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aWorkerPrivate);
   MOZ_ASSERT(aMessagePort);
 }
 
-SharedWorker::~SharedWorker()
-{
-  AssertIsOnMainThread();
-}
+SharedWorker::~SharedWorker() { AssertIsOnMainThread(); }
 
 // static
-already_AddRefed<SharedWorker>
-SharedWorker::Constructor(const GlobalObject& aGlobal,
-                          const nsAString& aScriptURL,
-                          const StringOrWorkerOptions& aOptions,
-                          ErrorResult& aRv)
-{
+already_AddRefed<SharedWorker> SharedWorker::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aScriptURL,
+    const StringOrWorkerOptions& aOptions, ErrorResult& aRv) {
   AssertIsOnMainThread();
 
   workerinternals::RuntimeService* rts =
-    workerinternals::RuntimeService::GetOrCreateService();
+      workerinternals::RuntimeService::GetOrCreateService();
   if (!rts) {
     aRv = NS_ERROR_NOT_AVAILABLE;
     return nullptr;
@@ -84,25 +77,19 @@ SharedWorker::Constructor(const GlobalObject& aGlobal,
   return sharedWorker.forget();
 }
 
-MessagePort*
-SharedWorker::Port()
-{
+MessagePort* SharedWorker::Port() {
   AssertIsOnMainThread();
   return mMessagePort;
 }
 
-void
-SharedWorker::Freeze()
-{
+void SharedWorker::Freeze() {
   AssertIsOnMainThread();
   MOZ_ASSERT(!IsFrozen());
 
   mFrozen = true;
 }
 
-void
-SharedWorker::Thaw()
-{
+void SharedWorker::Thaw() {
   AssertIsOnMainThread();
   MOZ_ASSERT(IsFrozen());
 
@@ -129,9 +116,7 @@ SharedWorker::Thaw()
   }
 }
 
-void
-SharedWorker::QueueEvent(nsIDOMEvent* aEvent)
-{
+void SharedWorker::QueueEvent(nsIDOMEvent* aEvent) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aEvent);
   MOZ_ASSERT(IsFrozen());
@@ -139,9 +124,7 @@ SharedWorker::QueueEvent(nsIDOMEvent* aEvent)
   mFrozenEvents.AppendElement(aEvent);
 }
 
-void
-SharedWorker::Close()
-{
+void SharedWorker::Close() {
   AssertIsOnMainThread();
 
   if (mMessagePort) {
@@ -149,11 +132,9 @@ SharedWorker::Close()
   }
 }
 
-void
-SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                          const Sequence<JSObject*>& aTransferable,
-                          ErrorResult& aRv)
-{
+void SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+                               const Sequence<JSObject*>& aTransferable,
+                               ErrorResult& aRv) {
   AssertIsOnMainThread();
   MOZ_ASSERT(mWorkerPrivate);
   MOZ_ASSERT(mMessagePort);
@@ -181,17 +162,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SharedWorker,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrozenEvents)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-JSObject*
-SharedWorker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SharedWorker::WrapObject(JSContext* aCx,
+                                   JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnMainThread();
 
   return SharedWorkerBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsresult
-SharedWorker::GetEventTargetParent(EventChainPreVisitor& aVisitor)
-{
+nsresult SharedWorker::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   AssertIsOnMainThread();
 
   if (IsFrozen()) {

@@ -11,32 +11,28 @@
 
 namespace js {
 
-class WeakSetObject : public WeakCollectionObject
-{
-  public:
-    static JSObject* initClass(JSContext* cx, HandleObject obj);
-    static const Class class_;
+class WeakSetObject : public WeakCollectionObject {
+ public:
+  static JSObject* initClass(JSContext* cx, HandleObject obj);
+  static const Class class_;
 
-  private:
-    static const JSPropertySpec properties[];
-    static const JSFunctionSpec methods[];
+ private:
+  static const JSPropertySpec properties[];
+  static const JSFunctionSpec methods[];
 
-    static WeakSetObject* create(JSContext* cx, HandleObject proto = nullptr);
-    static MOZ_MUST_USE bool construct(JSContext* cx, unsigned argc, Value* vp);
+  static WeakSetObject* create(JSContext* cx, HandleObject proto = nullptr);
+  static MOZ_MUST_USE bool construct(JSContext* cx, unsigned argc, Value* vp);
 
-    static bool isBuiltinAdd(HandleValue add);
+  static bool isBuiltinAdd(HandleValue add);
 };
 
-extern JSObject*
-InitWeakSetClass(JSContext* cx, HandleObject obj);
+extern JSObject* InitWeakSetClass(JSContext* cx, HandleObject obj);
 
-} // namespace js
+}  // namespace js
 
-template<>
-inline bool
-JSObject::is<js::WeakCollectionObject>() const
-{
-    return is<js::WeakMapObject>() || is<js::WeakSetObject>();
+template <>
+inline bool JSObject::is<js::WeakCollectionObject>() const {
+  return is<js::WeakMapObject>() || is<js::WeakSetObject>();
 }
 
 #endif /* builtin_WeakSetObject_h */

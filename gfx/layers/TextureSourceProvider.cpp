@@ -10,29 +10,21 @@
 namespace mozilla {
 namespace layers {
 
-TextureSourceProvider::~TextureSourceProvider()
-{
-  ReadUnlockTextures();
-}
+TextureSourceProvider::~TextureSourceProvider() { ReadUnlockTextures(); }
 
-void
-TextureSourceProvider::ReadUnlockTextures()
-{
+void TextureSourceProvider::ReadUnlockTextures() {
   for (auto& texture : mUnlockAfterComposition) {
     texture->ReadUnlock();
   }
   mUnlockAfterComposition.Clear();
 }
 
-void
-TextureSourceProvider::UnlockAfterComposition(TextureHost* aTexture)
-{
+void TextureSourceProvider::UnlockAfterComposition(TextureHost* aTexture) {
   mUnlockAfterComposition.AppendElement(aTexture);
 }
 
-bool
-TextureSourceProvider::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
-{
+bool TextureSourceProvider::NotifyNotUsedAfterComposition(
+    TextureHost* aTextureHost) {
   mNotifyNotUsedAfterComposition.AppendElement(aTextureHost);
 
   // If Compositor holds many TextureHosts without compositing,
@@ -41,7 +33,9 @@ TextureSourceProvider::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
   const double thresholdSec = 2.0f;
   if (mNotifyNotUsedAfterComposition.Length() > thresholdCount) {
     TimeStamp lastCompositionEndTime = GetLastCompositionEndTime();
-    TimeDuration duration = lastCompositionEndTime ? TimeStamp::Now() - lastCompositionEndTime : TimeDuration();
+    TimeDuration duration = lastCompositionEndTime
+                                ? TimeStamp::Now() - lastCompositionEndTime
+                                : TimeDuration();
     // Check if we could flush
     if (duration.ToSeconds() > thresholdSec) {
       FlushPendingNotifyNotUsed();
@@ -50,21 +44,17 @@ TextureSourceProvider::NotifyNotUsedAfterComposition(TextureHost* aTextureHost)
   return true;
 }
 
-void
-TextureSourceProvider::FlushPendingNotifyNotUsed()
-{
+void TextureSourceProvider::FlushPendingNotifyNotUsed() {
   for (auto& textureHost : mNotifyNotUsedAfterComposition) {
     textureHost->CallNotifyNotUsed();
   }
   mNotifyNotUsedAfterComposition.Clear();
 }
 
-void
-TextureSourceProvider::Destroy()
-{
+void TextureSourceProvider::Destroy() {
   ReadUnlockTextures();
   FlushPendingNotifyNotUsed();
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

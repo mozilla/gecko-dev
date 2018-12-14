@@ -15,7 +15,8 @@
 #include "SignedCertificateTimestamp.h"
 #include "SignedTreeHead.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 // Note: unless specified otherwise, all test data is taken from
 // Certificate Transparency test data repository at
@@ -122,11 +123,9 @@ void ExtractEmbeddedSCTList(const Buffer& cert, Buffer& result);
 // an OCSP response as an extension with the OID 1.3.6.1.4.1.11129.2.4.5.
 // The OCSP response is verified, and the verification must succeed for the
 // extension to be extracted.
-void ExtractSCTListFromOCSPResponse(pkix::Input cert,
-                                    pkix::Input issuerSPKI,
+void ExtractSCTListFromOCSPResponse(pkix::Input cert, pkix::Input issuerSPKI,
                                     pkix::Input encodedResponse,
-                                    pkix::Time time,
-                                    Buffer& result);
+                                    pkix::Time time, Buffer& result);
 
 // We need this in tests code since mozilla::Vector only allows move assignment.
 Buffer cloneBuffer(const Buffer& buffer);
@@ -137,14 +136,14 @@ pkix::Input InputForBuffer(const Buffer& buffer);
 // Returns Input for the data stored in the item, failing assertion on error.
 pkix::Input InputForSECItem(const SECItem& item);
 
-} } // namespace mozilla::ct
-
+}  // namespace ct
+}  // namespace mozilla
 
 namespace mozilla {
 
 // GTest needs this to be in Buffer's namespace (i.e. in mozilla::Vector's).
 std::ostream& operator<<(std::ostream& stream, const ct::Buffer& buf);
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif  // CTTestUtils_h

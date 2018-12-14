@@ -16,10 +16,10 @@ namespace {
 const DWORD kVCThreadNameException = 0x406D1388;
 
 typedef struct tagTHREADNAME_INFO {
-  DWORD dwType;  // Must be 0x1000.
-  LPCSTR szName;  // Pointer to name (in user addr space).
+  DWORD dwType;      // Must be 0x1000.
+  LPCSTR szName;     // Pointer to name (in user addr space).
   DWORD dwThreadID;  // Thread ID (-1=caller thread).
-  DWORD dwFlags;  // Reserved for future use, must be zero.
+  DWORD dwFlags;     // Reserved for future use, must be zero.
 } THREADNAME_INFO;
 
 DWORD __stdcall ThreadFunc(void* closure) {
@@ -32,27 +32,20 @@ DWORD __stdcall ThreadFunc(void* closure) {
 }  // namespace
 
 // static
-PlatformThreadId PlatformThread::CurrentId() {
-  return GetCurrentThreadId();
-}
+PlatformThreadId PlatformThread::CurrentId() { return GetCurrentThreadId(); }
 
 // static
-void PlatformThread::YieldCurrentThread() {
-  ::Sleep(0);
-}
+void PlatformThread::YieldCurrentThread() { ::Sleep(0); }
 
 // static
-void PlatformThread::Sleep(int duration_ms) {
-  ::Sleep(duration_ms);
-}
+void PlatformThread::Sleep(int duration_ms) { ::Sleep(duration_ms); }
 
 // static
 void PlatformThread::SetName(const char* name) {
 #ifdef HAVE_SEH_EXCEPTIONS
   // The debugger needs to be around to catch the name in the exception.  If
   // there isn't a debugger, we are just needlessly throwing an exception.
-  if (!::IsDebuggerPresent())
-    return;
+  if (!::IsDebuggerPresent()) return;
 
   THREADNAME_INFO info;
   info.dwType = 0x1000;
@@ -61,10 +54,10 @@ void PlatformThread::SetName(const char* name) {
   info.dwFlags = 0;
 
   MOZ_SEH_TRY {
-    RaiseException(kVCThreadNameException, 0, sizeof(info)/sizeof(DWORD),
+    RaiseException(kVCThreadNameException, 0, sizeof(info) / sizeof(DWORD),
                    reinterpret_cast<DWORD_PTR*>(&info));
-  } MOZ_SEH_EXCEPT(EXCEPTION_CONTINUE_EXECUTION) {
   }
+  MOZ_SEH_EXCEPT(EXCEPTION_CONTINUE_EXECUTION) {}
 #endif
 }
 
@@ -83,8 +76,8 @@ bool PlatformThread::Create(size_t stack_size, Delegate* delegate,
   // have to work running on CreateThread() threads anyway, since we run code
   // on the Windows thread pool, etc.  For some background on the difference:
   //   http://www.microsoft.com/msj/1099/win32/win321099.aspx
-  *thread_handle = CreateThread(
-      NULL, stack_size, ThreadFunc, delegate, flags, NULL);
+  *thread_handle =
+      CreateThread(NULL, stack_size, ThreadFunc, delegate, flags, NULL);
   return *thread_handle != NULL;
 }
 

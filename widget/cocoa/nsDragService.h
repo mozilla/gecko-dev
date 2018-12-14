@@ -18,9 +18,8 @@ extern NSString* const kMozWildcardPboardType;
 extern NSString* const kMozCustomTypesPboardType;
 extern NSString* const kMozFileUrlsPboardType;
 
-class nsDragService : public nsBaseDragService
-{
-public:
+class nsDragService : public nsBaseDragService {
+ public:
   nsDragService();
 
   // nsBaseDragService
@@ -29,20 +28,22 @@ public:
                                          uint32_t aActionType) override;
   // nsIDragService
   NS_IMETHOD EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers) override;
-  NS_IMETHOD UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX, int32_t aImageY) override;
+  NS_IMETHOD UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX,
+                             int32_t aImageY) override;
 
   // nsIDragSession
-  NS_IMETHOD GetData(nsITransferable * aTransferable, uint32_t aItemIndex) override;
-  NS_IMETHOD IsDataFlavorSupported(const char *aDataFlavor, bool *_retval) override;
-  NS_IMETHOD GetNumDropItems(uint32_t * aNumItems) override;
+  NS_IMETHOD GetData(nsITransferable* aTransferable,
+                     uint32_t aItemIndex) override;
+  NS_IMETHOD IsDataFlavorSupported(const char* aDataFlavor,
+                                   bool* _retval) override;
+  NS_IMETHOD GetNumDropItems(uint32_t* aNumItems) override;
 
   void DragMovedWithView(NSDraggingSession* aSession, NSPoint aPoint);
 
-protected:
+ protected:
   virtual ~nsDragService();
 
-private:
-
+ private:
   // Creates and returns the drag image for a drag. aImagePoint will be set to
   // the origin of the drag relative to mNativeDragView.
   NSImage* ConstructDragImage(nsIDOMNode* aDOMNode,
@@ -63,11 +64,11 @@ private:
   NSString* GetTitleForURL(NSPasteboardItem* item);
   NSString* GetFilePath(NSPasteboardItem* item);
 
-  nsCOMPtr<nsIArray> mDataItems; // only valid for a drag started within gecko
+  nsCOMPtr<nsIArray> mDataItems;  // only valid for a drag started within gecko
   ChildView* mNativeDragView;
   NSEvent* mNativeDragEvent;
 
   bool mDragImageChanged;
 };
 
-#endif // nsDragService_h_
+#endif  // nsDragService_h_

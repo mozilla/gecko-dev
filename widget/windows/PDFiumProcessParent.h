@@ -16,20 +16,19 @@ class nsDeviceContextSpecWin;
 #ifdef MOZ_ENABLE_SKIA_PDF
 namespace mozilla {
 namespace widget {
-  class PDFiumParent;
+class PDFiumParent;
 }
 namespace gfx {
-  class PrintTargetEMF;
+class PrintTargetEMF;
 }
-}
+}  // namespace mozilla
 #endif
 
 namespace mozilla {
 namespace widget {
 
-class PDFiumProcessParent final : public mozilla::ipc::GeckoChildProcessHost
-{
-public:
+class PDFiumProcessParent final : public mozilla::ipc::GeckoChildProcessHost {
+ public:
   typedef mozilla::gfx::PrintTargetEMF PrintTargetEMF;
 
   PDFiumProcessParent();
@@ -42,15 +41,15 @@ public:
   bool CanShutdown() override { return true; }
 
   PDFiumParent* GetActor() const { return mPDFiumParentActor; }
-private:
 
+ private:
   DISALLOW_COPY_AND_ASSIGN(PDFiumProcessParent);
 
   RefPtr<PDFiumParent> mPDFiumParentActor;
   nsCOMPtr<nsIThread> mLaunchThread;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // ifndef PDFIUMPROCESSPARENT_H
+#endif  // ifndef PDFIUMPROCESSPARENT_H

@@ -17,11 +17,10 @@ namespace mozilla {
 class ServoStyleSheet;
 class ServoMediaList;
 
-class ServoImportRule final : public dom::CSSImportRule
-{
-public:
-  ServoImportRule(RefPtr<RawServoImportRule> aRawRule,
-                  uint32_t aLine, uint32_t aColumn);
+class ServoImportRule final : public dom::CSSImportRule {
+ public:
+  ServoImportRule(RefPtr<RawServoImportRule> aRawRule, uint32_t aLine,
+                  uint32_t aColumn);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServoImportRule, dom::CSSImportRule)
@@ -38,13 +37,13 @@ public:
   dom::MediaList* GetMedia() const final;
   StyleSheet* GetStyleSheet() const final;
 
-private:
+ private:
   ~ServoImportRule();
 
   RefPtr<RawServoImportRule> mRawRule;
   RefPtr<ServoStyleSheet> mChildSheet;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoImportRule_h
+#endif  // mozilla_ServoImportRule_h

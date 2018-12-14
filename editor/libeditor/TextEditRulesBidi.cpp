@@ -23,20 +23,18 @@ namespace mozilla {
 using namespace dom;
 
 // Test for distance between caret and text that will be deleted
-nsresult
-TextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
-                                         nsINode* aSelNode,
-                                         int32_t aSelOffset,
-                                         nsIEditor::EDirection aAction,
-                                         bool* aCancel)
-{
+nsresult TextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
+                                                  nsINode* aSelNode,
+                                                  int32_t aSelOffset,
+                                                  nsIEditor::EDirection aAction,
+                                                  bool* aCancel) {
   NS_ENSURE_ARG_POINTER(aCancel);
   *aCancel = false;
 
   nsCOMPtr<nsIPresShell> shell = mTextEditor->GetPresShell();
   NS_ENSURE_TRUE(shell, NS_ERROR_NOT_INITIALIZED);
 
-  nsPresContext *context = shell->GetPresContext();
+  nsPresContext* context = shell->GetPresContext();
   NS_ENSURE_TRUE(context, NS_ERROR_NULL_POINTER);
 
   if (!context->BidiEnabled()) {
@@ -51,11 +49,11 @@ TextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
   nsBidiLevel levelBefore;
   nsBidiLevel levelAfter;
   RefPtr<nsFrameSelection> frameSelection =
-    aSelection->AsSelection()->GetFrameSelection();
+      aSelection->AsSelection()->GetFrameSelection();
   NS_ENSURE_TRUE(frameSelection, NS_ERROR_NULL_POINTER);
 
-  nsPrevNextBidiLevels levels = frameSelection->
-    GetPrevNextBidiLevels(content, aSelOffset, true);
+  nsPrevNextBidiLevels levels =
+      frameSelection->GetPrevNextBidiLevels(content, aSelOffset, true);
 
   levelBefore = levels.mLevelBefore;
   levelAfter = levels.mLevelAfter;
@@ -64,11 +62,12 @@ TextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
 
   nsBidiLevel levelOfDeletion;
   levelOfDeletion =
-    (nsIEditor::eNext==aAction || nsIEditor::eNextWord==aAction) ?
-    levelAfter : levelBefore;
+      (nsIEditor::eNext == aAction || nsIEditor::eNextWord == aAction)
+          ? levelAfter
+          : levelBefore;
 
   if (currentCaretLevel == levelOfDeletion) {
-    return NS_OK; // perform the deletion
+    return NS_OK;  // perform the deletion
   }
 
   if (!mDeleteBidiImmediately && levelBefore != levelAfter) {
@@ -81,9 +80,7 @@ TextEditRules::CheckBidiLevelForDeletion(Selection* aSelection,
   return NS_OK;
 }
 
-void
-TextEditRules::UndefineCaretBidiLevel(Selection* aSelection)
-{
+void TextEditRules::UndefineCaretBidiLevel(Selection* aSelection) {
   /**
    * After inserting text the caret Bidi level must be set to the level of the
    * inserted text.This is difficult, because we cannot know what the level is
@@ -98,4 +95,4 @@ TextEditRules::UndefineCaretBidiLevel(Selection* aSelection)
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

@@ -10,29 +10,15 @@
 namespace mozilla {
 namespace hal_impl {
 
-void
-AdjustSystemClock(int64_t aDeltaMilliseconds)
-{}
+void AdjustSystemClock(int64_t aDeltaMilliseconds) {}
 
-void
-EnableSystemClockChangeNotifications()
-{
-}
+void EnableSystemClockChangeNotifications() {}
 
-void
-DisableSystemClockChangeNotifications()
-{
-}
+void DisableSystemClockChangeNotifications() {}
 
-void
-EnableSystemTimezoneChangeNotifications()
-{
-}
+void EnableSystemTimezoneChangeNotifications() {}
 
-void
-DisableSystemTimezoneChangeNotifications()
-{
-}
+void DisableSystemTimezoneChangeNotifications() {}
 
-} // namespace hal_impl
-} // namespace mozilla
+}  // namespace hal_impl
+}  // namespace mozilla

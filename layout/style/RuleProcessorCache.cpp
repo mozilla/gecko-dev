@@ -23,18 +23,16 @@ MOZ_DEFINE_MALLOC_SIZE_OF(RuleProcessorCacheMallocSizeOf)
 
 NS_IMETHODIMP
 RuleProcessorCache::CollectReports(nsIHandleReportCallback* aHandleReport,
-                                   nsISupports* aData, bool aAnonymize)
-{
-  MOZ_COLLECT_REPORT(
-    "explicit/layout/rule-processor-cache", KIND_HEAP, UNITS_BYTES,
-    SizeOfIncludingThis(RuleProcessorCacheMallocSizeOf),
-    "Memory used for cached rule processors.");
+                                   nsISupports* aData, bool aAnonymize) {
+  MOZ_COLLECT_REPORT("explicit/layout/rule-processor-cache", KIND_HEAP,
+                     UNITS_BYTES,
+                     SizeOfIncludingThis(RuleProcessorCacheMallocSizeOf),
+                     "Memory used for cached rule processors.");
 
   return NS_OK;
 }
 
-RuleProcessorCache::~RuleProcessorCache()
-{
+RuleProcessorCache::~RuleProcessorCache() {
   UnregisterWeakMemoryReporter(this);
 
   for (Entry& e : mEntries) {
@@ -47,15 +45,11 @@ RuleProcessorCache::~RuleProcessorCache()
   }
 }
 
-void
-RuleProcessorCache::InitMemoryReporter()
-{
+void RuleProcessorCache::InitMemoryReporter() {
   RegisterWeakMemoryReporter(this);
 }
 
-/* static */ bool
-RuleProcessorCache::EnsureGlobal()
-{
+/* static */ bool RuleProcessorCache::EnsureGlobal() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gShutdown) {
@@ -69,9 +63,7 @@ RuleProcessorCache::EnsureGlobal()
   return true;
 }
 
-/* static */ void
-RuleProcessorCache::RemoveSheet(CSSStyleSheet* aSheet)
-{
+/* static */ void RuleProcessorCache::RemoveSheet(CSSStyleSheet* aSheet) {
   if (!EnsureGlobal()) {
     return;
   }
@@ -79,9 +71,8 @@ RuleProcessorCache::RemoveSheet(CSSStyleSheet* aSheet)
 }
 
 #ifdef DEBUG
-/* static */ bool
-RuleProcessorCache::HasRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
-{
+/* static */ bool RuleProcessorCache::HasRuleProcessor(
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (!EnsureGlobal()) {
     return false;
   }
@@ -89,32 +80,27 @@ RuleProcessorCache::HasRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
 }
 #endif
 
-/* static */ void
-RuleProcessorCache::RemoveRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
-{
+/* static */ void RuleProcessorCache::RemoveRuleProcessor(
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (!EnsureGlobal()) {
     return;
   }
   gRuleProcessorCache->DoRemoveRuleProcessor(aRuleProcessor);
 }
 
-/* static */ nsCSSRuleProcessor*
-RuleProcessorCache::GetRuleProcessor(const nsTArray<CSSStyleSheet*>& aSheets,
-                                     nsPresContext* aPresContext)
-{
+/* static */ nsCSSRuleProcessor* RuleProcessorCache::GetRuleProcessor(
+    const nsTArray<CSSStyleSheet*>& aSheets, nsPresContext* aPresContext) {
   if (!EnsureGlobal()) {
     return nullptr;
   }
   return gRuleProcessorCache->DoGetRuleProcessor(aSheets, aPresContext);
 }
 
-/* static */ void
-RuleProcessorCache::PutRuleProcessor(
+/* static */ void RuleProcessorCache::PutRuleProcessor(
     const nsTArray<CSSStyleSheet*>& aSheets,
     nsTArray<css::DocumentRule*>&& aDocumentRulesInSheets,
     const nsDocumentRuleResultCacheKey& aCacheKey,
-    nsCSSRuleProcessor* aRuleProcessor)
-{
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (!EnsureGlobal()) {
     return;
   }
@@ -122,36 +108,30 @@ RuleProcessorCache::PutRuleProcessor(
                                           aCacheKey, aRuleProcessor);
 }
 
-/* static */ void
-RuleProcessorCache::StartTracking(nsCSSRuleProcessor* aRuleProcessor)
-{
+/* static */ void RuleProcessorCache::StartTracking(
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (!EnsureGlobal()) {
     return;
   }
   return gRuleProcessorCache->DoStartTracking(aRuleProcessor);
 }
 
-/* static */ void
-RuleProcessorCache::StopTracking(nsCSSRuleProcessor* aRuleProcessor)
-{
+/* static */ void RuleProcessorCache::StopTracking(
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (!EnsureGlobal()) {
     return;
   }
   return gRuleProcessorCache->DoStopTracking(aRuleProcessor);
 }
 
-void
-RuleProcessorCache::DoRemoveSheet(CSSStyleSheet* aSheet)
-{
+void RuleProcessorCache::DoRemoveSheet(CSSStyleSheet* aSheet) {
   auto last = std::remove_if(mEntries.begin(), mEntries.end(),
                              HasSheet_ThenRemoveRuleProcessors(this, aSheet));
   mEntries.TruncateLength(last - mEntries.begin());
 }
 
-nsCSSRuleProcessor*
-RuleProcessorCache::DoGetRuleProcessor(const nsTArray<CSSStyleSheet*>& aSheets,
-                                       nsPresContext* aPresContext)
-{
+nsCSSRuleProcessor* RuleProcessorCache::DoGetRuleProcessor(
+    const nsTArray<CSSStyleSheet*>& aSheets, nsPresContext* aPresContext) {
   for (Entry& e : mEntries) {
     if (e.mSheets == aSheets) {
       for (DocumentEntry& de : e.mDocumentEntries) {
@@ -168,13 +148,11 @@ RuleProcessorCache::DoGetRuleProcessor(const nsTArray<CSSStyleSheet*>& aSheets,
   return nullptr;
 }
 
-void
-RuleProcessorCache::DoPutRuleProcessor(
+void RuleProcessorCache::DoPutRuleProcessor(
     const nsTArray<CSSStyleSheet*>& aSheets,
     nsTArray<css::DocumentRule*>&& aDocumentRulesInSheets,
     const nsDocumentRuleResultCacheKey& aCacheKey,
-    nsCSSRuleProcessor* aRuleProcessor)
-{
+    nsCSSRuleProcessor* aRuleProcessor) {
   MOZ_ASSERT(!aRuleProcessor->IsInRuleProcessorCache());
 
   Entry* entry = nullptr;
@@ -211,9 +189,8 @@ RuleProcessorCache::DoPutRuleProcessor(
 }
 
 #ifdef DEBUG
-bool
-RuleProcessorCache::DoHasRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
-{
+bool RuleProcessorCache::DoHasRuleProcessor(
+    nsCSSRuleProcessor* aRuleProcessor) {
   for (Entry& e : mEntries) {
     for (DocumentEntry& de : e.mDocumentEntries) {
       if (de.mRuleProcessor == aRuleProcessor) {
@@ -225,9 +202,8 @@ RuleProcessorCache::DoHasRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
 }
 #endif
 
-void
-RuleProcessorCache::DoRemoveRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
-{
+void RuleProcessorCache::DoRemoveRuleProcessor(
+    nsCSSRuleProcessor* aRuleProcessor) {
   MOZ_ASSERT(aRuleProcessor->IsInRuleProcessorCache());
 
   aRuleProcessor->SetInRuleProcessorCache(false);
@@ -244,21 +220,16 @@ RuleProcessorCache::DoRemoveRuleProcessor(nsCSSRuleProcessor* aRuleProcessor)
   MOZ_ASSERT_UNREACHABLE("should have found rule processor");
 }
 
-void
-RuleProcessorCache::DoStartTracking(nsCSSRuleProcessor* aRuleProcessor)
-{
+void RuleProcessorCache::DoStartTracking(nsCSSRuleProcessor* aRuleProcessor) {
   mExpirationTracker.AddObject(aRuleProcessor);
 }
 
-void
-RuleProcessorCache::DoStopTracking(nsCSSRuleProcessor* aRuleProcessor)
-{
+void RuleProcessorCache::DoStopTracking(nsCSSRuleProcessor* aRuleProcessor) {
   mExpirationTracker.RemoveObjectIfTracked(aRuleProcessor);
 }
 
-size_t
-RuleProcessorCache::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-{
+size_t RuleProcessorCache::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) {
   size_t n = aMallocSizeOf(this);
 
   int count = 0;
@@ -274,14 +245,13 @@ RuleProcessorCache::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
   return n;
 }
 
-void
-RuleProcessorCache::ExpirationTracker::RemoveObjectIfTracked(
-    nsCSSRuleProcessor* aRuleProcessor)
-{
+void RuleProcessorCache::ExpirationTracker::RemoveObjectIfTracked(
+    nsCSSRuleProcessor* aRuleProcessor) {
   if (aRuleProcessor->GetExpirationState()->IsTracked()) {
     RemoveObject(aRuleProcessor);
   }
 }
 
 bool RuleProcessorCache::gShutdown = false;
-mozilla::StaticRefPtr<RuleProcessorCache> RuleProcessorCache::gRuleProcessorCache;
+mozilla::StaticRefPtr<RuleProcessorCache>
+    RuleProcessorCache::gRuleProcessorCache;

@@ -30,11 +30,11 @@ namespace {
 uint32_t kBadThreadLocalIndex = -1;
 uint32_t sClientManagerThreadLocalIndex = kBadThreadLocalIndex;
 
-} // anonymous namespace
+}  // anonymous namespace
 
-ClientManager::ClientManager()
-{
-  PBackgroundChild* parentActor = BackgroundChild::GetOrCreateForCurrentThread();
+ClientManager::ClientManager() {
+  PBackgroundChild* parentActor =
+      BackgroundChild::GetOrCreateForCurrentThread();
   if (NS_WARN_IF(!parentActor)) {
     Shutdown();
     return;
@@ -45,9 +45,8 @@ ClientManager::ClientManager()
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_DIAGNOSTIC_ASSERT(workerPrivate);
 
-    workerHolderToken =
-      WorkerHolderToken::Create(workerPrivate, Closing,
-                                WorkerHolderToken::AllowIdleShutdownStart);
+    workerHolderToken = WorkerHolderToken::Create(
+        workerPrivate, Closing, WorkerHolderToken::AllowIdleShutdownStart);
     if (NS_WARN_IF(!workerHolderToken)) {
       Shutdown();
       return;
@@ -55,8 +54,8 @@ ClientManager::ClientManager()
   }
 
   ClientManagerChild* actor = new ClientManagerChild(workerHolderToken);
-  PClientManagerChild *sentActor =
-    parentActor->SendPClientManagerConstructor(actor);
+  PClientManagerChild* sentActor =
+      parentActor->SendPClientManagerConstructor(actor);
   if (NS_WARN_IF(!sentActor)) {
     Shutdown();
     return;
@@ -66,24 +65,22 @@ ClientManager::ClientManager()
   ActivateThing(actor);
 }
 
-ClientManager::~ClientManager()
-{
+ClientManager::~ClientManager() {
   NS_ASSERT_OWNINGTHREAD(ClientManager);
 
   Shutdown();
 
-  MOZ_DIAGNOSTIC_ASSERT(this == PR_GetThreadPrivate(sClientManagerThreadLocalIndex));
+  MOZ_DIAGNOSTIC_ASSERT(this ==
+                        PR_GetThreadPrivate(sClientManagerThreadLocalIndex));
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   PRStatus status =
 #endif
-    PR_SetThreadPrivate(sClientManagerThreadLocalIndex, nullptr);
+      PR_SetThreadPrivate(sClientManagerThreadLocalIndex, nullptr);
   MOZ_DIAGNOSTIC_ASSERT(status == PR_SUCCESS);
 }
 
-void
-ClientManager::Shutdown()
-{
+void ClientManager::Shutdown() {
   NS_ASSERT_OWNINGTHREAD(ClientManager);
 
   if (IsShutdown()) {
@@ -93,11 +90,9 @@ ClientManager::Shutdown()
   ShutdownThing();
 }
 
-UniquePtr<ClientSource>
-ClientManager::CreateSourceInternal(ClientType aType,
-                                    nsISerialEventTarget* aEventTarget,
-                                    const PrincipalInfo& aPrincipal)
-{
+UniquePtr<ClientSource> ClientManager::CreateSourceInternal(
+    ClientType aType, nsISerialEventTarget* aEventTarget,
+    const PrincipalInfo& aPrincipal) {
   NS_ASSERT_OWNINGTHREAD(ClientManager);
 
   nsID id;
@@ -127,15 +122,13 @@ ClientManager::CreateSourceInternal(ClientType aType,
   return Move(source);
 }
 
-already_AddRefed<ClientHandle>
-ClientManager::CreateHandleInternal(const ClientInfo& aClientInfo,
-                                    nsISerialEventTarget* aSerialEventTarget)
-{
+already_AddRefed<ClientHandle> ClientManager::CreateHandleInternal(
+    const ClientInfo& aClientInfo, nsISerialEventTarget* aSerialEventTarget) {
   NS_ASSERT_OWNINGTHREAD(ClientManager);
   MOZ_DIAGNOSTIC_ASSERT(aSerialEventTarget);
 
-  RefPtr<ClientHandle> handle = new ClientHandle(this, aSerialEventTarget,
-                                                 aClientInfo);
+  RefPtr<ClientHandle> handle =
+      new ClientHandle(this, aSerialEventTarget, aClientInfo);
 
   if (IsShutdown()) {
     handle->Shutdown();
@@ -147,42 +140,39 @@ ClientManager::CreateHandleInternal(const ClientInfo& aClientInfo,
   return handle.forget();
 }
 
-already_AddRefed<ClientOpPromise>
-ClientManager::StartOp(const ClientOpConstructorArgs& aArgs,
-                       nsISerialEventTarget* aSerialEventTarget)
-{
+already_AddRefed<ClientOpPromise> ClientManager::StartOp(
+    const ClientOpConstructorArgs& aArgs,
+    nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientOpPromise::Private> promise =
-    new ClientOpPromise::Private(__func__);
+      new ClientOpPromise::Private(__func__);
 
   // Hold a ref to the client until the remote operation completes.  Otherwise
   // the ClientHandle might get de-refed and teardown the actor before we
   // get an answer.
   RefPtr<ClientManager> kungFuGrip = this;
   promise->Then(aSerialEventTarget, __func__,
-                [kungFuGrip] (const ClientOpResult&) { },
-                [kungFuGrip] (nsresult) { });
+                [kungFuGrip](const ClientOpResult&) {},
+                [kungFuGrip](nsresult) {});
 
-  MaybeExecute([aArgs, promise] (ClientManagerChild* aActor) {
-    ClientManagerOpChild* actor = new ClientManagerOpChild(aArgs, promise);
-    if (!aActor->SendPClientManagerOpConstructor(actor, aArgs)) {
-      // Constructor failure will reject promise via ActorDestroy()
-      return;
-    }
-  }, [promise] {
-    promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
-  });
+  MaybeExecute(
+      [aArgs, promise](ClientManagerChild* aActor) {
+        ClientManagerOpChild* actor = new ClientManagerOpChild(aArgs, promise);
+        if (!aActor->SendPClientManagerOpConstructor(actor, aArgs)) {
+          // Constructor failure will reject promise via ActorDestroy()
+          return;
+        }
+      },
+      [promise] { promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__); });
 
   RefPtr<ClientOpPromise> ref = promise.get();
   return ref.forget();
 }
 
 // static
-already_AddRefed<ClientManager>
-ClientManager::GetOrCreateForCurrentThread()
-{
+already_AddRefed<ClientManager> ClientManager::GetOrCreateForCurrentThread() {
   MOZ_DIAGNOSTIC_ASSERT(sClientManagerThreadLocalIndex != kBadThreadLocalIndex);
-  RefPtr<ClientManager> cm =
-    static_cast<ClientManager*>(PR_GetThreadPrivate(sClientManagerThreadLocalIndex));
+  RefPtr<ClientManager> cm = static_cast<ClientManager*>(
+      PR_GetThreadPrivate(sClientManagerThreadLocalIndex));
 
   if (!cm) {
     cm = new ClientManager();
@@ -190,7 +180,7 @@ ClientManager::GetOrCreateForCurrentThread()
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     PRStatus status =
 #endif
-      PR_SetThreadPrivate(sClientManagerThreadLocalIndex, cm.get());
+        PR_SetThreadPrivate(sClientManagerThreadLocalIndex, cm.get());
     MOZ_DIAGNOSTIC_ASSERT(status == PR_SUCCESS);
   }
 
@@ -198,33 +188,28 @@ ClientManager::GetOrCreateForCurrentThread()
   return cm.forget();
 }
 
-WorkerPrivate*
-ClientManager::GetWorkerPrivate() const
-{
+WorkerPrivate* ClientManager::GetWorkerPrivate() const {
   NS_ASSERT_OWNINGTHREAD(ClientManager);
   MOZ_DIAGNOSTIC_ASSERT(GetActor());
   return GetActor()->GetWorkerPrivate();
 }
 
 // static
-void
-ClientManager::Startup()
-{
+void ClientManager::Startup() {
   MOZ_ASSERT(NS_IsMainThread());
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   PRStatus status =
 #endif
-    PR_NewThreadPrivateIndex(&sClientManagerThreadLocalIndex, nullptr);
+      PR_NewThreadPrivateIndex(&sClientManagerThreadLocalIndex, nullptr);
   MOZ_DIAGNOSTIC_ASSERT(status == PR_SUCCESS);
 
   ClientPrefsInit();
 }
 
 // static
-UniquePtr<ClientSource>
-ClientManager::CreateSource(ClientType aType, nsISerialEventTarget* aEventTarget,
-                            nsIPrincipal* aPrincipal)
-{
+UniquePtr<ClientSource> ClientManager::CreateSource(
+    ClientType aType, nsISerialEventTarget* aEventTarget,
+    nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
@@ -239,67 +224,56 @@ ClientManager::CreateSource(ClientType aType, nsISerialEventTarget* aEventTarget
 }
 
 // static
-UniquePtr<ClientSource>
-ClientManager::CreateSource(ClientType aType, nsISerialEventTarget* aEventTarget,
-                            const PrincipalInfo& aPrincipal)
-{
+UniquePtr<ClientSource> ClientManager::CreateSource(
+    ClientType aType, nsISerialEventTarget* aEventTarget,
+    const PrincipalInfo& aPrincipal) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->CreateSourceInternal(aType, aEventTarget, aPrincipal);
 }
 
 // static
-already_AddRefed<ClientHandle>
-ClientManager::CreateHandle(const ClientInfo& aClientInfo,
-                            nsISerialEventTarget* aSerialEventTarget)
-{
+already_AddRefed<ClientHandle> ClientManager::CreateHandle(
+    const ClientInfo& aClientInfo, nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->CreateHandleInternal(aClientInfo, aSerialEventTarget);
 }
 
 // static
-RefPtr<ClientOpPromise>
-ClientManager::MatchAll(const ClientMatchAllArgs& aArgs,
-                        nsISerialEventTarget* aSerialEventTarget)
-{
+RefPtr<ClientOpPromise> ClientManager::MatchAll(
+    const ClientMatchAllArgs& aArgs, nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->StartOp(aArgs, aSerialEventTarget);
 }
 
 // static
-RefPtr<ClientOpPromise>
-ClientManager::Claim(const ClientClaimArgs& aArgs,
-                     nsISerialEventTarget* aSerialEventTarget)
-{
+RefPtr<ClientOpPromise> ClientManager::Claim(
+    const ClientClaimArgs& aArgs, nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->StartOp(aArgs, aSerialEventTarget);
 }
 
 // static
-RefPtr<ClientOpPromise>
-ClientManager::GetInfoAndState(const ClientGetInfoAndStateArgs& aArgs,
-                               nsISerialEventTarget* aSerialEventTarget)
-{
+RefPtr<ClientOpPromise> ClientManager::GetInfoAndState(
+    const ClientGetInfoAndStateArgs& aArgs,
+    nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->StartOp(aArgs, aSerialEventTarget);
 }
 
 // static
-RefPtr<ClientOpPromise>
-ClientManager::Navigate(const ClientNavigateArgs& aArgs,
-                        nsISerialEventTarget* aSerialEventTarget)
-{
+RefPtr<ClientOpPromise> ClientManager::Navigate(
+    const ClientNavigateArgs& aArgs, nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->StartOp(aArgs, aSerialEventTarget);
 }
 
 // static
-RefPtr<ClientOpPromise>
-ClientManager::OpenWindow(const ClientOpenWindowArgs& aArgs,
-                          nsISerialEventTarget* aSerialEventTarget)
-{
+RefPtr<ClientOpPromise> ClientManager::OpenWindow(
+    const ClientOpenWindowArgs& aArgs,
+    nsISerialEventTarget* aSerialEventTarget) {
   RefPtr<ClientManager> mgr = GetOrCreateForCurrentThread();
   return mgr->StartOp(aArgs, aSerialEventTarget);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

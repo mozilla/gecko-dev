@@ -18,76 +18,62 @@ namespace dom {
 
 static const double sRadPerDegree = 2.0 * M_PI / 360.0;
 
-static bool
-IsStyledByServo(JSContext* aContext)
-{
+static bool IsStyledByServo(JSContext* aContext) {
   nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(aContext);
   nsIDocument* doc = win ? win->GetDoc() : nullptr;
   return doc ? doc->IsStyledByServo() : false;
 }
 
-bool
-WebKitCSSMatrix::FeatureEnabled(JSContext* aCx, JSObject* aObj)
-{
+bool WebKitCSSMatrix::FeatureEnabled(JSContext* aCx, JSObject* aObj) {
   return Preferences::GetBool("layout.css.DOMMatrix.enabled", false) &&
          Preferences::GetBool("layout.css.prefixes.webkit", false);
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
-{
-  RefPtr<WebKitCSSMatrix> obj =
-    new WebKitCSSMatrix(aGlobal.GetAsSupports(),
-                        IsStyledByServo(aGlobal.Context()));
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Constructor(
+    const GlobalObject& aGlobal, ErrorResult& aRv) {
+  RefPtr<WebKitCSSMatrix> obj = new WebKitCSSMatrix(
+      aGlobal.GetAsSupports(), IsStyledByServo(aGlobal.Context()));
   return obj.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Constructor(const GlobalObject& aGlobal,
-                             const nsAString& aTransformList, ErrorResult& aRv)
-{
-  RefPtr<WebKitCSSMatrix> obj =
-    new WebKitCSSMatrix(aGlobal.GetAsSupports(),
-                        IsStyledByServo(aGlobal.Context()));
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aTransformList,
+    ErrorResult& aRv) {
+  RefPtr<WebKitCSSMatrix> obj = new WebKitCSSMatrix(
+      aGlobal.GetAsSupports(), IsStyledByServo(aGlobal.Context()));
   obj = obj->SetMatrixValue(aTransformList, aRv);
   return obj.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Constructor(const GlobalObject& aGlobal,
-                             const DOMMatrixReadOnly& aOther, ErrorResult& aRv)
-{
-  RefPtr<WebKitCSSMatrix> obj = new WebKitCSSMatrix(aGlobal.GetAsSupports(),
-                                                    aOther);
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Constructor(
+    const GlobalObject& aGlobal, const DOMMatrixReadOnly& aOther,
+    ErrorResult& aRv) {
+  RefPtr<WebKitCSSMatrix> obj =
+      new WebKitCSSMatrix(aGlobal.GetAsSupports(), aOther);
   return obj.forget();
 }
 
-JSObject*
-WebKitCSSMatrix::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* WebKitCSSMatrix::WrapObject(JSContext* aCx,
+                                      JS::Handle<JSObject*> aGivenProto) {
   return WebKitCSSMatrixBinding::Wrap(aCx, this, aGivenProto);
 }
 
-WebKitCSSMatrix*
-WebKitCSSMatrix::SetMatrixValue(const nsAString& aTransformList,
-                                ErrorResult& aRv)
-{
+WebKitCSSMatrix* WebKitCSSMatrix::SetMatrixValue(
+    const nsAString& aTransformList, ErrorResult& aRv) {
   DOMMatrix::SetMatrixValue(aTransformList, aRv);
   return this;
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Multiply(const WebKitCSSMatrix& other) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Multiply(
+    const WebKitCSSMatrix& other) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->MultiplySelf(other);
 
   return retval.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Inverse(ErrorResult& aRv) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Inverse(
+    ErrorResult& aRv) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->InvertSelfThrow(aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -97,9 +83,7 @@ WebKitCSSMatrix::Inverse(ErrorResult& aRv) const
   return retval.forget();
 }
 
-WebKitCSSMatrix*
-WebKitCSSMatrix::InvertSelfThrow(ErrorResult& aRv)
-{
+WebKitCSSMatrix* WebKitCSSMatrix::InvertSelfThrow(ErrorResult& aRv) {
   if (mMatrix3D) {
     if (!mMatrix3D->Invert()) {
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
@@ -113,22 +97,17 @@ WebKitCSSMatrix::InvertSelfThrow(ErrorResult& aRv)
   return this;
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Translate(double aTx,
-                           double aTy,
-                           double aTz) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Translate(double aTx,
+                                                             double aTy,
+                                                             double aTz) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->TranslateSelf(aTx, aTy, aTz);
 
   return retval.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Scale(double aScaleX,
-                       const Optional<double>& aScaleY,
-                       double aScaleZ) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Scale(
+    double aScaleX, const Optional<double>& aScaleY, double aScaleZ) const {
   double scaleX = aScaleX;
   double scaleY = aScaleY.WasPassed() ? aScaleY.Value() : scaleX;
   double scaleZ = aScaleZ;
@@ -139,11 +118,9 @@ WebKitCSSMatrix::Scale(double aScaleX,
   return retval.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::Rotate(double aRotX,
-                        const Optional<double>& aRotY,
-                        const Optional<double>& aRotZ) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::Rotate(
+    double aRotX, const Optional<double>& aRotY,
+    const Optional<double>& aRotZ) const {
   double rotX = aRotX;
   double rotY;
   double rotZ;
@@ -163,11 +140,8 @@ WebKitCSSMatrix::Rotate(double aRotX,
   return retval.forget();
 }
 
-WebKitCSSMatrix*
-WebKitCSSMatrix::Rotate3dSelf(double aRotX,
-                              double aRotY,
-                              double aRotZ)
-{
+WebKitCSSMatrix* WebKitCSSMatrix::Rotate3dSelf(double aRotX, double aRotY,
+                                               double aRotZ) {
   if (aRotX != 0 || aRotY != 0) {
     Ensure3DMatrix();
   }
@@ -189,35 +163,27 @@ WebKitCSSMatrix::Rotate3dSelf(double aRotX,
   return this;
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::RotateAxisAngle(double aX,
-                                 double aY,
-                                 double aZ,
-                                 double aAngle) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::RotateAxisAngle(
+    double aX, double aY, double aZ, double aAngle) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->RotateAxisAngleSelf(aX, aY, aZ, aAngle);
 
   return retval.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::SkewX(double aSx) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::SkewX(double aSx) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->SkewXSelf(aSx);
 
   return retval.forget();
 }
 
-already_AddRefed<WebKitCSSMatrix>
-WebKitCSSMatrix::SkewY(double aSy) const
-{
+already_AddRefed<WebKitCSSMatrix> WebKitCSSMatrix::SkewY(double aSy) const {
   RefPtr<WebKitCSSMatrix> retval = new WebKitCSSMatrix(mParent, *this);
   retval->SkewYSelf(aSy);
 
   return retval.forget();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

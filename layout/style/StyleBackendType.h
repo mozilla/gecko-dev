@@ -14,13 +14,8 @@ namespace mozilla {
 /**
  * Enumeration that represents one of the two supported style system backends.
  */
-enum class StyleBackendType : uint8_t
-{
-  None,
-  Gecko,
-  Servo
-};
+enum class StyleBackendType : uint8_t { None, Gecko, Servo };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_StyleBackendType_h
+#endif  // mozilla_StyleBackendType_h

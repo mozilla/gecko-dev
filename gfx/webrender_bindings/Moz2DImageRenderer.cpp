@@ -25,17 +25,14 @@
 #endif
 
 namespace std {
-  template <>
-    struct hash<mozilla::wr::FontKey>{
-      public :
-        size_t operator()(const mozilla::wr::FontKey &key ) const
-        {
-          return hash<size_t>()(mozilla::wr::AsUint64(key));
-        }
-    };
+template <>
+struct hash<mozilla::wr::FontKey> {
+ public:
+  size_t operator()(const mozilla::wr::FontKey &key) const {
+    return hash<size_t>()(mozilla::wr::AsUint64(key));
+  }
 };
-
-
+};  // namespace std
 
 namespace mozilla {
 
@@ -54,8 +51,7 @@ struct FontTemplate {
 StaticMutex sFontDataTableLock;
 std::unordered_map<FontKey, FontTemplate> sFontDataTable;
 
-void
-ClearBlobImageResources(WrIdNamespace aNamespace) {
+void ClearBlobImageResources(WrIdNamespace aNamespace) {
   StaticMutexAutoLock lock(sFontDataTableLock);
   for (auto i = sFontDataTable.begin(); i != sFontDataTable.end();) {
     if (i->first.mNamespace == aNamespace) {
@@ -70,8 +66,8 @@ ClearBlobImageResources(WrIdNamespace aNamespace) {
 }
 
 extern "C" {
-void
-AddFontData(WrFontKey aKey, const uint8_t *aData, size_t aSize, uint32_t aIndex, const ArcVecU8 *aVec) {
+void AddFontData(WrFontKey aKey, const uint8_t *aData, size_t aSize,
+                 uint32_t aIndex, const ArcVecU8 *aVec) {
   StaticMutexAutoLock lock(sFontDataTableLock);
   auto i = sFontDataTable.find(aKey);
   if (i == sFontDataTable.end()) {
@@ -84,8 +80,7 @@ AddFontData(WrFontKey aKey, const uint8_t *aData, size_t aSize, uint32_t aIndex,
   }
 }
 
-void
-AddNativeFontHandle(WrFontKey aKey, void* aHandle, uint32_t aIndex) {
+void AddNativeFontHandle(WrFontKey aKey, void *aHandle, uint32_t aIndex) {
   StaticMutexAutoLock lock(sFontDataTableLock);
   auto i = sFontDataTable.find(aKey);
   if (i == sFontDataTable.end()) {
@@ -95,20 +90,23 @@ AddNativeFontHandle(WrFontKey aKey, void* aHandle, uint32_t aIndex) {
     font.mIndex = 0;
     font.mVec = nullptr;
 #ifdef XP_MACOSX
-    font.mUnscaledFont = new UnscaledFontMac(reinterpret_cast<CGFontRef>(aHandle), true);
+    font.mUnscaledFont =
+        new UnscaledFontMac(reinterpret_cast<CGFontRef>(aHandle), true);
 #elif defined(XP_WIN)
-    font.mUnscaledFont = new UnscaledFontDWrite(reinterpret_cast<IDWriteFontFace*>(aHandle), nullptr);
+    font.mUnscaledFont = new UnscaledFontDWrite(
+        reinterpret_cast<IDWriteFontFace *>(aHandle), nullptr);
 #elif defined(ANDROID)
-    font.mUnscaledFont = new UnscaledFontFreeType(reinterpret_cast<const char*>(aHandle), aIndex);
+    font.mUnscaledFont = new UnscaledFontFreeType(
+        reinterpret_cast<const char *>(aHandle), aIndex);
 #else
-    font.mUnscaledFont = new UnscaledFontFontconfig(reinterpret_cast<const char*>(aHandle), aIndex);
+    font.mUnscaledFont = new UnscaledFontFontconfig(
+        reinterpret_cast<const char *>(aHandle), aIndex);
 #endif
     sFontDataTable[aKey] = font;
   }
 }
 
-void
-DeleteFontData(WrFontKey aKey) {
+void DeleteFontData(WrFontKey aKey) {
   StaticMutexAutoLock lock(sFontDataTableLock);
   auto i = sFontDataTable.find(aKey);
   if (i != sFontDataTable.end()) {
@@ -120,12 +118,12 @@ DeleteFontData(WrFontKey aKey) {
 }
 }
 
-RefPtr<UnscaledFont>
-GetUnscaledFont(Translator *aTranslator, wr::FontKey key) {
+RefPtr<UnscaledFont> GetUnscaledFont(Translator *aTranslator, wr::FontKey key) {
   StaticMutexAutoLock lock(sFontDataTableLock);
   auto i = sFontDataTable.find(key);
   if (i == sFontDataTable.end()) {
-    gfxDevCrash(LogReason::UnscaledFontNotFound) << "Failed to get UnscaledFont entry for FontKey " << key.mHandle;
+    gfxDevCrash(LogReason::UnscaledFontNotFound)
+        << "Failed to get UnscaledFont entry for FontKey " << key.mHandle;
     return nullptr;
   }
   auto &data = i->second;
@@ -135,28 +133,30 @@ GetUnscaledFont(Translator *aTranslator, wr::FontKey key) {
   MOZ_ASSERT(data.mData);
   FontType type =
 #ifdef XP_MACOSX
-    FontType::MAC;
+      FontType::MAC;
 #elif defined(XP_WIN)
-    FontType::DWRITE;
+      FontType::DWRITE;
 #elif defined(ANDROID)
-    FontType::FREETYPE;
+      FontType::FREETYPE;
 #else
-    FontType::FONTCONFIG;
+      FontType::FONTCONFIG;
 #endif
   // makes a copy of the data
-  RefPtr<NativeFontResource> fontResource = Factory::CreateNativeFontResource((uint8_t*)data.mData, data.mSize,
-                                                                              aTranslator->GetReferenceDrawTarget()->GetBackendType(),
-                                                                              type,
-                                                                              aTranslator->GetFontContext());
+  RefPtr<NativeFontResource> fontResource = Factory::CreateNativeFontResource(
+      (uint8_t *)data.mData, data.mSize,
+      aTranslator->GetReferenceDrawTarget()->GetBackendType(), type,
+      aTranslator->GetFontContext());
   RefPtr<UnscaledFont> unscaledFont;
   if (!fontResource) {
-    gfxDevCrash(LogReason::NativeFontResourceNotFound) << "Failed to create NativeFontResource for FontKey " << key.mHandle;
+    gfxDevCrash(LogReason::NativeFontResourceNotFound)
+        << "Failed to create NativeFontResource for FontKey " << key.mHandle;
   } else {
     // Instance data is only needed for GDI fonts which webrender does not
     // support.
     unscaledFont = fontResource->CreateUnscaledFont(data.mIndex, nullptr, 0);
     if (!unscaledFont) {
-      gfxDevCrash(LogReason::UnscaledFontNotFound) << "Failed to create UnscaledFont for FontKey " << key.mHandle;
+      gfxDevCrash(LogReason::UnscaledFontNotFound)
+          << "Failed to create UnscaledFont for FontKey " << key.mHandle;
     }
   }
   data.mUnscaledFont = unscaledFont;
@@ -164,12 +164,10 @@ GetUnscaledFont(Translator *aTranslator, wr::FontKey key) {
 }
 
 static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
-                                gfx::IntSize aSize,
-                                gfx::SurfaceFormat aFormat,
+                                gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
                                 const uint16_t *aTileSize,
                                 const mozilla::wr::TileOffset *aTileOffset,
-                                Range<uint8_t> aOutput)
-{
+                                Range<uint8_t> aOutput) {
   MOZ_ASSERT(aSize.width > 0 && aSize.height > 0);
   if (aSize.width <= 0 || aSize.height <= 0) {
     return false;
@@ -185,13 +183,8 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
   bool uninitialized = false;
 
   RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateDrawTargetForData(
-    gfx::BackendType::SKIA,
-    aOutput.begin().get(),
-    aSize,
-    stride,
-    aFormat,
-    uninitialized
-  );
+      gfx::BackendType::SKIA, aOutput.begin().get(), aSize, stride, aFormat,
+      uninitialized);
 
   if (!dt) {
     return false;
@@ -203,7 +196,8 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
     gfx::TileSet tileset;
     gfx::Tile tile;
     tile.mDrawTarget = dt;
-    tile.mTileOrigin = gfx::IntPoint(aTileOffset->x * *aTileSize, aTileOffset->y * *aTileSize);
+    tile.mTileOrigin =
+        gfx::IntPoint(aTileOffset->x * *aTileSize, aTileOffset->y * *aTileSize);
     tileset.mTiles = &tile;
     tileset.mTileCount = 1;
     dt = gfx::Factory::CreateTiledDrawTarget(tileset);
@@ -224,9 +218,10 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
       return ret;
     }
   };
-  //XXX: Make safe
-  size_t indexOffset = *(size_t*)(aBlob.end().get()-sizeof(size_t));
-  Reader reader(aBlob.begin().get()+indexOffset, aBlob.length()-sizeof(size_t)-indexOffset);
+  // XXX: Make safe
+  size_t indexOffset = *(size_t *)(aBlob.end().get() - sizeof(size_t));
+  Reader reader(aBlob.begin().get() + indexOffset,
+                aBlob.length() - sizeof(size_t) - indexOffset);
 
   bool ret;
   size_t offset = 0;
@@ -236,14 +231,17 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
 
     gfx::InlineTranslator translator(dt);
 
-    size_t count = *(size_t*)(aBlob.begin().get() + end);
+    size_t count = *(size_t *)(aBlob.begin().get() + end);
     for (size_t i = 0; i < count; i++) {
-      wr::FontKey key = *(wr::FontKey*)(aBlob.begin() + end + sizeof(count) + sizeof(wr::FontKey)*i).get();
+      wr::FontKey key = *(wr::FontKey *)(aBlob.begin() + end + sizeof(count) +
+                                         sizeof(wr::FontKey) * i)
+                             .get();
       RefPtr<UnscaledFont> font = GetUnscaledFont(&translator, key);
       translator.AddUnscaledFont(0, font);
     }
     Range<const uint8_t> blob(aBlob.begin() + offset, aBlob.begin() + end);
-    ret = translator.TranslateRecording((char*)blob.begin().get(), blob.length());
+    ret = translator.TranslateRecording((char *)blob.begin().get(),
+                                        blob.length());
     offset = extra_end;
   }
 
@@ -257,26 +255,20 @@ static bool Moz2DRenderCallback(const Range<const uint8_t> aBlob,
   return ret;
 }
 
-} // namespace
-} // namespace
+}  // namespace wr
+}  // namespace mozilla
 
 extern "C" {
 
-bool wr_moz2d_render_cb(const mozilla::wr::ByteSlice blob,
-                        uint32_t width, uint32_t height,
-                        mozilla::wr::ImageFormat aFormat,
+bool wr_moz2d_render_cb(const mozilla::wr::ByteSlice blob, uint32_t width,
+                        uint32_t height, mozilla::wr::ImageFormat aFormat,
                         const uint16_t *aTileSize,
                         const mozilla::wr::TileOffset *aTileOffset,
-                        mozilla::wr::MutByteSlice output)
-{
-  return mozilla::wr::Moz2DRenderCallback(mozilla::wr::ByteSliceToRange(blob),
-                                          mozilla::gfx::IntSize(width, height),
-                                          mozilla::wr::ImageFormatToSurfaceFormat(aFormat),
-                                          aTileSize,
-                                          aTileOffset,
-                                          mozilla::wr::MutByteSliceToRange(output));
+                        mozilla::wr::MutByteSlice output) {
+  return mozilla::wr::Moz2DRenderCallback(
+      mozilla::wr::ByteSliceToRange(blob), mozilla::gfx::IntSize(width, height),
+      mozilla::wr::ImageFormatToSurfaceFormat(aFormat), aTileSize, aTileOffset,
+      mozilla::wr::MutByteSliceToRange(output));
 }
 
-} // extern
-
-
+}  // extern

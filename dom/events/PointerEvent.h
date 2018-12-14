@@ -19,30 +19,24 @@ namespace dom {
 
 struct PointerEventInit;
 
-class PointerEvent : public MouseEvent
-{
-public:
-  PointerEvent(EventTarget* aOwner,
-               nsPresContext* aPresContext,
+class PointerEvent : public MouseEvent {
+ public:
+  PointerEvent(EventTarget* aOwner, nsPresContext* aPresContext,
                WidgetPointerEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PointerEvent, MouseEvent)
 
   virtual JSObject* WrapObjectInternal(
-                      JSContext* aCx,
-                      JS::Handle<JSObject*> aGivenProto) override;
+      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  static already_AddRefed<PointerEvent>
-  Constructor(const GlobalObject& aGlobal,
-              const nsAString& aType,
-              const PointerEventInit& aParam,
-              ErrorResult& aRv);
+  static already_AddRefed<PointerEvent> Constructor(
+      const GlobalObject& aGlobal, const nsAString& aType,
+      const PointerEventInit& aParam, ErrorResult& aRv);
 
-  static already_AddRefed<PointerEvent>
-  Constructor(EventTarget* aOwner,
-              const nsAString& aType,
-              const PointerEventInit& aParam);
+  static already_AddRefed<PointerEvent> Constructor(
+      EventTarget* aOwner, const nsAString& aType,
+      const PointerEventInit& aParam);
 
   int32_t PointerId();
   int32_t Width();
@@ -56,21 +50,21 @@ public:
   void GetPointerType(nsAString& aPointerType);
   void GetCoalescedEvents(nsTArray<RefPtr<PointerEvent>>& aPointerEvents);
 
-protected:
+ protected:
   ~PointerEvent() {}
 
-private:
+ private:
   nsTArray<RefPtr<PointerEvent>> mCoalescedEvents;
 };
 
-void ConvertPointerTypeToString(uint16_t aPointerTypeSrc, nsAString& aPointerTypeDest);
+void ConvertPointerTypeToString(uint16_t aPointerTypeSrc,
+                                nsAString& aPointerTypeDest);
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-already_AddRefed<mozilla::dom::PointerEvent>
-NS_NewDOMPointerEvent(mozilla::dom::EventTarget* aOwner,
-                      nsPresContext* aPresContext,
-                      mozilla::WidgetPointerEvent* aEvent);
+already_AddRefed<mozilla::dom::PointerEvent> NS_NewDOMPointerEvent(
+    mozilla::dom::EventTarget* aOwner, nsPresContext* aPresContext,
+    mozilla::WidgetPointerEvent* aEvent);
 
-#endif // mozilla_dom_PointerEvent_h_
+#endif  // mozilla_dom_PointerEvent_h_

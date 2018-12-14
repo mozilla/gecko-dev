@@ -39,7 +39,8 @@
 #include "pkixcheck.h"
 #include "pkixutil.h"
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 namespace {
 
@@ -53,8 +54,7 @@ namespace {
 //      uniformResourceIdentifier       [6]     IA5String,
 //      iPAddress                       [7]     OCTET STRING,
 //      registeredID                    [8]     OBJECT IDENTIFIER }
-enum class GeneralNameType : uint8_t
-{
+enum class GeneralNameType : uint8_t {
   // Note that these values are NOT contiguous. Some values have the
   // der::CONSTRUCTED bit set while others do not.
   // (The der::CONSTRUCTED bit is for types where the value is a SEQUENCE.)
@@ -72,11 +72,9 @@ enum class GeneralNameType : uint8_t
   nameConstraints = 0xff
 };
 
-inline Result
-ReadGeneralName(Reader& reader,
-                /*out*/ GeneralNameType& generalNameType,
-                /*out*/ Input& value)
-{
+inline Result ReadGeneralName(Reader& reader,
+                              /*out*/ GeneralNameType& generalNameType,
+                              /*out*/ Input& value) {
   uint8_t tag;
   Result rv = der::ReadTagAndGetValue(reader, tag, value);
   if (rv != Success) {
@@ -116,29 +114,19 @@ ReadGeneralName(Reader& reader,
   return Success;
 }
 
-enum class MatchResult
-{
-  NoNamesOfGivenType = 0,
-  Mismatch = 1,
-  Match = 2
-};
+enum class MatchResult { NoNamesOfGivenType = 0, Mismatch = 1, Match = 2 };
 
 Result SearchNames(const Input* subjectAltName, Input subject,
-                   GeneralNameType referenceIDType,
-                   Input referenceID,
+                   GeneralNameType referenceIDType, Input referenceID,
                    FallBackToSearchWithinSubject fallBackToCommonName,
                    /*out*/ MatchResult& match);
-Result SearchWithinRDN(Reader& rdn,
-                       GeneralNameType referenceIDType,
+Result SearchWithinRDN(Reader& rdn, GeneralNameType referenceIDType,
                        Input referenceID,
                        FallBackToSearchWithinSubject fallBackToEmailAddress,
                        FallBackToSearchWithinSubject fallBackToCommonName,
                        /*in/out*/ MatchResult& match);
-Result MatchAVA(Input type,
-                uint8_t valueEncodingTag,
-                Input presentedID,
-                GeneralNameType referenceIDType,
-                Input referenceID,
+Result MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
+                GeneralNameType referenceIDType, Input referenceID,
                 FallBackToSearchWithinSubject fallBackToEmailAddress,
                 FallBackToSearchWithinSubject fallBackToCommonName,
                 /*in/out*/ MatchResult& match);
@@ -164,8 +152,7 @@ Result CheckPresentedIDConformsToConstraints(GeneralNameType referenceIDType,
 uint8_t LocaleInsensitveToLower(uint8_t a);
 bool StartsWithIDNALabel(Input id);
 
-enum class IDRole
-{
+enum class IDRole {
   ReferenceID = 0,
   PresentedID = 1,
   NameConstraint = 2,
@@ -180,22 +167,19 @@ enum class AllowWildcards { No = 0, Yes = 1 };
 // ".example.com").
 enum class AllowDotlessSubdomainMatches { No = 0, Yes = 1 };
 
-bool IsValidDNSID(Input hostname, IDRole idRole,
-                  AllowWildcards allowWildcards);
+bool IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards);
 
 Result MatchPresentedDNSIDWithReferenceDNSID(
-         Input presentedDNSID,
-         AllowWildcards allowWildcards,
-         AllowDotlessSubdomainMatches allowDotlessSubdomainMatches,
-         IDRole referenceDNSIDRole,
-         Input referenceDNSID,
-         /*out*/ bool& matches);
+    Input presentedDNSID, AllowWildcards allowWildcards,
+    AllowDotlessSubdomainMatches allowDotlessSubdomainMatches,
+    IDRole referenceDNSIDRole, Input referenceDNSID,
+    /*out*/ bool& matches);
 
 Result MatchPresentedRFC822NameWithReferenceRFC822Name(
-         Input presentedRFC822Name, IDRole referenceRFC822NameRole,
-         Input referenceRFC822Name, /*out*/ bool& matches);
+    Input presentedRFC822Name, IDRole referenceRFC822NameRole,
+    Input referenceRFC822Name, /*out*/ bool& matches);
 
-} // namespace
+}  // namespace
 
 bool IsValidReferenceDNSID(Input hostname);
 bool IsValidPresentedDNSID(Input hostname);
@@ -203,25 +187,20 @@ bool ParseIPv4Address(Input hostname, /*out*/ uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16]);
 
 // This is used by the pkixnames_tests.cpp tests.
-Result
-MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
-                                      Input referenceDNSID,
-                                      /*out*/ bool& matches)
-{
+Result MatchPresentedDNSIDWithReferenceDNSID(Input presentedDNSID,
+                                             Input referenceDNSID,
+                                             /*out*/ bool& matches) {
   return MatchPresentedDNSIDWithReferenceDNSID(
-           presentedDNSID, AllowWildcards::Yes,
-           AllowDotlessSubdomainMatches::Yes, IDRole::ReferenceID,
-           referenceDNSID, matches);
+      presentedDNSID, AllowWildcards::Yes, AllowDotlessSubdomainMatches::Yes,
+      IDRole::ReferenceID, referenceDNSID, matches);
 }
 
 // Verify that the given end-entity cert, which is assumed to have been already
 // validated with BuildCertChain, is valid for the given hostname. hostname is
 // assumed to be a string representation of an IPv4 address, an IPv6 addresss,
 // or a normalized ASCII (possibly punycode) DNS name.
-Result
-CheckCertHostname(Input endEntityCertDER, Input hostname,
-                  NameMatchingPolicy& nameMatchingPolicy)
-{
+Result CheckCertHostname(Input endEntityCertDER, Input hostname,
+                         NameMatchingPolicy& nameMatchingPolicy) {
   BackCert cert(endEntityCertDER, EndEntityOrCA::MustBeEndEntity, nullptr);
   Result rv = cert.Init();
   if (rv != Success) {
@@ -271,38 +250,36 @@ CheckCertHostname(Input endEntityCertDER, Input hostname,
     return rv;
   }
   switch (match) {
-    case MatchResult::NoNamesOfGivenType: // fall through
+    case MatchResult::NoNamesOfGivenType:  // fall through
     case MatchResult::Mismatch:
       return Result::ERROR_BAD_CERT_DOMAIN;
     case MatchResult::Match:
       return Success;
-    MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
+      MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
   }
 }
 
 // 4.2.1.10. Name Constraints
-Result
-CheckNameConstraints(Input encodedNameConstraints,
-                     const BackCert& firstChild,
-                     KeyPurposeId requiredEKUIfPresent)
-{
+Result CheckNameConstraints(Input encodedNameConstraints,
+                            const BackCert& firstChild,
+                            KeyPurposeId requiredEKUIfPresent) {
   for (const BackCert* child = &firstChild; child; child = child->childCert) {
-    FallBackToSearchWithinSubject fallBackToCommonName
-      = (child->endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
+    FallBackToSearchWithinSubject fallBackToCommonName =
+        (child->endEntityOrCA == EndEntityOrCA::MustBeEndEntity &&
          requiredEKUIfPresent == KeyPurposeId::id_kp_serverAuth)
-      ? FallBackToSearchWithinSubject::Yes
-      : FallBackToSearchWithinSubject::No;
+            ? FallBackToSearchWithinSubject::Yes
+            : FallBackToSearchWithinSubject::No;
 
     MatchResult match;
-    Result rv = SearchNames(child->GetSubjectAltName(), child->GetSubject(),
-                            GeneralNameType::nameConstraints,
-                            encodedNameConstraints, fallBackToCommonName,
-                            match);
+    Result rv =
+        SearchNames(child->GetSubjectAltName(), child->GetSubject(),
+                    GeneralNameType::nameConstraints, encodedNameConstraints,
+                    fallBackToCommonName, match);
     if (rv != Success) {
       return rv;
     }
     switch (match) {
-      case MatchResult::Match: // fall through
+      case MatchResult::Match:  // fall through
       case MatchResult::NoNamesOfGivenType:
         break;
       case MatchResult::Mismatch:
@@ -330,14 +307,10 @@ namespace {
 // but name constraints were only enforced on the most specific subject CN),
 // trivial name constraint bypasses could result.
 
-Result
-SearchNames(/*optional*/ const Input* subjectAltName,
-            Input subject,
-            GeneralNameType referenceIDType,
-            Input referenceID,
-            FallBackToSearchWithinSubject fallBackToCommonName,
-            /*out*/ MatchResult& match)
-{
+Result SearchNames(/*optional*/ const Input* subjectAltName, Input subject,
+                   GeneralNameType referenceIDType, Input referenceID,
+                   FallBackToSearchWithinSubject fallBackToCommonName,
+                   /*out*/ MatchResult& match) {
   Result rv;
 
   match = MatchResult::NoNamesOfGivenType;
@@ -379,8 +352,7 @@ SearchNames(/*optional*/ const Input* subjectAltName,
       }
 
       rv = MatchPresentedIDWithReferenceID(presentedIDType, presentedID,
-                                           referenceIDType, referenceID,
-                                           match);
+                                           referenceIDType, referenceID, match);
       if (rv != Success) {
         return rv;
       }
@@ -487,9 +459,10 @@ SearchNames(/*optional*/ const Input* subjectAltName,
   Reader subjectReader(subject);
   return der::NestedOf(subjectReader, der::SEQUENCE, der::SET,
                        der::EmptyAllowed::Yes, [&](Reader& r) {
-    return SearchWithinRDN(r, referenceIDType, referenceID,
-                          fallBackToEmailAddress, fallBackToCommonName, match);
-  });
+                         return SearchWithinRDN(r, referenceIDType, referenceID,
+                                                fallBackToEmailAddress,
+                                                fallBackToCommonName, match);
+                       });
 }
 
 // RelativeDistinguishedName ::=
@@ -498,14 +471,11 @@ SearchNames(/*optional*/ const Input* subjectAltName,
 // AttributeTypeAndValue ::= SEQUENCE {
 //   type     AttributeType,
 //   value    AttributeValue }
-Result
-SearchWithinRDN(Reader& rdn,
-                GeneralNameType referenceIDType,
-                Input referenceID,
-                FallBackToSearchWithinSubject fallBackToEmailAddress,
-                FallBackToSearchWithinSubject fallBackToCommonName,
-                /*in/out*/ MatchResult& match)
-{
+Result SearchWithinRDN(Reader& rdn, GeneralNameType referenceIDType,
+                       Input referenceID,
+                       FallBackToSearchWithinSubject fallBackToEmailAddress,
+                       FallBackToSearchWithinSubject fallBackToCommonName,
+                       /*in/out*/ MatchResult& match) {
   do {
     Input type;
     uint8_t valueTag;
@@ -538,14 +508,11 @@ SearchWithinRDN(Reader& rdn,
 //       universalString         UniversalString (SIZE (1..MAX)),
 //       utf8String              UTF8String (SIZE (1..MAX)),
 //       bmpString               BMPString (SIZE (1..MAX)) }
-Result
-MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
-         GeneralNameType referenceIDType,
-         Input referenceID,
-         FallBackToSearchWithinSubject fallBackToEmailAddress,
-         FallBackToSearchWithinSubject fallBackToCommonName,
-         /*in/out*/ MatchResult& match)
-{
+Result MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
+                GeneralNameType referenceIDType, Input referenceID,
+                FallBackToSearchWithinSubject fallBackToEmailAddress,
+                FallBackToSearchWithinSubject fallBackToCommonName,
+                /*in/out*/ MatchResult& match) {
   // Try to match the  CN as a DNSName or an IPAddress.
   //
   // id-at-commonName        AttributeType ::= { id-at 3 }
@@ -562,25 +529,23 @@ MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
   //       bmpString         BMPString       (SIZE (1..ub-common-name)) }
   //
   // python DottedOIDToCode.py id-at-commonName 2.5.4.3
-  static const uint8_t id_at_commonName[] = {
-    0x55, 0x04, 0x03
-  };
+  static const uint8_t id_at_commonName[] = {0x55, 0x04, 0x03};
   if (fallBackToCommonName == FallBackToSearchWithinSubject::Yes &&
       InputsAreEqual(type, Input(id_at_commonName))) {
     // We might have previously found a match. Now that we've found another CN,
-    // we no longer consider that previous match to be a match, so "forget" about
-    // it.
+    // we no longer consider that previous match to be a match, so "forget"
+    // about it.
     match = MatchResult::NoNamesOfGivenType;
 
     // PrintableString is a subset of ASCII that contains all the characters
     // allowed in CN-IDs except '*'. Although '*' is illegal, there are many
     // real-world certificates that are encoded this way, so we accept it.
     //
-    // In the case of UTF8String, we rely on the fact that in UTF-8 the octets in
-    // a multi-byte encoding of a code point are always distinct from ASCII. Any
-    // non-ASCII byte in a UTF-8 string causes us to fail to match. We make no
-    // attempt to detect or report malformed UTF-8 (e.g. incomplete or overlong
-    // encodings of code points, or encodings of invalid code points).
+    // In the case of UTF8String, we rely on the fact that in UTF-8 the octets
+    // in a multi-byte encoding of a code point are always distinct from ASCII.
+    // Any non-ASCII byte in a UTF-8 string causes us to fail to match. We make
+    // no attempt to detect or report malformed UTF-8 (e.g. incomplete or
+    // overlong encodings of code points, or encodings of invalid code points).
     //
     // TeletexString is supported as long as it does not contain any escape
     // sequences, which are not supported. We'll reject escape sequences as
@@ -632,9 +597,8 @@ MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
   // EmailAddress ::=     IA5String (SIZE (1..ub-emailaddress-length))
   //
   // python DottedOIDToCode.py id-emailAddress 1.2.840.113549.1.9.1
-  static const uint8_t id_emailAddress[] = {
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x09, 0x01
-  };
+  static const uint8_t id_emailAddress[] = {0x2a, 0x86, 0x48, 0x86, 0xf7,
+                                            0x0d, 0x01, 0x09, 0x01};
   if (fallBackToEmailAddress == FallBackToSearchWithinSubject::Yes &&
       InputsAreEqual(type, Input(id_emailAddress))) {
     if (referenceIDType == GeneralNameType::rfc822Name &&
@@ -653,28 +617,23 @@ MatchAVA(Input type, uint8_t valueEncodingTag, Input presentedID,
   return Success;
 }
 
-void
-MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
-                                       Input presentedID,
-                                       GeneralNameType referenceIDType,
-                                       Input referenceID,
-                                       /*in/out*/ MatchResult& match)
-{
-  Result rv = MatchPresentedIDWithReferenceID(presentedIDType, presentedID,
-                                              referenceIDType, referenceID,
-                                              match);
+void MatchSubjectPresentedIDWithReferenceID(GeneralNameType presentedIDType,
+                                            Input presentedID,
+                                            GeneralNameType referenceIDType,
+                                            Input referenceID,
+                                            /*in/out*/ MatchResult& match) {
+  Result rv = MatchPresentedIDWithReferenceID(
+      presentedIDType, presentedID, referenceIDType, referenceID, match);
   if (rv != Success) {
     match = MatchResult::Mismatch;
   }
 }
 
-Result
-MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
-                                Input presentedID,
-                                GeneralNameType referenceIDType,
-                                Input referenceID,
-                                /*out*/ MatchResult& matchResult)
-{
+Result MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
+                                       Input presentedID,
+                                       GeneralNameType referenceIDType,
+                                       Input referenceID,
+                                       /*out*/ MatchResult& matchResult) {
   if (referenceIDType == GeneralNameType::nameConstraints) {
     // matchResult is irrelevant when checking name constraints; only the
     // pass/fail result of CheckPresentedIDConformsToConstraints matters.
@@ -693,9 +652,8 @@ MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
   switch (referenceIDType) {
     case GeneralNameType::dNSName:
       rv = MatchPresentedDNSIDWithReferenceDNSID(
-             presentedID, AllowWildcards::Yes,
-             AllowDotlessSubdomainMatches::Yes, IDRole::ReferenceID,
-             referenceID, foundMatch);
+          presentedID, AllowWildcards::Yes, AllowDotlessSubdomainMatches::Yes,
+          IDRole::ReferenceID, referenceID, foundMatch);
       break;
 
     case GeneralNameType::iPAddress:
@@ -705,24 +663,24 @@ MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
 
     case GeneralNameType::rfc822Name:
       rv = MatchPresentedRFC822NameWithReferenceRFC822Name(
-             presentedID, IDRole::ReferenceID, referenceID, foundMatch);
+          presentedID, IDRole::ReferenceID, referenceID, foundMatch);
       break;
 
     case GeneralNameType::directoryName:
       // TODO: At some point, we may add APIs for matching DirectoryNames.
       // fall through
 
-    case GeneralNameType::otherName: // fall through
-    case GeneralNameType::x400Address: // fall through
-    case GeneralNameType::ediPartyName: // fall through
-    case GeneralNameType::uniformResourceIdentifier: // fall through
-    case GeneralNameType::registeredID: // fall through
+    case GeneralNameType::otherName:                  // fall through
+    case GeneralNameType::x400Address:                // fall through
+    case GeneralNameType::ediPartyName:               // fall through
+    case GeneralNameType::uniformResourceIdentifier:  // fall through
+    case GeneralNameType::registeredID:               // fall through
     case GeneralNameType::nameConstraints:
       return NotReached("unexpected nameType for SearchType::Match",
                         Result::FATAL_ERROR_INVALID_ARGS);
 
-    MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
- }
+      MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
+  }
 
   if (rv != Success) {
     return rv;
@@ -731,30 +689,24 @@ MatchPresentedIDWithReferenceID(GeneralNameType presentedIDType,
   return Success;
 }
 
-enum class NameConstraintsSubtrees : uint8_t
-{
+enum class NameConstraintsSubtrees : uint8_t {
   permittedSubtrees = der::CONSTRUCTED | der::CONTEXT_SPECIFIC | 0,
-  excludedSubtrees  = der::CONSTRUCTED | der::CONTEXT_SPECIFIC | 1
+  excludedSubtrees = der::CONSTRUCTED | der::CONTEXT_SPECIFIC | 1
 };
 
 Result CheckPresentedIDConformsToNameConstraintsSubtrees(
-         GeneralNameType presentedIDType,
-         Input presentedID,
-         Reader& nameConstraints,
-         NameConstraintsSubtrees subtreesType);
+    GeneralNameType presentedIDType, Input presentedID, Reader& nameConstraints,
+    NameConstraintsSubtrees subtreesType);
 Result MatchPresentedIPAddressWithConstraint(Input presentedID,
                                              Input iPAddressConstraint,
                                              /*out*/ bool& foundMatch);
 Result MatchPresentedDirectoryNameWithConstraint(
-         NameConstraintsSubtrees subtreesType, Input presentedID,
-         Input directoryNameConstraint, /*out*/ bool& matches);
+    NameConstraintsSubtrees subtreesType, Input presentedID,
+    Input directoryNameConstraint, /*out*/ bool& matches);
 
-Result
-CheckPresentedIDConformsToConstraints(
-  GeneralNameType presentedIDType,
-  Input presentedID,
-  Input encodedNameConstraints)
-{
+Result CheckPresentedIDConformsToConstraints(GeneralNameType presentedIDType,
+                                             Input presentedID,
+                                             Input encodedNameConstraints) {
   // NameConstraints ::= SEQUENCE {
   //      permittedSubtrees       [0]     GeneralSubtrees OPTIONAL,
   //      excludedSubtrees        [1]     GeneralSubtrees OPTIONAL }
@@ -773,15 +725,15 @@ CheckPresentedIDConformsToConstraints(
   }
 
   rv = CheckPresentedIDConformsToNameConstraintsSubtrees(
-         presentedIDType, presentedID, nameConstraints,
-         NameConstraintsSubtrees::permittedSubtrees);
+      presentedIDType, presentedID, nameConstraints,
+      NameConstraintsSubtrees::permittedSubtrees);
   if (rv != Success) {
     return rv;
   }
 
   rv = CheckPresentedIDConformsToNameConstraintsSubtrees(
-         presentedIDType, presentedID, nameConstraints,
-         NameConstraintsSubtrees::excludedSubtrees);
+      presentedIDType, presentedID, nameConstraints,
+      NameConstraintsSubtrees::excludedSubtrees);
   if (rv != Success) {
     return rv;
   }
@@ -789,21 +741,16 @@ CheckPresentedIDConformsToConstraints(
   return der::End(nameConstraints);
 }
 
-Result
-CheckPresentedIDConformsToNameConstraintsSubtrees(
-  GeneralNameType presentedIDType,
-  Input presentedID,
-  Reader& nameConstraints,
-  NameConstraintsSubtrees subtreesType)
-{
+Result CheckPresentedIDConformsToNameConstraintsSubtrees(
+    GeneralNameType presentedIDType, Input presentedID, Reader& nameConstraints,
+    NameConstraintsSubtrees subtreesType) {
   if (!nameConstraints.Peek(static_cast<uint8_t>(subtreesType))) {
     return Success;
   }
 
   Reader subtrees;
-  Result rv = der::ExpectTagAndGetValue(nameConstraints,
-                                        static_cast<uint8_t>(subtreesType),
-                                        subtrees);
+  Result rv = der::ExpectTagAndGetValue(
+      nameConstraints, static_cast<uint8_t>(subtreesType), subtrees);
   if (rv != Success) {
     return rv;
   }
@@ -848,26 +795,25 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
       switch (presentedIDType) {
         case GeneralNameType::dNSName:
           rv = MatchPresentedDNSIDWithReferenceDNSID(
-                 presentedID, AllowWildcards::Yes,
-                 AllowDotlessSubdomainMatches::Yes, IDRole::NameConstraint,
-                 base, matches);
+              presentedID, AllowWildcards::Yes,
+              AllowDotlessSubdomainMatches::Yes, IDRole::NameConstraint, base,
+              matches);
           if (rv != Success) {
             return rv;
           }
           break;
 
         case GeneralNameType::iPAddress:
-          rv = MatchPresentedIPAddressWithConstraint(presentedID, base,
-                                                     matches);
+          rv =
+              MatchPresentedIPAddressWithConstraint(presentedID, base, matches);
           if (rv != Success) {
             return rv;
           }
           break;
 
         case GeneralNameType::directoryName:
-          rv = MatchPresentedDirectoryNameWithConstraint(subtreesType,
-                                                         presentedID, base,
-                                                         matches);
+          rv = MatchPresentedDirectoryNameWithConstraint(
+              subtreesType, presentedID, base, matches);
           if (rv != Success) {
             return rv;
           }
@@ -875,7 +821,7 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 
         case GeneralNameType::rfc822Name:
           rv = MatchPresentedRFC822NameWithReferenceRFC822Name(
-                 presentedID, IDRole::NameConstraint, base, matches);
+              presentedID, IDRole::NameConstraint, base, matches);
           if (rv != Success) {
             return rv;
           }
@@ -891,18 +837,18 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
         // NOT impose name constraints on the otherName, x400Address,
         // ediPartyName, uniformResourceIdentifier, or registeredID name
         // forms."
-        case GeneralNameType::otherName: // fall through
-        case GeneralNameType::x400Address: // fall through
-        case GeneralNameType::ediPartyName: // fall through
-        case GeneralNameType::uniformResourceIdentifier: // fall through
-        case GeneralNameType::registeredID: // fall through
+        case GeneralNameType::otherName:                  // fall through
+        case GeneralNameType::x400Address:                // fall through
+        case GeneralNameType::ediPartyName:               // fall through
+        case GeneralNameType::uniformResourceIdentifier:  // fall through
+        case GeneralNameType::registeredID:               // fall through
           return Result::ERROR_CERT_NOT_IN_NAME_SPACE;
 
         case GeneralNameType::nameConstraints:
           return NotReached("invalid presentedIDType",
                             Result::FATAL_ERROR_LIBRARY_FAILURE);
 
-        MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
+          MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM
       }
 
       switch (subtreesType) {
@@ -1052,15 +998,11 @@ CheckPresentedIDConformsToNameConstraintsSubtrees(
 // [4] Feedback on the lack of clarify in the definition that never got
 //     incorporated into the spec:
 //     https://www.ietf.org/mail-archive/web/pkix/current/msg21192.html
-Result
-MatchPresentedDNSIDWithReferenceDNSID(
-  Input presentedDNSID,
-  AllowWildcards allowWildcards,
-  AllowDotlessSubdomainMatches allowDotlessSubdomainMatches,
-  IDRole referenceDNSIDRole,
-  Input referenceDNSID,
-  /*out*/ bool& matches)
-{
+Result MatchPresentedDNSIDWithReferenceDNSID(
+    Input presentedDNSID, AllowWildcards allowWildcards,
+    AllowDotlessSubdomainMatches allowDotlessSubdomainMatches,
+    IDRole referenceDNSIDRole, Input referenceDNSID,
+    /*out*/ bool& matches) {
   if (!IsValidDNSID(presentedDNSID, IDRole::PresentedID, allowWildcards)) {
     return Result::ERROR_BAD_DER;
   }
@@ -1072,13 +1014,11 @@ MatchPresentedDNSIDWithReferenceDNSID(
   Reader presented(presentedDNSID);
   Reader reference(referenceDNSID);
 
-  switch (referenceDNSIDRole)
-  {
+  switch (referenceDNSIDRole) {
     case IDRole::ReferenceID:
       break;
 
-    case IDRole::NameConstraint:
-    {
+    case IDRole::NameConstraint: {
       if (presentedDNSID.GetLength() > referenceDNSID.GetLength()) {
         if (referenceDNSID.GetLength() == 0) {
           // An empty constraint matches everything.
@@ -1110,16 +1050,16 @@ MatchPresentedDNSIDWithReferenceDNSID(
         //
         if (reference.Peek('.')) {
           if (presented.Skip(static_cast<Input::size_type>(
-                               presentedDNSID.GetLength() -
-                                 referenceDNSID.GetLength())) != Success) {
+                  presentedDNSID.GetLength() - referenceDNSID.GetLength())) !=
+              Success) {
             return NotReached("skipping subdomain failed",
                               Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
         } else if (allowDotlessSubdomainMatches ==
                    AllowDotlessSubdomainMatches::Yes) {
           if (presented.Skip(static_cast<Input::size_type>(
-                               presentedDNSID.GetLength() -
-                                 referenceDNSID.GetLength() - 1)) != Success) {
+                  presentedDNSID.GetLength() - referenceDNSID.GetLength() -
+                  1)) != Success) {
             return NotReached("skipping subdomains failed",
                               Result::FATAL_ERROR_LIBRARY_FAILURE);
           }
@@ -1137,7 +1077,7 @@ MatchPresentedDNSIDWithReferenceDNSID(
       break;
     }
 
-    case IDRole::PresentedID: // fall through
+    case IDRole::PresentedID:  // fall through
       return NotReached("IDRole::PresentedID is not a valid referenceDNSIDRole",
                         Result::FATAL_ERROR_INVALID_ARGS);
   }
@@ -1220,11 +1160,9 @@ MatchPresentedDNSIDWithReferenceDNSID(
 //     constraint for "class C" subnet 192.0.2.0 is represented as the
 //     octets C0 00 02 00 FF FF FF 00, representing the CIDR notation
 //     192.0.2.0/24 (mask 255.255.255.0).
-Result
-MatchPresentedIPAddressWithConstraint(Input presentedID,
-                                      Input iPAddressConstraint,
-                                      /*out*/ bool& foundMatch)
-{
+Result MatchPresentedIPAddressWithConstraint(Input presentedID,
+                                             Input iPAddressConstraint,
+                                             /*out*/ bool& foundMatch) {
   if (presentedID.GetLength() != 4 && presentedID.GetLength() != 16) {
     return Result::ERROR_BAD_DER;
   }
@@ -1241,8 +1179,8 @@ MatchPresentedIPAddressWithConstraint(Input presentedID,
 
   Reader constraint(iPAddressConstraint);
   Reader constraintAddress;
-  Result rv = constraint.Skip(iPAddressConstraint.GetLength() / 2u,
-                              constraintAddress);
+  Result rv =
+      constraint.Skip(iPAddressConstraint.GetLength() / 2u, constraintAddress);
   if (rv != Success) {
     return rv;
   }
@@ -1274,7 +1212,7 @@ MatchPresentedIPAddressWithConstraint(Input presentedID,
       return rv;
     }
     foundMatch =
-      ((presentedByte ^ constraintAddressByte) & constraintMaskByte) == 0;
+        ((presentedByte ^ constraintAddressByte) & constraintMaskByte) == 0;
   } while (foundMatch && !presented.AtEnd());
 
   return Success;
@@ -1287,12 +1225,10 @@ MatchPresentedIPAddressWithConstraint(Input presentedID,
 // AttributeType ::= OBJECT IDENTIFIER
 //
 // AttributeValue ::= ANY -- DEFINED BY AttributeType
-Result
-ReadAVA(Reader& rdn,
-        /*out*/ Input& type,
-        /*out*/ uint8_t& valueTag,
-        /*out*/ Input& value)
-{
+Result ReadAVA(Reader& rdn,
+               /*out*/ Input& type,
+               /*out*/ uint8_t& valueTag,
+               /*out*/ Input& value) {
   return der::Nested(rdn, der::SEQUENCE, [&](Reader& ava) -> Result {
     Result rv = der::ExpectTagAndGetValue(ava, der::OIDTag, type);
     if (rv != Success) {
@@ -1346,12 +1282,10 @@ ReadAVA(Reader& rdn,
 // constraint to ensure we are not being too lenient. We support empty
 // DirectoryName constraints in excludedSubtrees so that a CA can say "Do not
 // allow any DirectoryNames in issued certificates."
-Result
-MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
-                                          Input presentedID,
-                                          Input directoryNameConstraint,
-                                          /*out*/ bool& matches)
-{
+Result MatchPresentedDirectoryNameWithConstraint(
+    NameConstraintsSubtrees subtreesType, Input presentedID,
+    Input directoryNameConstraint,
+    /*out*/ bool& matches) {
   Reader constraintRDNs;
   Result rv = der::ExpectTagAndGetValueAtEnd(directoryNameConstraint,
                                              der::SEQUENCE, constraintRDNs);
@@ -1359,15 +1293,15 @@ MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
     return rv;
   }
   Reader presentedRDNs;
-  rv = der::ExpectTagAndGetValueAtEnd(presentedID, der::SEQUENCE,
-                                      presentedRDNs);
+  rv =
+      der::ExpectTagAndGetValueAtEnd(presentedID, der::SEQUENCE, presentedRDNs);
   if (rv != Success) {
     return rv;
   }
 
   switch (subtreesType) {
     case NameConstraintsSubtrees::permittedSubtrees:
-      break; // dealt with below
+      break;  // dealt with below
     case NameConstraintsSubtrees::excludedSubtrees:
       if (!constraintRDNs.AtEnd() || !presentedRDNs.AtEnd()) {
         return Result::ERROR_CERT_NOT_IN_NAME_SPACE;
@@ -1416,14 +1350,13 @@ MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
       }
       // TODO (bug 1155767): verify that if an AVA is a PrintableString it
       // consists only of characters valid for PrintableStrings.
-      bool avasMatch =
-        InputsAreEqual(constraintType, presentedType) &&
-        InputsAreEqual(constraintValue, presentedValue) &&
-        (constraintValueTag == presentedValueTag ||
-         (constraintValueTag == der::Tag::UTF8String &&
-          presentedValueTag == der::Tag::PrintableString) ||
-         (constraintValueTag == der::Tag::PrintableString &&
-          presentedValueTag == der::Tag::UTF8String));
+      bool avasMatch = InputsAreEqual(constraintType, presentedType) &&
+                       InputsAreEqual(constraintValue, presentedValue) &&
+                       (constraintValueTag == presentedValueTag ||
+                        (constraintValueTag == der::Tag::UTF8String &&
+                         presentedValueTag == der::Tag::PrintableString) ||
+                        (constraintValueTag == der::Tag::PrintableString &&
+                         presentedValueTag == der::Tag::UTF8String));
       if (!avasMatch) {
         matches = false;
         return Success;
@@ -1461,9 +1394,7 @@ MatchPresentedDirectoryNameWithConstraint(NameConstraintsSubtrees subtreesType,
 //     addresses in the domain "example.com", but not Internet mail
 //     addresses on the host "example.com".
 
-bool
-IsValidRFC822Name(Input input)
-{
+bool IsValidRFC822Name(Input input) {
   Reader reader(input);
 
   // Local-part@.
@@ -1475,19 +1406,87 @@ IsValidRFC822Name(Input input)
     }
     switch (presentedByte) {
       // atext is defined in https://tools.ietf.org/html/rfc2822#section-3.2.4
-      case 'A': case 'a': case 'N': case 'n': case '0': case '!': case '#':
-      case 'B': case 'b': case 'O': case 'o': case '1': case '$': case '%':
-      case 'C': case 'c': case 'P': case 'p': case '2': case '&': case '\'':
-      case 'D': case 'd': case 'Q': case 'q': case '3': case '*': case '+':
-      case 'E': case 'e': case 'R': case 'r': case '4': case '-': case '/':
-      case 'F': case 'f': case 'S': case 's': case '5': case '=': case '?':
-      case 'G': case 'g': case 'T': case 't': case '6': case '^': case '_':
-      case 'H': case 'h': case 'U': case 'u': case '7': case '`': case '{':
-      case 'I': case 'i': case 'V': case 'v': case '8': case '|': case '}':
-      case 'J': case 'j': case 'W': case 'w': case '9': case '~':
-      case 'K': case 'k': case 'X': case 'x':
-      case 'L': case 'l': case 'Y': case 'y':
-      case 'M': case 'm': case 'Z': case 'z':
+      case 'A':
+      case 'a':
+      case 'N':
+      case 'n':
+      case '0':
+      case '!':
+      case '#':
+      case 'B':
+      case 'b':
+      case 'O':
+      case 'o':
+      case '1':
+      case '$':
+      case '%':
+      case 'C':
+      case 'c':
+      case 'P':
+      case 'p':
+      case '2':
+      case '&':
+      case '\'':
+      case 'D':
+      case 'd':
+      case 'Q':
+      case 'q':
+      case '3':
+      case '*':
+      case '+':
+      case 'E':
+      case 'e':
+      case 'R':
+      case 'r':
+      case '4':
+      case '-':
+      case '/':
+      case 'F':
+      case 'f':
+      case 'S':
+      case 's':
+      case '5':
+      case '=':
+      case '?':
+      case 'G':
+      case 'g':
+      case 'T':
+      case 't':
+      case '6':
+      case '^':
+      case '_':
+      case 'H':
+      case 'h':
+      case 'U':
+      case 'u':
+      case '7':
+      case '`':
+      case '{':
+      case 'I':
+      case 'i':
+      case 'V':
+      case 'v':
+      case '8':
+      case '|':
+      case '}':
+      case 'J':
+      case 'j':
+      case 'W':
+      case 'w':
+      case '9':
+      case '~':
+      case 'K':
+      case 'k':
+      case 'X':
+      case 'x':
+      case 'L':
+      case 'l':
+      case 'Y':
+      case 'y':
+      case 'M':
+      case 'm':
+      case 'Z':
+      case 'z':
         startOfAtom = false;
         break;
 
@@ -1498,8 +1497,7 @@ IsValidRFC822Name(Input input)
         startOfAtom = true;
         break;
 
-      case '@':
-      {
+      case '@': {
         if (startOfAtom) {
           return false;
         }
@@ -1516,27 +1514,23 @@ IsValidRFC822Name(Input input)
   }
 }
 
-Result
-MatchPresentedRFC822NameWithReferenceRFC822Name(Input presentedRFC822Name,
-                                                IDRole referenceRFC822NameRole,
-                                                Input referenceRFC822Name,
-                                                /*out*/ bool& matches)
-{
+Result MatchPresentedRFC822NameWithReferenceRFC822Name(
+    Input presentedRFC822Name, IDRole referenceRFC822NameRole,
+    Input referenceRFC822Name,
+    /*out*/ bool& matches) {
   if (!IsValidRFC822Name(presentedRFC822Name)) {
     return Result::ERROR_BAD_DER;
   }
   Reader presented(presentedRFC822Name);
 
-  switch (referenceRFC822NameRole)
-  {
+  switch (referenceRFC822NameRole) {
     case IDRole::PresentedID:
       return Result::FATAL_ERROR_INVALID_ARGS;
 
     case IDRole::ReferenceID:
       break;
 
-    case IDRole::NameConstraint:
-    {
+    case IDRole::NameConstraint: {
       if (InputContains(referenceRFC822Name, '@')) {
         // The constraint is of the form "Local-part@Domain".
         break;
@@ -1561,9 +1555,8 @@ MatchPresentedRFC822NameWithReferenceRFC822Name(Input presentedRFC822Name,
       }
 
       return MatchPresentedDNSIDWithReferenceDNSID(
-               presentedDNSID, AllowWildcards::No,
-               AllowDotlessSubdomainMatches::No, IDRole::NameConstraint,
-               referenceRFC822Name, matches);
+          presentedDNSID, AllowWildcards::No, AllowDotlessSubdomainMatches::No,
+          IDRole::NameConstraint, referenceRFC822Name, matches);
     }
   }
 
@@ -1594,21 +1587,17 @@ MatchPresentedRFC822NameWithReferenceRFC822Name(Input presentedRFC822Name,
 
 // We avoid isdigit because it is locale-sensitive. See
 // http://pubs.opengroup.org/onlinepubs/009695399/functions/tolower.html.
-inline uint8_t
-LocaleInsensitveToLower(uint8_t a)
-{
-  if (a >= 'A' && a <= 'Z') { // unlikely
+inline uint8_t LocaleInsensitveToLower(uint8_t a) {
+  if (a >= 'A' && a <= 'Z') {  // unlikely
     return static_cast<uint8_t>(
-             static_cast<uint8_t>(a - static_cast<uint8_t>('A')) +
-             static_cast<uint8_t>('a'));
+        static_cast<uint8_t>(a - static_cast<uint8_t>('A')) +
+        static_cast<uint8_t>('a'));
   }
   return a;
 }
 
-bool
-StartsWithIDNALabel(Input id)
-{
-  static const uint8_t IDN_ALABEL_PREFIX[4] = { 'x', 'n', '-', '-' };
+bool StartsWithIDNALabel(Input id) {
+  static const uint8_t IDN_ALABEL_PREFIX[4] = {'x', 'n', '-', '-'};
   Reader input(id);
   for (const uint8_t prefixByte : IDN_ALABEL_PREFIX) {
     uint8_t b;
@@ -1622,12 +1611,10 @@ StartsWithIDNALabel(Input id)
   return true;
 }
 
-bool
-ReadIPv4AddressComponent(Reader& input, bool lastComponent,
-                         /*out*/ uint8_t& valueOut)
-{
+bool ReadIPv4AddressComponent(Reader& input, bool lastComponent,
+                              /*out*/ uint8_t& valueOut) {
   size_t length = 0;
-  unsigned int value = 0; // Must be larger than uint8_t.
+  unsigned int value = 0;  // Must be larger than uint8_t.
 
   for (;;) {
     if (input.AtEnd() && lastComponent) {
@@ -1641,36 +1628,34 @@ ReadIPv4AddressComponent(Reader& input, bool lastComponent,
 
     if (b >= '0' && b <= '9') {
       if (value == 0 && length > 0) {
-        return false; // Leading zeros are not allowed.
+        return false;  // Leading zeros are not allowed.
       }
       value = (value * 10) + (b - '0');
       if (value > 255) {
-        return false; // Component's value is too large.
+        return false;  // Component's value is too large.
       }
       ++length;
     } else if (!lastComponent && b == '.') {
       break;
     } else {
-      return false; // Invalid character.
+      return false;  // Invalid character.
     }
   }
 
   if (length == 0) {
-    return false; // empty components not allowed
+    return false;  // empty components not allowed
   }
 
   valueOut = static_cast<uint8_t>(value);
   return true;
 }
 
-} // namespace
+}  // namespace
 
 // On Windows and maybe other platforms, OS-provided IP address parsing
 // functions might fail if the protocol (IPv4 or IPv6) has been disabled, so we
 // can't rely on them.
-bool
-ParseIPv4Address(Input hostname, /*out*/ uint8_t (&out)[4])
-{
+bool ParseIPv4Address(Input hostname, /*out*/ uint8_t (&out)[4]) {
   Reader input(hostname);
   return ReadIPv4AddressComponent(input, false, out[0]) &&
          ReadIPv4AddressComponent(input, false, out[1]) &&
@@ -1680,20 +1665,15 @@ ParseIPv4Address(Input hostname, /*out*/ uint8_t (&out)[4])
 
 namespace {
 
-bool
-FinishIPv6Address(/*in/out*/ uint8_t (&address)[16], int numComponents,
-                  int contractionIndex)
-{
+bool FinishIPv6Address(/*in/out*/ uint8_t (&address)[16], int numComponents,
+                       int contractionIndex) {
   assert(numComponents >= 0);
   assert(numComponents <= 8);
   assert(contractionIndex >= -1);
   assert(contractionIndex <= 8);
   assert(contractionIndex <= numComponents);
-  if (!(numComponents >= 0 &&
-        numComponents <= 8 &&
-        contractionIndex >= -1 &&
-        contractionIndex <= 8 &&
-        contractionIndex <= numComponents)) {
+  if (!(numComponents >= 0 && numComponents <= 8 && contractionIndex >= -1 &&
+        contractionIndex <= 8 && contractionIndex <= numComponents)) {
     return false;
   }
 
@@ -1703,7 +1683,7 @@ FinishIPv6Address(/*in/out*/ uint8_t (&address)[16], int numComponents,
   }
 
   if (numComponents >= 8) {
-    return false; // no room left to expand the contraction.
+    return false;  // no room left to expand the contraction.
   }
 
   // Shift components that occur after the contraction over.
@@ -1712,19 +1692,18 @@ FinishIPv6Address(/*in/out*/ uint8_t (&address)[16], int numComponents,
                      address + (2u * 8u));
   // Fill in the contracted area with zeros.
   std::fill_n(address + 2u * static_cast<size_t>(contractionIndex),
-              (8u - static_cast<size_t>(numComponents)) * 2u, static_cast<uint8_t>(0u));
+              (8u - static_cast<size_t>(numComponents)) * 2u,
+              static_cast<uint8_t>(0u));
 
   return true;
 }
 
-} // namespace
+}  // namespace
 
 // On Windows and maybe other platforms, OS-provided IP address parsing
 // functions might fail if the protocol (IPv4 or IPv6) has been disabled, so we
 // can't rely on them.
-bool
-ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
-{
+bool ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16]) {
   Reader input(hostname);
 
   int currentComponentIndex = 0;
@@ -1761,26 +1740,43 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
         return false;
       }
       switch (b) {
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
           value = static_cast<uint8_t>(b - static_cast<uint8_t>('0'));
           break;
-        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-          value = static_cast<uint8_t>(b - static_cast<uint8_t>('a') +
-                                       UINT8_C(10));
+        case 'a':
+        case 'b':
+        case 'c':
+        case 'd':
+        case 'e':
+        case 'f':
+          value =
+              static_cast<uint8_t>(b - static_cast<uint8_t>('a') + UINT8_C(10));
           break;
-        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-          value = static_cast<uint8_t>(b - static_cast<uint8_t>('A') +
-                                       UINT8_C(10));
+        case 'A':
+        case 'B':
+        case 'C':
+        case 'D':
+        case 'E':
+        case 'F':
+          value =
+              static_cast<uint8_t>(b - static_cast<uint8_t>('A') + UINT8_C(10));
           break;
-        case '.':
-        {
+        case '.': {
           // A dot indicates we hit a IPv4-syntax component. Backtrack, parsing
           // the input from startOfComponent to the end of the input as an IPv4
           // address, and then combine it with the other components.
 
           if (currentComponentIndex > 6) {
-            return false; // Too many components before the IPv4 component
+            return false;  // Too many components before the IPv4 component
           }
 
           input.SkipToEnd();
@@ -1788,8 +1784,8 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
           if (input.GetInput(startOfComponent, ipv4Component) != Success) {
             return false;
           }
-          uint8_t (*ipv4)[4] =
-            reinterpret_cast<uint8_t(*)[4]>(&out[2 * currentComponentIndex]);
+          uint8_t(*ipv4)[4] =
+              reinterpret_cast<uint8_t(*)[4]>(&out[2 * currentComponentIndex]);
           if (!ParseIPv4Address(ipv4Component, *ipv4)) {
             return false;
           }
@@ -1811,7 +1807,7 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
     }
 
     if (currentComponentIndex >= 8) {
-      return false; // too many components
+      return false;  // too many components
     }
 
     if (componentLength == 0) {
@@ -1820,22 +1816,20 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
           // don't accept "::"
           return false;
         }
-        return FinishIPv6Address(out, currentComponentIndex,
-                                 contractionIndex);
+        return FinishIPv6Address(out, currentComponentIndex, contractionIndex);
       }
       return false;
     }
 
     out[2 * currentComponentIndex] =
-      static_cast<uint8_t>(componentValue / 0x100);
+        static_cast<uint8_t>(componentValue / 0x100);
     out[(2 * currentComponentIndex) + 1] =
-      static_cast<uint8_t>(componentValue % 0x100);
+        static_cast<uint8_t>(componentValue % 0x100);
 
     ++currentComponentIndex;
 
     if (input.AtEnd()) {
-      return FinishIPv6Address(out, currentComponentIndex,
-                               contractionIndex);
+      return FinishIPv6Address(out, currentComponentIndex, contractionIndex);
     }
 
     uint8_t b;
@@ -1847,7 +1841,7 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
     if (input.Peek(':')) {
       // Contraction
       if (contractionIndex != -1) {
-        return false; // multiple contractions are not allowed.
+        return false;  // multiple contractions are not allowed.
       }
       if (input.Read(b) != Success || b != ':') {
         assert(false);
@@ -1856,22 +1850,17 @@ ParseIPv6Address(Input hostname, /*out*/ uint8_t (&out)[16])
       contractionIndex = currentComponentIndex;
       if (input.AtEnd()) {
         // "::" at the end of the input.
-        return FinishIPv6Address(out, currentComponentIndex,
-                                 contractionIndex);
+        return FinishIPv6Address(out, currentComponentIndex, contractionIndex);
       }
     }
   }
 }
 
-bool
-IsValidReferenceDNSID(Input hostname)
-{
+bool IsValidReferenceDNSID(Input hostname) {
   return IsValidDNSID(hostname, IDRole::ReferenceID, AllowWildcards::No);
 }
 
-bool
-IsValidPresentedDNSID(Input hostname)
-{
+bool IsValidPresentedDNSID(Input hostname) {
   return IsValidDNSID(hostname, IDRole::PresentedID, AllowWildcards::Yes);
 }
 
@@ -1881,9 +1870,8 @@ namespace {
 // syntax', as specified by Section 3.5 of [RFC1034] and as modified by Section
 // 2.1 of [RFC1123]" except "a dNSName of ' ' MUST NOT be used." Additionally,
 // we allow underscores for compatibility with existing practice.
-bool
-IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
-{
+bool IsValidDNSID(Input hostname, IDRole idRole,
+                  AllowWildcards allowWildcards) {
   if (hostname.GetLength() > 253) {
     return false;
   }
@@ -1932,7 +1920,7 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
     switch (b) {
       case '-':
         if (labelLength == 0) {
-          return false; // Labels must not start with a hyphen.
+          return false;  // Labels must not start with a hyphen.
         }
         labelIsAllNumeric = false;
         labelEndsWithHyphen = true;
@@ -1944,11 +1932,16 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
 
       // We avoid isdigit because it is locale-sensitive. See
       // http://pubs.opengroup.org/onlinepubs/009695399/functions/isdigit.html
-      case '0': case '5':
-      case '1': case '6':
-      case '2': case '7':
-      case '3': case '8':
-      case '4': case '9':
+      case '0':
+      case '5':
+      case '1':
+      case '6':
+      case '2':
+      case '7':
+      case '3':
+      case '8':
+      case '4':
+      case '9':
         if (labelLength == 0) {
           labelIsAllNumeric = true;
         }
@@ -1962,19 +1955,58 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
       // We avoid using islower/isupper/tolower/toupper or similar things, to
       // avoid any possibility of this code being locale-sensitive. See
       // http://pubs.opengroup.org/onlinepubs/009695399/functions/isupper.html
-      case 'a': case 'A': case 'n': case 'N':
-      case 'b': case 'B': case 'o': case 'O':
-      case 'c': case 'C': case 'p': case 'P':
-      case 'd': case 'D': case 'q': case 'Q':
-      case 'e': case 'E': case 'r': case 'R':
-      case 'f': case 'F': case 's': case 'S':
-      case 'g': case 'G': case 't': case 'T':
-      case 'h': case 'H': case 'u': case 'U':
-      case 'i': case 'I': case 'v': case 'V':
-      case 'j': case 'J': case 'w': case 'W':
-      case 'k': case 'K': case 'x': case 'X':
-      case 'l': case 'L': case 'y': case 'Y':
-      case 'm': case 'M': case 'z': case 'Z':
+      case 'a':
+      case 'A':
+      case 'n':
+      case 'N':
+      case 'b':
+      case 'B':
+      case 'o':
+      case 'O':
+      case 'c':
+      case 'C':
+      case 'p':
+      case 'P':
+      case 'd':
+      case 'D':
+      case 'q':
+      case 'Q':
+      case 'e':
+      case 'E':
+      case 'r':
+      case 'R':
+      case 'f':
+      case 'F':
+      case 's':
+      case 'S':
+      case 'g':
+      case 'G':
+      case 't':
+      case 'T':
+      case 'h':
+      case 'H':
+      case 'u':
+      case 'U':
+      case 'i':
+      case 'I':
+      case 'v':
+      case 'V':
+      case 'j':
+      case 'J':
+      case 'w':
+      case 'W':
+      case 'k':
+      case 'K':
+      case 'x':
+      case 'X':
+      case 'l':
+      case 'L':
+      case 'y':
+      case 'Y':
+      case 'm':
+      case 'M':
+      case 'z':
+      case 'Z':
       // We allow underscores for compatibility with existing practices.
       // See bug 1136616.
       case '_':
@@ -1993,13 +2025,13 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
           return false;
         }
         if (labelEndsWithHyphen) {
-          return false; // Labels must not end with a hyphen.
+          return false;  // Labels must not end with a hyphen.
         }
         labelLength = 0;
         break;
 
       default:
-        return false; // Invalid character.
+        return false;  // Invalid character.
     }
     isFirstByte = false;
   } while (!input.AtEnd());
@@ -2011,11 +2043,11 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
   }
 
   if (labelEndsWithHyphen) {
-    return false; // Labels must not end with a hyphen.
+    return false;  // Labels must not end with a hyphen.
   }
 
   if (labelIsAllNumeric) {
-    return false; // Last label must not be all numeric.
+    return false;  // Last label must not be all numeric.
   }
 
   if (isWildcard) {
@@ -2045,6 +2077,7 @@ IsValidDNSID(Input hostname, IDRole idRole, AllowWildcards allowWildcards)
   return true;
 }
 
-} // namespace
+}  // namespace
 
-} } // namespace mozilla::pkix
+}  // namespace pkix
+}  // namespace mozilla

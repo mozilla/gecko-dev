@@ -19,10 +19,9 @@ namespace mozilla {
 // nsCSSFrameConstructor::ConstructDetailsFrame for the structure of a
 // DetailsFrame.
 //
-class DetailsFrame final : public nsBlockFrame
-                         , public nsIAnonymousContentCreator
-{
-public:
+class DetailsFrame final : public nsBlockFrame,
+                           public nsIAnonymousContentCreator {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(DetailsFrame)
   NS_DECL_QUERYFRAME
 
@@ -31,8 +30,7 @@ public:
   virtual ~DetailsFrame();
 
 #ifdef DEBUG_FRAME_DUMP
-  nsresult GetFrameName(nsAString& aResult) const override
-  {
+  nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("Details"), aResult);
   }
 #endif
@@ -46,7 +44,8 @@ public:
   void SetInitialChildList(ChildListID aListID,
                            nsFrameList& aChildList) override;
 
-  void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  void DestroyFrom(nsIFrame* aDestructRoot,
+                   PostDestroyData& aPostDestroyData) override;
 
   // nsIAnonymousContentCreator
   nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
@@ -60,10 +59,10 @@ public:
   // removed from the details element children.
   bool HasMainSummaryFrame(nsIFrame* aSummaryFrame);
 
-private:
+ private:
   nsCOMPtr<nsIContent> mDefaultSummary;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // DetailsFrame_h
+#endif  // DetailsFrame_h

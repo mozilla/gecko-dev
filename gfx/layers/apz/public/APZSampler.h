@@ -18,7 +18,7 @@ class TimeStamp;
 namespace wr {
 class TransactionBuilder;
 struct WrTransformProperty;
-} // namespace wr
+}  // namespace wr
 
 namespace layers {
 
@@ -35,30 +35,26 @@ class WebRenderScrollData;
 class APZSampler {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(APZSampler)
 
-public:
+ public:
   explicit APZSampler(const RefPtr<APZCTreeManager>& aApz);
 
   void ClearTree();
   void UpdateFocusState(uint64_t aRootLayerTreeId,
                         uint64_t aOriginatingLayersId,
                         const FocusTarget& aFocusTarget);
-  void UpdateHitTestingTree(uint64_t aRootLayerTreeId,
-                            Layer* aRoot,
-                            bool aIsFirstPaint,
-                            uint64_t aOriginatingLayersId,
+  void UpdateHitTestingTree(uint64_t aRootLayerTreeId, Layer* aRoot,
+                            bool aIsFirstPaint, uint64_t aOriginatingLayersId,
                             uint32_t aPaintSequenceNumber);
   void UpdateHitTestingTree(uint64_t aRootLayerTreeId,
                             const WebRenderScrollData& aScrollData,
-                            bool aIsFirstPaint,
-                            uint64_t aOriginatingLayersId,
+                            bool aIsFirstPaint, uint64_t aOriginatingLayersId,
                             uint32_t aPaintSequenceNumber);
 
   void NotifyLayerTreeAdopted(uint64_t aLayersId,
                               const RefPtr<APZSampler>& aOldSampler);
   void NotifyLayerTreeRemoved(uint64_t aLayersId);
 
-  bool PushStateToWR(wr::TransactionBuilder& aTxn,
-                     const TimeStamp& aSampleTime,
+  bool PushStateToWR(wr::TransactionBuilder& aTxn, const TimeStamp& aSampleTime,
                      nsTArray<wr::WrTransformProperty>& aTransformArray);
 
   bool GetAPZTestData(uint64_t aLayersId, APZTestData* aOutData);
@@ -70,14 +66,14 @@ public:
                         const FrameMetrics::ViewID& aScrollId,
                         const LayerToParentLayerScale& aZoom);
 
-protected:
+ protected:
   virtual ~APZSampler();
 
-private:
+ private:
   RefPtr<APZCTreeManager> mApz;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_APZSampler_h
+#endif  // mozilla_layers_APZSampler_h

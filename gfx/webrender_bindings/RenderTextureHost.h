@@ -23,21 +23,21 @@ namespace wr {
 class RenderBufferTextureHost;
 class RenderTextureHostOGL;
 
-class RenderTextureHost
-{
+class RenderTextureHost {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RenderTextureHost)
 
-public:
+ public:
   RenderTextureHost();
 
-  virtual wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL) = 0;
+  virtual wr::WrExternalImage Lock(uint8_t aChannelIndex,
+                                   gl::GLContext* aGL) = 0;
   virtual void Unlock() = 0;
 
-protected:
+ protected:
   virtual ~RenderTextureHost();
 };
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
-#endif // MOZILLA_GFX_RENDERTEXTUREHOST_H
+#endif  // MOZILLA_GFX_RENDERTEXTUREHOST_H

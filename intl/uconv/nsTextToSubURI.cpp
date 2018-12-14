@@ -16,9 +16,8 @@ using namespace mozilla;
 // Fallback value for the pref "network.IDN.blacklist_chars".
 // UnEscapeURIForUI allows unescaped space; other than that, this is
 // the same as the default "network.IDN.blacklist_chars" value.
-static const char16_t sNetworkIDNBlacklistChars[] =
-{
-  // clang-format off
+static const char16_t sNetworkIDNBlacklistChars[] = {
+    // clang-format off
 /*0x0020,*/
           0x00A0, 0x00BC, 0x00BD, 0x00BE, 0x01C3, 0x02D0, 0x0337,
   0x0338, 0x0589, 0x058A, 0x05C3, 0x05F4, 0x0609, 0x060A, 0x066A, 0x06D4,
@@ -35,20 +34,16 @@ static const char16_t sNetworkIDNBlacklistChars[] =
   0x33C6, 0x33DF, 0xA789, 0xFE14, 0xFE15, 0xFE3F, 0xFE5D, 0xFE5E,
   0xFEFF, 0xFF0E, 0xFF0F, 0xFF61, 0xFFA0, 0xFFF9, 0xFFFA, 0xFFFB,
   0xFFFC, 0xFFFD
-  // clang-format on
+    // clang-format on
 };
 
-nsTextToSubURI::~nsTextToSubURI()
-{
-}
+nsTextToSubURI::~nsTextToSubURI() {}
 
 NS_IMPL_ISUPPORTS(nsTextToSubURI, nsITextToSubURI)
 
 NS_IMETHODIMP
 nsTextToSubURI::ConvertAndEscape(const nsACString& aCharset,
-                                 const nsAString& aText,
-                                 nsACString& aOut)
-{
+                                 const nsAString& aText, nsACString& aOut) {
   auto encoding = Encoding::ForLabelNoReplacement(aCharset);
   if (!encoding) {
     aOut.Truncate();
@@ -73,9 +68,7 @@ nsTextToSubURI::ConvertAndEscape(const nsACString& aCharset,
 
 NS_IMETHODIMP
 nsTextToSubURI::UnEscapeAndConvert(const nsACString& aCharset,
-                                   const nsACString& aText,
-                                   nsAString& aOut)
-{
+                                   const nsACString& aText, nsAString& aOut) {
   auto encoding = Encoding::ForLabelNoReplacement(aCharset);
   if (!encoding) {
     aOut.Truncate();
@@ -90,12 +83,11 @@ nsTextToSubURI::UnEscapeAndConvert(const nsACString& aCharset,
   return rv;
 }
 
-static bool statefulCharset(const char *charset)
-{
+static bool statefulCharset(const char* charset) {
   // HZ, UTF-7 and the CN and KR ISO-2022 variants are no longer in
   // mozilla-central but keeping them here just in case for the benefit of
   // comm-central.
-  if (!nsCRT::strncasecmp(charset, "ISO-2022-", sizeof("ISO-2022-")-1) ||
+  if (!nsCRT::strncasecmp(charset, "ISO-2022-", sizeof("ISO-2022-") - 1) ||
       !nsCRT::strcasecmp(charset, "UTF-7") ||
       !nsCRT::strcasecmp(charset, "HZ-GB-2312"))
     return true;
@@ -103,11 +95,9 @@ static bool statefulCharset(const char *charset)
   return false;
 }
 
-nsresult
-nsTextToSubURI::convertURItoUnicode(const nsCString& aCharset,
-                                    const nsCString& aURI,
-                                    nsAString& aOut)
-{
+nsresult nsTextToSubURI::convertURItoUnicode(const nsCString& aCharset,
+                                             const nsCString& aURI,
+                                             nsAString& aOut) {
   // check for 7bit encoding the data may not be ASCII after we decode
   bool isStatefulCharset = statefulCharset(aCharset.get());
 
@@ -133,10 +123,9 @@ nsTextToSubURI::convertURItoUnicode(const nsCString& aCharset,
   return encoding->DecodeWithoutBOMHandlingAndWithoutReplacement(aURI, aOut);
 }
 
-NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
-                                                const nsACString &aURIFragment,
-                                                nsAString &_retval)
-{
+NS_IMETHODIMP nsTextToSubURI::UnEscapeURIForUI(const nsACString& aCharset,
+                                               const nsACString& aURIFragment,
+                                               nsAString& _retval) {
   nsAutoCString unescapedSpec;
   // skip control octets (0x00 - 0x1f and 0x7f) when unescaping
   NS_UnescapeURL(PromiseFlatCString(aURIFragment),
@@ -145,9 +134,8 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
   // in case of failure, return escaped URI
   // Test for != NS_OK rather than NS_FAILED, because incomplete multi-byte
   // sequences are also considered failure in this context
-  if (convertURItoUnicode(
-                PromiseFlatCString(aCharset), unescapedSpec, _retval)
-      != NS_OK) {
+  if (convertURItoUnicode(PromiseFlatCString(aCharset), unescapedSpec,
+                          _retval) != NS_OK) {
     // assume UTF-8 instead of ASCII  because hostname (IDN) may be in UTF-8
     CopyUTF8toUTF16(aURIFragment, _retval);
   }
@@ -160,16 +148,17 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
     if (NS_SUCCEEDED(rv)) {
       // we allow SPACE and IDEOGRAPHIC SPACE in this method
       blacklist.StripChars(u" \u3000");
-      mUnsafeChars.AppendElements(static_cast<const char16_t*>(blacklist.Data()),
-                                  blacklist.Length());
+      mUnsafeChars.AppendElements(
+          static_cast<const char16_t*>(blacklist.Data()), blacklist.Length());
     } else {
       NS_WARNING("Failed to get the 'network.IDN.blacklist_chars' preference");
     }
     // We check IsEmpty() intentionally here because an empty (or just spaces)
     // pref value is likely a mistake/error of some sort.
     if (mUnsafeChars.IsEmpty()) {
-      mUnsafeChars.AppendElements(sNetworkIDNBlacklistChars,
-                                  mozilla::ArrayLength(sNetworkIDNBlacklistChars));
+      mUnsafeChars.AppendElements(
+          sNetworkIDNBlacklistChars,
+          mozilla::ArrayLength(sNetworkIDNBlacklistChars));
     }
     mUnsafeChars.Sort();
   }
@@ -183,8 +172,7 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
 NS_IMETHODIMP
 nsTextToSubURI::UnEscapeNonAsciiURI(const nsACString& aCharset,
                                     const nsACString& aURIFragment,
-                                    nsAString& _retval)
-{
+                                    nsAString& _retval) {
   nsAutoCString unescapedSpec;
   NS_UnescapeURL(PromiseFlatCString(aURIFragment),
                  esc_AlwaysCopy | esc_OnlyNonASCII, unescapedSpec);
@@ -196,13 +184,13 @@ nsTextToSubURI::UnEscapeNonAsciiURI(const nsACString& aCharset,
        aCharset.LowerCaseEqualsLiteral("utf-16be") ||
        aCharset.LowerCaseEqualsLiteral("utf-16le") ||
        aCharset.LowerCaseEqualsLiteral("utf-7") ||
-       aCharset.LowerCaseEqualsLiteral("x-imap4-modified-utf7"))){
+       aCharset.LowerCaseEqualsLiteral("x-imap4-modified-utf7"))) {
     CopyASCIItoUTF16(aURIFragment, _retval);
     return NS_OK;
   }
 
-  nsresult rv = convertURItoUnicode(PromiseFlatCString(aCharset),
-                                    unescapedSpec, _retval);
+  nsresult rv =
+      convertURItoUnicode(PromiseFlatCString(aCharset), unescapedSpec, _retval);
   // NS_OK_UDEC_MOREINPUT is a success code, so caller can't catch the error
   // if the string ends with a valid (but incomplete) sequence.
   return rv == NS_OK_UDEC_MOREINPUT ? NS_ERROR_UDEC_ILLEGALINPUT : rv;

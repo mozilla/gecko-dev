@@ -17,25 +17,25 @@ namespace mozilla {
 
 namespace layers {
 class StackingContextHelper;
-} // namespace layers
+}  // namespace layers
 
 namespace wr {
 class DisplayListBuilder;
-} // namespace wr
+}  // namespace wr
 
 // A resolved color stop, with a specific position along the gradient line and
 // a color.
 struct ColorStop {
-  ColorStop(): mPosition(0), mIsMidpoint(false) {}
-  ColorStop(double aPosition, bool aIsMidPoint, const gfx::Color& aColor) :
-    mPosition(aPosition), mIsMidpoint(aIsMidPoint), mColor(aColor) {}
-  double mPosition; // along the gradient line; 0=start, 1=end
+  ColorStop() : mPosition(0), mIsMidpoint(false) {}
+  ColorStop(double aPosition, bool aIsMidPoint, const gfx::Color& aColor)
+      : mPosition(aPosition), mIsMidpoint(aIsMidPoint), mColor(aColor) {}
+  double mPosition;  // along the gradient line; 0=start, 1=end
   bool mIsMidpoint;
   gfx::Color mColor;
 };
 
 class nsCSSGradientRenderer final {
-public:
+ public:
   /**
    * Prepare a nsCSSGradientRenderer for a gradient for an element.
    * aIntrinsicSize - the size of the source gradient.
@@ -53,19 +53,14 @@ public:
    *               to the next origin of a tile
    * aDirtyRect - pixels outside of this area may be skipped
    */
-  void Paint(gfxContext& aContext,
-             const nsRect& aDest,
-             const nsRect& aFill,
-             const nsSize& aRepeatSize,
-             const mozilla::CSSIntRect& aSrc,
-             const nsRect& aDirtyRect,
-             float aOpacity = 1.0);
+  void Paint(gfxContext& aContext, const nsRect& aDest, const nsRect& aFill,
+             const nsSize& aRepeatSize, const mozilla::CSSIntRect& aSrc,
+             const nsRect& aDirtyRect, float aOpacity = 1.0);
 
   /**
    * Collect the gradient parameters
    */
-  void BuildWebRenderParameters(float aOpacity,
-                                wr::ExtendMode& aMode,
+  void BuildWebRenderParameters(float aOpacity, wr::ExtendMode& aMode,
                                 nsTArray<wr::GradientStop>& aStops,
                                 LayoutDevicePoint& aLineStart,
                                 LayoutDevicePoint& aLineEnd,
@@ -82,14 +77,13 @@ public:
    */
   void BuildWebRenderDisplayItems(wr::DisplayListBuilder& aBuilder,
                                   const layers::StackingContextHelper& aSc,
-                                  const nsRect& aDest,
-                                  const nsRect& aFill,
+                                  const nsRect& aDest, const nsRect& aFill,
                                   const nsSize& aRepeatSize,
                                   const mozilla::CSSIntRect& aSrc,
                                   bool aIsBackfaceVisible,
                                   float aOpacity = 1.0);
 
-private:
+ private:
   nsCSSGradientRenderer() {}
 
   nsPresContext* mPresContext;
@@ -99,6 +93,6 @@ private:
   double mRadiusX, mRadiusY;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* nsCSSRenderingGradients_h__ */

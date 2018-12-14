@@ -21,27 +21,19 @@
 namespace mozilla {
 namespace dom {
 
-bool
-InspectorFontFace::FromFontGroup()
-{
+bool InspectorFontFace::FromFontGroup() {
   return mMatchType & gfxTextRange::kFontGroup;
 }
 
-bool
-InspectorFontFace::FromLanguagePrefs()
-{
+bool InspectorFontFace::FromLanguagePrefs() {
   return mMatchType & gfxTextRange::kPrefsFallback;
 }
 
-bool
-InspectorFontFace::FromSystemFallback()
-{
+bool InspectorFontFace::FromSystemFallback() {
   return mMatchType & gfxTextRange::kSystemFallback;
 }
 
-void
-InspectorFontFace::GetName(nsAString& aName)
-{
+void InspectorFontFace::GetName(nsAString& aName) {
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
     aName = mFontEntry->mUserFontData->mRealName;
@@ -50,21 +42,17 @@ InspectorFontFace::GetName(nsAString& aName)
   }
 }
 
-void
-InspectorFontFace::GetCSSFamilyName(nsAString& aCSSFamilyName)
-{
+void InspectorFontFace::GetCSSFamilyName(nsAString& aCSSFamilyName) {
   aCSSFamilyName = mFontEntry->FamilyName();
 }
 
-nsCSSFontFaceRule*
-InspectorFontFace::GetRule()
-{
+nsCSSFontFaceRule* InspectorFontFace::GetRule() {
   // check whether this font entry is associated with an @font-face rule
   // in the relevant font group's user font set
   nsCSSFontFaceRule* rule = nullptr;
   if (mFontEntry->IsUserFont()) {
     FontFaceSet::UserFontSet* fontSet =
-      static_cast<FontFaceSet::UserFontSet*>(mFontGroup->GetUserFontSet());
+        static_cast<FontFaceSet::UserFontSet*>(mFontGroup->GetUserFontSet());
     if (fontSet) {
       FontFaceSet* fontFaceSet = fontSet->GetFontFaceSet();
       if (fontFaceSet) {
@@ -75,9 +63,7 @@ InspectorFontFace::GetRule()
   return rule;
 }
 
-int32_t
-InspectorFontFace::SrcIndex()
-{
+int32_t InspectorFontFace::SrcIndex() {
   if (mFontEntry->IsUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
     return mFontEntry->mUserFontData->mSrcIndex;
@@ -86,9 +72,7 @@ InspectorFontFace::SrcIndex()
   return -1;
 }
 
-void
-InspectorFontFace::GetURI(nsAString& aURI)
-{
+void InspectorFontFace::GetURI(nsAString& aURI) {
   aURI.Truncate();
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
@@ -100,9 +84,7 @@ InspectorFontFace::GetURI(nsAString& aURI)
   }
 }
 
-void
-InspectorFontFace::GetLocalName(nsAString& aLocalName)
-{
+void InspectorFontFace::GetLocalName(nsAString& aLocalName) {
   if (mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
     aLocalName = mFontEntry->mUserFontData->mLocalName;
@@ -111,18 +93,14 @@ InspectorFontFace::GetLocalName(nsAString& aLocalName)
   }
 }
 
-static void
-AppendToFormat(nsAString& aResult, const char* aFormat)
-{
+static void AppendToFormat(nsAString& aResult, const char* aFormat) {
   if (!aResult.IsEmpty()) {
     aResult.Append(',');
   }
   aResult.AppendASCII(aFormat);
 }
 
-void
-InspectorFontFace::GetFormat(nsAString& aFormat)
-{
+void InspectorFontFace::GetFormat(nsAString& aFormat) {
   aFormat.Truncate();
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
@@ -163,9 +141,7 @@ InspectorFontFace::GetFormat(nsAString& aFormat)
   }
 }
 
-void
-InspectorFontFace::GetMetadata(nsAString& aMetadata)
-{
+void InspectorFontFace::GetMetadata(nsAString& aMetadata) {
   aMetadata.Truncate();
   if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
     NS_ASSERTION(mFontEntry->mUserFontData, "missing userFontData");
@@ -175,19 +151,16 @@ InspectorFontFace::GetMetadata(nsAString& aMetadata)
       str.SetLength(userFontData->mMetaOrigLen);
       if (str.Length() == userFontData->mMetaOrigLen) {
         switch (userFontData->mCompression) {
-        case gfxUserFontData::kZlibCompression:
-          {
+          case gfxUserFontData::kZlibCompression: {
             uLongf destLen = userFontData->mMetaOrigLen;
-            if (uncompress((Bytef *)(str.BeginWriting()), &destLen,
-                           (const Bytef *)(userFontData->mMetadata.Elements()),
+            if (uncompress((Bytef*)(str.BeginWriting()), &destLen,
+                           (const Bytef*)(userFontData->mMetadata.Elements()),
                            userFontData->mMetadata.Length()) == Z_OK &&
                 destLen == userFontData->mMetaOrigLen) {
               AppendUTF8toUTF16(str, aMetadata);
             }
-          }
-          break;
-        case gfxUserFontData::kBrotliCompression:
-          {
+          } break;
+          case gfxUserFontData::kBrotliCompression: {
             size_t decodedSize = userFontData->mMetaOrigLen;
             if (BrotliDecoderDecompress(userFontData->mMetadata.Length(),
                                         userFontData->mMetadata.Elements(),
@@ -196,8 +169,7 @@ InspectorFontFace::GetMetadata(nsAString& aMetadata)
                 decodedSize == userFontData->mMetaOrigLen) {
               AppendUTF8toUTF16(str, aMetadata);
             }
-          }
-          break;
+          } break;
         }
       }
     }
@@ -205,23 +177,17 @@ InspectorFontFace::GetMetadata(nsAString& aMetadata)
 }
 
 // Append an OpenType tag to a string as a 4-ASCII-character code.
-static void
-AppendTagAsASCII(nsAString& aString, uint32_t aTag)
-{
-  aString.AppendPrintf("%c%c%c%c", (aTag >> 24) & 0xff,
-                                   (aTag >> 16) & 0xff,
-                                   (aTag >> 8) & 0xff,
-                                   aTag & 0xff);
+static void AppendTagAsASCII(nsAString& aString, uint32_t aTag) {
+  aString.AppendPrintf("%c%c%c%c", (aTag >> 24) & 0xff, (aTag >> 16) & 0xff,
+                       (aTag >> 8) & 0xff, aTag & 0xff);
 }
 
-void
-InspectorFontFace::GetVariationAxes(nsTArray<InspectorVariationAxis>& aResult,
-                                    ErrorResult& aRV)
-{
+void InspectorFontFace::GetVariationAxes(
+    nsTArray<InspectorVariationAxis>& aResult, ErrorResult& aRV) {
   if (!mFontEntry->HasVariations()) {
     return;
   }
-  AutoTArray<gfxFontVariationAxis,4> axes;
+  AutoTArray<gfxFontVariationAxis, 4> axes;
   mFontEntry->GetVariationAxes(axes);
   MOZ_ASSERT(!axes.IsEmpty());
   if (!aResult.SetCapacity(axes.Length(), mozilla::fallible)) {
@@ -238,15 +204,12 @@ InspectorFontFace::GetVariationAxes(nsTArray<InspectorVariationAxis>& aResult,
   }
 }
 
-void
-InspectorFontFace::GetVariationInstances(
-  nsTArray<InspectorVariationInstance>& aResult,
-  ErrorResult& aRV)
-{
+void InspectorFontFace::GetVariationInstances(
+    nsTArray<InspectorVariationInstance>& aResult, ErrorResult& aRV) {
   if (!mFontEntry->HasVariations()) {
     return;
   }
-  AutoTArray<gfxFontVariationInstance,16> instances;
+  AutoTArray<gfxFontVariationInstance, 16> instances;
   mFontEntry->GetVariationInstances(instances);
   if (!aResult.SetCapacity(instances.Length(), mozilla::fallible)) {
     aRV.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -273,11 +236,9 @@ InspectorFontFace::GetVariationInstances(
   }
 }
 
-void
-InspectorFontFace::GetFeatures(nsTArray<InspectorFontFeature>& aResult,
-                               ErrorResult& aRV)
-{
-  AutoTArray<gfxFontFeatureInfo,64> features;
+void InspectorFontFace::GetFeatures(nsTArray<InspectorFontFeature>& aResult,
+                                    ErrorResult& aRV) {
+  AutoTArray<gfxFontFeatureInfo, 64> features;
   mFontEntry->GetFeatureInfo(features);
   if (features.IsEmpty()) {
     return;
@@ -294,17 +255,13 @@ InspectorFontFace::GetFeatures(nsTArray<InspectorFontFeature>& aResult,
   }
 }
 
-void
-InspectorFontFace::GetRanges(nsTArray<RefPtr<nsRange>>& aResult)
-{
+void InspectorFontFace::GetRanges(nsTArray<RefPtr<nsRange>>& aResult) {
   aResult = mRanges;
 }
 
-void
-InspectorFontFace::AddRange(nsRange* aRange)
-{
+void InspectorFontFace::AddRange(nsRange* aRange) {
   mRanges.AppendElement(aRange);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

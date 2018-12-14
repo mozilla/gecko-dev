@@ -83,7 +83,6 @@ class MediaPipelineFilter {
   std::set<std::string> remote_rid_set_;
 };
 
-} // end namespace mozilla
+}  // end namespace mozilla
 
-#endif // mediapipelinefilter_h__
-
+#endif  // mediapipelinefilter_h__

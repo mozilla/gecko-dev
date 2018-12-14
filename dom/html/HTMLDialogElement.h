@@ -15,12 +15,11 @@
 namespace mozilla {
 namespace dom {
 
-class HTMLDialogElement final : public nsGenericHTMLElement
-{
-public:
-  explicit HTMLDialogElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo) : nsGenericHTMLElement(aNodeInfo)
-  {
-  }
+class HTMLDialogElement final : public nsGenericHTMLElement {
+ public:
+  explicit HTMLDialogElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : nsGenericHTMLElement(aNodeInfo) {}
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLDialogElement, dialog)
 
@@ -30,17 +29,12 @@ public:
   static bool IsDialogEnabled();
 
   bool Open() const { return GetBoolAttr(nsGkAtoms::open); }
-  void SetOpen(bool aOpen, ErrorResult& aError)
-  {
+  void SetOpen(bool aOpen, ErrorResult& aError) {
     SetHTMLBoolAttr(nsGkAtoms::open, aOpen, aError);
   }
 
-  void GetReturnValue(nsAString& aReturnValue)
-  {
-    aReturnValue = mReturnValue;
-  }
-  void SetReturnValue(const nsAString& aReturnValue)
-  {
+  void GetReturnValue(nsAString& aReturnValue) { aReturnValue = mReturnValue; }
+  void SetReturnValue(const nsAString& aReturnValue) {
     mReturnValue = aReturnValue;
   }
 
@@ -50,13 +44,13 @@ public:
 
   nsString mReturnValue;
 
-protected:
+ protected:
   virtual ~HTMLDialogElement();
   JSObject* WrapNode(JSContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

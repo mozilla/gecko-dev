@@ -36,9 +36,8 @@ namespace dom {
 // (through its DocGroups) the documents from one or more tabs related by
 // window.opener. A DocGroup is a member of exactly one TabGroup.
 
-class DocGroup final
-{
-public:
+class DocGroup final {
+ public:
   typedef nsTArray<nsIDocument*>::iterator Iterator;
   friend class TabGroup;
 
@@ -47,19 +46,12 @@ public:
   // Returns NS_ERROR_FAILURE and sets |aString| to an empty string if the TLD
   // service isn't available. Returns NS_OK on success, but may still set
   // |aString| may still be set to an empty string.
-  static MOZ_MUST_USE nsresult
-  GetKey(nsIPrincipal* aPrincipal, nsACString& aString);
+  static MOZ_MUST_USE nsresult GetKey(nsIPrincipal* aPrincipal,
+                                      nsACString& aString);
 
-  bool MatchesKey(const nsACString& aKey)
-  {
-    return aKey == mKey;
-  }
-  TabGroup* GetTabGroup()
-  {
-    return mTabGroup;
-  }
-  mozilla::dom::CustomElementReactionsStack* CustomElementReactionsStack()
-  {
+  bool MatchesKey(const nsACString& aKey) { return aKey == mKey; }
+  TabGroup* GetTabGroup() { return mTabGroup; }
+  mozilla::dom::CustomElementReactionsStack* CustomElementReactionsStack() {
     MOZ_ASSERT(NS_IsMainThread());
     if (!mReactionsStack) {
       mReactionsStack = new mozilla::dom::CustomElementReactionsStack();
@@ -70,13 +62,11 @@ public:
   void RemoveDocument(nsIDocument* aWindow);
 
   // Iterators for iterating over every document within the DocGroup
-  Iterator begin()
-  {
+  Iterator begin() {
     MOZ_ASSERT(NS_IsMainThread());
     return mDocuments.begin();
   }
-  Iterator end()
-  {
+  Iterator end() {
     MOZ_ASSERT(NS_IsMainThread());
     return mDocuments.end();
   }
@@ -86,14 +76,10 @@ public:
 
   nsISerialEventTarget* EventTargetFor(TaskCategory aCategory) const;
 
-  AbstractThread*
-  AbstractMainThreadFor(TaskCategory aCategory);
+  AbstractThread* AbstractMainThreadFor(TaskCategory aCategory);
 
   // Ensure that it's valid to access the DocGroup at this time.
-  void ValidateAccess() const
-  {
-    mTabGroup->ValidateAccess();
-  }
+  void ValidateAccess() const { mTabGroup->ValidateAccess(); }
 
   // Return a pointer that can be continually checked to see if access to this
   // DocGroup is valid. This pointer should live at least as long as the
@@ -104,20 +90,16 @@ public:
   // list, and queue a mutation observer microtask.
   void SignalSlotChange(const mozilla::dom::HTMLSlotElement* aSlot);
 
-  const nsTArray<RefPtr<HTMLSlotElement>>& SignalSlotList() const
-  {
+  const nsTArray<RefPtr<HTMLSlotElement>>& SignalSlotList() const {
     return mSignalSlotList;
   }
 
-  void ClearSignalSlotList()
-  {
-    mSignalSlotList.Clear();
-  }
+  void ClearSignalSlotList() { mSignalSlotList.Clear(); }
 
   // List of DocGroups that has non-empty signal slot list.
   static AutoTArray<RefPtr<DocGroup>, 2>* sPendingDocGroups;
 
-private:
+ private:
   DocGroup(TabGroup* aTabGroup, const nsACString& aKey);
   ~DocGroup();
 
@@ -128,7 +110,7 @@ private:
   nsTArray<RefPtr<HTMLSlotElement>> mSignalSlotList;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // defined(DocGroup_h)
+#endif  // defined(DocGroup_h)

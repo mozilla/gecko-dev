@@ -10,10 +10,9 @@
 namespace mozilla {
 
 struct FeedWriterEnabled {
-  static bool IsEnabled(JSContext* cx, JSObject* aGlobal)
-  {
+  static bool IsEnabled(JSContext* cx, JSObject* aGlobal) {
     return nsContentUtils::IsSpecificAboutPage(aGlobal, "about:feeds");
   }
 };
 
-}
+}  // namespace mozilla

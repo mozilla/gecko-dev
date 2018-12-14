@@ -27,32 +27,31 @@ namespace mozilla {
 namespace dom {
 
 // This class iterates normal DOM child nodes of a given DOM node with
-// <xbl:children> nodes replaced by the elements that have been filtered into that
-// insertion point. Any bindings on the given element are ignored for purposes
-// of determining which insertion point children are filtered into. The iterator
-// can be initialized to start at the end by providing false for aStartAtBeginning
-// in order to start iterating in reverse from the last child.
-class ExplicitChildIterator
-{
-public:
+// <xbl:children> nodes replaced by the elements that have been filtered into
+// that insertion point. Any bindings on the given element are ignored for
+// purposes of determining which insertion point children are filtered into. The
+// iterator can be initialized to start at the end by providing false for
+// aStartAtBeginning in order to start iterating in reverse from the last child.
+class ExplicitChildIterator {
+ public:
   explicit ExplicitChildIterator(const nsIContent* aParent,
                                  bool aStartAtBeginning = true);
 
   ExplicitChildIterator(const ExplicitChildIterator& aOther)
-    : mParent(aOther.mParent),
-      mParentAsSlot(aOther.mParentAsSlot),
-      mChild(aOther.mChild),
-      mDefaultChild(aOther.mDefaultChild),
-      mIsFirst(aOther.mIsFirst),
-      mIndexInInserted(aOther.mIndexInInserted) {}
+      : mParent(aOther.mParent),
+        mParentAsSlot(aOther.mParentAsSlot),
+        mChild(aOther.mChild),
+        mDefaultChild(aOther.mDefaultChild),
+        mIsFirst(aOther.mIsFirst),
+        mIndexInInserted(aOther.mIndexInInserted) {}
 
   ExplicitChildIterator(ExplicitChildIterator&& aOther)
-    : mParent(aOther.mParent),
-      mParentAsSlot(aOther.mParentAsSlot),
-      mChild(aOther.mChild),
-      mDefaultChild(aOther.mDefaultChild),
-      mIsFirst(aOther.mIsFirst),
-      mIndexInInserted(aOther.mIndexInInserted) {}
+      : mParent(aOther.mParent),
+        mParentAsSlot(aOther.mParentAsSlot),
+        mChild(aOther.mChild),
+        mDefaultChild(aOther.mDefaultChild),
+        mIsFirst(aOther.mIsFirst),
+        mIndexInInserted(aOther.mIndexInInserted) {}
 
   nsIContent* GetNextChild();
 
@@ -62,12 +61,11 @@ public:
   // cases).
   bool Seek(const nsIContent* aChildToFind);
 
-  // Looks for aChildToFind respecting insertion points until aChildToFind is found.
-  // or aBound is found. If aBound is nullptr then the seek is unbounded. Returns
-  // whether aChildToFind was found as an explicit child prior to encountering
-  // aBound.
-  bool Seek(const nsIContent* aChildToFind, nsIContent* aBound)
-  {
+  // Looks for aChildToFind respecting insertion points until aChildToFind is
+  // found. or aBound is found. If aBound is nullptr then the seek is unbounded.
+  // Returns whether aChildToFind was found as an explicit child prior to
+  // encountering aBound.
+  bool Seek(const nsIContent* aChildToFind, nsIContent* aBound) {
     // It would be nice to assert that we find aChildToFind, but bz thinks that
     // we might not find aChildToFind when called from ContentInserted
     // if first-letter frames are about.
@@ -91,7 +89,7 @@ public:
   // points.
   nsIContent* GetPreviousChild();
 
-protected:
+ protected:
   // The parent of the children being iterated. For the FlattenedChildIterator,
   // if there is a binding attached to the original parent, mParent points to
   // the <xbl:content> element for the binding.
@@ -128,28 +126,24 @@ protected:
 // children, those are iterated over.  The iterator can be initialized to start
 // at the end by providing false for aStartAtBeginning in order to start
 // iterating in reverse from the last child.
-class FlattenedChildIterator : public ExplicitChildIterator
-{
-public:
+class FlattenedChildIterator : public ExplicitChildIterator {
+ public:
   explicit FlattenedChildIterator(const nsIContent* aParent,
                                   bool aStartAtBeginning = true)
-    : ExplicitChildIterator(aParent, aStartAtBeginning)
-    , mOriginalContent(aParent)
-  {
+      : ExplicitChildIterator(aParent, aStartAtBeginning),
+        mOriginalContent(aParent) {
     Init(false);
   }
 
   FlattenedChildIterator(FlattenedChildIterator&& aOther)
-    : ExplicitChildIterator(Move(aOther))
-    , mOriginalContent(aOther.mOriginalContent)
-    , mXBLInvolved(aOther.mXBLInvolved)
-  {}
+      : ExplicitChildIterator(Move(aOther)),
+        mOriginalContent(aOther.mOriginalContent),
+        mXBLInvolved(aOther.mXBLInvolved) {}
 
   FlattenedChildIterator(const FlattenedChildIterator& aOther)
-    : ExplicitChildIterator(aOther)
-    , mOriginalContent(aOther.mOriginalContent)
-    , mXBLInvolved(aOther.mXBLInvolved)
-  {}
+      : ExplicitChildIterator(aOther),
+        mOriginalContent(aOther.mOriginalContent),
+        mXBLInvolved(aOther.mXBLInvolved) {}
 
   bool XBLInvolved() {
     if (mXBLInvolved.isNothing()) {
@@ -160,28 +154,27 @@ public:
 
   const nsIContent* Parent() const { return mOriginalContent; }
 
-private:
+ private:
   bool ComputeWhetherXBLIsInvolved() const;
 
   void Init(bool aIgnoreXBL);
 
-protected:
+ protected:
   /**
    * This constructor is a hack to help AllChildrenIterator which sometimes
    * doesn't want to consider XBL.
    */
   FlattenedChildIterator(const nsIContent* aParent, uint32_t aFlags,
                          bool aStartAtBeginning = true)
-    : ExplicitChildIterator(aParent, aStartAtBeginning)
-    , mOriginalContent(aParent)
-  {
+      : ExplicitChildIterator(aParent, aStartAtBeginning),
+        mOriginalContent(aParent) {
     bool ignoreXBL = aFlags & nsIContent::eAllButXBL;
     Init(ignoreXBL);
   }
 
   const nsIContent* mOriginalContent;
 
-private:
+ private:
   // For certain optimizations, nsCSSFrameConstructor needs to know if the child
   // list of the element that we're iterating matches its .childNodes.
   //
@@ -198,23 +191,27 @@ private:
  * Note: it assumes that no mutation of the DOM or frame tree takes place during
  * iteration, and will break horribly if that is not true.
  */
-class AllChildrenIterator : private FlattenedChildIterator
-{
-public:
+class AllChildrenIterator : private FlattenedChildIterator {
+ public:
   AllChildrenIterator(const nsIContent* aNode, uint32_t aFlags,
-                      bool aStartAtBeginning = true) :
-    FlattenedChildIterator(aNode, aFlags, aStartAtBeginning),
-    mAnonKidsIdx(aStartAtBeginning ? UINT32_MAX : 0),
-    mFlags(aFlags), mPhase(aStartAtBeginning ? eAtBegin : eAtEnd) { }
+                      bool aStartAtBeginning = true)
+      : FlattenedChildIterator(aNode, aFlags, aStartAtBeginning),
+        mAnonKidsIdx(aStartAtBeginning ? UINT32_MAX : 0),
+        mFlags(aFlags),
+        mPhase(aStartAtBeginning ? eAtBegin : eAtEnd) {}
 
   AllChildrenIterator(AllChildrenIterator&& aOther)
-    : FlattenedChildIterator(Move(aOther)),
-      mAnonKids(Move(aOther.mAnonKids)), mAnonKidsIdx(aOther.mAnonKidsIdx),
-      mFlags(aOther.mFlags), mPhase(aOther.mPhase)
+      : FlattenedChildIterator(Move(aOther)),
+        mAnonKids(Move(aOther.mAnonKids)),
+        mAnonKidsIdx(aOther.mAnonKidsIdx),
+        mFlags(aOther.mFlags),
+        mPhase(aOther.mPhase)
 #ifdef DEBUG
-      , mMutationGuard(aOther.mMutationGuard)
+        ,
+        mMutationGuard(aOther.mMutationGuard)
 #endif
-      {}
+  {
+  }
 
 #ifdef DEBUG
   ~AllChildrenIterator() { MOZ_ASSERT(!mMutationGuard.Mutated(0)); }
@@ -232,8 +229,7 @@ public:
   nsIContent* GetNextChild();
   nsIContent* GetPreviousChild();
 
-  enum IteratorPhase
-  {
+  enum IteratorPhase {
     eAtBegin,
     eAtBeforeKid,
     eAtExplicitKids,
@@ -243,7 +239,7 @@ public:
   };
   IteratorPhase Phase() const { return mPhase; }
 
-private:
+ private:
   // Helpers.
   void AppendNativeAnonymousChildren();
 
@@ -282,14 +278,14 @@ private:
  * We require this to be memmovable since Rust code can create and move
  * StyleChildrenIterators.
  */
-class MOZ_NEEDS_MEMMOVABLE_MEMBERS StyleChildrenIterator : private AllChildrenIterator
-{
-public:
+class MOZ_NEEDS_MEMMOVABLE_MEMBERS StyleChildrenIterator
+    : private AllChildrenIterator {
+ public:
   explicit StyleChildrenIterator(const nsIContent* aContent)
-    : AllChildrenIterator(aContent,
-                          nsIContent::eAllChildren |
-                          nsIContent::eSkipDocumentLevelNativeAnonymousContent)
-  {
+      : AllChildrenIterator(
+            aContent,
+            nsIContent::eAllChildren |
+                nsIContent::eSkipDocumentLevelNativeAnonymousContent) {
     MOZ_COUNT_CTOR(StyleChildrenIterator);
   }
   ~StyleChildrenIterator() { MOZ_COUNT_DTOR(StyleChildrenIterator); }
@@ -297,7 +293,7 @@ public:
   nsIContent* GetNextChild();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

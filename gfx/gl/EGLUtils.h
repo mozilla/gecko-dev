@@ -20,41 +20,36 @@ EGLImage CreateEGLImage(GLContext* gl, GLuint tex);
 ////////////////////////////////////////////////////////////////////////
 // EGLImageWrapper
 
-class EGLImageWrapper
-{
-public:
-    static EGLImageWrapper* Create(GLContext* gl, GLuint tex);
+class EGLImageWrapper {
+ public:
+  static EGLImageWrapper* Create(GLContext* gl, GLuint tex);
 
-private:
-    GLLibraryEGL& mLibrary;
-    const EGLDisplay mDisplay;
-public:
-    const EGLImage mImage;
-private:
-    EGLSync mSync;
+ private:
+  GLLibraryEGL& mLibrary;
+  const EGLDisplay mDisplay;
 
-    EGLImageWrapper(GLLibraryEGL& library,
-                    EGLDisplay display,
-                    EGLImage image)
-        : mLibrary(library)
-        , mDisplay(display)
-        , mImage(image)
-        , mSync(0)
-    {
-        MOZ_ASSERT(mImage);
-    }
+ public:
+  const EGLImage mImage;
 
-public:
-    ~EGLImageWrapper();
+ private:
+  EGLSync mSync;
 
-    // Insert a sync point on the given context, which should be the current active
-    // context.
-    bool FenceSync(GLContext* gl);
+  EGLImageWrapper(GLLibraryEGL& library, EGLDisplay display, EGLImage image)
+      : mLibrary(library), mDisplay(display), mImage(image), mSync(0) {
+    MOZ_ASSERT(mImage);
+  }
 
-    bool ClientWaitSync();
+ public:
+  ~EGLImageWrapper();
+
+  // Insert a sync point on the given context, which should be the current
+  // active context.
+  bool FenceSync(GLContext* gl);
+
+  bool ClientWaitSync();
 };
 
-} // namespace gl
-} // namespace mozilla
+}  // namespace gl
+}  // namespace mozilla
 
 #endif

@@ -7,21 +7,17 @@
 #include "RenderFrameChild.h"
 #include "mozilla/layers/LayerTransactionChild.h"
 
-using mozilla::layers::PLayerTransactionChild;
 using mozilla::layers::LayerTransactionChild;
+using mozilla::layers::PLayerTransactionChild;
 
 namespace mozilla {
 namespace layout {
 
-void
-RenderFrameChild::ActorDestroy(ActorDestroyReason why)
-{
+void RenderFrameChild::ActorDestroy(ActorDestroyReason why) {
   mWasDestroyed = true;
 }
 
-void
-RenderFrameChild::Destroy()
-{
+void RenderFrameChild::Destroy() {
   if (mWasDestroyed) {
     return;
   }
@@ -30,5 +26,5 @@ RenderFrameChild::Destroy()
   // WARNING: |this| is dead, hands off
 }
 
-} // namespace layout
-} // namespace mozilla
+}  // namespace layout
+}  // namespace mozilla

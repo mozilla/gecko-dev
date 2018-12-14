@@ -32,35 +32,31 @@ class nsIImageLoadingContent;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 /**
  * XP DragService wrapper base class
  */
 
-class nsBaseDragService : public nsIDragService,
-                          public nsIDragSession
-{
-
-public:
+class nsBaseDragService : public nsIDragService, public nsIDragSession {
+ public:
   typedef mozilla::gfx::SourceSurface SourceSurface;
 
   nsBaseDragService();
 
-  //nsISupports
+  // nsISupports
   NS_DECL_ISUPPORTS
 
-  //nsIDragSession and nsIDragService
+  // nsIDragSession and nsIDragService
   NS_DECL_NSIDRAGSERVICE
   NS_DECL_NSIDRAGSESSION
 
-  void SetDragEndPoint(nsIntPoint aEndDragPoint)
-  {
-    mEndDragPoint = mozilla::LayoutDeviceIntPoint::FromUnknownPoint(aEndDragPoint);
+  void SetDragEndPoint(nsIntPoint aEndDragPoint) {
+    mEndDragPoint =
+        mozilla::LayoutDeviceIntPoint::FromUnknownPoint(aEndDragPoint);
   }
-  void SetDragEndPoint(mozilla::LayoutDeviceIntPoint aEndDragPoint)
-  {
+  void SetDragEndPoint(mozilla::LayoutDeviceIntPoint aEndDragPoint) {
     mEndDragPoint = aEndDragPoint;
   }
 
@@ -68,7 +64,7 @@ public:
 
   int32_t TakeChildProcessDragAction();
 
-protected:
+ protected:
   virtual ~nsBaseDragService();
 
   /**
@@ -102,18 +98,17 @@ protected:
    * aPresContext will be set to the nsPresContext used determined from
    * whichever of mImage or aDOMNode is used.
    */
-  nsresult DrawDrag(nsIDOMNode* aDOMNode,
-                    nsIScriptableRegion* aRegion,
+  nsresult DrawDrag(nsIDOMNode* aDOMNode, nsIScriptableRegion* aRegion,
                     mozilla::CSSIntPoint aScreenPosition,
                     mozilla::LayoutDeviceIntRect* aScreenDragRect,
                     RefPtr<SourceSurface>* aSurface,
-                    nsPresContext **aPresContext);
+                    nsPresContext** aPresContext);
 
   /**
    * Draw a drag image for an image node specified by aImageLoader or aCanvas.
    * This is called by DrawDrag.
    */
-  nsresult DrawDragForImage(nsPresContext *aPresContext,
+  nsresult DrawDragForImage(nsPresContext* aPresContext,
                             nsIImageLoadingContent* aImageLoader,
                             mozilla::dom::HTMLCanvasElement* aCanvas,
                             mozilla::LayoutDeviceIntRect* aScreenDragRect,
@@ -122,9 +117,8 @@ protected:
   /**
    * Convert aScreenPosition from CSS pixels into unscaled device pixels.
    */
-  mozilla::LayoutDeviceIntPoint
-  ConvertToUnscaledDevPixels(nsPresContext* aPresContext,
-                             mozilla::CSSIntPoint aScreenPosition);
+  mozilla::LayoutDeviceIntPoint ConvertToUnscaledDevPixels(
+      nsPresContext* aPresContext, mozilla::CSSIntPoint aScreenPosition);
 
   /**
    * If the drag image is a popup, open the popup when the drag begins.
@@ -138,8 +132,7 @@ protected:
 
   // Returns true if a drag event was dispatched to a child process after
   // the previous TakeDragEventDispatchedToChildProcess() call.
-  bool TakeDragEventDispatchedToChildProcess()
-  {
+  bool TakeDragEventDispatchedToChildProcess() {
     bool retval = mDragEventDispatchedToChildProcess;
     mDragEventDispatchedToChildProcess = false;
     return retval;
@@ -161,10 +154,12 @@ protected:
   nsSize mTargetSize;
   nsCOMPtr<nsIDOMNode> mSourceNode;
   nsCString mTriggeringPrincipalURISpec;
-  nsCOMPtr<nsIDOMDocument> mSourceDocument;       // the document at the drag source. will be null
-                                                  //  if it came from outside the app.
-  nsContentPolicyType mContentPolicyType;         // the contentpolicy type passed to the channel
-                                                  // when initiating the drag session
+  nsCOMPtr<nsIDOMDocument>
+      mSourceDocument;  // the document at the drag source. will be null
+                        //  if it came from outside the app.
+  nsContentPolicyType
+      mContentPolicyType;  // the contentpolicy type passed to the channel
+                           // when initiating the drag session
   nsCOMPtr<nsIDOMDataTransfer> mDataTransfer;
 
   // used to determine the image to appear on the cursor while dragging
@@ -175,8 +170,8 @@ protected:
   // set if a selection is being dragged
   nsCOMPtr<nsISelection> mSelection;
 
-  // set if the image in mImage is a popup. If this case, the popup will be opened
-  // and moved instead of using a drag image.
+  // set if the image in mImage is a popup. If this case, the popup will be
+  // opened and moved instead of using a drag image.
   nsCOMPtr<nsIContent> mDragPopup;
 
   // the screen position where drag gesture occurred, used for positioning the
@@ -188,10 +183,11 @@ protected:
 
   uint32_t mSuppressLevel;
 
-  // The input source of the drag event. Possible values are from nsIDOMMouseEvent.
+  // The input source of the drag event. Possible values are from
+  // nsIDOMMouseEvent.
   uint16_t mInputSource;
 
   nsTArray<RefPtr<mozilla::dom::ContentParent>> mChildProcesses;
 };
 
-#endif // nsBaseDragService_h__
+#endif  // nsBaseDragService_h__

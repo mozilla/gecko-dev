@@ -16,32 +16,26 @@
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 
-bool
-SingleLineTextInputTypeBase::IsMutable() const
-{
+bool SingleLineTextInputTypeBase::IsMutable() const {
   return !mInputElement->IsDisabled() &&
          !mInputElement->HasAttr(kNameSpaceID_None, nsGkAtoms::readonly);
 }
 
-bool
-SingleLineTextInputTypeBase::IsTooLong() const
-{
+bool SingleLineTextInputTypeBase::IsTooLong() const {
   int32_t maxLength = mInputElement->MaxLength();
 
   // Maxlength of -1 means attribute isn't set or parsing error.
   if (maxLength == -1) {
-   return false;
+    return false;
   }
 
   int32_t textLength =
-    mInputElement->InputTextLength(mozilla::dom::CallerType::System);
+      mInputElement->InputTextLength(mozilla::dom::CallerType::System);
 
   return textLength > maxLength;
 }
 
-bool
-SingleLineTextInputTypeBase::IsTooShort() const
-{
+bool SingleLineTextInputTypeBase::IsTooShort() const {
   int32_t minLength = mInputElement->MinLength();
 
   // Minlength of -1 means attribute isn't set or parsing error.
@@ -50,14 +44,12 @@ SingleLineTextInputTypeBase::IsTooShort() const
   }
 
   int32_t textLength =
-    mInputElement->InputTextLength(mozilla::dom::CallerType::System);
+      mInputElement->InputTextLength(mozilla::dom::CallerType::System);
 
   return textLength && textLength < minLength;
 }
 
-bool
-SingleLineTextInputTypeBase::IsValueMissing() const
-{
+bool SingleLineTextInputTypeBase::IsValueMissing() const {
   if (!mInputElement->IsRequired()) {
     return false;
   }
@@ -69,9 +61,7 @@ SingleLineTextInputTypeBase::IsValueMissing() const
   return IsValueEmpty();
 }
 
-bool
-SingleLineTextInputTypeBase::HasPatternMismatch() const
-{
+bool SingleLineTextInputTypeBase::HasPatternMismatch() const {
   if (!mInputElement->HasPatternAttribute()) {
     return false;
   }
@@ -95,9 +85,7 @@ SingleLineTextInputTypeBase::HasPatternMismatch() const
 
 /* input type=url */
 
-bool
-URLInputType::HasTypeMismatch() const
-{
+bool URLInputType::HasTypeMismatch() const {
   nsAutoString value;
   GetNonFileValueInternal(value);
 
@@ -121,22 +109,16 @@ URLInputType::HasTypeMismatch() const
 
   return !NS_SUCCEEDED(ioService->NewURI(NS_ConvertUTF16toUTF8(value), nullptr,
                                          nullptr, getter_AddRefs(uri)));
-
 }
 
-nsresult
-URLInputType::GetTypeMismatchMessage(nsAString& aMessage)
-{
-  return nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                            "FormValidationInvalidURL",
-                                            aMessage);
+nsresult URLInputType::GetTypeMismatchMessage(nsAString& aMessage) {
+  return nsContentUtils::GetLocalizedString(
+      nsContentUtils::eDOM_PROPERTIES, "FormValidationInvalidURL", aMessage);
 }
 
 /* input type=email */
 
-bool
-EmailInputType::HasTypeMismatch() const
-{
+bool EmailInputType::HasTypeMismatch() const {
   nsAutoString value;
   GetNonFileValueInternal(value);
 
@@ -144,13 +126,12 @@ EmailInputType::HasTypeMismatch() const
     return false;
   }
 
-  return mInputElement->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple) ?
-    !IsValidEmailAddressList(value) : !IsValidEmailAddress(value);
+  return mInputElement->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)
+             ? !IsValidEmailAddressList(value)
+             : !IsValidEmailAddress(value);
 }
 
-bool
-EmailInputType::HasBadInput() const
-{
+bool EmailInputType::HasBadInput() const {
   // With regards to suffering from bad input the spec says that only the
   // punycode conversion works, so we don't care whether the email address is
   // valid or not here. (If the email address is invalid then we will be
@@ -168,25 +149,18 @@ EmailInputType::HasBadInput() const
   return false;
 }
 
-nsresult
-EmailInputType::GetTypeMismatchMessage(nsAString& aMessage)
-{
-  return nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                            "FormValidationInvalidEmail",
-                                            aMessage);
+nsresult EmailInputType::GetTypeMismatchMessage(nsAString& aMessage) {
+  return nsContentUtils::GetLocalizedString(
+      nsContentUtils::eDOM_PROPERTIES, "FormValidationInvalidEmail", aMessage);
 }
 
-nsresult
-EmailInputType::GetBadInputMessage(nsAString& aMessage)
-{
-  return nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                            "FormValidationInvalidEmail",
-                                            aMessage);
+nsresult EmailInputType::GetBadInputMessage(nsAString& aMessage) {
+  return nsContentUtils::GetLocalizedString(
+      nsContentUtils::eDOM_PROPERTIES, "FormValidationInvalidEmail", aMessage);
 }
 
-/* static */ bool
-EmailInputType::IsValidEmailAddressList(const nsAString& aValue)
-{
+/* static */ bool EmailInputType::IsValidEmailAddressList(
+    const nsAString& aValue) {
   HTMLSplitOnSpacesTokenizer tokenizer(aValue, ',');
 
   while (tokenizer.hasMoreTokens()) {
@@ -198,9 +172,7 @@ EmailInputType::IsValidEmailAddressList(const nsAString& aValue)
   return !tokenizer.separatorAfterCurrentToken();
 }
 
-/* static */ bool
-EmailInputType::IsValidEmailAddress(const nsAString& aValue)
-{
+/* static */ bool EmailInputType::IsValidEmailAddress(const nsAString& aValue) {
   // Email addresses can't be empty and can't end with a '.' or '-'.
   if (aValue.IsEmpty() || aValue.Last() == '.' || aValue.Last() == '-') {
     return false;
@@ -209,7 +181,8 @@ EmailInputType::IsValidEmailAddress(const nsAString& aValue)
   uint32_t atPos;
   nsAutoCString value;
   if (!PunycodeEncodeEmailAddress(aValue, value, &atPos) ||
-      atPos == (uint32_t)kNotFound || atPos == 0 || atPos == value.Length() - 1) {
+      atPos == (uint32_t)kNotFound || atPos == 0 ||
+      atPos == value.Length() - 1) {
     // Could not encode, or "@" was not found, or it was at the start or end
     // of the input - in all cases, not a valid email address.
     return false;
@@ -223,11 +196,11 @@ EmailInputType::IsValidEmailAddress(const nsAString& aValue)
     char16_t c = value[i];
 
     // The username characters have to be in this list to be valid.
-    if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) ||
-          c == '.' || c == '!' || c == '#' || c == '$' || c == '%' ||
-          c == '&' || c == '\''|| c == '*' || c == '+' || c == '-' ||
-          c == '/' || c == '=' || c == '?' || c == '^' || c == '_' ||
-          c == '`' || c == '{' || c == '|' || c == '}' || c == '~' )) {
+    if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) || c == '.' ||
+          c == '!' || c == '#' || c == '$' || c == '%' || c == '&' ||
+          c == '\'' || c == '*' || c == '+' || c == '-' || c == '/' ||
+          c == '=' || c == '?' || c == '^' || c == '_' || c == '`' ||
+          c == '{' || c == '|' || c == '}' || c == '~')) {
       return false;
     }
   }
@@ -246,12 +219,12 @@ EmailInputType::IsValidEmailAddress(const nsAString& aValue)
 
     if (c == '.') {
       // A dot can't follow a dot or a dash.
-      if (value[i-1] == '.' || value[i-1] == '-') {
+      if (value[i - 1] == '.' || value[i - 1] == '-') {
         return false;
       }
-    } else if (c == '-'){
+    } else if (c == '-') {
       // A dash can't follow a dot.
-      if (value[i-1] == '.') {
+      if (value[i - 1] == '.') {
         return false;
       }
     } else if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) ||
@@ -264,16 +237,13 @@ EmailInputType::IsValidEmailAddress(const nsAString& aValue)
   return true;
 }
 
-/* static */ bool
-EmailInputType::PunycodeEncodeEmailAddress(const nsAString& aEmail,
-                                           nsAutoCString& aEncodedEmail,
-                                           uint32_t* aIndexOfAt)
-{
+/* static */ bool EmailInputType::PunycodeEncodeEmailAddress(
+    const nsAString& aEmail, nsAutoCString& aEncodedEmail,
+    uint32_t* aIndexOfAt) {
   nsAutoCString value = NS_ConvertUTF16toUTF8(aEmail);
   *aIndexOfAt = (uint32_t)value.FindChar('@');
 
-  if (*aIndexOfAt == (uint32_t)kNotFound ||
-      *aIndexOfAt == value.Length() - 1) {
+  if (*aIndexOfAt == (uint32_t)kNotFound || *aIndexOfAt == value.Length() - 1) {
     aEncodedEmail = value;
     return true;
   }

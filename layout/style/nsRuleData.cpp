@@ -16,9 +16,7 @@
 
 using namespace mozilla;
 
-inline size_t
-nsRuleData::GetPoisonOffset()
-{
+inline size_t nsRuleData::GetPoisonOffset() {
   // Fill in mValueOffsets such that mValueStorage + mValueOffsets[i]
   // will yield the frame poison value for all uninitialized value
   // offsets.
@@ -32,14 +30,13 @@ nsRuleData::GetPoisonOffset()
          sizeof(nsCSSValue);
 }
 
-nsRuleData::nsRuleData(uint32_t aSIDs,
-                       nsCSSValue* aValueStorage,
+nsRuleData::nsRuleData(uint32_t aSIDs, nsCSSValue* aValueStorage,
                        GeckoStyleContext* aStyleContext)
-  : GenericSpecifiedValues(StyleBackendType::Gecko, aStyleContext->PresContext()->Document(), aSIDs)
-  , mStyleContext(aStyleContext)
-  , mPresContext(aStyleContext->PresContext())
-  , mValueStorage(aValueStorage)
-{
+    : GenericSpecifiedValues(StyleBackendType::Gecko,
+                             aStyleContext->PresContext()->Document(), aSIDs),
+      mStyleContext(aStyleContext),
+      mPresContext(aStyleContext->PresContext()),
+      mValueStorage(aValueStorage) {
 #ifndef MOZ_VALGRIND
   size_t framePoisonOffset = GetPoisonOffset();
   for (size_t i = 0; i < nsStyleStructID_Length; ++i) {
@@ -48,17 +45,13 @@ nsRuleData::nsRuleData(uint32_t aSIDs,
 #endif
 }
 
-void
-nsRuleData::SetFontFamily(const nsString& aValue)
-{
+void nsRuleData::SetFontFamily(const nsString& aValue) {
   nsCSSValue* family = ValueForFontFamily();
   nsCSSParser parser;
   parser.ParseFontFamilyListString(aValue, nullptr, 0, *family);
 }
 
-void
-nsRuleData::SetTextDecorationColorOverride()
-{
+void nsRuleData::SetTextDecorationColorOverride() {
   nsCSSValue* decoration = ValueForTextDecorationLine();
   int32_t newValue = NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL;
   if (decoration->GetUnit() == eCSSUnit_Enumerated) {
@@ -67,9 +60,7 @@ nsRuleData::SetTextDecorationColorOverride()
   decoration->SetIntValue(newValue, eCSSUnit_Enumerated);
 }
 
-void
-nsRuleData::SetBackgroundImage(nsAttrValue& aValue)
-{
+void nsRuleData::SetBackgroundImage(nsAttrValue& aValue) {
   nsCSSValue* backImage = ValueForBackgroundImage();
   // If the value is an image, or it is a URL and we attempted a load,
   // put it in the style tree.
@@ -83,8 +74,7 @@ nsRuleData::SetBackgroundImage(nsAttrValue& aValue)
 }
 
 #ifdef DEBUG
-nsRuleData::~nsRuleData()
-{
+nsRuleData::~nsRuleData() {
 #ifndef MOZ_VALGRIND
   // assert nothing in mSIDs has poison value
   size_t framePoisonOffset = GetPoisonOffset();

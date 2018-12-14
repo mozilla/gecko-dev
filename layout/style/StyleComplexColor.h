@@ -20,8 +20,7 @@ namespace mozilla {
  * where p is mForegroundRatio. See mozilla::LinearBlendColors for
  * the actual algorithm.
  */
-struct StyleComplexColor
-{
+struct StyleComplexColor {
   nscolor mColor;
   uint8_t mForegroundRatio;
   // Whether the complex color represents a computed-value time auto
@@ -36,9 +35,7 @@ struct StyleComplexColor
   static StyleComplexColor CurrentColor() {
     return {NS_RGBA(0, 0, 0, 0), 255, false};
   }
-  static StyleComplexColor Auto() {
-    return {NS_RGBA(0, 0, 0, 0), 255, true};
-  }
+  static StyleComplexColor Auto() { return {NS_RGBA(0, 0, 0, 0), 255, true}; }
 
   bool IsNumericColor() const { return mForegroundRatio == 0; }
   bool IsCurrentColor() const { return mForegroundRatio == 255; }
@@ -53,6 +50,6 @@ struct StyleComplexColor
   }
 };
 
-}
+}  // namespace mozilla
 
-#endif // mozilla_StyleComplexColor_h_
+#endif  // mozilla_StyleComplexColor_h_

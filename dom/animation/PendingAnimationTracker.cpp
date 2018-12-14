@@ -14,18 +14,14 @@ using namespace mozilla;
 
 namespace mozilla {
 
-NS_IMPL_CYCLE_COLLECTION(PendingAnimationTracker,
-                         mPlayPendingSet,
-                         mPausePendingSet,
-                         mDocument)
+NS_IMPL_CYCLE_COLLECTION(PendingAnimationTracker, mPlayPendingSet,
+                         mPausePendingSet, mDocument)
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(PendingAnimationTracker, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(PendingAnimationTracker, Release)
 
-void
-PendingAnimationTracker::AddPending(dom::Animation& aAnimation,
-                                    AnimationSet& aSet)
-{
+void PendingAnimationTracker::AddPending(dom::Animation& aAnimation,
+                                         AnimationSet& aSet) {
   aSet.PutEntry(&aAnimation);
 
   // Schedule a paint. Otherwise animations that don't trigger a paint by
@@ -34,26 +30,20 @@ PendingAnimationTracker::AddPending(dom::Animation& aAnimation,
   EnsurePaintIsScheduled();
 }
 
-void
-PendingAnimationTracker::RemovePending(dom::Animation& aAnimation,
-                                       AnimationSet& aSet)
-{
+void PendingAnimationTracker::RemovePending(dom::Animation& aAnimation,
+                                            AnimationSet& aSet) {
   aSet.RemoveEntry(&aAnimation);
 }
 
-bool
-PendingAnimationTracker::IsWaiting(const dom::Animation& aAnimation,
-                                   const AnimationSet& aSet) const
-{
+bool PendingAnimationTracker::IsWaiting(const dom::Animation& aAnimation,
+                                        const AnimationSet& aSet) const {
   return aSet.Contains(const_cast<dom::Animation*>(&aAnimation));
 }
 
-void
-PendingAnimationTracker::TriggerPendingAnimationsOnNextTick(const TimeStamp&
-                                                        aReadyTime)
-{
-  auto triggerAnimationsAtReadyTime = [aReadyTime](AnimationSet& aAnimationSet)
-  {
+void PendingAnimationTracker::TriggerPendingAnimationsOnNextTick(
+    const TimeStamp& aReadyTime) {
+  auto triggerAnimationsAtReadyTime = [aReadyTime](
+                                          AnimationSet& aAnimationSet) {
     for (auto iter = aAnimationSet.Iter(); !iter.Done(); iter.Next()) {
       dom::Animation* animation = iter.Get()->GetKey();
       dom::AnimationTimeline* timeline = animation->GetTimeline();
@@ -86,14 +76,11 @@ PendingAnimationTracker::TriggerPendingAnimationsOnNextTick(const TimeStamp&
   triggerAnimationsAtReadyTime(mPlayPendingSet);
   triggerAnimationsAtReadyTime(mPausePendingSet);
 
-  mHasPlayPendingGeometricAnimations = mPlayPendingSet.Count()
-                                       ? CheckState::Indeterminate
-                                       : CheckState::Absent;
+  mHasPlayPendingGeometricAnimations =
+      mPlayPendingSet.Count() ? CheckState::Indeterminate : CheckState::Absent;
 }
 
-void
-PendingAnimationTracker::TriggerPendingAnimationsNow()
-{
+void PendingAnimationTracker::TriggerPendingAnimationsNow() {
   auto triggerAndClearAnimations = [](AnimationSet& aAnimationSet) {
     for (auto iter = aAnimationSet.Iter(); !iter.Done(); iter.Next()) {
       iter.Get()->GetKey()->TriggerNow();
@@ -107,9 +94,7 @@ PendingAnimationTracker::TriggerPendingAnimationsNow()
   mHasPlayPendingGeometricAnimations = CheckState::Absent;
 }
 
-void
-PendingAnimationTracker::MarkAnimationsThatMightNeedSynchronization()
-{
+void PendingAnimationTracker::MarkAnimationsThatMightNeedSynchronization() {
   // We only ever set mHasPlayPendingGeometricAnimations to 'present' in
   // HasPlayPendingGeometricAnimations(). So, if it is 'present' already,
   // (i.e. before calling HasPlayPendingGeometricAnimations()) we can assume
@@ -137,9 +122,7 @@ PendingAnimationTracker::MarkAnimationsThatMightNeedSynchronization()
   }
 }
 
-bool
-PendingAnimationTracker::HasPlayPendingGeometricAnimations()
-{
+bool PendingAnimationTracker::HasPlayPendingGeometricAnimations() {
   if (mHasPlayPendingGeometricAnimations != CheckState::Indeterminate) {
     return mHasPlayPendingGeometricAnimations == CheckState::Present;
   }
@@ -156,9 +139,7 @@ PendingAnimationTracker::HasPlayPendingGeometricAnimations()
   return mHasPlayPendingGeometricAnimations == CheckState::Present;
 }
 
-void
-PendingAnimationTracker::EnsurePaintIsScheduled()
-{
+void PendingAnimationTracker::EnsurePaintIsScheduled() {
   if (!mDocument) {
     return;
   }
@@ -176,4 +157,4 @@ PendingAnimationTracker::EnsurePaintIsScheduled()
   rootFrame->SchedulePaintWithoutInvalidatingObservers();
 }
 
-} // namespace mozilla
+}  // namespace mozilla

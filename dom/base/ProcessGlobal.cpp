@@ -14,23 +14,19 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 ProcessGlobal::ProcessGlobal(nsFrameMessageManager* aMessageManager)
- : mInitialized(false),
-   mMessageManager(aMessageManager)
-{
+    : mInitialized(false), mMessageManager(aMessageManager) {
   SetIsNotDOMBinding();
   mozilla::HoldJSObjects(this);
 }
 
-ProcessGlobal::~ProcessGlobal()
-{
+ProcessGlobal::~ProcessGlobal() {
   mAnonymousGlobalScopes.Clear();
   mozilla::DropJSObjects(this);
 }
 
-ProcessGlobal*
-ProcessGlobal::Get()
-{
-  nsCOMPtr<nsISyncMessageSender> service = do_GetService(NS_CHILDPROCESSMESSAGEMANAGER_CONTRACTID);
+ProcessGlobal* ProcessGlobal::Get() {
+  nsCOMPtr<nsISyncMessageSender> service =
+      do_GetService(NS_CHILDPROCESSMESSAGEMANAGER_CONTRACTID);
   if (!service) {
     return nullptr;
   }
@@ -40,8 +36,7 @@ ProcessGlobal::Get()
 // This method isn't automatically forwarded safely because it's notxpcom, so
 // the IDL binding doesn't know what value to return.
 NS_IMETHODIMP_(bool)
-ProcessGlobal::MarkForCC()
-{
+ProcessGlobal::MarkForCC() {
   MarkScopesForCC();
   return mMessageManager ? mMessageManager->MarkForCC() : false;
 }
@@ -81,27 +76,23 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ProcessGlobal)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ProcessGlobal)
 
-bool
-ProcessGlobal::Init()
-{
+bool ProcessGlobal::Init() {
   if (mInitialized) {
     return true;
   }
   mInitialized = true;
 
-  nsISupports* scopeSupports = NS_ISUPPORTS_CAST(nsIContentProcessMessageManager*, this);
-  return InitChildGlobalInternal(scopeSupports, NS_LITERAL_CSTRING("processChildGlobal"));
+  nsISupports* scopeSupports =
+      NS_ISUPPORTS_CAST(nsIContentProcessMessageManager*, this);
+  return InitChildGlobalInternal(scopeSupports,
+                                 NS_LITERAL_CSTRING("processChildGlobal"));
 }
 
-void
-ProcessGlobal::LoadScript(const nsAString& aURL)
-{
+void ProcessGlobal::LoadScript(const nsAString& aURL) {
   Init();
   LoadScriptInternal(aURL, false);
 }
 
-void
-ProcessGlobal::SetInitialProcessData(JS::HandleValue aInitialData)
-{
+void ProcessGlobal::SetInitialProcessData(JS::HandleValue aInitialData) {
   mMessageManager->SetInitialProcessData(aInitialData);
 }

@@ -51,10 +51,10 @@ namespace mozilla {
 using namespace dom;
 
 NS_IMETHODIMP
-TextEditor::PrepareTransferable(nsITransferable** transferable)
-{
+TextEditor::PrepareTransferable(nsITransferable** transferable) {
   // Create generic Transferable for getting the data
-  nsresult rv = CallCreateInstance("@mozilla.org/widget/transferable;1", transferable);
+  nsresult rv =
+      CallCreateInstance("@mozilla.org/widget/transferable;1", transferable);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the nsITransferable interface for getting the data from the clipboard
@@ -69,12 +69,10 @@ TextEditor::PrepareTransferable(nsITransferable** transferable)
   return NS_OK;
 }
 
-nsresult
-TextEditor::InsertTextAt(const nsAString& aStringToInsert,
-                         nsIDOMNode* aDestinationNode,
-                         int32_t aDestOffset,
-                         bool aDoDeleteSelection)
-{
+nsresult TextEditor::InsertTextAt(const nsAString& aStringToInsert,
+                                  nsIDOMNode* aDestinationNode,
+                                  int32_t aDestOffset,
+                                  bool aDoDeleteSelection) {
   if (aDestinationNode) {
     RefPtr<Selection> selection = GetSelection();
     NS_ENSURE_STATE(selection);
@@ -97,34 +95,31 @@ TextEditor::InsertTextAt(const nsAString& aStringToInsert,
   return InsertText(aStringToInsert);
 }
 
-nsresult
-TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
-                                       nsIDOMNode* aDestinationNode,
-                                       int32_t aDestOffset,
-                                       bool aDoDeleteSelection)
-{
+nsresult TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
+                                                nsIDOMNode* aDestinationNode,
+                                                int32_t aDestOffset,
+                                                bool aDoDeleteSelection) {
   nsresult rv = NS_OK;
   nsAutoCString bestFlavor;
   nsCOMPtr<nsISupports> genericDataObj;
   uint32_t len = 0;
-  if (NS_SUCCEEDED(
-        aTransferable->GetAnyTransferData(bestFlavor,
-                                          getter_AddRefs(genericDataObj),
-                                          &len)) &&
+  if (NS_SUCCEEDED(aTransferable->GetAnyTransferData(
+          bestFlavor, getter_AddRefs(genericDataObj), &len)) &&
       (bestFlavor.EqualsLiteral(kUnicodeMime) ||
        bestFlavor.EqualsLiteral(kMozTextInternal))) {
     AutoTransactionsConserveSelection dontChangeMySelection(this);
-    nsCOMPtr<nsISupportsString> textDataObj ( do_QueryInterface(genericDataObj) );
+    nsCOMPtr<nsISupportsString> textDataObj(do_QueryInterface(genericDataObj));
     if (textDataObj && len > 0) {
       nsAutoString stuffToPaste;
       textDataObj->GetData(stuffToPaste);
-      NS_ASSERTION(stuffToPaste.Length() <= (len/2), "Invalid length!");
+      NS_ASSERTION(stuffToPaste.Length() <= (len / 2), "Invalid length!");
 
       // Sanitize possible carriage returns in the string to be inserted
       nsContentUtils::PlatformToDOMLineBreaks(stuffToPaste);
 
       AutoPlaceholderBatch beginBatching(this);
-      rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
+      rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset,
+                        aDoDeleteSelection);
     }
   }
 
@@ -137,32 +132,30 @@ TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
   return rv;
 }
 
-nsresult
-TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
-                                   int32_t aIndex,
-                                   nsIDOMDocument* aSourceDoc,
-                                   nsIDOMNode* aDestinationNode,
-                                   int32_t aDestOffset,
-                                   bool aDoDeleteSelection)
-{
+nsresult TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
+                                            int32_t aIndex,
+                                            nsIDOMDocument* aSourceDoc,
+                                            nsIDOMNode* aDestinationNode,
+                                            int32_t aDestOffset,
+                                            bool aDoDeleteSelection) {
   nsCOMPtr<nsIVariant> data;
-  DataTransfer::Cast(aDataTransfer)->GetDataAtNoSecurityCheck(NS_LITERAL_STRING("text/plain"), aIndex,
-                                                              getter_AddRefs(data));
+  DataTransfer::Cast(aDataTransfer)
+      ->GetDataAtNoSecurityCheck(NS_LITERAL_STRING("text/plain"), aIndex,
+                                 getter_AddRefs(data));
   if (data) {
     nsAutoString insertText;
     data->GetAsAString(insertText);
     nsContentUtils::PlatformToDOMLineBreaks(insertText);
 
     AutoPlaceholderBatch beginBatching(this);
-    return InsertTextAt(insertText, aDestinationNode, aDestOffset, aDoDeleteSelection);
+    return InsertTextAt(insertText, aDestinationNode, aDestOffset,
+                        aDoDeleteSelection);
   }
 
   return NS_OK;
 }
 
-nsresult
-TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
-{
+nsresult TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent) {
   CommitComposition();
 
   nsCOMPtr<nsIDOMDragEvent> dragEvent(do_QueryInterface(aDropEvent));
@@ -183,8 +176,8 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     srcdomdoc = do_QueryInterface(sourceNode->OwnerDoc());
   }
 
-  if (nsContentUtils::CheckForSubFrameDrop(dragSession,
-        aDropEvent->WidgetEventPtr()->AsDragEvent())) {
+  if (nsContentUtils::CheckForSubFrameDrop(
+          dragSession, aDropEvent->WidgetEventPtr()->AsDragEvent())) {
     // Don't allow drags from subframe documents with different origins than
     // the drop destination.
     if (srcdomdoc && !IsSafeToInsertData(srcdomdoc)) {
@@ -228,8 +221,8 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
   bool isCollapsed = selection->Collapsed();
 
   // Check if mouse is in the selection
-  // if so, jump through some hoops to determine if mouse is over selection (bail)
-  // and whether user wants to copy selection or delete it
+  // if so, jump through some hoops to determine if mouse is over selection
+  // (bail) and whether user wants to copy selection or delete it
   if (!isCollapsed) {
     // We never have to delete if selection is already collapsed
     bool cursorIsInSelection = false;
@@ -243,7 +236,8 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
         continue;
       }
 
-      rv = range->IsPointInRange(newSelectionParent, newSelectionOffset, &cursorIsInSelection);
+      rv = range->IsPointInRange(newSelectionParent, newSelectionOffset,
+                                 &cursorIsInSelection);
       if (cursorIsInSelection) {
         break;
       }
@@ -258,7 +252,7 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       // Dragging from another window onto a selection
       // XXX Decision made to NOT do this,
       //     note that 4.x does replace if dropped on
-      //deleteSelection = true;
+      // deleteSelection = true;
     } else {
       // We are NOT over the selection
       if (srcdomdoc == destdomdoc) {
@@ -299,15 +293,15 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 }
 
 NS_IMETHODIMP
-TextEditor::Paste(int32_t aSelectionType)
-{
+TextEditor::Paste(int32_t aSelectionType) {
   if (!FireClipboardEvent(ePaste, aSelectionType)) {
     return NS_OK;
   }
 
   // Get Clipboard Service
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -333,10 +327,10 @@ TextEditor::Paste(int32_t aSelectionType)
 }
 
 NS_IMETHODIMP
-TextEditor::PasteTransferable(nsITransferable* aTransferable)
-{
-  // Use an invalid value for the clipboard type as data comes from aTransferable
-  // and we don't currently implement a way to put that in the data transfer yet.
+TextEditor::PasteTransferable(nsITransferable* aTransferable) {
+  // Use an invalid value for the clipboard type as data comes from
+  // aTransferable and we don't currently implement a way to put that in the
+  // data transfer yet.
   if (!FireClipboardEvent(ePaste, -1)) {
     return NS_OK;
   }
@@ -355,9 +349,7 @@ TextEditor::PasteTransferable(nsITransferable* aTransferable)
 }
 
 NS_IMETHODIMP
-TextEditor::CanPaste(int32_t aSelectionType,
-                     bool* aCanPaste)
-{
+TextEditor::CanPaste(int32_t aSelectionType, bool* aCanPaste) {
   NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = false;
 
@@ -374,11 +366,12 @@ TextEditor::CanPaste(int32_t aSelectionType,
   }
 
   nsresult rv;
-  nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
+  nsCOMPtr<nsIClipboard> clipboard(
+      do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // the flavors that we can deal with
-  const char* textEditorFlavors[] = { kUnicodeMime };
+  const char* textEditorFlavors[] = {kUnicodeMime};
 
   bool haveFlavors;
   rv = clipboard->HasDataMatchingFlavors(textEditorFlavors,
@@ -390,11 +383,9 @@ TextEditor::CanPaste(int32_t aSelectionType,
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
 TextEditor::CanPasteTransferable(nsITransferable* aTransferable,
-                                 bool* aCanPaste)
-{
+                                 bool* aCanPaste) {
   NS_ENSURE_ARG_POINTER(aCanPaste);
 
   // can't paste if readonly
@@ -412,8 +403,7 @@ TextEditor::CanPasteTransferable(nsITransferable* aTransferable,
   nsCOMPtr<nsISupports> data;
   uint32_t dataLen;
   nsresult rv = aTransferable->GetTransferData(kUnicodeMime,
-                                               getter_AddRefs(data),
-                                               &dataLen);
+                                               getter_AddRefs(data), &dataLen);
   if (NS_SUCCEEDED(rv) && data) {
     *aCanPaste = true;
   } else {
@@ -423,9 +413,7 @@ TextEditor::CanPasteTransferable(nsITransferable* aTransferable,
   return NS_OK;
 }
 
-bool
-TextEditor::IsSafeToInsertData(nsIDOMDocument* aSourceDoc)
-{
+bool TextEditor::IsSafeToInsertData(nsIDOMDocument* aSourceDoc) {
   // Try to determine whether we should use a sanitizing fragment sink
   bool isSafe = false;
 
@@ -447,11 +435,12 @@ TextEditor::IsSafeToInsertData(nsIDOMDocument* aSourceDoc)
 
     nsIPrincipal* srcPrincipal = srcdoc->NodePrincipal();
     nsIPrincipal* destPrincipal = destdoc->NodePrincipal();
-    NS_ASSERTION(srcPrincipal && destPrincipal, "How come we don't have a principal?");
+    NS_ASSERTION(srcPrincipal && destPrincipal,
+                 "How come we don't have a principal?");
     srcPrincipal->Subsumes(destPrincipal, &isSafe);
   }
 
   return isSafe;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

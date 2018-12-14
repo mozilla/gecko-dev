@@ -26,8 +26,7 @@ extern "C" {
  * It will never return true.
  */
 MFBT_API bool CFG_DisabledOrCrash();
-
 }
 
-#endif // defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
-#endif // mozilla_windowscfgstatus_h
+#endif  // defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+#endif  // mozilla_windowscfgstatus_h

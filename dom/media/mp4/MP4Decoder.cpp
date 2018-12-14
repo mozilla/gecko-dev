@@ -14,9 +14,7 @@
 
 namespace mozilla {
 
-static bool
-IsWhitelistedH264Codec(const nsAString& aCodec)
-{
+static bool IsWhitelistedH264Codec(const nsAString& aCodec) {
   int16_t profile = 0, level = 0;
 
   if (!ExtractH264CodecDetails(aCodec, profile, level)) {
@@ -33,27 +31,20 @@ IsWhitelistedH264Codec(const nsAString& aCodec)
   // any potential errors, the level limit being rather arbitrary.
   // We also report that we can play Extended profile, as there are
   // bitstreams that are Extended compliant that are also Baseline compliant.
-  return level >= H264_LEVEL_1 &&
-         level <= H264_LEVEL_5_2 &&
-         (profile == H264_PROFILE_BASE ||
-          profile == H264_PROFILE_MAIN ||
-          profile == H264_PROFILE_EXTENDED ||
-          profile == H264_PROFILE_HIGH);
+  return level >= H264_LEVEL_1 && level <= H264_LEVEL_5_2 &&
+         (profile == H264_PROFILE_BASE || profile == H264_PROFILE_MAIN ||
+          profile == H264_PROFILE_EXTENDED || profile == H264_PROFILE_HIGH);
 }
 
 /* static */
-bool
-MP4Decoder::IsSupportedTypeWithoutDiagnostics(
-  const MediaContainerType& aContainerType)
-{
+bool MP4Decoder::IsSupportedTypeWithoutDiagnostics(
+    const MediaContainerType& aContainerType) {
   return IsSupportedType(aContainerType, nullptr);
 }
 
 /* static */
-bool
-MP4Decoder::IsSupportedType(const MediaContainerType& aType,
-                            DecoderDoctorDiagnostics* aDiagnostics)
-{
+bool MP4Decoder::IsSupportedType(const MediaContainerType& aType,
+                                 DecoderDoctorDiagnostics* aDiagnostics) {
   if (!IsEnabled()) {
     return false;
   }
@@ -76,13 +67,13 @@ MP4Decoder::IsSupportedType(const MediaContainerType& aType,
     // No codecs specified. Assume H.264
     if (isAudio) {
       trackInfos.AppendElement(
-        CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-          NS_LITERAL_CSTRING("audio/mp4a-latm"), aType));
+          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+              NS_LITERAL_CSTRING("audio/mp4a-latm"), aType));
     } else {
       MOZ_ASSERT(isVideo);
       trackInfos.AppendElement(
-        CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-          NS_LITERAL_CSTRING("video/avc"), aType));
+          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+              NS_LITERAL_CSTRING("video/avc"), aType));
     }
   } else {
     // Verify that all the codecs specified are ones that we expect that
@@ -90,32 +81,32 @@ MP4Decoder::IsSupportedType(const MediaContainerType& aType,
     for (const auto& codec : aType.ExtendedType().Codecs().Range()) {
       if (IsAACCodecString(codec)) {
         trackInfos.AppendElement(
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("audio/mp4a-latm"), aType));
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("audio/mp4a-latm"), aType));
         continue;
       }
       if (codec.EqualsLiteral("mp3")) {
         trackInfos.AppendElement(
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("audio/mpeg"), aType));
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("audio/mpeg"), aType));
         continue;
       }
       if (codec.EqualsLiteral("opus")) {
         trackInfos.AppendElement(
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("audio/opus"), aType));
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("audio/opus"), aType));
         continue;
       }
       if (codec.EqualsLiteral("flac")) {
         trackInfos.AppendElement(
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("audio/flac"), aType));
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("audio/flac"), aType));
         continue;
       }
       if (IsVP9CodecString(codec)) {
         auto trackInfo =
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("video/vp9"), aType);
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("video/vp9"), aType);
         uint8_t profile = 0;
         uint8_t level = 0;
         uint8_t bitDepth = 0;
@@ -129,8 +120,8 @@ MP4Decoder::IsSupportedType(const MediaContainerType& aType,
       // content type.
       if (IsWhitelistedH264Codec(codec) && isVideo) {
         trackInfos.AppendElement(
-          CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
-            NS_LITERAL_CSTRING("video/avc"), aType));
+            CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
+                NS_LITERAL_CSTRING("video/avc"), aType));
         continue;
       }
       // Some unsupported codec.
@@ -150,25 +141,17 @@ MP4Decoder::IsSupportedType(const MediaContainerType& aType,
 }
 
 /* static */
-bool
-MP4Decoder::IsH264(const nsACString& aMimeType)
-{
+bool MP4Decoder::IsH264(const nsACString& aMimeType) {
   return aMimeType.EqualsLiteral("video/mp4") ||
          aMimeType.EqualsLiteral("video/avc");
 }
 
 /* static */
-bool
-MP4Decoder::IsAAC(const nsACString& aMimeType)
-{
+bool MP4Decoder::IsAAC(const nsACString& aMimeType) {
   return aMimeType.EqualsLiteral("audio/mp4a-latm");
 }
 
 /* static */
-bool
-MP4Decoder::IsEnabled()
-{
-  return MediaPrefs::MP4Enabled();
-}
+bool MP4Decoder::IsEnabled() { return MediaPrefs::MP4Enabled(); }
 
-} // namespace mozilla
+}  // namespace mozilla

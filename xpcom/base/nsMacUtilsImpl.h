@@ -11,20 +11,15 @@
 #include "nsString.h"
 #include "mozilla/Attributes.h"
 
-class nsMacUtilsImpl final : public nsIMacUtils
-{
-public:
+class nsMacUtilsImpl final : public nsIMacUtils {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMACUTILS
 
-  nsMacUtilsImpl()
-  {
-  }
+  nsMacUtilsImpl() {}
 
-private:
-  ~nsMacUtilsImpl()
-  {
-  }
+ private:
+  ~nsMacUtilsImpl() {}
 
   nsresult GetArchString(nsAString& aArchString);
 
@@ -35,8 +30,12 @@ private:
 
 // Global singleton service
 // 697BD3FD-43E5-41CE-AD5E-C339175C0818
-#define NS_MACUTILSIMPL_CID \
- {0x697BD3FD, 0x43E5, 0x41CE, {0xAD, 0x5E, 0xC3, 0x39, 0x17, 0x5C, 0x08, 0x18}}
+#define NS_MACUTILSIMPL_CID                          \
+  {                                                  \
+    0x697BD3FD, 0x43E5, 0x41CE, {                    \
+      0xAD, 0x5E, 0xC3, 0x39, 0x17, 0x5C, 0x08, 0x18 \
+    }                                                \
+  }
 #define NS_MACUTILSIMPL_CONTRACTID "@mozilla.org/xpcom/mac-utils;1"
 
 #endif /* nsMacUtilsImpl_h___ */

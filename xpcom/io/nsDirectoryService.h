@@ -16,16 +16,20 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/StaticPtr.h"
 
-#define NS_XPCOM_INIT_CURRENT_PROCESS_DIR       "MozBinD"   // Can be used to set NS_XPCOM_CURRENT_PROCESS_DIR
-                                                            // CANNOT be used to GET a location
-#define NS_DIRECTORY_SERVICE_CID  {0xf00152d0,0xb40b,0x11d3,{0x8c, 0x9c, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74}}
+#define NS_XPCOM_INIT_CURRENT_PROCESS_DIR \
+  "MozBinD"  // Can be used to set NS_XPCOM_CURRENT_PROCESS_DIR
+             // CANNOT be used to GET a location
+#define NS_DIRECTORY_SERVICE_CID                     \
+  {                                                  \
+    0xf00152d0, 0xb40b, 0x11d3, {                    \
+      0x8c, 0x9c, 0x00, 0x00, 0x64, 0x65, 0x73, 0x74 \
+    }                                                \
+  }
 
-class nsDirectoryService final
-  : public nsIDirectoryService
-  , public nsIProperties
-  , public nsIDirectoryServiceProvider2
-{
-public:
+class nsDirectoryService final : public nsIDirectoryService,
+                                 public nsIProperties,
+                                 public nsIDirectoryServiceProvider2 {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
   NS_DECL_NSIPROPERTIES
@@ -41,12 +45,11 @@ public:
   static void RealInit();
   void RegisterCategoryProviders();
 
-  static nsresult
-  Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
+  static nsresult Create(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
   static mozilla::StaticRefPtr<nsDirectoryService> gService;
 
-private:
+ private:
   ~nsDirectoryService();
 
   nsresult GetCurrentProcessDirectory(nsIFile** aFile);
@@ -54,10 +57,10 @@ private:
   nsInterfaceHashtable<nsCStringHashKey, nsIFile> mHashtable;
   nsTArray<nsCOMPtr<nsIDirectoryServiceProvider>> mProviders;
 
-public:
-  #define DIR_ATOM(name_, value_) NS_STATIC_ATOM_DECL(name_)
-  #include "nsDirectoryServiceAtomList.h"
-  #undef DIR_ATOM
+ public:
+#define DIR_ATOM(name_, value_) NS_STATIC_ATOM_DECL(name_)
+#include "nsDirectoryServiceAtomList.h"
+#undef DIR_ATOM
 };
 
 #endif

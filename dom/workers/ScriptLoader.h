@@ -26,46 +26,34 @@ namespace dom {
 struct WorkerLoadInfo;
 class WorkerPrivate;
 
-enum WorkerScriptType {
-  WorkerScript,
-  DebuggerScript
-};
+enum WorkerScriptType { WorkerScript, DebuggerScript };
 
 namespace workerinternals {
 
-nsresult
-ChannelFromScriptURLMainThread(nsIPrincipal* aPrincipal,
-                               nsIURI* aBaseURI,
-                               nsIDocument* aParentDoc,
-                               nsILoadGroup* aLoadGroup,
-                               const nsAString& aScriptURL,
-                               const Maybe<ClientInfo>& aClientInfo,
-                               nsContentPolicyType aContentPolicyType,
-                               bool aDefaultURIEncoding,
-                               nsIChannel** aChannel);
+nsresult ChannelFromScriptURLMainThread(
+    nsIPrincipal* aPrincipal, nsIURI* aBaseURI, nsIDocument* aParentDoc,
+    nsILoadGroup* aLoadGroup, const nsAString& aScriptURL,
+    const Maybe<ClientInfo>& aClientInfo,
+    nsContentPolicyType aContentPolicyType, bool aDefaultURIEncoding,
+    nsIChannel** aChannel);
 
-nsresult
-ChannelFromScriptURLWorkerThread(JSContext* aCx,
-                                 WorkerPrivate* aParent,
-                                 const nsAString& aScriptURL,
-                                 WorkerLoadInfo& aLoadInfo);
+nsresult ChannelFromScriptURLWorkerThread(JSContext* aCx,
+                                          WorkerPrivate* aParent,
+                                          const nsAString& aScriptURL,
+                                          WorkerLoadInfo& aLoadInfo);
 
 void ReportLoadError(ErrorResult& aRv, nsresult aLoadResult,
                      const nsAString& aScriptURL);
 
-void LoadMainScript(WorkerPrivate* aWorkerPrivate,
-                    const nsAString& aScriptURL,
-                    WorkerScriptType aWorkerScriptType,
-                    ErrorResult& aRv);
+void LoadMainScript(WorkerPrivate* aWorkerPrivate, const nsAString& aScriptURL,
+                    WorkerScriptType aWorkerScriptType, ErrorResult& aRv);
 
-void Load(WorkerPrivate* aWorkerPrivate,
-          const nsTArray<nsString>& aScriptURLs,
-          WorkerScriptType aWorkerScriptType,
-          ErrorResult& aRv);
+void Load(WorkerPrivate* aWorkerPrivate, const nsTArray<nsString>& aScriptURLs,
+          WorkerScriptType aWorkerScriptType, ErrorResult& aRv);
 
-} // namespace workerinternals
+}  // namespace workerinternals
 
-} // dom namespace
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_workers_scriptloader_h__ */

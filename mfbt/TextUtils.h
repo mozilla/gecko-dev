@@ -15,33 +15,27 @@ namespace mozilla {
 
 namespace detail {
 
-template<typename Char>
-class MakeUnsignedChar
-  : public MakeUnsigned<Char>
-{};
+template <typename Char>
+class MakeUnsignedChar : public MakeUnsigned<Char> {};
 
-template<>
-class MakeUnsignedChar<char16_t>
-{
-public:
+template <>
+class MakeUnsignedChar<char16_t> {
+ public:
   using Type = char16_t;
 };
 
-template<>
-class MakeUnsignedChar<char32_t>
-{
-public:
+template <>
+class MakeUnsignedChar<char32_t> {
+ public:
   using Type = char32_t;
 };
 
-template<typename Char>
-constexpr bool
-IsAsciiAlpha(Char aChar)
-{
+template <typename Char>
+constexpr bool IsAsciiAlpha(Char aChar) {
   return ('a' <= aChar && aChar <= 'z') || ('A' <= aChar && aChar <= 'Z');
 }
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Returns true iff |aChar| matches [a-zA-Z].
@@ -49,13 +43,12 @@ IsAsciiAlpha(Char aChar)
  * This function is basically what you thought isalpha was, except its behavior
  * doesn't depend on the user's current locale.
  */
-template<typename Char>
-constexpr bool
-IsAsciiAlpha(Char aChar)
-{
-  return detail::IsAsciiAlpha(static_cast<typename detail::MakeUnsignedChar<Char>::Type>(aChar));
+template <typename Char>
+constexpr bool IsAsciiAlpha(Char aChar) {
+  return detail::IsAsciiAlpha(
+      static_cast<typename detail::MakeUnsignedChar<Char>::Type>(aChar));
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* mozilla_TextUtils_h */

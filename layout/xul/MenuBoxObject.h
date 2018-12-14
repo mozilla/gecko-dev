@@ -14,13 +14,12 @@ namespace dom {
 
 class KeyboardEvent;
 
-class MenuBoxObject final : public BoxObject
-{
-public:
-
+class MenuBoxObject final : public BoxObject {
+ public:
   MenuBoxObject();
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   void OpenMenu(bool aOpenFlag);
   already_AddRefed<Element> GetActiveChild();
@@ -28,11 +27,11 @@ public:
   bool HandleKeyPress(KeyboardEvent& keyEvent);
   bool OpenedWithKey();
 
-private:
+ private:
   ~MenuBoxObject();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_MenuBoxObject_h
+#endif  // mozilla_dom_MenuBoxObject_h

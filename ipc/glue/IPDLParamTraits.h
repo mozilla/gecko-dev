@@ -19,9 +19,8 @@ class IProtocol;
 //
 // All types which already implement ParamTraits also support IPDLParamTraits.
 //
-template<typename P>
-struct IPDLParamTraits
-{
+template <typename P>
+struct IPDLParamTraits {
   // This is the default impl which discards the actor parameter and calls into
   // ParamTraits. Types which want to use the actor parameter must specialize
   // IPDLParamTraits.
@@ -51,29 +50,23 @@ struct IPDLParamTraits
 // implementation. See the comment on IPDLParamTraits<nsTArray<T>>::Write for
 // more information.
 //
-template<typename P>
-static inline void
-WriteIPDLParam(IPC::Message* aMsg,
-               IProtocol* aActor,
-               P&& aParam)
-{
-  IPDLParamTraits<typename Decay<P>::Type>::Write(aMsg, aActor, Forward<P>(aParam));
+template <typename P>
+static inline void WriteIPDLParam(IPC::Message* aMsg, IProtocol* aActor,
+                                  P&& aParam) {
+  IPDLParamTraits<typename Decay<P>::Type>::Write(aMsg, aActor,
+                                                  Forward<P>(aParam));
 }
 
-template<typename P>
-static inline bool
-ReadIPDLParam(const IPC::Message* aMsg,
-              PickleIterator* aIter,
-              IProtocol* aActor,
-              P* aResult)
-{
+template <typename P>
+static inline bool ReadIPDLParam(const IPC::Message* aMsg,
+                                 PickleIterator* aIter, IProtocol* aActor,
+                                 P* aResult) {
   return IPDLParamTraits<P>::Read(aMsg, aIter, aActor, aResult);
 }
 
 // nsTArray support for IPDLParamTraits
-template<typename T>
-struct IPDLParamTraits<nsTArray<T>>
-{
+template <typename T>
+struct IPDLParamTraits<nsTArray<T>> {
   static inline void Write(IPC::Message* aMsg, IProtocol* aActor,
                            const nsTArray<T>& aParam) {
     WriteInternal(aMsg, aActor, aParam);
@@ -93,8 +86,7 @@ struct IPDLParamTraits<nsTArray<T>>
   // This method uses infallible allocation so that an OOM failure will
   // show up as an OOM crash rather than an IPC FatalError.
   static bool Read(const IPC::Message* aMsg, PickleIterator* aIter,
-                   IProtocol* aActor, nsTArray<T>* aResult)
-  {
+                   IProtocol* aActor, nsTArray<T>* aResult) {
     uint32_t length;
     if (!ReadIPDLParam(aMsg, aIter, aActor, &length)) {
       return false;
@@ -121,10 +113,10 @@ struct IPDLParamTraits<nsTArray<T>>
     return true;
   }
 
-private:
-  template<typename U>
-  static inline void
-  WriteInternal(IPC::Message* aMsg, IProtocol* aActor, U&& aParam) {
+ private:
+  template <typename U>
+  static inline void WriteInternal(IPC::Message* aMsg, IProtocol* aActor,
+                                   U&& aParam) {
     uint32_t length = aParam.Length();
     WriteIPDLParam(aMsg, aActor, length);
 
@@ -144,11 +136,11 @@ private:
   // not use mozilla::IsPod here because it is perfectly reasonable to have
   // a data structure T for which IsPod<T>::value is true, yet also have a
   // {IPDL,}ParamTraits<T> specialization.
-  static const bool sUseWriteBytes = (mozilla::IsIntegral<T>::value ||
-                                      mozilla::IsFloatingPoint<T>::value);
+  static const bool sUseWriteBytes =
+      (mozilla::IsIntegral<T>::value || mozilla::IsFloatingPoint<T>::value);
 };
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla
 
-#endif // defined(mozilla_ipc_IPDLParamTraits_h)
+#endif  // defined(mozilla_ipc_IPDLParamTraits_h)

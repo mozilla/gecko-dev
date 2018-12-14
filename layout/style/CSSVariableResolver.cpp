@@ -22,27 +22,22 @@ namespace mozilla {
  * Data used by the EnumerateVariableReferences callback.  Reset must be called
  * on it before it is used.
  */
-class EnumerateVariableReferencesData
-{
-public:
+class EnumerateVariableReferencesData {
+ public:
   explicit EnumerateVariableReferencesData(CSSVariableResolver& aResolver)
-    : mResolver(aResolver)
-    , mReferences(MakeUnique<bool[]>(aResolver.mVariables.Length()))
-  {
-  }
+      : mResolver(aResolver),
+        mReferences(MakeUnique<bool[]>(aResolver.mVariables.Length())) {}
 
   /**
    * Resets the data so that it can be passed to another call of
    * EnumerateVariableReferences for a different variable.
    */
-  void Reset()
-  {
+  void Reset() {
     PodZero(mReferences.get(), mResolver.mVariables.Length());
     mReferencesNonExistentVariable = false;
   }
 
-  void RecordVariableReference(const nsAString& aVariableName)
-  {
+  void RecordVariableReference(const nsAString& aVariableName) {
     size_t id;
     if (mResolver.mVariableIDs.Get(aVariableName, &id)) {
       mReferences[id] = true;
@@ -51,17 +46,13 @@ public:
     }
   }
 
-  bool HasReferenceToVariable(size_t aID) const
-  {
-    return mReferences[aID];
+  bool HasReferenceToVariable(size_t aID) const { return mReferences[aID]; }
+
+  bool ReferencesNonExistentVariable() const {
+    return mReferencesNonExistentVariable;
   }
 
-  bool ReferencesNonExistentVariable() const
-  {
-   return mReferencesNonExistentVariable;
-  }
-
-private:
+ private:
   CSSVariableResolver& mResolver;
 
   // Array of booleans, where each index is a variable ID.  If an element is
@@ -75,17 +66,13 @@ private:
   bool mReferencesNonExistentVariable;
 };
 
-static void
-RecordVariableReference(const nsAString& aVariableName,
-                        void* aData)
-{
-  static_cast<EnumerateVariableReferencesData*>(aData)->
-    RecordVariableReference(aVariableName);
+static void RecordVariableReference(const nsAString& aVariableName,
+                                    void* aData) {
+  static_cast<EnumerateVariableReferencesData*>(aData)->RecordVariableReference(
+      aVariableName);
 }
 
-void
-CSSVariableResolver::RemoveCycles(size_t v)
-{
+void CSSVariableResolver::RemoveCycles(size_t v) {
   mVariables[v].mIndex = mNextIndex;
   mVariables[v].mLowLink = mNextIndex;
   mVariables[v].mInStack = true;
@@ -96,11 +83,11 @@ CSSVariableResolver::RemoveCycles(size_t v)
     size_t w = mReferences[v][i];
     if (!mVariables[w].mIndex) {
       RemoveCycles(w);
-      mVariables[v].mLowLink = std::min(mVariables[v].mLowLink,
-                                        mVariables[w].mLowLink);
+      mVariables[v].mLowLink =
+          std::min(mVariables[v].mLowLink, mVariables[w].mLowLink);
     } else if (mVariables[w].mInStack) {
-      mVariables[v].mLowLink = std::min(mVariables[v].mLowLink,
-                                        mVariables[w].mIndex);
+      mVariables[v].mLowLink =
+          std::min(mVariables[v].mLowLink, mVariables[w].mIndex);
     }
   }
 
@@ -123,16 +110,12 @@ CSSVariableResolver::RemoveCycles(size_t v)
   }
 }
 
-void
-CSSVariableResolver::ResolveVariable(size_t aID)
-{
+void CSSVariableResolver::ResolveVariable(size_t aID) {
   if (mVariables[aID].mValue.IsEmpty() || mVariables[aID].mWasInherited) {
     // The variable is invalid or was inherited.   We can just copy the value
     // and its first/last token information across.
-    mOutput->Put(mVariables[aID].mVariableName,
-                 mVariables[aID].mValue,
-                 mVariables[aID].mFirstToken,
-                 mVariables[aID].mLastToken);
+    mOutput->Put(mVariables[aID].mVariableName, mVariables[aID].mValue,
+                 mVariables[aID].mFirstToken, mVariables[aID].mLastToken);
   } else {
     // Otherwise we need to resolve the variable references, after resolving
     // all of our dependencies first.  We do this even for variables that we
@@ -152,20 +135,19 @@ CSSVariableResolver::ResolveVariable(size_t aID)
     nsCSSTokenSerializationType firstToken, lastToken;
     if (mParser.ResolveVariableValue(mVariables[aID].mValue, mOutput,
                                      resolvedValue, firstToken, lastToken)) {
-      mOutput->Put(mVariables[aID].mVariableName, resolvedValue,
-                   firstToken, lastToken);
+      mOutput->Put(mVariables[aID].mVariableName, resolvedValue, firstToken,
+                   lastToken);
     } else {
       mOutput->Put(mVariables[aID].mVariableName, EmptyString(),
-                   eCSSTokenSerialization_Nothing, eCSSTokenSerialization_Nothing);
+                   eCSSTokenSerialization_Nothing,
+                   eCSSTokenSerialization_Nothing);
     }
   }
   mVariables[aID].mResolved = true;
 }
 
-void
-CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
-                             const CSSVariableDeclarations* aSpecified)
-{
+void CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
+                                  const CSSVariableDeclarations* aSpecified) {
   MOZ_ASSERT(!mResolved);
 
   // The only time we would be worried about having a null aInherited is
@@ -185,11 +167,9 @@ CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
   EnumerateVariableReferencesData data(*this);
   for (size_t id = 0; id < n; id++) {
     data.Reset();
-    if (!mVariables[id].mWasInherited &&
-        !mVariables[id].mValue.IsEmpty()) {
+    if (!mVariables[id].mWasInherited && !mVariables[id].mValue.IsEmpty()) {
       if (mParser.EnumerateVariableReferences(mVariables[id].mValue,
-                                              RecordVariableReference,
-                                              &data)) {
+                                              RecordVariableReference, &data)) {
         // Convert the boolean array of dependencies in |data| to a list
         // of dependencies.
         for (size_t i = 0; i < n; i++) {
@@ -207,10 +187,11 @@ CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
         // in the resolver, so that we can ensure we still resolve its value
         // in ResolveVariable, even though its mReferences list is empty.
         mVariables[id].mReferencesNonExistentVariable =
-          data.ReferencesNonExistentVariable();
+            data.ReferencesNonExistentVariable();
       } else {
-        MOZ_ASSERT(false, "EnumerateVariableReferences should not have failed "
-                          "if we previously parsed the specified value");
+        MOZ_ASSERT(false,
+                   "EnumerateVariableReferences should not have failed "
+                   "if we previously parsed the specified value");
         mVariables[id].mValue.Truncate(0);
       }
     }
@@ -240,13 +221,10 @@ CSSVariableResolver::Resolve(const CSSVariableValues* aInherited,
 #endif
 }
 
-void
-CSSVariableResolver::Put(const nsAString& aVariableName,
-                         nsString aValue,
-                         nsCSSTokenSerializationType aFirstToken,
-                         nsCSSTokenSerializationType aLastToken,
-                         bool aWasInherited)
-{
+void CSSVariableResolver::Put(const nsAString& aVariableName, nsString aValue,
+                              nsCSSTokenSerializationType aFirstToken,
+                              nsCSSTokenSerializationType aLastToken,
+                              bool aWasInherited) {
   MOZ_ASSERT(!mResolved);
 
   size_t id;
@@ -261,9 +239,9 @@ CSSVariableResolver::Put(const nsAString& aVariableName,
   } else {
     id = mVariables.Length();
     mVariableIDs.Put(aVariableName, id);
-    mVariables.AppendElement(Variable(aVariableName, aValue,
-                                      aFirstToken, aLastToken, aWasInherited));
+    mVariables.AppendElement(Variable(aVariableName, aValue, aFirstToken,
+                                      aLastToken, aWasInherited));
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

@@ -13,9 +13,7 @@
 namespace mozilla {
 
 /* static */
-bool
-OggDecoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+bool OggDecoder::IsSupportedType(const MediaContainerType& aContainerType) {
   if (!MediaPrefs::OggEnabled()) {
     return false;
   }
@@ -30,7 +28,8 @@ OggDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 
   const MediaCodecs& codecs = aContainerType.ExtendedType().Codecs();
   if (codecs.IsEmpty()) {
-    // WebM guarantees that the only codecs it contained are vp8, vp9, opus or vorbis.
+    // WebM guarantees that the only codecs it contained are vp8, vp9, opus or
+    // vorbis.
     return true;
   }
   // Verify that all the codecs specified are ones that we expect that
@@ -52,4 +51,4 @@ OggDecoder::IsSupportedType(const MediaContainerType& aContainerType)
   return true;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

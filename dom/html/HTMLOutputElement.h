@@ -19,13 +19,13 @@ class HTMLFormSubmission;
 
 class HTMLOutputElement final : public nsGenericHTMLFormElement,
                                 public nsStubMutationObserver,
-                                public nsIConstraintValidation
-{
-public:
+                                public nsIConstraintValidation {
+ public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  explicit HTMLOutputElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                             FromParser aFromParser = NOT_FROM_PARSER);
+  explicit HTMLOutputElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
+      FromParser aFromParser = NOT_FROM_PARSER);
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
@@ -47,8 +47,8 @@ public:
   EventStates IntrinsicState() const override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                               nsIContent* aBindingParent,
-                               bool aCompileEventHandlers) override;
+                              nsIContent* aBindingParent,
+                              bool aCompileEventHandlers) override;
 
   // This function is called when a callback function from nsIMutationObserver
   // has to be used to update the defaultValue attribute.
@@ -63,28 +63,21 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLOutputElement,
                                            nsGenericHTMLFormElement)
 
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
   nsDOMTokenList* HtmlFor();
   // nsGenericHTMLFormElement::GetForm is fine.
-  void GetName(nsAString& aName)
-  {
-    GetHTMLAttr(nsGkAtoms::name, aName);
-  }
+  void GetName(nsAString& aName) { GetHTMLAttr(nsGkAtoms::name, aName); }
 
-  void SetName(const nsAString& aName, ErrorResult& aRv)
-  {
+  void SetName(const nsAString& aName, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::name, aName, aRv);
   }
 
-  void GetType(nsAString& aType)
-  {
-    aType.AssignLiteral("output");
-  }
+  void GetType(nsAString& aType) { aType.AssignLiteral("output"); }
 
-  void GetDefaultValue(nsAString& aDefaultValue)
-  {
+  void GetDefaultValue(nsAString& aDefaultValue) {
     aDefaultValue = mDefaultValue;
   }
 
@@ -99,21 +92,18 @@ public:
   // nsIConstraintValidation::CheckValidity() is fine.
   void SetCustomValidity(const nsAString& aError);
 
-protected:
+ protected:
   virtual ~HTMLOutputElement();
 
-  enum ValueModeFlag {
-    eModeDefault,
-    eModeValue
-  };
+  enum ValueModeFlag { eModeDefault, eModeValue };
 
-  ValueModeFlag                     mValueModeFlag;
-  bool                              mIsDoneAddingChildren;
-  nsString                          mDefaultValue;
-  RefPtr<nsDOMTokenList>  mTokenList;
+  ValueModeFlag mValueModeFlag;
+  bool mIsDoneAddingChildren;
+  nsString mDefaultValue;
+  RefPtr<nsDOMTokenList> mTokenList;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_HTMLOutputElement_h
+#endif  // mozilla_dom_HTMLOutputElement_h

@@ -15,9 +15,8 @@ static StaticMutex gInstanceMutex;
 static U2FHIDTokenManager* gInstance;
 static nsIThread* gPBackgroundThread;
 
-static void
-u2f_register_callback(uint64_t aTransactionId, rust_u2f_result* aResult)
-{
+static void u2f_register_callback(uint64_t aTransactionId,
+                                  rust_u2f_result* aResult) {
   UniquePtr<U2FResult> rv = MakeUnique<U2FResult>(aTransactionId, aResult);
 
   StaticMutexAutoLock lock(gInstanceMutex);
@@ -29,13 +28,12 @@ u2f_register_callback(uint64_t aTransactionId, rust_u2f_result* aResult)
       "U2FHIDTokenManager::HandleRegisterResult", gInstance,
       &U2FHIDTokenManager::HandleRegisterResult, Move(rv)));
 
-  MOZ_ALWAYS_SUCCEEDS(gPBackgroundThread->Dispatch(r.forget(),
-                                                   NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(
+      gPBackgroundThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
 }
 
-static void
-u2f_sign_callback(uint64_t aTransactionId, rust_u2f_result* aResult)
-{
+static void u2f_sign_callback(uint64_t aTransactionId,
+                              rust_u2f_result* aResult) {
   UniquePtr<U2FResult> rv = MakeUnique<U2FResult>(aTransactionId, aResult);
 
   StaticMutexAutoLock lock(gInstanceMutex);
@@ -47,12 +45,11 @@ u2f_sign_callback(uint64_t aTransactionId, rust_u2f_result* aResult)
       "U2FHIDTokenManager::HandleSignResult", gInstance,
       &U2FHIDTokenManager::HandleSignResult, Move(rv)));
 
-  MOZ_ALWAYS_SUCCEEDS(gPBackgroundThread->Dispatch(r.forget(),
-                                                   NS_DISPATCH_NORMAL));
+  MOZ_ALWAYS_SUCCEEDS(
+      gPBackgroundThread->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
 }
 
-U2FHIDTokenManager::U2FHIDTokenManager() : mTransactionId(0)
-{
+U2FHIDTokenManager::U2FHIDTokenManager() : mTransactionId(0) {
   StaticMutexAutoLock lock(gInstanceMutex);
   mozilla::ipc::AssertIsOnBackgroundThread();
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -64,9 +61,7 @@ U2FHIDTokenManager::U2FHIDTokenManager() : mTransactionId(0)
   gInstance = this;
 }
 
-void
-U2FHIDTokenManager::Drop()
-{
+void U2FHIDTokenManager::Drop() {
   {
     StaticMutexAutoLock lock(gInstanceMutex);
     mozilla::ipc::AssertIsOnBackgroundThread();
@@ -106,9 +101,8 @@ U2FHIDTokenManager::Drop()
 // ASN.1  attestation certificate
 // *      attestation signature
 //
-RefPtr<U2FRegisterPromise>
-U2FHIDTokenManager::Register(const WebAuthnMakeCredentialInfo& aInfo)
-{
+RefPtr<U2FRegisterPromise> U2FHIDTokenManager::Register(
+    const WebAuthnMakeCredentialInfo& aInfo) {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
   uint64_t registerFlags = 0;
@@ -128,18 +122,15 @@ U2FHIDTokenManager::Register(const WebAuthnMakeCredentialInfo& aInfo)
 
   ClearPromises();
   mCurrentAppId = aInfo.RpIdHash();
-  mTransactionId = rust_u2f_mgr_register(mU2FManager,
-                                         registerFlags,
-                                         (uint64_t)aInfo.TimeoutMS(),
-                                         u2f_register_callback,
-                                         aInfo.ClientDataHash().Elements(),
-                                         aInfo.ClientDataHash().Length(),
-                                         aInfo.RpIdHash().Elements(),
-                                         aInfo.RpIdHash().Length(),
-                                         U2FKeyHandles(aInfo.ExcludeList()).Get());
+  mTransactionId = rust_u2f_mgr_register(
+      mU2FManager, registerFlags, (uint64_t)aInfo.TimeoutMS(),
+      u2f_register_callback, aInfo.ClientDataHash().Elements(),
+      aInfo.ClientDataHash().Length(), aInfo.RpIdHash().Elements(),
+      aInfo.RpIdHash().Length(), U2FKeyHandles(aInfo.ExcludeList()).Get());
 
   if (mTransactionId == 0) {
-    return U2FRegisterPromise::CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
+    return U2FRegisterPromise::CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR,
+                                               __func__);
   }
 
   return mRegisterPromise.Ensure(__func__);
@@ -161,9 +152,8 @@ U2FHIDTokenManager::Register(const WebAuthnMakeCredentialInfo& aInfo)
 //  4     Counter
 //  *     Signature
 //
-RefPtr<U2FSignPromise>
-U2FHIDTokenManager::Sign(const WebAuthnGetAssertionInfo& aInfo)
-{
+RefPtr<U2FSignPromise> U2FHIDTokenManager::Sign(
+    const WebAuthnGetAssertionInfo& aInfo) {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
   uint64_t signFlags = 0;
@@ -178,21 +168,17 @@ U2FHIDTokenManager::Sign(const WebAuthnGetAssertionInfo& aInfo)
   appIds.AppendElement(mCurrentAppId);
 
   // Process extensions.
-  for (const WebAuthnExtension& ext: aInfo.Extensions()) {
+  for (const WebAuthnExtension& ext : aInfo.Extensions()) {
     if (ext.type() == WebAuthnExtension::TWebAuthnExtensionAppId) {
       appIds.AppendElement(ext.get_WebAuthnExtensionAppId().AppId());
     }
   }
 
   ClearPromises();
-  mTransactionId = rust_u2f_mgr_sign(mU2FManager,
-                                     signFlags,
-                                     (uint64_t)aInfo.TimeoutMS(),
-                                     u2f_sign_callback,
-                                     aInfo.ClientDataHash().Elements(),
-                                     aInfo.ClientDataHash().Length(),
-                                     U2FAppIds(appIds).Get(),
-                                     U2FKeyHandles(aInfo.AllowList()).Get());
+  mTransactionId = rust_u2f_mgr_sign(
+      mU2FManager, signFlags, (uint64_t)aInfo.TimeoutMS(), u2f_sign_callback,
+      aInfo.ClientDataHash().Elements(), aInfo.ClientDataHash().Length(),
+      U2FAppIds(appIds).Get(), U2FKeyHandles(aInfo.AllowList()).Get());
   if (mTransactionId == 0) {
     return U2FSignPromise::CreateAndReject(NS_ERROR_DOM_UNKNOWN_ERR, __func__);
   }
@@ -200,18 +186,14 @@ U2FHIDTokenManager::Sign(const WebAuthnGetAssertionInfo& aInfo)
   return mSignPromise.Ensure(__func__);
 }
 
-void
-U2FHIDTokenManager::Cancel()
-{
+void U2FHIDTokenManager::Cancel() {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
   ClearPromises();
   mTransactionId = rust_u2f_mgr_cancel(mU2FManager);
 }
 
-void
-U2FHIDTokenManager::HandleRegisterResult(UniquePtr<U2FResult>&& aResult)
-{
+void U2FHIDTokenManager::HandleRegisterResult(UniquePtr<U2FResult>&& aResult) {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
   if (aResult->GetTransactionId() != mTransactionId) {
@@ -237,9 +219,7 @@ U2FHIDTokenManager::HandleRegisterResult(UniquePtr<U2FResult>&& aResult)
   mRegisterPromise.Resolve(Move(result), __func__);
 }
 
-void
-U2FHIDTokenManager::HandleSignResult(UniquePtr<U2FResult>&& aResult)
-{
+void U2FHIDTokenManager::HandleSignResult(UniquePtr<U2FResult>&& aResult) {
   mozilla::ipc::AssertIsOnBackgroundThread();
 
   if (aResult->GetTransactionId() != mTransactionId) {
@@ -282,5 +262,5 @@ U2FHIDTokenManager::HandleSignResult(UniquePtr<U2FResult>&& aResult)
   mSignPromise.Resolve(Move(result), __func__);
 }
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla

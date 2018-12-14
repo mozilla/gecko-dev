@@ -7,12 +7,12 @@
 #ifndef mozilla_layers_Axis_h
 #define mozilla_layers_Axis_h
 
-#include <sys/types.h>                  // for int32_t
+#include <sys/types.h>  // for int32_t
 #include "APZUtils.h"
 #include "AxisPhysicsMSDModel.h"
 #include "Units.h"
-#include "mozilla/TimeStamp.h"          // for TimeDuration
-#include "nsTArray.h"                   // for nsTArray
+#include "mozilla/TimeStamp.h"  // for TimeDuration
+#include "nsTArray.h"           // for nsTArray
 
 namespace mozilla {
 namespace layers {
@@ -38,7 +38,7 @@ class AsyncPanZoomController;
  * nothing about the Y axis and vice versa.
  */
 class Axis {
-public:
+ public:
   explicit Axis(AsyncPanZoomController* aAsyncPanZoomController);
 
   /**
@@ -48,13 +48,15 @@ public:
    * location is stationary and the scroll displacement is passed in as
    * aAdditionalDelta.
    */
-  void UpdateWithTouchAtDevicePoint(ParentLayerCoord aPos, ParentLayerCoord aAdditionalDelta, uint32_t aTimestampMs);
+  void UpdateWithTouchAtDevicePoint(ParentLayerCoord aPos,
+                                    ParentLayerCoord aAdditionalDelta,
+                                    uint32_t aTimestampMs);
 
-protected:
+ protected:
   float ApplyFlingCurveToVelocity(float aVelocity) const;
   void AddVelocityToQueue(uint32_t aTimestampMs, float aVelocity);
 
-public:
+ public:
   void HandleTouchVelocity(uint32_t aTimestampMs, float aSpeed);
 
   /**
@@ -162,8 +164,7 @@ public:
    * |aFriction| is the amount of friction to apply.
    * |aThreshold| is the velocity below which the fling is cancelled.
    */
-  bool FlingApplyFrictionOrCancel(const TimeDuration& aDelta,
-                                  float aFriction,
+  bool FlingApplyFrictionOrCancel(const TimeDuration& aDelta, float aFriction,
                                   float aThreshold);
 
   /**
@@ -209,7 +210,8 @@ public:
    * If a displacement will overscroll the axis, this returns the amount and in
    * what direction.
    */
-  ParentLayerCoord DisplacementWillOverscrollAmount(ParentLayerCoord aDisplacement) const;
+  ParentLayerCoord DisplacementWillOverscrollAmount(
+      ParentLayerCoord aDisplacement) const;
 
   /**
    * If a scale will overscroll the axis, this returns the amount and in what
@@ -253,16 +255,20 @@ public:
   bool OverscrollBehaviorAllowsHandoff() const;
   bool OverscrollBehaviorAllowsOverscrollEffect() const;
 
-  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const = 0;
-  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const = 0;
-  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const = 0;
-  virtual CSSToParentLayerScale GetScaleForAxis(const CSSToParentLayerScale2D& aScale) const = 0;
+  virtual ParentLayerCoord GetPointOffset(
+      const ParentLayerPoint& aPoint) const = 0;
+  virtual ParentLayerCoord GetRectLength(
+      const ParentLayerRect& aRect) const = 0;
+  virtual ParentLayerCoord GetRectOffset(
+      const ParentLayerRect& aRect) const = 0;
+  virtual CSSToParentLayerScale GetScaleForAxis(
+      const CSSToParentLayerScale2D& aScale) const = 0;
 
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const = 0;
 
   virtual const char* Name() const = 0;
 
-protected:
+ protected:
   ParentLayerCoord mPos;
 
   // mVelocitySampleTimeMs and mVelocitySamplePos are the time and position
@@ -273,8 +279,8 @@ protected:
   ParentLayerCoord mVelocitySamplePos;
 
   ParentLayerCoord mStartPos;
-  float mVelocity;      // Units: ParentLayerCoords per millisecond
-  bool mAxisLocked;     // Whether movement on this axis is locked.
+  float mVelocity;   // Units: ParentLayerCoords per millisecond
+  bool mAxisLocked;  // Whether movement on this axis is locked.
   AsyncPanZoomController* mAsyncPanZoomController;
 
   // The amount by which we are overscrolled; see GetOverscroll().
@@ -306,32 +312,42 @@ protected:
 };
 
 class AxisX : public Axis {
-public:
+ public:
   explicit AxisX(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const override;
-  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const override;
-  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const override;
-  virtual CSSToParentLayerScale GetScaleForAxis(const CSSToParentLayerScale2D& aScale) const override;
+  virtual ParentLayerCoord GetPointOffset(
+      const ParentLayerPoint& aPoint) const override;
+  virtual ParentLayerCoord GetRectLength(
+      const ParentLayerRect& aRect) const override;
+  virtual ParentLayerCoord GetRectOffset(
+      const ParentLayerRect& aRect) const override;
+  virtual CSSToParentLayerScale GetScaleForAxis(
+      const CSSToParentLayerScale2D& aScale) const override;
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const override;
   virtual const char* Name() const override;
-private:
+
+ private:
   virtual OverscrollBehavior GetOverscrollBehavior() const override;
 };
 
 class AxisY : public Axis {
-public:
+ public:
   explicit AxisY(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual ParentLayerCoord GetPointOffset(const ParentLayerPoint& aPoint) const override;
-  virtual ParentLayerCoord GetRectLength(const ParentLayerRect& aRect) const override;
-  virtual ParentLayerCoord GetRectOffset(const ParentLayerRect& aRect) const override;
-  virtual CSSToParentLayerScale GetScaleForAxis(const CSSToParentLayerScale2D& aScale) const override;
+  virtual ParentLayerCoord GetPointOffset(
+      const ParentLayerPoint& aPoint) const override;
+  virtual ParentLayerCoord GetRectLength(
+      const ParentLayerRect& aRect) const override;
+  virtual ParentLayerCoord GetRectOffset(
+      const ParentLayerRect& aRect) const override;
+  virtual CSSToParentLayerScale GetScaleForAxis(
+      const CSSToParentLayerScale2D& aScale) const override;
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const override;
   virtual const char* Name() const override;
-private:
+
+ private:
   virtual OverscrollBehavior GetOverscrollBehavior() const override;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

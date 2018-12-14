@@ -16,9 +16,8 @@
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/RefPtr.h"
 
-class nsSimpleArrayEnumerator final : public nsISimpleEnumerator
-{
-public:
+class nsSimpleArrayEnumerator final : public nsISimpleEnumerator {
+ public:
   // nsISupports interface
   NS_DECL_ISUPPORTS
 
@@ -27,15 +26,12 @@ public:
 
   // nsSimpleArrayEnumerator methods
   explicit nsSimpleArrayEnumerator(nsIArray* aValueArray)
-    : mValueArray(aValueArray)
-    , mIndex(0)
-  {
-  }
+      : mValueArray(aValueArray), mIndex(0) {}
 
-private:
+ private:
   ~nsSimpleArrayEnumerator() = default;
 
-protected:
+ protected:
   nsCOMPtr<nsIArray> mValueArray;
   uint32_t mIndex;
 };
@@ -43,8 +39,7 @@ protected:
 NS_IMPL_ISUPPORTS(nsSimpleArrayEnumerator, nsISimpleEnumerator)
 
 NS_IMETHODIMP
-nsSimpleArrayEnumerator::HasMoreElements(bool* aResult)
-{
+nsSimpleArrayEnumerator::HasMoreElements(bool* aResult) {
   NS_PRECONDITION(aResult != 0, "null ptr");
   if (!aResult) {
     return NS_ERROR_NULL_POINTER;
@@ -65,8 +60,7 @@ nsSimpleArrayEnumerator::HasMoreElements(bool* aResult)
 }
 
 NS_IMETHODIMP
-nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
-{
+nsSimpleArrayEnumerator::GetNext(nsISupports** aResult) {
   NS_PRECONDITION(aResult != 0, "null ptr");
   if (!aResult) {
     return NS_ERROR_NULL_POINTER;
@@ -90,9 +84,8 @@ nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
                                      (void**)aResult);
 }
 
-nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator** aResult, nsIArray* aArray)
-{
+nsresult NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
+                               nsIArray* aArray) {
   RefPtr<nsSimpleArrayEnumerator> enumer = new nsSimpleArrayEnumerator(aArray);
   enumer.forget(aResult);
   return NS_OK;
@@ -104,9 +97,8 @@ NS_NewArrayEnumerator(nsISimpleEnumerator** aResult, nsIArray* aArray)
 // creates a snapshot of the array in question
 // you MUST use NS_NewArrayEnumerator to create this, so that
 // allocation is done correctly
-class nsCOMArrayEnumerator final : public nsISimpleEnumerator
-{
-public:
+class nsCOMArrayEnumerator final : public nsISimpleEnumerator {
+ public:
   // nsISupports interface
   NS_DECL_ISUPPORTS
 
@@ -119,20 +111,17 @@ public:
   // specialized operator to make sure we make room for mValues
   void operator delete(void* aPtr) { free(aPtr); }
 
-private:
+ private:
   // nsSimpleArrayEnumerator methods
-  nsCOMArrayEnumerator()
-    : mIndex(0)
-    , mArraySize(0)
-  {
+  nsCOMArrayEnumerator() : mIndex(0), mArraySize(0) {
     mValueArray[0] = nullptr;
   }
 
   ~nsCOMArrayEnumerator(void);
 
-protected:
-  uint32_t mIndex;            // current position
-  uint32_t mArraySize;        // size of the array
+ protected:
+  uint32_t mIndex;      // current position
+  uint32_t mArraySize;  // size of the array
 
   // this is actually bigger
   nsISupports* mValueArray[1];
@@ -140,8 +129,7 @@ protected:
 
 NS_IMPL_ISUPPORTS(nsCOMArrayEnumerator, nsISimpleEnumerator)
 
-nsCOMArrayEnumerator::~nsCOMArrayEnumerator()
-{
+nsCOMArrayEnumerator::~nsCOMArrayEnumerator() {
   // only release the entries that we haven't visited yet
   for (; mIndex < mArraySize; ++mIndex) {
     NS_IF_RELEASE(mValueArray[mIndex]);
@@ -149,8 +137,7 @@ nsCOMArrayEnumerator::~nsCOMArrayEnumerator()
 }
 
 NS_IMETHODIMP
-nsCOMArrayEnumerator::HasMoreElements(bool* aResult)
-{
+nsCOMArrayEnumerator::HasMoreElements(bool* aResult) {
   NS_PRECONDITION(aResult != 0, "null ptr");
   if (!aResult) {
     return NS_ERROR_NULL_POINTER;
@@ -161,8 +148,7 @@ nsCOMArrayEnumerator::HasMoreElements(bool* aResult)
 }
 
 NS_IMETHODIMP
-nsCOMArrayEnumerator::GetNext(nsISupports** aResult)
-{
+nsCOMArrayEnumerator::GetNext(nsISupports** aResult) {
   NS_PRECONDITION(aResult != 0, "null ptr");
   if (!aResult) {
     return NS_ERROR_NULL_POINTER;
@@ -184,9 +170,8 @@ nsCOMArrayEnumerator::GetNext(nsISupports** aResult)
   return NS_OK;
 }
 
-nsCOMArrayEnumerator*
-nsCOMArrayEnumerator::Allocate(const nsCOMArray_base& aArray)
-{
+nsCOMArrayEnumerator* nsCOMArrayEnumerator::Allocate(
+    const nsCOMArray_base& aArray) {
   // create enough space such that mValueArray points to a large
   // enough value. Note that the initial value of aSize gives us
   // space for mValueArray[0], so we must subtract
@@ -217,11 +202,10 @@ nsCOMArrayEnumerator::Allocate(const nsCOMArray_base& aArray)
   return result;
 }
 
-nsresult
-NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
-                      const nsCOMArray_base& aArray)
-{
-  RefPtr<nsCOMArrayEnumerator> enumerator = nsCOMArrayEnumerator::Allocate(aArray);
+nsresult NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
+                               const nsCOMArray_base& aArray) {
+  RefPtr<nsCOMArrayEnumerator> enumerator =
+      nsCOMArrayEnumerator::Allocate(aArray);
   enumerator.forget(aResult);
   return NS_OK;
 }

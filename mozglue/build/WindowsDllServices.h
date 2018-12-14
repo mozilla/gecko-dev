@@ -17,7 +17,7 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
-#endif // defined(MOZILLA_INTERNAL_API)
+#endif  // defined(MOZILLA_INTERNAL_API)
 
 // For PCUNICODE_STRING
 #include <winternl.h>
@@ -26,9 +26,8 @@ namespace mozilla {
 namespace glue {
 namespace detail {
 
-class DllServicesBase : public Authenticode
-{
-public:
+class DllServicesBase : public Authenticode {
+ public:
   /**
    * WARNING: This method is called from within an unsafe context that holds
    *          multiple locks inside the Windows loader. The only thing that
@@ -37,13 +36,11 @@ public:
    */
   virtual void DispatchDllLoadNotification(PCUNICODE_STRING aDllName) = 0;
 
-  void SetAuthenticodeImpl(Authenticode* aAuthenticode)
-  {
+  void SetAuthenticodeImpl(Authenticode* aAuthenticode) {
     mAuthenticode = aAuthenticode;
   }
 
-  UniquePtr<wchar_t[]> GetBinaryOrgName(const wchar_t* aFilePath) final
-  {
+  UniquePtr<wchar_t[]> GetBinaryOrgName(const wchar_t* aFilePath) final {
     if (!mAuthenticode) {
       return nullptr;
     }
@@ -51,83 +48,66 @@ public:
     return mAuthenticode->GetBinaryOrgName(aFilePath);
   }
 
-  void Disable()
-  {
-    DllBlocklist_SetDllServices(nullptr);
-  }
+  void Disable() { DllBlocklist_SetDllServices(nullptr); }
 
   DllServicesBase(const DllServicesBase&) = delete;
   DllServicesBase(DllServicesBase&&) = delete;
   DllServicesBase& operator=(const DllServicesBase&) = delete;
   DllServicesBase& operator=(DllServicesBase&&) = delete;
 
-protected:
-  DllServicesBase()
-    : mAuthenticode(nullptr)
-  {
-  }
+ protected:
+  DllServicesBase() : mAuthenticode(nullptr) {}
 
   virtual ~DllServicesBase() = default;
 
-  void Enable()
-  {
-    DllBlocklist_SetDllServices(this);
-  }
+  void Enable() { DllBlocklist_SetDllServices(this); }
 
-private:
+ private:
   Authenticode* mAuthenticode;
 };
 
-} // namespace detail
+}  // namespace detail
 
 #if defined(MOZILLA_INTERNAL_API)
 
-class DllServices : public detail::DllServicesBase
-{
-public:
-  void DispatchDllLoadNotification(PCUNICODE_STRING aDllName) final
-  {
+class DllServices : public detail::DllServicesBase {
+ public:
+  void DispatchDllLoadNotification(PCUNICODE_STRING aDllName) final {
     nsDependentSubstring strDllName(aDllName->Buffer,
                                     aDllName->Length / sizeof(wchar_t));
 
-    nsCOMPtr<nsIRunnable> runnable(
-      NewRunnableMethod<bool, nsString>("DllServices::NotifyDllLoad",
-                                        this, &DllServices::NotifyDllLoad,
-                                        NS_IsMainThread(), strDllName));
+    nsCOMPtr<nsIRunnable> runnable(NewRunnableMethod<bool, nsString>(
+        "DllServices::NotifyDllLoad", this, &DllServices::NotifyDllLoad,
+        NS_IsMainThread(), strDllName));
 
     SystemGroup::Dispatch(TaskCategory::Other, runnable.forget());
   }
 
   NS_INLINE_DECL_THREADSAFE_VIRTUAL_REFCOUNTING(DllServices)
 
-protected:
+ protected:
   DllServices() = default;
   ~DllServices() = default;
 
-  virtual void NotifyDllLoad(const bool aIsMainThread, const nsString& aDllName) = 0;
+  virtual void NotifyDllLoad(const bool aIsMainThread,
+                             const nsString& aDllName) = 0;
 };
 
 #else
 
-class BasicDllServices : public detail::DllServicesBase
-{
-public:
-  BasicDllServices()
-  {
-    Enable();
-  }
+class BasicDllServices : public detail::DllServicesBase {
+ public:
+  BasicDllServices() { Enable(); }
 
-  ~BasicDllServices()
-  {
-    Disable();
-  }
+  ~BasicDllServices() { Disable(); }
 
-  virtual void DispatchDllLoadNotification(PCUNICODE_STRING aDllName) override {}
+  virtual void DispatchDllLoadNotification(PCUNICODE_STRING aDllName) override {
+  }
 };
 
-#endif // defined(MOZILLA_INTERNAL_API)
+#endif  // defined(MOZILLA_INTERNAL_API)
 
-} // namespace glue
-} // namespace mozilla
+}  // namespace glue
+}  // namespace mozilla
 
-#endif // mozilla_glue_WindowsDllServices_h
+#endif  // mozilla_glue_WindowsDllServices_h

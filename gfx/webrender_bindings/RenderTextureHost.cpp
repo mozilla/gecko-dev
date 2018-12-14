@@ -10,16 +10,12 @@
 namespace mozilla {
 namespace wr {
 
-RenderTextureHost::RenderTextureHost()
-{
-  MOZ_COUNT_CTOR(RenderTextureHost);
-}
+RenderTextureHost::RenderTextureHost() { MOZ_COUNT_CTOR(RenderTextureHost); }
 
-RenderTextureHost::~RenderTextureHost()
-{
+RenderTextureHost::~RenderTextureHost() {
   MOZ_ASSERT(RenderThread::IsInRenderThread());
   MOZ_COUNT_DTOR(RenderTextureHost);
 }
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla

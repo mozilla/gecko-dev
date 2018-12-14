@@ -36,15 +36,11 @@ namespace dom {
  * the first change.
  */
 class IDTracker {
-public:
+ public:
   typedef mozilla::dom::Element Element;
 
-  IDTracker()
-    : mReferencingImage(false)
-  {}
-  ~IDTracker() {
-    Unlink();
-  }
+  IDTracker() : mReferencingImage(false) {}
+  ~IDTracker() { Unlink(); }
 
   /**
    * Find which element, if any, is referenced.
@@ -75,8 +71,7 @@ public:
    * changes, so ElementChanged won't fire and get() will always return the same
    * value, the current element for the ID.
    */
-  void ResetWithID(nsIContent* aFrom, const nsString& aID,
-                   bool aWatch = true);
+  void ResetWithID(nsIContent* aFrom, const nsString& aID, bool aWatch = true);
 
   /**
    * Clears the reference. ElementChanged is not triggered. get() will return
@@ -86,15 +81,13 @@ public:
 
   void Traverse(nsCycleCollectionTraversalCallback* aCB);
 
-protected:
+ protected:
   /**
    * Override this to be notified of element changes. Don't forget
    * to call this superclass method to change mElement. This is called
    * at script-runnable time.
    */
-  virtual void ElementChanged(Element* aFrom, Element* aTo) {
-    mElement = aTo;
-  }
+  virtual void ElementChanged(Element* aFrom, Element* aTo) { mElement = aTo; }
 
   /**
    * Override this to convert from a single-shot notification to
@@ -109,36 +102,29 @@ protected:
   void HaveNewDocument(nsIDocument* aDocument, bool aWatch,
                        const nsString& aRef);
 
-private:
-  static bool Observe(Element* aOldElement,
-                        Element* aNewElement, void* aData);
+ private:
+  static bool Observe(Element* aOldElement, Element* aNewElement, void* aData);
 
   class Notification : public nsISupports {
-  public:
+   public:
     virtual void SetTo(Element* aTo) = 0;
     virtual void Clear() { mTarget = nullptr; }
     virtual ~Notification() {}
-  protected:
-    explicit Notification(IDTracker* aTarget)
-      : mTarget(aTarget)
-    {
+
+   protected:
+    explicit Notification(IDTracker* aTarget) : mTarget(aTarget) {
       NS_PRECONDITION(aTarget, "Must have a target");
     }
     IDTracker* mTarget;
   };
 
-  class ChangeNotification : public mozilla::Runnable,
-                             public Notification
-  {
-  public:
-    ChangeNotification(IDTracker* aTarget,
-                       Element* aFrom,
-                       Element* aTo)
-      : mozilla::Runnable("IDTracker::ChangeNotification")
-      , Notification(aTarget)
-      , mFrom(aFrom)
-      , mTo(aTo)
-    {}
+  class ChangeNotification : public mozilla::Runnable, public Notification {
+   public:
+    ChangeNotification(IDTracker* aTarget, Element* aFrom, Element* aTo)
+        : mozilla::Runnable("IDTracker::ChangeNotification"),
+          Notification(aTarget),
+          mFrom(aFrom),
+          mTo(aTo) {}
 
     // We need to actually declare all of nsISupports, because
     // Notification inherits from it but doesn't declare it.
@@ -151,11 +137,13 @@ private:
       return NS_OK;
     }
     virtual void SetTo(Element* aTo) override { mTo = aTo; }
-    virtual void Clear() override
-    {
-      Notification::Clear(); mFrom = nullptr; mTo = nullptr;
+    virtual void Clear() override {
+      Notification::Clear();
+      mFrom = nullptr;
+      mTo = nullptr;
     }
-  protected:
+
+   protected:
     virtual ~ChangeNotification() {}
 
     RefPtr<Element> mFrom;
@@ -163,14 +151,10 @@ private:
   };
   friend class ChangeNotification;
 
-  class DocumentLoadNotification : public Notification,
-                                   public nsIObserver
-  {
-  public:
-    DocumentLoadNotification(IDTracker* aTarget,
-                             const nsString& aRef) :
-      Notification(aTarget)
-    {
+  class DocumentLoadNotification : public Notification, public nsIObserver {
+   public:
+    DocumentLoadNotification(IDTracker* aTarget, const nsString& aRef)
+        : Notification(aTarget) {
       if (!mTarget->IsPersistent()) {
         mRef = aRef;
       }
@@ -178,38 +162,31 @@ private:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
-  private:
+   private:
     virtual ~DocumentLoadNotification() {}
 
-    virtual void SetTo(Element* aTo) override { }
+    virtual void SetTo(Element* aTo) override {}
 
     nsString mRef;
   };
   friend class DocumentLoadNotification;
 
-  RefPtr<nsAtom>      mWatchID;
-  nsCOMPtr<nsIDocument>  mWatchDocument;
+  RefPtr<nsAtom> mWatchID;
+  nsCOMPtr<nsIDocument> mWatchDocument;
   RefPtr<Element> mElement;
   RefPtr<Notification> mPendingNotification;
-  bool                   mReferencingImage;
+  bool mReferencingImage;
 };
 
-inline void
-ImplCycleCollectionUnlink(IDTracker& aField)
-{
-  aField.Unlink();
-}
+inline void ImplCycleCollectionUnlink(IDTracker& aField) { aField.Unlink(); }
 
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            IDTracker& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback, IDTracker& aField,
+    const char* aName, uint32_t aFlags = 0) {
   aField.Traverse(&aCallback);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_IDTracker_h_ */

@@ -14,50 +14,50 @@
 #include "nsRect.h"
 #include "mozilla/WidgetUtils.h"
 
-class nsScreenAndroid final : public nsBaseScreen
-{
-public:
-    nsScreenAndroid(DisplayType aDisplayType, nsIntRect aRect);
-    ~nsScreenAndroid();
+class nsScreenAndroid final : public nsBaseScreen {
+ public:
+  nsScreenAndroid(DisplayType aDisplayType, nsIntRect aRect);
+  ~nsScreenAndroid();
 
-    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
-    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
-    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth) override;
-    NS_IMETHOD GetColorDepth(int32_t* aColorDepth) override;
+  NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth,
+                     int32_t* aHeight) override;
+  NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth,
+                          int32_t* aHeight) override;
+  NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth) override;
+  NS_IMETHOD GetColorDepth(int32_t* aColorDepth) override;
 
-    uint32_t GetId() const { return mId; };
-    DisplayType GetDisplayType() const { return mDisplayType; }
+  uint32_t GetId() const { return mId; };
+  DisplayType GetDisplayType() const { return mDisplayType; }
 
-    void SetDensity(double aDensity) { mDensity = aDensity; }
-    float GetDensity();
+  void SetDensity(double aDensity) { mDensity = aDensity; }
+  float GetDensity();
 
-private:
-    uint32_t mId;
-    DisplayType mDisplayType;
-    nsIntRect mRect;
-    float mDensity;
+ private:
+  uint32_t mId;
+  DisplayType mDisplayType;
+  nsIntRect mRect;
+  float mDensity;
 };
 
-class nsScreenManagerAndroid final : public nsIScreenManager
-{
-private:
-    ~nsScreenManagerAndroid();
+class nsScreenManagerAndroid final : public nsIScreenManager {
+ private:
+  ~nsScreenManagerAndroid();
 
-public:
-    class ScreenManagerHelperSupport;
+ public:
+  class ScreenManagerHelperSupport;
 
-    nsScreenManagerAndroid();
+  nsScreenManagerAndroid();
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISCREENMANAGER
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISCREENMANAGER
 
-    already_AddRefed<nsScreenAndroid> ScreenForId(uint32_t aId);
-    already_AddRefed<nsScreenAndroid> AddScreen(DisplayType aDisplayType,
-                                                nsIntRect aRect = nsIntRect());
-    void RemoveScreen(uint32_t aScreenId);
+  already_AddRefed<nsScreenAndroid> ScreenForId(uint32_t aId);
+  already_AddRefed<nsScreenAndroid> AddScreen(DisplayType aDisplayType,
+                                              nsIntRect aRect = nsIntRect());
+  void RemoveScreen(uint32_t aScreenId);
 
-protected:
-    nsTArray<RefPtr<nsScreenAndroid>> mScreens;
+ protected:
+  nsTArray<RefPtr<nsScreenAndroid>> mScreens;
 };
 
 #endif /* nsScreenManagerAndroid_h___ */

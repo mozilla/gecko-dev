@@ -13,11 +13,10 @@ class nsINode;
 
 namespace mozilla {
 
-class HTMLEditUtils final
-{
-public:
+class HTMLEditUtils final {
+ public:
   static bool IsInlineStyle(nsINode* aNode);
-  static bool IsInlineStyle(nsIDOMNode *aNode);
+  static bool IsInlineStyle(nsIDOMNode* aNode);
   static bool IsFormatNode(nsINode* aNode);
   static bool IsFormatNode(nsIDOMNode* aNode);
   static bool IsNodeThatCanOutdent(nsINode* aNode);
@@ -68,7 +67,6 @@ public:
   static bool IsSingleLineContainer(nsINode& aNode);
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef HTMLEditUtils_h
-
+#endif  // #ifndef HTMLEditUtils_h

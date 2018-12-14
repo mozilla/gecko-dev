@@ -20,11 +20,10 @@ class ServoStyleSheet;
 namespace css {
 class GroupRule;
 class Rule;
-} // namespace css
+}  // namespace css
 
-class ServoCSSRuleList final : public dom::CSSRuleList
-{
-public:
+class ServoCSSRuleList final : public dom::CSSRuleList {
+ public:
   // @param aDirectOwnerStyleSheet should be set to the owner stylesheet
   // if this rule list is owned directly by a stylesheet, which means it
   // is a top level CSSRuleList. If it's owned by a group rule, nullptr.
@@ -51,7 +50,7 @@ public:
 
   uint16_t GetDOMCSSRuleType(uint32_t aIndex) const;
 
-private:
+ private:
   virtual ~ServoCSSRuleList();
 
   // XXX Is it possible to have an address lower than or equal to 255?
@@ -66,7 +65,7 @@ private:
     return reinterpret_cast<css::Rule*>(aInt);
   }
 
-  template<typename Func>
+  template <typename Func>
   void EnumerateInstantiatedRules(Func aCallback);
 
   void DropAllRules();
@@ -83,6 +82,6 @@ private:
   nsTArray<uintptr_t> mRules;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoCSSRuleList_h
+#endif  // mozilla_ServoCSSRuleList_h

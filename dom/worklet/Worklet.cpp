@@ -27,20 +27,19 @@ namespace dom {
 // ---------------------------------------------------------------------------
 // WorkletFetchHandler
 
-class WorkletFetchHandler : public PromiseNativeHandler
-                          , public nsIStreamLoaderObserver
-{
-public:
+class WorkletFetchHandler : public PromiseNativeHandler,
+                            public nsIStreamLoaderObserver {
+ public:
   NS_DECL_ISUPPORTS
 
-  static already_AddRefed<Promise>
-  Fetch(Worklet* aWorklet, const nsAString& aModuleURL, CallerType aCallerType,
-        ErrorResult& aRv)
-  {
+  static already_AddRefed<Promise> Fetch(Worklet* aWorklet,
+                                         const nsAString& aModuleURL,
+                                         CallerType aCallerType,
+                                         ErrorResult& aRv) {
     MOZ_ASSERT(aWorklet);
 
     nsCOMPtr<nsIGlobalObject> global =
-      do_QueryInterface(aWorklet->GetParentObject());
+        do_QueryInterface(aWorklet->GetParentObject());
     MOZ_ASSERT(global);
 
     RefPtr<Promise> promise = Promise::Create(global, aRv);
@@ -60,7 +59,8 @@ public:
 
     nsCOMPtr<nsIURI> baseURI = doc->GetBaseURI();
     nsCOMPtr<nsIURI> resolvedURI;
-    nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI), aModuleURL, nullptr, baseURI);
+    nsresult rv =
+        NS_NewURI(getter_AddRefs(resolvedURI), aModuleURL, nullptr, baseURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       promise->MaybeReject(rv);
       return promise.forget();
@@ -88,23 +88,22 @@ public:
     RequestInit init;
 
     RefPtr<Promise> fetchPromise =
-      FetchRequest(global, request, init, aCallerType, aRv);
+        FetchRequest(global, request, init, aCallerType, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       promise->MaybeReject(aRv);
       return promise.forget();
     }
 
     RefPtr<WorkletFetchHandler> handler =
-      new WorkletFetchHandler(aWorklet, aModuleURL, promise);
+        new WorkletFetchHandler(aWorklet, aModuleURL, promise);
     fetchPromise->AppendNativeHandler(handler);
 
     aWorklet->AddImportFetchHandler(spec, handler);
     return promise.forget();
   }
 
-  virtual void
-  ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override
-  {
+  virtual void ResolvedCallback(JSContext* aCx,
+                                JS::Handle<JS::Value> aValue) override {
     if (!aValue.isObject()) {
       RejectPromises(NS_ERROR_FAILURE);
       return;
@@ -152,7 +151,7 @@ public:
     nsCOMPtr<nsIThreadRetargetableRequest> rr = do_QueryInterface(pump);
     if (rr) {
       nsCOMPtr<nsIEventTarget> sts =
-        do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+          do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
       rv = rr->RetargetDeliveryTo(sts);
       if (NS_FAILED(rv)) {
         NS_WARNING("Failed to dispatch the nsIInputStreamPump to a IO thread.");
@@ -163,8 +162,7 @@ public:
   NS_IMETHOD
   OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aContext,
                    nsresult aStatus, uint32_t aStringLen,
-                   const uint8_t* aString) override
-  {
+                   const uint8_t* aString) override {
     MOZ_ASSERT(NS_IsMainThread());
 
     if (NS_FAILED(aStatus)) {
@@ -174,10 +172,9 @@ public:
 
     char16_t* scriptTextBuf;
     size_t scriptTextLength;
-    nsresult rv =
-      ScriptLoader::ConvertToUTF16(nullptr, aString, aStringLen,
-                                   NS_LITERAL_STRING("UTF-8"), nullptr,
-                                   scriptTextBuf, scriptTextLength);
+    nsresult rv = ScriptLoader::ConvertToUTF16(
+        nullptr, aString, aStringLen, NS_LITERAL_STRING("UTF-8"), nullptr,
+        scriptTextBuf, scriptTextLength);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       RejectPromises(rv);
       return NS_OK;
@@ -191,7 +188,7 @@ public:
     jsapi.Init();
 
     RefPtr<WorkletGlobalScope> globalScope =
-      mWorklet->GetOrCreateGlobalScope(jsapi.cx());
+        mWorklet->GetOrCreateGlobalScope(jsapi.cx());
     MOZ_ASSERT(globalScope);
 
     AutoEntryScript aes(globalScope, "Worklet");
@@ -199,7 +196,7 @@ public:
 
     JS::Rooted<JSObject*> globalObj(cx, globalScope->GetGlobalJSObject());
 
-    (void) new XPCWrappedNativeScope(cx, globalObj);
+    (void)new XPCWrappedNativeScope(cx, globalObj);
 
     NS_ConvertUTF16toUTF8 url(mURL);
 
@@ -225,32 +222,24 @@ public:
     return NS_OK;
   }
 
-  virtual void
-  RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override
-  {
+  virtual void RejectedCallback(JSContext* aCx,
+                                JS::Handle<JS::Value> aValue) override {
     RejectPromises(NS_ERROR_DOM_NETWORK_ERR);
   }
 
-private:
+ private:
   WorkletFetchHandler(Worklet* aWorklet, const nsAString& aURL,
                       Promise* aPromise)
-    : mWorklet(aWorklet)
-    , mStatus(ePending)
-    , mErrorStatus(NS_OK)
-    , mURL(aURL)
-  {
+      : mWorklet(aWorklet), mStatus(ePending), mErrorStatus(NS_OK), mURL(aURL) {
     MOZ_ASSERT(aWorklet);
     MOZ_ASSERT(aPromise);
 
     mPromises.AppendElement(aPromise);
   }
 
-  ~WorkletFetchHandler()
-  {}
+  ~WorkletFetchHandler() {}
 
-  void
-  AddPromise(Promise* aPromise)
-  {
+  void AddPromise(Promise* aPromise) {
     MOZ_ASSERT(aPromise);
 
     switch (mStatus) {
@@ -269,9 +258,7 @@ private:
     }
   }
 
-  void
-  RejectPromises(nsresult aResult)
-  {
+  void RejectPromises(nsresult aResult) {
     MOZ_ASSERT(mStatus == ePending);
     MOZ_ASSERT(NS_FAILED(aResult));
 
@@ -285,9 +272,7 @@ private:
     mWorklet = nullptr;
   }
 
-  void
-  ResolvePromises()
-  {
+  void ResolvePromises() {
     MOZ_ASSERT(mStatus == ePending);
 
     for (uint32_t i = 0; i < mPromises.Length(); ++i) {
@@ -302,11 +287,7 @@ private:
   RefPtr<Worklet> mWorklet;
   nsTArray<RefPtr<Promise>> mPromises;
 
-  enum {
-    ePending,
-    eRejected,
-    eResolved
-  } mStatus;
+  enum { ePending, eRejected, eResolved } mStatus;
 
   nsresult mErrorStatus;
 
@@ -329,10 +310,7 @@ NS_INTERFACE_MAP_END
 
 Worklet::Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
                  WorkletType aWorkletType)
-  : mWindow(aWindow)
-  , mPrincipal(aPrincipal)
-  , mWorkletType(aWorkletType)
-{
+    : mWindow(aWindow), mPrincipal(aPrincipal), mWorkletType(aWorkletType) {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(aPrincipal);
 
@@ -341,25 +319,20 @@ Worklet::Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
 #endif
 }
 
-Worklet::~Worklet()
-{}
+Worklet::~Worklet() {}
 
-JSObject*
-Worklet::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* Worklet::WrapObject(JSContext* aCx,
+                              JS::Handle<JSObject*> aGivenProto) {
   return WorkletBinding::Wrap(aCx, this, aGivenProto);
 }
 
-already_AddRefed<Promise>
-Worklet::Import(const nsAString& aModuleURL, CallerType aCallerType,
-                ErrorResult& aRv)
-{
+already_AddRefed<Promise> Worklet::Import(const nsAString& aModuleURL,
+                                          CallerType aCallerType,
+                                          ErrorResult& aRv) {
   return WorkletFetchHandler::Fetch(this, aModuleURL, aCallerType, aRv);
 }
 
-WorkletGlobalScope*
-Worklet::GetOrCreateGlobalScope(JSContext* aCx)
-{
+WorkletGlobalScope* Worklet::GetOrCreateGlobalScope(JSContext* aCx) {
   if (!mScope) {
     switch (mWorkletType) {
       case eAudioWorklet:
@@ -387,21 +360,17 @@ Worklet::GetOrCreateGlobalScope(JSContext* aCx)
   return mScope;
 }
 
-WorkletFetchHandler*
-Worklet::GetImportFetchHandler(const nsACString& aURI)
-{
+WorkletFetchHandler* Worklet::GetImportFetchHandler(const nsACString& aURI) {
   return mImportHandlers.GetWeak(aURI);
 }
 
-void
-Worklet::AddImportFetchHandler(const nsACString& aURI,
-                               WorkletFetchHandler* aHandler)
-{
+void Worklet::AddImportFetchHandler(const nsACString& aURI,
+                                    WorkletFetchHandler* aHandler) {
   MOZ_ASSERT(aHandler);
   MOZ_ASSERT(!mImportHandlers.GetWeak(aURI));
 
   mImportHandlers.Put(aURI, aHandler);
 }
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

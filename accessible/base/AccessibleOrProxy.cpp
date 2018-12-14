@@ -6,9 +6,7 @@
 
 #include "AccessibleOrProxy.h"
 
-AccessibleOrProxy
-AccessibleOrProxy::Parent() const
-{
+AccessibleOrProxy AccessibleOrProxy::Parent() const {
   if (IsAccessible()) {
     return AsAccessible()->Parent();
   }

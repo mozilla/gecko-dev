@@ -22,56 +22,54 @@ namespace loader {
 
 using mozilla::ipc::FileDescriptor;
 
-class AutoMemMap
-{
-    public:
-        AutoMemMap() = default;
+class AutoMemMap {
+ public:
+  AutoMemMap() = default;
 
-        ~AutoMemMap();
+  ~AutoMemMap();
 
-        Result<Ok, nsresult>
-        init(nsIFile* file, int flags = PR_RDONLY, int mode = 0,
-             PRFileMapProtect prot = PR_PROT_READONLY);
+  Result<Ok, nsresult> init(nsIFile* file, int flags = PR_RDONLY, int mode = 0,
+                            PRFileMapProtect prot = PR_PROT_READONLY);
 
-        Result<Ok, nsresult>
-        init(const ipc::FileDescriptor& file);
+  Result<Ok, nsresult> init(const ipc::FileDescriptor& file);
 
-        bool initialized() { return addr; }
+  bool initialized() { return addr; }
 
-        uint32_t size() const { MOZ_ASSERT(fd); return size_; }
+  uint32_t size() const {
+    MOZ_ASSERT(fd);
+    return size_;
+  }
 
-        template<typename T = void>
-        const RangedPtr<T> get()
-        {
-            MOZ_ASSERT(addr);
-            return { static_cast<T*>(addr), size_ };
-        }
+  template <typename T = void>
+  const RangedPtr<T> get() {
+    MOZ_ASSERT(addr);
+    return {static_cast<T*>(addr), size_};
+  }
 
-        template<typename T = void>
-        const RangedPtr<T> get() const
-        {
-            MOZ_ASSERT(addr);
-            return { static_cast<T*>(addr), size_ };
-        }
+  template <typename T = void>
+  const RangedPtr<T> get() const {
+    MOZ_ASSERT(addr);
+    return {static_cast<T*>(addr), size_};
+  }
 
-        size_t nonHeapSizeOfExcludingThis() { return size_; }
+  size_t nonHeapSizeOfExcludingThis() { return size_; }
 
-        FileDescriptor cloneFileDescriptor();
+  FileDescriptor cloneFileDescriptor();
 
-    private:
-        Result<Ok, nsresult> initInternal(PRFileMapProtect prot = PR_PROT_READONLY);
+ private:
+  Result<Ok, nsresult> initInternal(PRFileMapProtect prot = PR_PROT_READONLY);
 
-        AutoFDClose fd;
-        PRFileMap* fileMap = nullptr;
+  AutoFDClose fd;
+  PRFileMap* fileMap = nullptr;
 
-        uint32_t size_ = 0;
-        void* addr = nullptr;
+  uint32_t size_ = 0;
+  void* addr = nullptr;
 
-        AutoMemMap(const AutoMemMap&) = delete;
-        void operator=(const AutoMemMap&) = delete;
+  AutoMemMap(const AutoMemMap&) = delete;
+  void operator=(const AutoMemMap&) = delete;
 };
 
-} // namespace loader
-} // namespace mozilla
+}  // namespace loader
+}  // namespace mozilla
 
-#endif // loader_AutoMemMap_h
+#endif  // loader_AutoMemMap_h

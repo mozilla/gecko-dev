@@ -16,12 +16,12 @@ struct nsRect;
 namespace mozilla {
 namespace dom {
 
-class ScrollBoxObject final : public BoxObject
-{
-public:
+class ScrollBoxObject final : public BoxObject {
+ public:
   ScrollBoxObject();
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   virtual nsIScrollableFrame* GetScrollFrame();
 
@@ -41,25 +41,21 @@ public:
   void EnsureLineIsVisible(int32_t line, ErrorResult& aRv);
 
   // Deprecated APIs from old IDL
-  void GetPosition(JSContext* cx,
-                   JS::Handle<JSObject*> x,
-                   JS::Handle<JSObject*> y,
-                   ErrorResult& aRv);
+  void GetPosition(JSContext* cx, JS::Handle<JSObject*> x,
+                   JS::Handle<JSObject*> y, ErrorResult& aRv);
 
-  void GetScrolledSize(JSContext* cx,
-                       JS::Handle<JSObject*> width,
-                       JS::Handle<JSObject*> height,
-                       ErrorResult& aRv);
+  void GetScrolledSize(JSContext* cx, JS::Handle<JSObject*> width,
+                       JS::Handle<JSObject*> height, ErrorResult& aRv);
 
-protected:
+ protected:
   void GetScrolledSize(nsRect& aRect, ErrorResult& aRv);
   void GetPosition(CSSIntPoint& aPos, ErrorResult& aRv);
 
-private:
+ private:
   ~ScrollBoxObject();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_ScrollBoxObject_h
+#endif  // mozilla_dom_ScrollBoxObject_h

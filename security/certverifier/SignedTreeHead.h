@@ -9,15 +9,17 @@
 
 #include "SignedCertificateTimestamp.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 // Signed Tree Head as defined in section 3.5. of RFC-6962.
-struct SignedTreeHead
-{
+struct SignedTreeHead {
   // Version enum in RFC 6962, Section 3.2. Note that while in the current
   // RFC the STH and SCT share the versioning scheme, there are plans in
   // RFC-6962-bis to use separate versions, so using a separate scheme here.
-  enum class Version { V1 = 0, };
+  enum class Version {
+    V1 = 0,
+  };
 
   Version version;
   uint64_t timestamp;
@@ -26,6 +28,7 @@ struct SignedTreeHead
   DigitallySigned signature;
 };
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla
 
-#endif // SignedTreeHead_h
+#endif  // SignedTreeHead_h

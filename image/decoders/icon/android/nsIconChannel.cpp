@@ -15,30 +15,25 @@
 #include "nsComponentManagerUtils.h"
 #include "NullPrincipal.h"
 
-NS_IMPL_ISUPPORTS(nsIconChannel,
-                  nsIRequest,
-                  nsIChannel)
+NS_IMPL_ISUPPORTS(nsIconChannel, nsIRequest, nsIChannel)
 
 using namespace mozilla;
 using mozilla::dom::ContentChild;
 
-static nsresult
-GetIconForExtension(const nsACString& aFileExt, uint32_t aIconSize,
-                    uint8_t* const aBuf)
-{
-    if (!AndroidBridge::Bridge()) {
-        return NS_ERROR_FAILURE;
-    }
+static nsresult GetIconForExtension(const nsACString& aFileExt,
+                                    uint32_t aIconSize, uint8_t* const aBuf) {
+  if (!AndroidBridge::Bridge()) {
+    return NS_ERROR_FAILURE;
+  }
 
-    AndroidBridge::Bridge()->GetIconForExtension(aFileExt, aIconSize, aBuf);
+  AndroidBridge::Bridge()->GetIconForExtension(aFileExt, aIconSize, aBuf);
 
-    return NS_OK;
+  return NS_OK;
 }
 
-static nsresult
-CallRemoteGetIconForExtension(const nsACString& aFileExt, uint32_t aIconSize,
-                              uint8_t* const aBuf)
-{
+static nsresult CallRemoteGetIconForExtension(const nsACString& aFileExt,
+                                              uint32_t aIconSize,
+                                              uint8_t* const aBuf) {
   NS_ENSURE_TRUE(aBuf != nullptr, NS_ERROR_NULL_POINTER);
 
   // An array has to be used to get data from remote process
@@ -46,7 +41,7 @@ CallRemoteGetIconForExtension(const nsACString& aFileExt, uint32_t aIconSize,
   uint32_t bufSize = aIconSize * aIconSize * 4;
 
   if (!ContentChild::GetSingleton()->SendGetIconForExtension(
-                     PromiseFlatCString(aFileExt), aIconSize, &bits)) {
+          PromiseFlatCString(aFileExt), aIconSize, &bits)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -60,10 +55,8 @@ CallRemoteGetIconForExtension(const nsACString& aFileExt, uint32_t aIconSize,
   return NS_OK;
 }
 
-static nsresult
-moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
-                    uint32_t aIconSize, nsIChannel** aChannel)
-{
+static nsresult moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
+                                    uint32_t aIconSize, nsIChannel** aChannel) {
   NS_ENSURE_TRUE(aIconSize < 256 && aIconSize > 0, NS_ERROR_UNEXPECTED);
 
   int width = aIconSize;
@@ -106,7 +99,7 @@ moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
   }
 
   nsCOMPtr<nsIStringInputStream> stream =
-    do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
+      do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = stream->AdoptData((char*)buf, buf_size);
@@ -116,18 +109,13 @@ moz_icon_to_channel(nsIURI* aURI, const nsACString& aFileExt,
   // this iconChannel. Use the most restrictive security settings for the
   // temporary loadInfo to make sure the channel can not be openend.
   nsCOMPtr<nsIPrincipal> nullPrincipal = NullPrincipal::Create();
-  return NS_NewInputStreamChannel(aChannel,
-                                  aURI,
-                                  stream.forget(),
-                                  nullPrincipal,
-                                  nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
-                                  nsIContentPolicy::TYPE_INTERNAL_IMAGE,
-                                  NS_LITERAL_CSTRING(IMAGE_ICON_MS));
+  return NS_NewInputStreamChannel(
+      aChannel, aURI, stream.forget(), nullPrincipal,
+      nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
+      nsIContentPolicy::TYPE_INTERNAL_IMAGE, NS_LITERAL_CSTRING(IMAGE_ICON_MS));
 }
 
-nsresult
-nsIconChannel::Init(nsIURI* aURI)
-{
+nsresult nsIconChannel::Init(nsIURI* aURI) {
   nsCOMPtr<nsIMozIconURI> iconURI = do_QueryInterface(aURI);
   NS_ASSERTION(iconURI, "URI is not an nsIMozIconURI");
 

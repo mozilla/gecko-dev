@@ -12,15 +12,13 @@ namespace mozilla {
 namespace a11y {
 
 /**
-  * Generic class used for progress meters.
-  */
-template<int Max>
-class ProgressMeterAccessible : public LeafAccessible
-{
-public:
-  ProgressMeterAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    LeafAccessible(aContent, aDoc)
-  {
+ * Generic class used for progress meters.
+ */
+template <int Max>
+class ProgressMeterAccessible : public LeafAccessible {
+ public:
+  ProgressMeterAccessible(nsIContent* aContent, DocAccessible* aDoc)
+      : LeafAccessible(aContent, aDoc) {
     // Ignore 'ValueChange' DOM event in lieu of @value attribute change
     // notifications.
     mStateFlags |= eHasNumericValue | eIgnoreDOMUIEvent;
@@ -42,17 +40,15 @@ public:
   // Widgets
   virtual bool IsWidget() const override;
 
-protected:
+ protected:
   virtual ~ProgressMeterAccessible() {}
 };
 
 /**
-  * Generic class used for radio buttons.
-  */
-class RadioButtonAccessible : public LeafAccessible
-{
-
-public:
+ * Generic class used for radio buttons.
+ */
+class RadioButtonAccessible : public LeafAccessible {
+ public:
   RadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
@@ -69,8 +65,7 @@ public:
   virtual bool IsWidget() const override;
 };
 
-} // namespace a11y
-} // namespace mozilla
+}  // namespace a11y
+}  // namespace mozilla
 
 #endif
-

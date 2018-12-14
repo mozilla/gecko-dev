@@ -26,12 +26,11 @@ struct nsRuleData;
 
 namespace mozilla {
 class GeckoStyleContext;
-} // namespace mozilla
+}  // namespace mozilla
 
 typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData);
 
-struct nsRuleData final : mozilla::GenericSpecifiedValues
-{
+struct nsRuleData final : mozilla::GenericSpecifiedValues {
   mozilla::RuleNodeCacheConditions mConditions;
   bool mIsImportantRule;
   mozilla::SheetType mLevel;
@@ -49,13 +48,12 @@ struct nsRuleData final : mozilla::GenericSpecifiedValues
   // nsRuleNode::HasAuthorSpecifiedRules; therefore some code that we
   // know is not called from HasAuthorSpecifiedRules assumes that the
   // mValueOffsets for the one struct in mSIDs is zero.
-  nsCSSValue* const mValueStorage; // our user owns this array
+  nsCSSValue* const mValueStorage;  // our user owns this array
   size_t mValueOffsets[nsStyleStructID_Length];
 
   nsAutoPtr<mozilla::CSSVariableDeclarations> mVariables;
 
-  nsRuleData(uint32_t aSIDs,
-             nsCSSValue* aValueStorage,
+  nsRuleData(uint32_t aSIDs, nsCSSValue* aValueStorage,
              mozilla::GeckoStyleContext* aStyleContext);
 
 #ifdef DEBUG
@@ -71,8 +69,7 @@ struct nsRuleData final : mozilla::GenericSpecifiedValues
    * This function must only be called if the given property is in
    * mSIDs.
    */
-  nsCSSValue* ValueFor(nsCSSPropertyID aProperty)
-  {
+  nsCSSValue* ValueFor(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(aProperty < eCSSProperty_COUNT_no_shorthands,
                "invalid or shorthand property");
 
@@ -88,102 +85,88 @@ struct nsRuleData final : mozilla::GenericSpecifiedValues
     return mValueStorage + mValueOffsets[sid] + indexInStruct;
   }
 
-  const nsCSSValue* ValueFor(nsCSSPropertyID aProperty) const
-  {
+  const nsCSSValue* ValueFor(nsCSSPropertyID aProperty) const {
     return const_cast<nsRuleData*>(this)->ValueFor(aProperty);
   }
 
-  /**
-   * Getters like ValueFor(aProperty), but for each property by name
-   * (ValueForBackgroundColor, etc.), and more efficient than ValueFor.
-   * These use the names used for the property on DOM interfaces (the
-   * 'method' field in nsCSSPropList.h).
-   *
-   * Like ValueFor(), the caller must check that the property is within
-   * mSIDs.
-   */
-  #define CSS_PROP_PUBLIC_OR_PRIVATE(publicname_, privatename_) privatename_
-  #define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,        \
-                   kwtable_, stylestruct_, stylestructoffset_, animtype_)    \
-    nsCSSValue* ValueFor##method_() {                                        \
-      MOZ_ASSERT(mSIDs & NS_STYLE_INHERIT_BIT(stylestruct_),                 \
-                 "Calling nsRuleData::ValueFor" #method_ " without "         \
-                 "NS_STYLE_INHERIT_BIT(" #stylestruct_ " in mSIDs.");        \
-      nsStyleStructID sid = eStyleStruct_##stylestruct_;                     \
-      size_t indexInStruct =                                                 \
-        nsCSSProps::PropertyIndexInStruct(eCSSProperty_##id_);               \
-      MOZ_ASSERT(indexInStruct != size_t(-1),                                \
-                 "logical property");                                        \
-      return mValueStorage + mValueOffsets[sid] + indexInStruct;             \
-    }                                                                        \
-    const nsCSSValue* ValueFor##method_() const {                            \
-      return const_cast<nsRuleData*>(this)->ValueFor##method_();             \
-    }
-  #define CSS_PROP_LIST_EXCLUDE_LOGICAL
-  #include "nsCSSPropList.h"
-  #undef CSS_PROP_LIST_EXCLUDE_LOGICAL
-  #undef CSS_PROP
-  #undef CSS_PROP_PUBLIC_OR_PRIVATE
+/**
+ * Getters like ValueFor(aProperty), but for each property by name
+ * (ValueForBackgroundColor, etc.), and more efficient than ValueFor.
+ * These use the names used for the property on DOM interfaces (the
+ * 'method' field in nsCSSPropList.h).
+ *
+ * Like ValueFor(), the caller must check that the property is within
+ * mSIDs.
+ */
+#define CSS_PROP_PUBLIC_OR_PRIVATE(publicname_, privatename_) privatename_
+#define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_, kwtable_, \
+                 stylestruct_, stylestructoffset_, animtype_)                 \
+  nsCSSValue* ValueFor##method_() {                                           \
+    MOZ_ASSERT(mSIDs& NS_STYLE_INHERIT_BIT(stylestruct_),                     \
+               "Calling nsRuleData::ValueFor" #method_                        \
+               " without "                                                    \
+               "NS_STYLE_INHERIT_BIT(" #stylestruct_ " in mSIDs.");           \
+    nsStyleStructID sid = eStyleStruct_##stylestruct_;                        \
+    size_t indexInStruct =                                                    \
+        nsCSSProps::PropertyIndexInStruct(eCSSProperty_##id_);                \
+    MOZ_ASSERT(indexInStruct != size_t(-1), "logical property");              \
+    return mValueStorage + mValueOffsets[sid] + indexInStruct;                \
+  }                                                                           \
+  const nsCSSValue* ValueFor##method_() const {                               \
+    return const_cast<nsRuleData*>(this)->ValueFor##method_();                \
+  }
+#define CSS_PROP_LIST_EXCLUDE_LOGICAL
+#include "nsCSSPropList.h"
+#undef CSS_PROP_LIST_EXCLUDE_LOGICAL
+#undef CSS_PROP
+#undef CSS_PROP_PUBLIC_OR_PRIVATE
 
   // GenericSpecifiedValues overrides
-  bool PropertyIsSet(nsCSSPropertyID aId)
-  {
+  bool PropertyIsSet(nsCSSPropertyID aId) {
     return ValueFor(aId)->GetUnit() != eCSSUnit_Null;
   }
 
-  void SetIdentStringValue(nsCSSPropertyID aId, const nsString& aValue)
-  {
+  void SetIdentStringValue(nsCSSPropertyID aId, const nsString& aValue) {
     ValueFor(aId)->SetStringValue(aValue, eCSSUnit_Ident);
   }
 
-  void SetIdentAtomValue(nsCSSPropertyID aId, nsAtom* aValue)
-  {
+  void SetIdentAtomValue(nsCSSPropertyID aId, nsAtom* aValue) {
     RefPtr<nsAtom> atom = aValue;
     ValueFor(aId)->SetAtomIdentValue(atom.forget());
   }
 
-  void SetKeywordValue(nsCSSPropertyID aId, int32_t aValue)
-  {
+  void SetKeywordValue(nsCSSPropertyID aId, int32_t aValue) {
     ValueFor(aId)->SetIntValue(aValue, eCSSUnit_Enumerated);
   }
 
-  void SetIntValue(nsCSSPropertyID aId, int32_t aValue)
-  {
+  void SetIntValue(nsCSSPropertyID aId, int32_t aValue) {
     ValueFor(aId)->SetIntValue(aValue, eCSSUnit_Integer);
   }
 
-  void SetPixelValue(nsCSSPropertyID aId, float aValue)
-  {
+  void SetPixelValue(nsCSSPropertyID aId, float aValue) {
     ValueFor(aId)->SetFloatValue(aValue, eCSSUnit_Pixel);
   }
 
-  void SetLengthValue(nsCSSPropertyID aId, nsCSSValue aValue)
-  {
+  void SetLengthValue(nsCSSPropertyID aId, nsCSSValue aValue) {
     nsCSSValue* val = ValueFor(aId);
     *val = aValue;
   }
 
-  void SetNumberValue(nsCSSPropertyID aId, float aValue)
-  {
+  void SetNumberValue(nsCSSPropertyID aId, float aValue) {
     ValueFor(aId)->SetFloatValue(aValue, eCSSUnit_Number);
   }
 
-  void SetPercentValue(nsCSSPropertyID aId, float aValue)
-  {
+  void SetPercentValue(nsCSSPropertyID aId, float aValue) {
     ValueFor(aId)->SetPercentValue(aValue);
   }
 
-  void SetAutoValue(nsCSSPropertyID aId) {
-    ValueFor(aId)->SetAutoValue();
-  }
+  void SetAutoValue(nsCSSPropertyID aId) { ValueFor(aId)->SetAutoValue(); }
 
-  void SetCurrentColor(nsCSSPropertyID aId)
-  {
+  void SetCurrentColor(nsCSSPropertyID aId) {
     ValueFor(aId)->SetIntValue(NS_COLOR_CURRENTCOLOR, eCSSUnit_EnumColor);
   }
 
-  void SetColorValue(nsCSSPropertyID aId, nscolor aValue)
-  {
+  void SetColorValue(nsCSSPropertyID aId, nscolor aValue) {
     ValueFor(aId)->SetColorValue(aValue);
   }
 
@@ -191,7 +174,7 @@ struct nsRuleData final : mozilla::GenericSpecifiedValues
   void SetTextDecorationColorOverride();
   void SetBackgroundImage(nsAttrValue& aValue);
 
-private:
+ private:
   inline size_t GetPoisonOffset();
 };
 

@@ -18,19 +18,15 @@ namespace mozilla {
 namespace widget {
 
 PDFiumProcessParent::PDFiumProcessParent()
-  : GeckoChildProcessHost(GeckoProcessType_PDFium)
-{
+    : GeckoChildProcessHost(GeckoProcessType_PDFium) {
   MOZ_COUNT_CTOR(PDFiumProcessParent);
 }
 
-PDFiumProcessParent::~PDFiumProcessParent()
-{
+PDFiumProcessParent::~PDFiumProcessParent() {
   MOZ_COUNT_DTOR(PDFiumProcessParent);
 }
 
-bool
-PDFiumProcessParent::Launch(PrintTargetEMF* aTarget)
-{
+bool PDFiumProcessParent::Launch(PrintTargetEMF* aTarget) {
   mLaunchThread = NS_GetCurrentThread();
 
   if (!SyncLaunch()) {
@@ -41,12 +37,10 @@ PDFiumProcessParent::Launch(PrintTargetEMF* aTarget)
   MOZ_ASSERT(!mPDFiumParentActor);
   mPDFiumParentActor = new PDFiumParent(aTarget);
   return mPDFiumParentActor->Init(GetChannel(),
-                            base::GetProcId(GetChildProcessHandle()));
+                                  base::GetProcId(GetChildProcessHandle()));
 }
 
-void
-PDFiumProcessParent::Delete()
-{
+void PDFiumProcessParent::Delete() {
   // Make sure we do close the IPC channel on the same thread with the one
   // that we create the channel.
   if (!mLaunchThread || mLaunchThread == NS_GetCurrentThread()) {
@@ -59,10 +53,9 @@ PDFiumProcessParent::Delete()
     return;
   }
 
-  mLaunchThread->Dispatch(
-    NewNonOwningRunnableMethod("PDFiumProcessParent::Delete", this,
-                               &PDFiumProcessParent::Delete));
+  mLaunchThread->Dispatch(NewNonOwningRunnableMethod(
+      "PDFiumProcessParent::Delete", this, &PDFiumProcessParent::Delete));
 }
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla

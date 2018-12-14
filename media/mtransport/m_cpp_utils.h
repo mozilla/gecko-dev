@@ -13,15 +13,12 @@
 
 namespace mozilla {
 
-#define DISALLOW_ASSIGNMENT(T) \
-  void operator=(const T& other) = delete
+#define DISALLOW_ASSIGNMENT(T) void operator=(const T& other) = delete
 
-#define DISALLOW_COPY(T) \
-  T(const T& other) = delete
-
+#define DISALLOW_COPY(T) T(const T& other) = delete
 
 #define DISALLOW_COPY_ASSIGN(T) \
-  DISALLOW_COPY(T); \
+  DISALLOW_COPY(T);             \
   DISALLOW_ASSIGNMENT(T)
 
 }  // close namespace

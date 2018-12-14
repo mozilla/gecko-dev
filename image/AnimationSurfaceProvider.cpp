@@ -16,17 +16,15 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace image {
 
-AnimationSurfaceProvider::AnimationSurfaceProvider(NotNull<RasterImage*> aImage,
-                                                   const SurfaceKey& aSurfaceKey,
-                                                   NotNull<Decoder*> aDecoder,
-                                                   size_t aCurrentFrame)
-  : ISurfaceProvider(ImageKey(aImage.get()), aSurfaceKey,
-                     AvailabilityState::StartAsPlaceholder())
-  , mImage(aImage.get())
-  , mDecodingMutex("AnimationSurfaceProvider::mDecoder")
-  , mDecoder(aDecoder.get())
-  , mFramesMutex("AnimationSurfaceProvider::mFrames")
-{
+AnimationSurfaceProvider::AnimationSurfaceProvider(
+    NotNull<RasterImage*> aImage, const SurfaceKey& aSurfaceKey,
+    NotNull<Decoder*> aDecoder, size_t aCurrentFrame)
+    : ISurfaceProvider(ImageKey(aImage.get()), aSurfaceKey,
+                       AvailabilityState::StartAsPlaceholder()),
+      mImage(aImage.get()),
+      mDecodingMutex("AnimationSurfaceProvider::mDecoder"),
+      mDecoder(aDecoder.get()),
+      mFramesMutex("AnimationSurfaceProvider::mFrames") {
   MOZ_ASSERT(!mDecoder->IsMetadataDecode(),
              "Use MetadataDecodingTask for metadata decodes");
   MOZ_ASSERT(!mDecoder->IsFirstFrameDecode(),
@@ -35,28 +33,23 @@ AnimationSurfaceProvider::AnimationSurfaceProvider(NotNull<RasterImage*> aImage,
   // We still produce paletted surfaces for GIF which means the frames are
   // smaller than one would expect for APNG. This may be removed if/when
   // bug 1337111 lands and it is enabled by default.
-  size_t pixelSize = aDecoder->GetType() == DecoderType::GIF
-                     ? sizeof(uint8_t) : sizeof(uint32_t);
+  size_t pixelSize = aDecoder->GetType() == DecoderType::GIF ? sizeof(uint8_t)
+                                                             : sizeof(uint32_t);
 
   // Calculate how many frames we need to decode in this animation before we
   // enter decode-on-demand mode.
   IntSize frameSize = aSurfaceKey.Size();
   size_t threshold =
-    (size_t(gfxPrefs::ImageAnimatedDecodeOnDemandThresholdKB()) * 1024) /
-    (pixelSize * frameSize.width * frameSize.height);
+      (size_t(gfxPrefs::ImageAnimatedDecodeOnDemandThresholdKB()) * 1024) /
+      (pixelSize * frameSize.width * frameSize.height);
   size_t batch = gfxPrefs::ImageAnimatedDecodeOnDemandBatchSize();
 
   mFrames.Initialize(threshold, batch, aCurrentFrame);
 }
 
-AnimationSurfaceProvider::~AnimationSurfaceProvider()
-{
-  DropImageReference();
-}
+AnimationSurfaceProvider::~AnimationSurfaceProvider() { DropImageReference(); }
 
-void
-AnimationSurfaceProvider::DropImageReference()
-{
+void AnimationSurfaceProvider::DropImageReference() {
   if (!mImage) {
     return;  // Nothing to do.
   }
@@ -66,9 +59,7 @@ AnimationSurfaceProvider::DropImageReference()
                                     mImage.forget());
 }
 
-void
-AnimationSurfaceProvider::Reset()
-{
+void AnimationSurfaceProvider::Reset() {
   // We want to go back to the beginning.
   bool mayDiscard;
   bool restartDecoder;
@@ -108,9 +99,7 @@ AnimationSurfaceProvider::Reset()
   }
 }
 
-void
-AnimationSurfaceProvider::Advance(size_t aFrame)
-{
+void AnimationSurfaceProvider::Advance(size_t aFrame) {
   bool restartDecoder;
 
   {
@@ -124,9 +113,7 @@ AnimationSurfaceProvider::Advance(size_t aFrame)
   }
 }
 
-DrawableFrameRef
-AnimationSurfaceProvider::DrawableRef(size_t aFrame)
-{
+DrawableFrameRef AnimationSurfaceProvider::DrawableRef(size_t aFrame) {
   MutexAutoLock lock(mFramesMutex);
 
   if (Availability().IsPlaceholder()) {
@@ -137,9 +124,7 @@ AnimationSurfaceProvider::DrawableRef(size_t aFrame)
   return mFrames.Get(aFrame);
 }
 
-bool
-AnimationSurfaceProvider::IsFinished() const
-{
+bool AnimationSurfaceProvider::IsFinished() const {
   MutexAutoLock lock(mFramesMutex);
 
   if (Availability().IsPlaceholder()) {
@@ -156,16 +141,12 @@ AnimationSurfaceProvider::IsFinished() const
   return mFrames.Frames()[0]->IsFinished();
 }
 
-bool
-AnimationSurfaceProvider::IsFullyDecoded() const
-{
+bool AnimationSurfaceProvider::IsFullyDecoded() const {
   MutexAutoLock lock(mFramesMutex);
   return mFrames.SizeKnown() && !mFrames.MayDiscard();
 }
 
-size_t
-AnimationSurfaceProvider::LogicalSizeInBytes() const
-{
+size_t AnimationSurfaceProvider::LogicalSizeInBytes() const {
   // When decoding animated images, we need at most three live surfaces: the
   // composited surface, the previous composited surface for
   // DisposalMethod::RESTORE_PREVIOUS, and the surface we're currently decoding
@@ -181,12 +162,9 @@ AnimationSurfaceProvider::LogicalSizeInBytes() const
   return 3 * size.width * size.height * sizeof(uint32_t);
 }
 
-void
-AnimationSurfaceProvider::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                                                 size_t& aHeapSizeOut,
-                                                 size_t& aNonHeapSizeOut,
-                                                 size_t& aExtHandlesOut)
-{
+void AnimationSurfaceProvider::AddSizeOfExcludingThis(
+    MallocSizeOf aMallocSizeOf, size_t& aHeapSizeOut, size_t& aNonHeapSizeOut,
+    size_t& aExtHandlesOut) {
   // Note that the surface cache lock is already held here, and then we acquire
   // mFramesMutex. For this method, this ordering is unavoidable, which means
   // that we must be careful to always use the same ordering elsewhere.
@@ -200,9 +178,7 @@ AnimationSurfaceProvider::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
   }
 }
 
-void
-AnimationSurfaceProvider::Run()
-{
+void AnimationSurfaceProvider::Run() {
   MutexAutoLock lock(mDecodingMutex);
 
   if (!mDecoder) {
@@ -239,8 +215,9 @@ AnimationSurfaceProvider::Run()
     }
 
     if (result == LexerResult(Yield::NEED_MORE_DATA)) {
-      // We can't make any more progress right now. The decoder itself will ensure
-      // that we get reenqueued when more data is available; just return for now.
+      // We can't make any more progress right now. The decoder itself will
+      // ensure that we get reenqueued when more data is available; just return
+      // for now.
       return;
     }
 
@@ -253,9 +230,7 @@ AnimationSurfaceProvider::Run()
   }
 }
 
-bool
-AnimationSurfaceProvider::CheckForNewFrameAtYield()
-{
+bool AnimationSurfaceProvider::CheckForNewFrameAtYield() {
   mDecodingMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(mDecoder);
 
@@ -300,9 +275,7 @@ AnimationSurfaceProvider::CheckForNewFrameAtYield()
   return continueDecoding && !DecodePool::Singleton()->IsShuttingDown();
 }
 
-bool
-AnimationSurfaceProvider::CheckForNewFrameAtTerminalState()
-{
+bool AnimationSurfaceProvider::CheckForNewFrameAtTerminalState() {
   mDecodingMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(mDecoder);
 
@@ -353,9 +326,7 @@ AnimationSurfaceProvider::CheckForNewFrameAtTerminalState()
   return continueDecoding && !DecodePool::Singleton()->IsShuttingDown();
 }
 
-void
-AnimationSurfaceProvider::AnnounceSurfaceAvailable()
-{
+void AnimationSurfaceProvider::AnnounceSurfaceAvailable() {
   mFramesMutex.AssertNotCurrentThreadOwns();
   MOZ_ASSERT(mImage);
 
@@ -367,9 +338,7 @@ AnimationSurfaceProvider::AnnounceSurfaceAvailable()
   SurfaceCache::SurfaceAvailable(WrapNotNull(this));
 }
 
-void
-AnimationSurfaceProvider::FinishDecoding()
-{
+void AnimationSurfaceProvider::FinishDecoding() {
   mDecodingMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(mDecoder);
 
@@ -402,14 +371,12 @@ AnimationSurfaceProvider::FinishDecoding()
   DropImageReference();
 }
 
-bool
-AnimationSurfaceProvider::ShouldPreferSyncRun() const
-{
+bool AnimationSurfaceProvider::ShouldPreferSyncRun() const {
   MutexAutoLock lock(mDecodingMutex);
   MOZ_ASSERT(mDecoder);
 
   return mDecoder->ShouldSyncDecode(gfxPrefs::ImageMemDecodeBytesAtATime());
 }
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla

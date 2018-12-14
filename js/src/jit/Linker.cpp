@@ -13,60 +13,54 @@
 namespace js {
 namespace jit {
 
-JitCode*
-Linker::newCode(JSContext* cx, CodeKind kind, bool hasPatchableBackedges /* = false */)
-{
-    MOZ_ASSERT_IF(hasPatchableBackedges, kind == CodeKind::Ion);
+JitCode* Linker::newCode(JSContext* cx, CodeKind kind,
+                         bool hasPatchableBackedges /* = false */) {
+  MOZ_ASSERT_IF(hasPatchableBackedges, kind == CodeKind::Ion);
 
-    JS::AutoAssertNoGC nogc(cx);
-    if (masm.oom())
-        return fail(cx);
+  JS::AutoAssertNoGC nogc(cx);
+  if (masm.oom()) return fail(cx);
 
-    masm.performPendingReadBarriers();
+  masm.performPendingReadBarriers();
 
-    static const size_t ExecutableAllocatorAlignment = sizeof(void*);
-    static_assert(CodeAlignment >= ExecutableAllocatorAlignment,
-                  "Unexpected alignment requirements");
+  static const size_t ExecutableAllocatorAlignment = sizeof(void*);
+  static_assert(CodeAlignment >= ExecutableAllocatorAlignment,
+                "Unexpected alignment requirements");
 
-    // We require enough bytes for the code, header, and worst-case alignment padding.
-    size_t bytesNeeded = masm.bytesNeeded() +
-                         sizeof(JitCodeHeader) +
-                         (CodeAlignment - ExecutableAllocatorAlignment);
-    if (bytesNeeded >= MAX_BUFFER_SIZE)
-        return fail(cx);
+  // We require enough bytes for the code, header, and worst-case alignment
+  // padding.
+  size_t bytesNeeded = masm.bytesNeeded() + sizeof(JitCodeHeader) +
+                       (CodeAlignment - ExecutableAllocatorAlignment);
+  if (bytesNeeded >= MAX_BUFFER_SIZE) return fail(cx);
 
-    // ExecutableAllocator requires bytesNeeded to be aligned.
-    bytesNeeded = AlignBytes(bytesNeeded, ExecutableAllocatorAlignment);
+  // ExecutableAllocator requires bytesNeeded to be aligned.
+  bytesNeeded = AlignBytes(bytesNeeded, ExecutableAllocatorAlignment);
 
-    ExecutableAllocator& execAlloc = hasPatchableBackedges
-                                     ? cx->runtime()->jitRuntime()->backedgeExecAlloc()
-                                     : cx->runtime()->jitRuntime()->execAlloc();
+  ExecutableAllocator& execAlloc =
+      hasPatchableBackedges ? cx->runtime()->jitRuntime()->backedgeExecAlloc()
+                            : cx->runtime()->jitRuntime()->execAlloc();
 
-    ExecutablePool* pool;
-    uint8_t* result = (uint8_t*)execAlloc.alloc(cx, bytesNeeded, &pool, kind);
-    if (!result)
-        return fail(cx);
+  ExecutablePool* pool;
+  uint8_t* result = (uint8_t*)execAlloc.alloc(cx, bytesNeeded, &pool, kind);
+  if (!result) return fail(cx);
 
-    // The JitCodeHeader will be stored right before the code buffer.
-    uint8_t* codeStart = result + sizeof(JitCodeHeader);
+  // The JitCodeHeader will be stored right before the code buffer.
+  uint8_t* codeStart = result + sizeof(JitCodeHeader);
 
-    // Bump the code up to a nice alignment.
-    codeStart = (uint8_t*)AlignBytes((uintptr_t)codeStart, CodeAlignment);
-    MOZ_ASSERT(codeStart + masm.bytesNeeded() <= result + bytesNeeded);
-    uint32_t headerSize = codeStart - result;
-    JitCode* code = JitCode::New<NoGC>(cx, codeStart, bytesNeeded - headerSize,
-                                       headerSize, pool, kind);
-    if (!code)
-        return fail(cx);
-    if (masm.oom())
-        return fail(cx);
-    awjc.emplace(result, bytesNeeded);
-    code->copyFrom(masm);
-    masm.link(code);
-    if (masm.embedsNurseryPointers())
-        cx->zone()->group()->storeBuffer().putWholeCell(code);
-    return code;
+  // Bump the code up to a nice alignment.
+  codeStart = (uint8_t*)AlignBytes((uintptr_t)codeStart, CodeAlignment);
+  MOZ_ASSERT(codeStart + masm.bytesNeeded() <= result + bytesNeeded);
+  uint32_t headerSize = codeStart - result;
+  JitCode* code = JitCode::New<NoGC>(cx, codeStart, bytesNeeded - headerSize,
+                                     headerSize, pool, kind);
+  if (!code) return fail(cx);
+  if (masm.oom()) return fail(cx);
+  awjc.emplace(result, bytesNeeded);
+  code->copyFrom(masm);
+  masm.link(code);
+  if (masm.embedsNurseryPointers())
+    cx->zone()->group()->storeBuffer().putWholeCell(code);
+  return code;
 }
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js

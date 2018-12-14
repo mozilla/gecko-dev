@@ -21,39 +21,30 @@ namespace mozilla {
  * to instead use the RAII wrappers MonitorAutoLock and
  * MonitorAutoUnlock.
  */
-class Monitor
-{
-public:
+class Monitor {
+ public:
   explicit Monitor(const char* aName)
-    : mMutex(aName)
-    , mCondVar(mMutex, "[Monitor.mCondVar]")
-  {
-  }
+      : mMutex(aName), mCondVar(mMutex, "[Monitor.mCondVar]") {}
 
   ~Monitor() {}
 
   void Lock() { mMutex.Lock(); }
   void Unlock() { mMutex.Unlock(); }
 
-  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT)
-  {
+  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT) {
     return mCondVar.Wait(aInterval);
   }
 
   nsresult Notify() { return mCondVar.Notify(); }
   nsresult NotifyAll() { return mCondVar.NotifyAll(); }
 
-  void AssertCurrentThreadOwns() const
-  {
-    mMutex.AssertCurrentThreadOwns();
-  }
+  void AssertCurrentThreadOwns() const { mMutex.AssertCurrentThreadOwns(); }
 
-  void AssertNotCurrentThreadOwns() const
-  {
+  void AssertNotCurrentThreadOwns() const {
     mMutex.AssertNotCurrentThreadOwns();
   }
 
-private:
+ private:
   Monitor();
   Monitor(const Monitor&);
   Monitor& operator=(const Monitor&);
@@ -69,29 +60,22 @@ private:
  * The monitor must be unlocked when instances of this class are
  * created.
  */
-class MOZ_STACK_CLASS MonitorAutoLock
-{
-public:
-  explicit MonitorAutoLock(Monitor& aMonitor)
-    : mMonitor(&aMonitor)
-  {
+class MOZ_STACK_CLASS MonitorAutoLock {
+ public:
+  explicit MonitorAutoLock(Monitor& aMonitor) : mMonitor(&aMonitor) {
     mMonitor->Lock();
   }
 
-  ~MonitorAutoLock()
-  {
-    mMonitor->Unlock();
-  }
+  ~MonitorAutoLock() { mMonitor->Unlock(); }
 
-  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT)
-  {
+  nsresult Wait(PRIntervalTime aInterval = PR_INTERVAL_NO_TIMEOUT) {
     return mMonitor->Wait(aInterval);
   }
 
   nsresult Notify() { return mMonitor->Notify(); }
   nsresult NotifyAll() { return mMonitor->NotifyAll(); }
 
-private:
+ private:
   MonitorAutoLock();
   MonitorAutoLock(const MonitorAutoLock&);
   MonitorAutoLock& operator=(const MonitorAutoLock&);
@@ -109,27 +93,20 @@ private:
  * The monitor must be locked by the current thread when instances of
  * this class are created.
  */
-class MOZ_STACK_CLASS MonitorAutoUnlock
-{
-public:
-  explicit MonitorAutoUnlock(Monitor& aMonitor)
-    : mMonitor(&aMonitor)
-  {
+class MOZ_STACK_CLASS MonitorAutoUnlock {
+ public:
+  explicit MonitorAutoUnlock(Monitor& aMonitor) : mMonitor(&aMonitor) {
     mMonitor->Unlock();
   }
 
   explicit MonitorAutoUnlock(MonitorAutoLock& aMonitorLock)
-    : mMonitor(aMonitorLock.mMonitor)
-  {
+      : mMonitor(aMonitorLock.mMonitor) {
     mMonitor->Unlock();
   }
 
-  ~MonitorAutoUnlock()
-  {
-    mMonitor->Lock();
-  }
+  ~MonitorAutoUnlock() { mMonitor->Lock(); }
 
-private:
+ private:
   MonitorAutoUnlock();
   MonitorAutoUnlock(const MonitorAutoUnlock&);
   MonitorAutoUnlock& operator=(const MonitorAutoUnlock&);
@@ -138,6 +115,6 @@ private:
   Monitor* mMonitor;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_Monitor_h
+#endif  // mozilla_Monitor_h

@@ -16,50 +16,42 @@
 
 namespace js {
 
-inline MOZ_MUST_USE NativeObject*
-NewList(JSContext* cx)
-{
-    return NewObjectWithNullTaggedProto<PlainObject>(cx);
+inline MOZ_MUST_USE NativeObject* NewList(JSContext* cx) {
+  return NewObjectWithNullTaggedProto<PlainObject>(cx);
 }
 
-inline MOZ_MUST_USE bool
-AppendToList(JSContext* cx, HandleNativeObject list, HandleValue value)
-{
-    uint32_t length = list->getDenseInitializedLength();
+inline MOZ_MUST_USE bool AppendToList(JSContext* cx, HandleNativeObject list,
+                                      HandleValue value) {
+  uint32_t length = list->getDenseInitializedLength();
 
-    if (!list->ensureElements(cx, length + 1))
-        return false;
+  if (!list->ensureElements(cx, length + 1)) return false;
 
-    list->ensureDenseInitializedLength(cx, length, 1);
-    list->setDenseElementWithType(cx, length, value);
+  list->ensureDenseInitializedLength(cx, length, 1);
+  list->setDenseElementWithType(cx, length, value);
 
-    return true;
+  return true;
 }
 
-template<class T>
-inline MOZ_MUST_USE T*
-PeekList(NativeObject* list)
-{
-    MOZ_ASSERT(list->getDenseInitializedLength() > 0);
-    return &list->getDenseElement(0).toObject().as<T>();
+template <class T>
+inline MOZ_MUST_USE T* PeekList(NativeObject* list) {
+  MOZ_ASSERT(list->getDenseInitializedLength() > 0);
+  return &list->getDenseElement(0).toObject().as<T>();
 }
 
-template<class T>
-inline MOZ_MUST_USE T*
-ShiftFromList(JSContext* cx, HandleNativeObject list)
-{
-    uint32_t length = list->getDenseInitializedLength();
-    MOZ_ASSERT(length > 0);
+template <class T>
+inline MOZ_MUST_USE T* ShiftFromList(JSContext* cx, HandleNativeObject list) {
+  uint32_t length = list->getDenseInitializedLength();
+  MOZ_ASSERT(length > 0);
 
-    Rooted<T*> entry(cx, &list->getDenseElement(0).toObject().as<T>());
-    if (!list->tryShiftDenseElements(1)) {
-        list->moveDenseElements(0, 1, length - 1);
-        list->setDenseInitializedLength(length - 1);
-        list->shrinkElements(cx, length - 1);
-    }
+  Rooted<T*> entry(cx, &list->getDenseElement(0).toObject().as<T>());
+  if (!list->tryShiftDenseElements(1)) {
+    list->moveDenseElements(0, 1, length - 1);
+    list->setDenseInitializedLength(length - 1);
+    list->shrinkElements(cx, length - 1);
+  }
 
-    MOZ_ASSERT(list->getDenseInitializedLength() == length - 1);
-    return entry;
+  MOZ_ASSERT(list->getDenseInitializedLength() == length - 1);
+  return entry;
 }
 
 } /* namespace js */

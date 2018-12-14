@@ -26,25 +26,21 @@ using namespace mozilla;
 //
 // Creates a new TitleBar frame and returns it
 //
-nsIFrame*
-NS_NewTitleBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewTitleBarFrame(nsIPresShell* aPresShell,
+                              nsStyleContext* aContext) {
   return new (aPresShell) nsTitleBarFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTitleBarFrame)
 
 nsTitleBarFrame::nsTitleBarFrame(nsStyleContext* aContext, ClassID aID)
-  : nsBoxFrame(aContext, aID, false)
-{
+    : nsBoxFrame(aContext, aID, false) {
   mTrackingMouseMove = false;
   UpdateMouseThrough();
 }
 
-void
-nsTitleBarFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                             const nsDisplayListSet& aLists)
-{
+void nsTitleBarFrame::BuildDisplayListForChildren(
+    nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists) {
   // override, since we don't want children to get events
   if (aBuilder->IsForEventDelivery()) {
     if (!mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
@@ -55,11 +51,9 @@ nsTitleBarFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
   nsBoxFrame::BuildDisplayListForChildren(aBuilder, aLists);
 }
 
-nsresult
-nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
-                             WidgetGUIEvent* aEvent,
-                             nsEventStatus* aEventStatus)
-{
+nsresult nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
+                                      WidgetGUIEvent* aEvent,
+                                      nsEventStatus* aEventStatus) {
   NS_ENSURE_ARG_POINTER(aEventStatus);
   if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
     return NS_OK;
@@ -68,84 +62,78 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
   bool doDefault = true;
 
   switch (aEvent->mMessage) {
+    case eMouseDown: {
+      if (aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
+        // titlebar has no effect in non-chrome shells
+        nsCOMPtr<nsIDocShellTreeItem> dsti = aPresContext->GetDocShell();
+        if (dsti) {
+          if (dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
+            // we're tracking.
+            mTrackingMouseMove = true;
 
-   case eMouseDown: {
-       if (aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
-         // titlebar has no effect in non-chrome shells
-         nsCOMPtr<nsIDocShellTreeItem> dsti = aPresContext->GetDocShell();
-         if (dsti) {
-           if (dsti->ItemType() == nsIDocShellTreeItem::typeChrome) {
-             // we're tracking.
-             mTrackingMouseMove = true;
+            // start capture.
+            nsIPresShell::SetCapturingContent(GetContent(),
+                                              CAPTURE_IGNOREALLOWED);
 
-             // start capture.
-             nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
+            // remember current mouse coordinates.
+            mLastPoint = aEvent->mRefPoint;
+          }
+        }
 
-             // remember current mouse coordinates.
-             mLastPoint = aEvent->mRefPoint;
-           }
-         }
+        *aEventStatus = nsEventStatus_eConsumeNoDefault;
+        doDefault = false;
+      }
+    } break;
 
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = false;
-       }
-     }
-     break;
+    case eMouseUp: {
+      if (mTrackingMouseMove &&
+          aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
+        // we're done tracking.
+        mTrackingMouseMove = false;
 
+        // end capture
+        nsIPresShell::SetCapturingContent(nullptr, 0);
 
-   case eMouseUp: {
-       if (mTrackingMouseMove &&
-           aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
-         // we're done tracking.
-         mTrackingMouseMove = false;
+        *aEventStatus = nsEventStatus_eConsumeNoDefault;
+        doDefault = false;
+      }
+    } break;
 
-         // end capture
-         nsIPresShell::SetCapturingContent(nullptr, 0);
+    case eMouseMove: {
+      if (mTrackingMouseMove) {
+        LayoutDeviceIntPoint nsMoveBy = aEvent->mRefPoint - mLastPoint;
 
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = false;
-       }
-     }
-     break;
+        nsIFrame* parent = GetParent();
+        while (parent) {
+          nsMenuPopupFrame* popupFrame = do_QueryFrame(parent);
+          if (popupFrame) break;
+          parent = parent->GetParent();
+        }
 
-   case eMouseMove: {
-       if(mTrackingMouseMove)
-       {
-         LayoutDeviceIntPoint nsMoveBy = aEvent->mRefPoint - mLastPoint;
+        // if the titlebar is in a popup, move the popup frame, otherwise
+        // move the widget associated with the window
+        if (parent) {
+          nsMenuPopupFrame* menuPopupFrame =
+              static_cast<nsMenuPopupFrame*>(parent);
+          nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
+          LayoutDeviceIntRect bounds = widget->GetScreenBounds();
 
-         nsIFrame* parent = GetParent();
-         while (parent) {
-           nsMenuPopupFrame* popupFrame = do_QueryFrame(parent);
-           if (popupFrame)
-             break;
-           parent = parent->GetParent();
-         }
+          CSSPoint cssPos = (bounds.TopLeft() + nsMoveBy) /
+                            aPresContext->CSSToDevPixelScale();
+          menuPopupFrame->MoveTo(RoundedToInt(cssPos), false);
+        } else {
+          nsIPresShell* presShell = aPresContext->PresShell();
+          nsPIDOMWindowOuter* window = presShell->GetDocument()->GetWindow();
+          if (window) {
+            window->MoveBy(nsMoveBy.x, nsMoveBy.y);
+          }
+        }
 
-         // if the titlebar is in a popup, move the popup frame, otherwise
-         // move the widget associated with the window
-         if (parent) {
-           nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame*>(parent);
-           nsCOMPtr<nsIWidget> widget = menuPopupFrame->GetWidget();
-           LayoutDeviceIntRect bounds = widget->GetScreenBounds();
+        *aEventStatus = nsEventStatus_eConsumeNoDefault;
 
-           CSSPoint cssPos = (bounds.TopLeft() + nsMoveBy)
-                           / aPresContext->CSSToDevPixelScale();
-           menuPopupFrame->MoveTo(RoundedToInt(cssPos), false);
-         }
-         else {
-           nsIPresShell* presShell = aPresContext->PresShell();
-           nsPIDOMWindowOuter *window = presShell->GetDocument()->GetWindow();
-           if (window) {
-             window->MoveBy(nsMoveBy.x, nsMoveBy.y);
-           }
-         }
-
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-
-         doDefault = false;
-       }
-     }
-     break;
+        doDefault = false;
+      }
+    } break;
 
     case eMouseClick: {
       WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
@@ -159,15 +147,13 @@ nsTitleBarFrame::HandleEvent(nsPresContext* aPresContext,
       break;
   }
 
-  if ( doDefault )
+  if (doDefault)
     return nsBoxFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   else
     return NS_OK;
 }
 
-void
-nsTitleBarFrame::MouseClicked(WidgetMouseEvent* aEvent)
-{
+void nsTitleBarFrame::MouseClicked(WidgetMouseEvent* aEvent) {
   bool isTrusted = false;
   bool isShift = false;
   bool isControl = false;
@@ -175,7 +161,7 @@ nsTitleBarFrame::MouseClicked(WidgetMouseEvent* aEvent)
   bool isMeta = false;
   uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 
-  if(aEvent) {
+  if (aEvent) {
     isShift = aEvent->IsShift();
     isControl = aEvent->IsControl();
     isAlt = aEvent->IsAlt();
@@ -184,7 +170,7 @@ nsTitleBarFrame::MouseClicked(WidgetMouseEvent* aEvent)
   }
 
   // Execute the oncommand event handler.
-  nsContentUtils::DispatchXULCommand(mContent, isTrusted, nullptr,
-                                     nullptr, isControl, isAlt,
-                                     isShift, isMeta, inputSource);
+  nsContentUtils::DispatchXULCommand(mContent, isTrusted, nullptr, nullptr,
+                                     isControl, isAlt, isShift, isMeta,
+                                     inputSource);
 }

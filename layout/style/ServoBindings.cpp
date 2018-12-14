@@ -80,19 +80,18 @@
 #include "mozilla/dom/CSSMozDocumentRule.h"
 
 #if defined(MOZ_MEMORY)
-# include "mozmemory.h"
+#include "mozmemory.h"
 #endif
 
 using namespace mozilla;
 using namespace mozilla::css;
 using namespace mozilla::dom;
 
-#define SERVO_ARC_TYPE(name_, type_) \
-  already_AddRefed<type_>            \
-  type_##Strong::Consume() {         \
-    RefPtr<type_> result;            \
-    result.swap(mPtr);               \
-    return result.forget();          \
+#define SERVO_ARC_TYPE(name_, type_)                 \
+  already_AddRefed<type_> type_##Strong::Consume() { \
+    RefPtr<type_> result;                            \
+    result.swap(mPtr);                               \
+    return result.forget();                          \
   }
 #include "mozilla/ServoArcTypeList.h"
 SERVO_ARC_TYPE(StyleContext, ServoStyleContext)
@@ -100,11 +99,8 @@ SERVO_ARC_TYPE(StyleContext, ServoStyleContext)
 
 static RWLock* sServoFFILock = nullptr;
 
-static
-const nsFont*
-ThreadSafeGetDefaultFontHelper(const nsPresContext* aPresContext,
-                               nsAtom* aLanguage, uint8_t aGenericId)
-{
+static const nsFont* ThreadSafeGetDefaultFontHelper(
+    const nsPresContext* aPresContext, nsAtom* aLanguage, uint8_t aGenericId) {
   bool needsCache = false;
   const nsFont* retval;
 
@@ -117,57 +113,47 @@ ThreadSafeGetDefaultFontHelper(const nsPresContext* aPresContext,
   }
   {
     AutoWriteLock guard(*sServoFFILock);
-  retval = aPresContext->GetDefaultFont(aGenericId, aLanguage, nullptr);
+    retval = aPresContext->GetDefaultFont(aGenericId, aLanguage, nullptr);
   }
   return retval;
 }
 
-void
-AssertIsMainThreadOrServoLangFontPrefsCacheLocked()
-{
-  MOZ_ASSERT(NS_IsMainThread() || sServoFFILock->LockedForWritingByCurrentThread());
+void AssertIsMainThreadOrServoLangFontPrefsCacheLocked() {
+  MOZ_ASSERT(NS_IsMainThread() ||
+             sServoFFILock->LockedForWritingByCurrentThread());
 }
-
 
 /*
  * Does this child count as significant for selector matching?
  *
  * See nsStyleUtil::IsSignificantChild for details.
  */
-bool
-Gecko_IsSignificantChild(RawGeckoNodeBorrowed aNode,
-                         bool aWhitespaceIsSignificant)
-{
+bool Gecko_IsSignificantChild(RawGeckoNodeBorrowed aNode,
+                              bool aWhitespaceIsSignificant) {
   return nsStyleUtil::ThreadSafeIsSignificantChild(aNode->AsContent(),
                                                    aWhitespaceIsSignificant);
 }
 
-RawGeckoNodeBorrowedOrNull
-Gecko_GetLastChild(RawGeckoNodeBorrowed aNode)
-{
+RawGeckoNodeBorrowedOrNull Gecko_GetLastChild(RawGeckoNodeBorrowed aNode) {
   return aNode->GetLastChild();
 }
 
-RawGeckoNodeBorrowedOrNull
-Gecko_GetFlattenedTreeParentNode(RawGeckoNodeBorrowed aNode)
-{
+RawGeckoNodeBorrowedOrNull Gecko_GetFlattenedTreeParentNode(
+    RawGeckoNodeBorrowed aNode) {
   return aNode->GetFlattenedTreeParentNodeForStyle();
 }
 
-RawGeckoElementBorrowedOrNull
-Gecko_GetBeforeOrAfterPseudo(RawGeckoElementBorrowed aElement, bool aIsBefore)
-{
+RawGeckoElementBorrowedOrNull Gecko_GetBeforeOrAfterPseudo(
+    RawGeckoElementBorrowed aElement, bool aIsBefore) {
   MOZ_ASSERT(aElement);
   MOZ_ASSERT(aElement->HasProperties());
 
-  return aIsBefore
-    ? nsLayoutUtils::GetBeforePseudo(aElement)
-    : nsLayoutUtils::GetAfterPseudo(aElement);
+  return aIsBefore ? nsLayoutUtils::GetBeforePseudo(aElement)
+                   : nsLayoutUtils::GetAfterPseudo(aElement);
 }
 
-nsTArray<nsIContent*>*
-Gecko_GetAnonymousContentForElement(RawGeckoElementBorrowed aElement)
-{
+nsTArray<nsIContent*>* Gecko_GetAnonymousContentForElement(
+    RawGeckoElementBorrowed aElement) {
   nsIAnonymousContentCreator* ac = do_QueryFrame(aElement->GetPrimaryFrame());
   if (!ac) {
     return nullptr;
@@ -178,67 +164,57 @@ Gecko_GetAnonymousContentForElement(RawGeckoElementBorrowed aElement)
   return array;
 }
 
-void
-Gecko_DestroyAnonymousContentList(nsTArray<nsIContent*>* aAnonContent)
-{
+void Gecko_DestroyAnonymousContentList(nsTArray<nsIContent*>* aAnonContent) {
   MOZ_ASSERT(aAnonContent);
   delete aAnonContent;
 }
 
-void
-Gecko_ServoStyleContext_Init(
-    ServoStyleContext* aContext,
-    const ServoStyleContext* aParentContext,
-    RawGeckoPresContextBorrowed aPresContext,
-    const ServoComputedData* aValues,
-    mozilla::CSSPseudoElementType aPseudoType,
-    nsAtom* aPseudoTag)
-{
+void Gecko_ServoStyleContext_Init(ServoStyleContext* aContext,
+                                  const ServoStyleContext* aParentContext,
+                                  RawGeckoPresContextBorrowed aPresContext,
+                                  const ServoComputedData* aValues,
+                                  mozilla::CSSPseudoElementType aPseudoType,
+                                  nsAtom* aPseudoTag) {
   auto* presContext = const_cast<nsPresContext*>(aPresContext);
-  new (KnownNotNull, aContext) ServoStyleContext(
-      presContext, aPseudoTag, aPseudoType,
-      ServoComputedDataForgotten(aValues));
+  new (KnownNotNull, aContext)
+      ServoStyleContext(presContext, aPseudoTag, aPseudoType,
+                        ServoComputedDataForgotten(aValues));
 }
 
-ServoComputedData::ServoComputedData(
-    const ServoComputedDataForgotten aValue)
-{
+ServoComputedData::ServoComputedData(const ServoComputedDataForgotten aValue) {
   PodAssign(this, aValue.mPtr);
 }
 
-const nsStyleVariables*
-ServoComputedData::GetStyleVariables() const
-{
-  MOZ_CRASH("ServoComputedData::GetStyleVariables should never need to be "
-            "called");
+const nsStyleVariables* ServoComputedData::GetStyleVariables() const {
+  MOZ_CRASH(
+      "ServoComputedData::GetStyleVariables should never need to be "
+      "called");
 }
 
 MOZ_DEFINE_MALLOC_ENCLOSING_SIZE_OF(ServoStyleStructsMallocEnclosingSizeOf)
 
-void
-ServoComputedData::AddSizeOfExcludingThis(nsWindowSizes& aSizes) const
-{
-  // Note: GetStyleFoo() returns a pointer to an nsStyleFoo that sits within a
-  // servo_arc::Arc, i.e. it is preceded by a word-sized refcount. So we need
-  // to measure it with a function that can handle an interior pointer. We use
-  // ServoStyleStructsEnclosingMallocSizeOf to clearly identify in DMD's
-  // output the memory measured here.
-#define STYLE_STRUCT(name_, cb_) \
-  static_assert(alignof(nsStyle##name_) <= sizeof(size_t), \
+void ServoComputedData::AddSizeOfExcludingThis(nsWindowSizes& aSizes) const {
+// Note: GetStyleFoo() returns a pointer to an nsStyleFoo that sits within a
+// servo_arc::Arc, i.e. it is preceded by a word-sized refcount. So we need
+// to measure it with a function that can handle an interior pointer. We use
+// ServoStyleStructsEnclosingMallocSizeOf to clearly identify in DMD's
+// output the memory measured here.
+#define STYLE_STRUCT(name_, cb_)                                  \
+  static_assert(alignof(nsStyle##name_) <= sizeof(size_t),        \
                 "alignment will break AddSizeOfExcludingThis()"); \
-  const void* p##name_ = GetStyle##name_(); \
-  if (!aSizes.mState.HaveSeenPtr(p##name_)) { \
-    aSizes.mServoStyleSizes.NS_STYLE_SIZES_FIELD(name_) += \
-      ServoStyleStructsMallocEnclosingSizeOf(p##name_); \
+  const void* p##name_ = GetStyle##name_();                       \
+  if (!aSizes.mState.HaveSeenPtr(p##name_)) {                     \
+    aSizes.mServoStyleSizes.NS_STYLE_SIZES_FIELD(name_) +=        \
+        ServoStyleStructsMallocEnclosingSizeOf(p##name_);         \
   }
-  #define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
 
   if (visited_style.mPtr && !aSizes.mState.HaveSeenPtr(visited_style.mPtr)) {
     visited_style.mPtr->AddSizeOfIncludingThis(
-      aSizes, &aSizes.mLayoutComputedValuesVisited);
+        aSizes, &aSizes.mLayoutComputedValuesVisited);
   }
 
   // Measurement of the following members may be added later if DMD finds it is
@@ -249,41 +225,32 @@ ServoComputedData::AddSizeOfExcludingThis(nsWindowSizes& aSizes) const
   // - font_computation_data
 }
 
-void
-Gecko_ServoStyleContext_Destroy(ServoStyleContext* aContext)
-{
+void Gecko_ServoStyleContext_Destroy(ServoStyleContext* aContext) {
   aContext->~ServoStyleContext();
 }
 
-void
-Gecko_ConstructStyleChildrenIterator(
-  RawGeckoElementBorrowed aElement,
-  RawGeckoStyleChildrenIteratorBorrowedMut aIterator)
-{
+void Gecko_ConstructStyleChildrenIterator(
+    RawGeckoElementBorrowed aElement,
+    RawGeckoStyleChildrenIteratorBorrowedMut aIterator) {
   MOZ_ASSERT(aElement);
   MOZ_ASSERT(aIterator);
   new (aIterator) StyleChildrenIterator(aElement);
 }
 
-void
-Gecko_DestroyStyleChildrenIterator(
-  RawGeckoStyleChildrenIteratorBorrowedMut aIterator)
-{
+void Gecko_DestroyStyleChildrenIterator(
+    RawGeckoStyleChildrenIteratorBorrowedMut aIterator) {
   MOZ_ASSERT(aIterator);
 
   aIterator->~StyleChildrenIterator();
 }
 
-RawGeckoNodeBorrowed
-Gecko_GetNextStyleChild(RawGeckoStyleChildrenIteratorBorrowedMut aIterator)
-{
+RawGeckoNodeBorrowed Gecko_GetNextStyleChild(
+    RawGeckoStyleChildrenIteratorBorrowedMut aIterator) {
   MOZ_ASSERT(aIterator);
   return aIterator->GetNextChild();
 }
 
-bool
-Gecko_VisitedStylesEnabled(const nsIDocument* aDoc)
-{
+bool Gecko_VisitedStylesEnabled(const nsIDocument* aDoc) {
   MOZ_ASSERT(aDoc);
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -303,115 +270,89 @@ Gecko_VisitedStylesEnabled(const nsIDocument* aDoc)
   return true;
 }
 
-EventStates::ServoType
-Gecko_ElementState(RawGeckoElementBorrowed aElement)
-{
+EventStates::ServoType Gecko_ElementState(RawGeckoElementBorrowed aElement) {
   return aElement->StyleState().ServoValue();
 }
 
-bool
-Gecko_IsRootElement(RawGeckoElementBorrowed aElement)
-{
+bool Gecko_IsRootElement(RawGeckoElementBorrowed aElement) {
   return aElement->OwnerDoc()->GetRootElement() == aElement;
 }
 
-bool
-Gecko_MatchesElement(CSSPseudoClassType aType,
-                     RawGeckoElementBorrowed aElement)
-{
+bool Gecko_MatchesElement(CSSPseudoClassType aType,
+                          RawGeckoElementBorrowed aElement) {
   return nsCSSPseudoClasses::MatchesElement(aType, aElement).value();
 }
 
 // Dirtiness tracking.
-void
-Gecko_SetNodeFlags(RawGeckoNodeBorrowed aNode, uint32_t aFlags)
-{
+void Gecko_SetNodeFlags(RawGeckoNodeBorrowed aNode, uint32_t aFlags) {
   const_cast<nsINode*>(aNode)->SetFlags(aFlags);
 }
 
-void
-Gecko_UnsetNodeFlags(RawGeckoNodeBorrowed aNode, uint32_t aFlags)
-{
+void Gecko_UnsetNodeFlags(RawGeckoNodeBorrowed aNode, uint32_t aFlags) {
   const_cast<nsINode*>(aNode)->UnsetFlags(aFlags);
 }
 
-void
-Gecko_NoteDirtyElement(RawGeckoElementBorrowed aElement)
-{
+void Gecko_NoteDirtyElement(RawGeckoElementBorrowed aElement) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<Element*>(aElement)->NoteDirtyForServo();
 }
 
-void
-Gecko_NoteDirtySubtreeForInvalidation(RawGeckoElementBorrowed aElement)
-{
+void Gecko_NoteDirtySubtreeForInvalidation(RawGeckoElementBorrowed aElement) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<Element*>(aElement)->NoteDirtySubtreeForServo();
 }
 
-void
-Gecko_NoteAnimationOnlyDirtyElement(RawGeckoElementBorrowed aElement)
-{
+void Gecko_NoteAnimationOnlyDirtyElement(RawGeckoElementBorrowed aElement) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<Element*>(aElement)->NoteAnimationOnlyDirtyForServo();
 }
 
 bool Gecko_AnimationNameMayBeReferencedFromStyle(
-  RawGeckoPresContextBorrowed aPresContext,
-  nsAtom* aName)
-{
+    RawGeckoPresContextBorrowed aPresContext, nsAtom* aName) {
   MOZ_ASSERT(aPresContext);
   return aPresContext->AnimationManager()->AnimationMayBeReferenced(aName);
 }
 
-CSSPseudoElementType
-Gecko_GetImplementedPseudo(RawGeckoElementBorrowed aElement)
-{
+CSSPseudoElementType Gecko_GetImplementedPseudo(
+    RawGeckoElementBorrowed aElement) {
   return aElement->GetPseudoElementType();
 }
 
-uint32_t
-Gecko_CalcStyleDifference(ServoStyleContextBorrowed aOldStyle,
-                          ServoStyleContextBorrowed aNewStyle,
-                          bool* aAnyStyleChanged,
-                          bool* aOnlyResetStructsChanged)
-{
+uint32_t Gecko_CalcStyleDifference(ServoStyleContextBorrowed aOldStyle,
+                                   ServoStyleContextBorrowed aNewStyle,
+                                   bool* aAnyStyleChanged,
+                                   bool* aOnlyResetStructsChanged) {
   MOZ_ASSERT(aOldStyle);
   MOZ_ASSERT(aNewStyle);
 
   uint32_t equalStructs;
   uint32_t samePointerStructs;  // unused
-  nsChangeHint result = const_cast<ServoStyleContext*>(aOldStyle)->
-    CalcStyleDifference(
-      const_cast<ServoStyleContext*>(aNewStyle),
-      &equalStructs,
-      &samePointerStructs,
-      /* aIgnoreVariables = */ true);
+  nsChangeHint result =
+      const_cast<ServoStyleContext*>(aOldStyle)->CalcStyleDifference(
+          const_cast<ServoStyleContext*>(aNewStyle), &equalStructs,
+          &samePointerStructs,
+          /* aIgnoreVariables = */ true);
 
   *aAnyStyleChanged = equalStructs != NS_STYLE_INHERIT_MASK;
 
   const uint32_t kInheritStructsMask =
-    NS_STYLE_INHERIT_MASK & ~NS_STYLE_RESET_STRUCT_MASK;
+      NS_STYLE_INHERIT_MASK & ~NS_STYLE_RESET_STRUCT_MASK;
 
   *aOnlyResetStructsChanged =
-    (equalStructs & kInheritStructsMask) == kInheritStructsMask;
+      (equalStructs & kInheritStructsMask) == kInheritStructsMask;
 
   return result;
 }
 
-const ServoElementSnapshot*
-Gecko_GetElementSnapshot(const ServoElementSnapshotTable* aTable,
-                         const Element* aElement)
-{
+const ServoElementSnapshot* Gecko_GetElementSnapshot(
+    const ServoElementSnapshotTable* aTable, const Element* aElement) {
   MOZ_ASSERT(aTable);
   MOZ_ASSERT(aElement);
 
   return aTable->Get(const_cast<Element*>(aElement));
 }
 
-bool
-Gecko_HaveSeenPtr(SeenPtrs* aTable, const void* aPtr)
-{
+bool Gecko_HaveSeenPtr(SeenPtrs* aTable, const void* aPtr) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aTable);
   // Empty Rust allocations are indicated by small values up to the alignment
@@ -421,9 +362,8 @@ Gecko_HaveSeenPtr(SeenPtrs* aTable, const void* aPtr)
   return aTable->HaveSeenPtr(aPtr);
 }
 
-RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetStyleAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
-{
+RawServoDeclarationBlockStrongBorrowedOrNull Gecko_GetStyleAttrDeclarationBlock(
+    RawGeckoElementBorrowed aElement) {
   DeclarationBlock* decl = aElement->GetInlineStyleDeclaration();
   if (!decl) {
     return nullptr;
@@ -437,9 +377,7 @@ Gecko_GetStyleAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
   return decl->AsServo()->RefRawStrong();
 }
 
-void
-Gecko_UnsetDirtyStyleAttr(RawGeckoElementBorrowed aElement)
-{
+void Gecko_UnsetDirtyStyleAttr(RawGeckoElementBorrowed aElement) {
   DeclarationBlock* decl = aElement->GetInlineStyleDeclaration();
   if (!decl) {
     return;
@@ -453,18 +391,17 @@ Gecko_UnsetDirtyStyleAttr(RawGeckoElementBorrowed aElement)
   decl->UnsetDirty();
 }
 
-static const RawServoDeclarationBlockStrong*
-AsRefRawStrong(const RefPtr<RawServoDeclarationBlock>& aDecl)
-{
+static const RawServoDeclarationBlockStrong* AsRefRawStrong(
+    const RefPtr<RawServoDeclarationBlock>& aDecl) {
   static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
-                sizeof(RawServoDeclarationBlockStrong),
+                    sizeof(RawServoDeclarationBlockStrong),
                 "RefPtr should just be a pointer");
   return reinterpret_cast<const RawServoDeclarationBlockStrong*>(&aDecl);
 }
 
 RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetHTMLPresentationAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
-{
+Gecko_GetHTMLPresentationAttrDeclarationBlock(
+    RawGeckoElementBorrowed aElement) {
   const nsMappedAttributes* attrs = aElement->GetMappedAttributes();
   if (!attrs) {
     auto* svg = nsSVGElement::FromContentOrNull(aElement);
@@ -480,21 +417,21 @@ Gecko_GetHTMLPresentationAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
 }
 
 RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetExtraContentStyleDeclarations(RawGeckoElementBorrowed aElement)
-{
+Gecko_GetExtraContentStyleDeclarations(RawGeckoElementBorrowed aElement) {
   if (!aElement->IsAnyOfHTMLElements(nsGkAtoms::td, nsGkAtoms::th)) {
     return nullptr;
   }
-  const HTMLTableCellElement* cell = static_cast<const HTMLTableCellElement*>(aElement);
-  if (nsMappedAttributes* attrs = cell->GetMappedAttributesInheritedFromTable()) {
+  const HTMLTableCellElement* cell =
+      static_cast<const HTMLTableCellElement*>(aElement);
+  if (nsMappedAttributes* attrs =
+          cell->GetMappedAttributesInheritedFromTable()) {
     return AsRefRawStrong(attrs->GetServoStyle());
   }
   return nullptr;
 }
 
 RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetUnvisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
-{
+Gecko_GetUnvisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement) {
   nsHTMLStyleSheet* sheet = aElement->OwnerDoc()->GetAttributeStyleSheet();
   if (!sheet) {
     return nullptr;
@@ -504,15 +441,13 @@ Gecko_GetUnvisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
 }
 
 ServoStyleSheet* Gecko_StyleSheet_Clone(
-    const ServoStyleSheet* aSheet,
-    const ServoStyleSheet* aNewParentSheet)
-{
+    const ServoStyleSheet* aSheet, const ServoStyleSheet* aNewParentSheet) {
   MOZ_ASSERT(aSheet);
   MOZ_ASSERT(aSheet->GetParentSheet(), "Should only be used for @import");
   MOZ_ASSERT(aNewParentSheet, "Wat");
 
   RefPtr<StyleSheet> newSheet =
-    aSheet->Clone(nullptr, nullptr, nullptr, nullptr);
+      aSheet->Clone(nullptr, nullptr, nullptr, nullptr);
 
   // NOTE(emilio): This code runs in the StylesheetInner constructor, which
   // means that the inner pointer of `aNewParentSheet` still points to the old
@@ -523,23 +458,18 @@ ServoStyleSheet* Gecko_StyleSheet_Clone(
   return static_cast<ServoStyleSheet*>(newSheet.forget().take());
 }
 
-void
-Gecko_StyleSheet_AddRef(const ServoStyleSheet* aSheet)
-{
+void Gecko_StyleSheet_AddRef(const ServoStyleSheet* aSheet) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<ServoStyleSheet*>(aSheet)->AddRef();
 }
 
-void
-Gecko_StyleSheet_Release(const ServoStyleSheet* aSheet)
-{
+void Gecko_StyleSheet_Release(const ServoStyleSheet* aSheet) {
   MOZ_ASSERT(NS_IsMainThread());
   const_cast<ServoStyleSheet*>(aSheet)->Release();
 }
 
 RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetVisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
-{
+Gecko_GetVisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement) {
   nsHTMLStyleSheet* sheet = aElement->OwnerDoc()->GetAttributeStyleSheet();
   if (!sheet) {
     return nullptr;
@@ -549,8 +479,7 @@ Gecko_GetVisitedLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
 }
 
 RawServoDeclarationBlockStrongBorrowedOrNull
-Gecko_GetActiveLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
-{
+Gecko_GetActiveLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement) {
   nsHTMLStyleSheet* sheet = aElement->OwnerDoc()->GetAttributeStyleSheet();
   if (!sheet) {
     return nullptr;
@@ -559,8 +488,8 @@ Gecko_GetActiveLinkAttrDeclarationBlock(RawGeckoElementBorrowed aElement)
   return AsRefRawStrong(sheet->GetServoActiveLinkDecl());
 }
 
-static CSSPseudoElementType
-GetPseudoTypeFromElementForAnimation(const Element*& aElementOrPseudo) {
+static CSSPseudoElementType GetPseudoTypeFromElementForAnimation(
+    const Element*& aElementOrPseudo) {
   if (aElementOrPseudo->IsGeneratedContentContainerForBefore()) {
     aElementOrPseudo = aElementOrPseudo->GetParent()->AsElement();
     return CSSPseudoElementType::before;
@@ -574,11 +503,10 @@ GetPseudoTypeFromElementForAnimation(const Element*& aElementOrPseudo) {
   return CSSPseudoElementType::NotPseudo;
 }
 
-bool
-Gecko_GetAnimationRule(RawGeckoElementBorrowed aElement,
-                       EffectCompositor::CascadeLevel aCascadeLevel,
-                       RawServoAnimationValueMapBorrowedMut aAnimationValues)
-{
+bool Gecko_GetAnimationRule(
+    RawGeckoElementBorrowed aElement,
+    EffectCompositor::CascadeLevel aCascadeLevel,
+    RawServoAnimationValueMapBorrowedMut aAnimationValues) {
   MOZ_ASSERT(aElement);
 
   nsIDocument* doc = aElement->GetComposedDoc();
@@ -592,26 +520,19 @@ Gecko_GetAnimationRule(RawGeckoElementBorrowed aElement,
   }
 
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
 
-  return presContext->EffectCompositor()
-    ->GetServoAnimationRule(aElement,
-                            pseudoType,
-                            aCascadeLevel,
-                            aAnimationValues);
+  return presContext->EffectCompositor()->GetServoAnimationRule(
+      aElement, pseudoType, aCascadeLevel, aAnimationValues);
 }
 
-bool
-Gecko_StyleAnimationsEquals(RawGeckoStyleAnimationListBorrowed aA,
-                            RawGeckoStyleAnimationListBorrowed aB)
-{
+bool Gecko_StyleAnimationsEquals(RawGeckoStyleAnimationListBorrowed aA,
+                                 RawGeckoStyleAnimationListBorrowed aB) {
   return *aA == *aB;
 }
 
-void
-Gecko_CopyAnimationNames(RawGeckoStyleAnimationListBorrowedMut aDest,
-                         RawGeckoStyleAnimationListBorrowed aSrc)
-{
+void Gecko_CopyAnimationNames(RawGeckoStyleAnimationListBorrowedMut aDest,
+                              RawGeckoStyleAnimationListBorrowed aSrc) {
   size_t srcLength = aSrc->Length();
   aDest->EnsureLengthAtLeast(srcLength);
 
@@ -620,21 +541,16 @@ Gecko_CopyAnimationNames(RawGeckoStyleAnimationListBorrowedMut aDest,
   }
 }
 
-void
-Gecko_SetAnimationName(StyleAnimation* aStyleAnimation,
-                       nsAtom* aAtom)
-{
+void Gecko_SetAnimationName(StyleAnimation* aStyleAnimation, nsAtom* aAtom) {
   MOZ_ASSERT(aStyleAnimation);
 
   aStyleAnimation->SetName(already_AddRefed<nsAtom>(aAtom));
 }
 
-void
-Gecko_UpdateAnimations(RawGeckoElementBorrowed aElement,
-                       ServoStyleContextBorrowedOrNull aOldComputedData,
-                       ServoStyleContextBorrowedOrNull aComputedData,
-                       UpdateAnimationsTasks aTasks)
-{
+void Gecko_UpdateAnimations(RawGeckoElementBorrowed aElement,
+                            ServoStyleContextBorrowedOrNull aOldComputedData,
+                            ServoStyleContextBorrowedOrNull aComputedData,
+                            UpdateAnimationsTasks aTasks) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aElement);
 
@@ -650,12 +566,11 @@ Gecko_UpdateAnimations(RawGeckoElementBorrowed aElement,
   nsAutoAnimationMutationBatch mb(aElement->OwnerDoc());
 
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
 
   if (aTasks & UpdateAnimationsTasks::CSSAnimations) {
-    presContext->AnimationManager()->
-      UpdateAnimations(const_cast<dom::Element*>(aElement), pseudoType,
-                       aComputedData);
+    presContext->AnimationManager()->UpdateAnimations(
+        const_cast<dom::Element*>(aElement), pseudoType, aComputedData);
   }
 
   // aComputedData might be nullptr if the target element is now in a
@@ -670,15 +585,14 @@ Gecko_UpdateAnimations(RawGeckoElementBorrowed aElement,
 
   if (aTasks & UpdateAnimationsTasks::CSSTransitions) {
     MOZ_ASSERT(aOldComputedData);
-    presContext->TransitionManager()->
-      UpdateTransitions(const_cast<dom::Element*>(aElement), pseudoType,
-                        aOldComputedData,
-                        aComputedData);
+    presContext->TransitionManager()->UpdateTransitions(
+        const_cast<dom::Element*>(aElement), pseudoType, aOldComputedData,
+        aComputedData);
   }
 
   if (aTasks & UpdateAnimationsTasks::EffectProperties) {
     presContext->EffectCompositor()->UpdateEffectProperties(
-      aComputedData, const_cast<dom::Element*>(aElement), pseudoType);
+        aComputedData, const_cast<dom::Element*>(aElement), pseudoType);
   }
 
   if (aTasks & UpdateAnimationsTasks::CascadeResults) {
@@ -692,142 +606,114 @@ Gecko_UpdateAnimations(RawGeckoElementBorrowed aElement,
       // changed, but we were unable to call MarkCascadeUpdated when we noticed
       // it since we avoid mutating state as part of the Servo parallel
       // traversal.
-      presContext->EffectCompositor()
-                 ->UpdateCascadeResults(StyleBackendType::Servo,
-                                        *effectSet,
-                                        const_cast<Element*>(aElement),
-                                        pseudoType,
-                                        nullptr);
+      presContext->EffectCompositor()->UpdateCascadeResults(
+          StyleBackendType::Servo, *effectSet, const_cast<Element*>(aElement),
+          pseudoType, nullptr);
     }
   }
 
   if (aTasks & UpdateAnimationsTasks::DisplayChangedFromNone) {
-    presContext->EffectCompositor()
-               ->RequestRestyle(const_cast<Element*>(aElement),
-                                pseudoType,
-                                EffectCompositor::RestyleType::Standard,
-                                EffectCompositor::CascadeLevel::Animations);
+    presContext->EffectCompositor()->RequestRestyle(
+        const_cast<Element*>(aElement), pseudoType,
+        EffectCompositor::RestyleType::Standard,
+        EffectCompositor::CascadeLevel::Animations);
   }
 }
 
-bool
-Gecko_ElementHasAnimations(RawGeckoElementBorrowed aElement)
-{
+bool Gecko_ElementHasAnimations(RawGeckoElementBorrowed aElement) {
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
 
   return !!EffectSet::GetEffectSet(aElement, pseudoType);
 }
 
-bool
-Gecko_ElementHasCSSAnimations(RawGeckoElementBorrowed aElement)
-{
+bool Gecko_ElementHasCSSAnimations(RawGeckoElementBorrowed aElement) {
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
   nsAnimationManager::CSSAnimationCollection* collection =
-    nsAnimationManager::CSSAnimationCollection
-                      ::GetAnimationCollection(aElement, pseudoType);
+      nsAnimationManager::CSSAnimationCollection ::GetAnimationCollection(
+          aElement, pseudoType);
 
   return collection && !collection->mAnimations.IsEmpty();
 }
 
-bool
-Gecko_ElementHasCSSTransitions(RawGeckoElementBorrowed aElement)
-{
+bool Gecko_ElementHasCSSTransitions(RawGeckoElementBorrowed aElement) {
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
   nsTransitionManager::CSSTransitionCollection* collection =
-    nsTransitionManager::CSSTransitionCollection
-                       ::GetAnimationCollection(aElement, pseudoType);
+      nsTransitionManager::CSSTransitionCollection ::GetAnimationCollection(
+          aElement, pseudoType);
 
   return collection && !collection->mAnimations.IsEmpty();
 }
 
-size_t
-Gecko_ElementTransitions_Length(RawGeckoElementBorrowed aElement)
-{
+size_t Gecko_ElementTransitions_Length(RawGeckoElementBorrowed aElement) {
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
   nsTransitionManager::CSSTransitionCollection* collection =
-    nsTransitionManager::CSSTransitionCollection
-                       ::GetAnimationCollection(aElement, pseudoType);
+      nsTransitionManager::CSSTransitionCollection ::GetAnimationCollection(
+          aElement, pseudoType);
 
   return collection ? collection->mAnimations.Length() : 0;
 }
 
-static CSSTransition*
-GetCurrentTransitionAt(RawGeckoElementBorrowed aElement, size_t aIndex)
-{
+static CSSTransition* GetCurrentTransitionAt(RawGeckoElementBorrowed aElement,
+                                             size_t aIndex) {
   CSSPseudoElementType pseudoType =
-    GetPseudoTypeFromElementForAnimation(aElement);
+      GetPseudoTypeFromElementForAnimation(aElement);
   nsTransitionManager::CSSTransitionCollection* collection =
-    nsTransitionManager::CSSTransitionCollection
-                       ::GetAnimationCollection(aElement, pseudoType);
+      nsTransitionManager::CSSTransitionCollection ::GetAnimationCollection(
+          aElement, pseudoType);
   if (!collection) {
     return nullptr;
   }
   nsTArray<RefPtr<CSSTransition>>& transitions = collection->mAnimations;
-  return aIndex < transitions.Length()
-         ? transitions[aIndex].get()
-         : nullptr;
+  return aIndex < transitions.Length() ? transitions[aIndex].get() : nullptr;
 }
 
-nsCSSPropertyID
-Gecko_ElementTransitions_PropertyAt(RawGeckoElementBorrowed aElement,
-                                    size_t aIndex)
-{
+nsCSSPropertyID Gecko_ElementTransitions_PropertyAt(
+    RawGeckoElementBorrowed aElement, size_t aIndex) {
   CSSTransition* transition = GetCurrentTransitionAt(aElement, aIndex);
   return transition ? transition->TransitionProperty()
                     : nsCSSPropertyID::eCSSProperty_UNKNOWN;
 }
 
-RawServoAnimationValueBorrowedOrNull
-Gecko_ElementTransitions_EndValueAt(RawGeckoElementBorrowed aElement,
-                                    size_t aIndex)
-{
-  CSSTransition* transition = GetCurrentTransitionAt(aElement,
-                                                     aIndex);
+RawServoAnimationValueBorrowedOrNull Gecko_ElementTransitions_EndValueAt(
+    RawGeckoElementBorrowed aElement, size_t aIndex) {
+  CSSTransition* transition = GetCurrentTransitionAt(aElement, aIndex);
   return transition ? transition->ToValue().mServo.get() : nullptr;
 }
 
-double
-Gecko_GetProgressFromComputedTiming(RawGeckoComputedTimingBorrowed aComputedTiming)
-{
+double Gecko_GetProgressFromComputedTiming(
+    RawGeckoComputedTimingBorrowed aComputedTiming) {
   return aComputedTiming->mProgress.Value();
 }
 
-double
-Gecko_GetPositionInSegment(RawGeckoAnimationPropertySegmentBorrowed aSegment,
-                          double aProgress,
-                          ComputedTimingFunction::BeforeFlag aBeforeFlag)
-{
+double Gecko_GetPositionInSegment(
+    RawGeckoAnimationPropertySegmentBorrowed aSegment, double aProgress,
+    ComputedTimingFunction::BeforeFlag aBeforeFlag) {
   MOZ_ASSERT(aSegment->mFromKey < aSegment->mToKey,
              "The segment from key should be less than to key");
 
-  double positionInSegment =
-    (aProgress - aSegment->mFromKey) / (aSegment->mToKey - aSegment->mFromKey);
+  double positionInSegment = (aProgress - aSegment->mFromKey) /
+                             (aSegment->mToKey - aSegment->mFromKey);
 
   return ComputedTimingFunction::GetPortion(aSegment->mTimingFunction,
-                                            positionInSegment,
-                                            aBeforeFlag);
+                                            positionInSegment, aBeforeFlag);
 }
 
-RawServoAnimationValueBorrowedOrNull
-Gecko_AnimationGetBaseStyle(void* aBaseStyles, nsCSSPropertyID aProperty)
-{
+RawServoAnimationValueBorrowedOrNull Gecko_AnimationGetBaseStyle(
+    void* aBaseStyles, nsCSSPropertyID aProperty) {
   auto base =
-    static_cast<nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>*>
-      (aBaseStyles);
+      static_cast<nsRefPtrHashtable<nsUint32HashKey, RawServoAnimationValue>*>(
+          aBaseStyles);
   return base->GetWeak(aProperty);
 }
 
-void
-Gecko_StyleTransition_SetUnsupportedProperty(StyleTransition* aTransition,
-                                             nsAtom* aAtom)
-{
-  nsCSSPropertyID id =
-    nsCSSProps::LookupProperty(nsDependentAtomString(aAtom),
-                               CSSEnabledState::eForAllContent);
+void Gecko_StyleTransition_SetUnsupportedProperty(StyleTransition* aTransition,
+                                                  nsAtom* aAtom) {
+  nsCSSPropertyID id = nsCSSProps::LookupProperty(
+      nsDependentAtomString(aAtom), CSSEnabledState::eForAllContent);
   if (id == eCSSProperty_UNKNOWN || id == eCSSPropertyExtra_variable) {
     aTransition->SetUnknownProperty(id, aAtom);
   } else {
@@ -835,23 +721,17 @@ Gecko_StyleTransition_SetUnsupportedProperty(StyleTransition* aTransition,
   }
 }
 
-void
-Gecko_FillAllImageLayers(nsStyleImageLayers* aLayers, uint32_t aMaxLen)
-{
+void Gecko_FillAllImageLayers(nsStyleImageLayers* aLayers, uint32_t aMaxLen) {
   aLayers->FillAllLayers(aMaxLen);
 }
 
-bool
-Gecko_IsDocumentBody(RawGeckoElementBorrowed aElement)
-{
+bool Gecko_IsDocumentBody(RawGeckoElementBorrowed aElement) {
   nsIDocument* doc = aElement->GetUncomposedDoc();
   return doc && doc->GetBodyElement() == aElement;
 }
 
-nscolor
-Gecko_GetLookAndFeelSystemColor(int32_t aId,
-                                RawGeckoPresContextBorrowed aPresContext)
-{
+nscolor Gecko_GetLookAndFeelSystemColor(
+    int32_t aId, RawGeckoPresContextBorrowed aPresContext) {
   bool useStandinsForNativeColors = aPresContext && !aPresContext->IsChrome();
   nscolor result;
   LookAndFeel::ColorID colorId = static_cast<LookAndFeel::ColorID>(aId);
@@ -860,26 +740,19 @@ Gecko_GetLookAndFeelSystemColor(int32_t aId,
   return result;
 }
 
-bool
-Gecko_MatchLang(RawGeckoElementBorrowed aElement,
-                nsAtom* aOverrideLang,
-                bool aHasOverrideLang,
-                const char16_t* aValue)
-{
+bool Gecko_MatchLang(RawGeckoElementBorrowed aElement, nsAtom* aOverrideLang,
+                     bool aHasOverrideLang, const char16_t* aValue) {
   MOZ_ASSERT(!(aOverrideLang && !aHasOverrideLang),
              "aHasOverrideLang should only be set when aOverrideLang is null");
 
   return nsCSSPseudoClasses::LangPseudoMatches(
-      aElement,
-      aHasOverrideLang ? aOverrideLang : nullptr,
-      aHasOverrideLang, aValue, aElement->OwnerDoc());
+      aElement, aHasOverrideLang ? aOverrideLang : nullptr, aHasOverrideLang,
+      aValue, aElement->OwnerDoc());
 }
 
-nsAtom*
-Gecko_GetXMLLangValue(RawGeckoElementBorrowed aElement)
-{
+nsAtom* Gecko_GetXMLLangValue(RawGeckoElementBorrowed aElement) {
   const nsAttrValue* attr =
-    aElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
+      aElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
 
   if (!attr) {
     return nullptr;
@@ -891,27 +764,22 @@ Gecko_GetXMLLangValue(RawGeckoElementBorrowed aElement)
   return atom.forget().take();
 }
 
-nsIDocument::DocumentTheme
-Gecko_GetDocumentLWTheme(const nsIDocument* aDocument)
-{
+nsIDocument::DocumentTheme Gecko_GetDocumentLWTheme(
+    const nsIDocument* aDocument) {
   return aDocument->ThreadSafeGetDocumentLWTheme();
 }
 
 template <typename Implementor>
-static nsAtom*
-AtomAttrValue(Implementor* aElement, nsAtom* aName)
-{
+static nsAtom* AtomAttrValue(Implementor* aElement, nsAtom* aName) {
   const nsAttrValue* attr = aElement->GetParsedAttr(aName);
   return attr ? attr->GetAtomValue() : nullptr;
 }
 
 template <typename Implementor>
-static nsAtom*
-LangValue(Implementor* aElement)
-{
+static nsAtom* LangValue(Implementor* aElement) {
   // TODO(emilio): Deduplicate a bit with nsIContent::GetLang().
   const nsAttrValue* attr =
-    aElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
+      aElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
   if (!attr && aElement->SupportsLangAttr()) {
     attr = aElement->GetParsedAttr(nsGkAtoms::lang);
   }
@@ -926,17 +794,16 @@ LangValue(Implementor* aElement)
 }
 
 template <typename Implementor, typename MatchFn>
-static bool
-DoMatch(Implementor* aElement, nsAtom* aNS, nsAtom* aName, MatchFn aMatch)
-{
+static bool DoMatch(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                    MatchFn aMatch) {
   if (MOZ_LIKELY(aNS)) {
     int32_t ns = aNS == nsGkAtoms::_empty
-      ? kNameSpaceID_None
-      : nsContentUtils::NameSpaceManager()->GetNameSpaceID(
-          aNS, aElement->IsInChromeDocument());
+                     ? kNameSpaceID_None
+                     : nsContentUtils::NameSpaceManager()->GetNameSpaceID(
+                           aNS, aElement->IsInChromeDocument());
 
     MOZ_ASSERT(ns == nsContentUtils::NameSpaceManager()->GetNameSpaceID(
-                       aNS, aElement->IsInChromeDocument()));
+                         aNS, aElement->IsInChromeDocument()));
     NS_ENSURE_TRUE(ns != kNameSpaceID_Unknown, false);
     const nsAttrValue* value = aElement->GetParsedAttr(aName, ns);
     return value && aMatch(value);
@@ -956,68 +823,59 @@ DoMatch(Implementor* aElement, nsAtom* aNS, nsAtom* aName, MatchFn aMatch)
 }
 
 template <typename Implementor>
-static bool
-HasAttr(Implementor* aElement, nsAtom* aNS, nsAtom* aName)
-{
+static bool HasAttr(Implementor* aElement, nsAtom* aNS, nsAtom* aName) {
   auto match = [](const nsAttrValue* aValue) { return true; };
   return DoMatch(aElement, aNS, aName, match);
 }
 
 template <typename Implementor>
-static bool
-AttrEquals(Implementor* aElement, nsAtom* aNS, nsAtom* aName, nsAtom* aStr,
-           bool aIgnoreCase)
-{
+static bool AttrEquals(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                       nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     return aValue->Equals(aStr, aIgnoreCase ? eIgnoreCase : eCaseMatters);
   };
   return DoMatch(aElement, aNS, aName, match);
 }
 
-#define WITH_COMPARATOR(ignore_case_, c_, expr_)    \
-    if (ignore_case_) {                             \
-      const nsCaseInsensitiveStringComparator c_    \
-          = nsCaseInsensitiveStringComparator();    \
-      return expr_;                                 \
-    } else {                                        \
-      const nsDefaultStringComparator c_;           \
-      return expr_;                                 \
-    }
-
+#define WITH_COMPARATOR(ignore_case_, c_, expr_) \
+  if (ignore_case_) {                            \
+    const nsCaseInsensitiveStringComparator c_ = \
+        nsCaseInsensitiveStringComparator();     \
+    return expr_;                                \
+  } else {                                       \
+    const nsDefaultStringComparator c_;          \
+    return expr_;                                \
+  }
 
 template <typename Implementor>
-static bool
-AttrDashEquals(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
-               nsAtom* aStr, bool aIgnoreCase)
-{
+static bool AttrDashEquals(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                           nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     nsAutoString str;
     aValue->ToString(str);
-    WITH_COMPARATOR(aIgnoreCase, c,
-                    nsStyleUtil::DashMatchCompare(str, nsDependentAtomString(aStr), c))
+    WITH_COMPARATOR(
+        aIgnoreCase, c,
+        nsStyleUtil::DashMatchCompare(str, nsDependentAtomString(aStr), c))
   };
   return DoMatch(aElement, aNS, aName, match);
 }
 
 template <typename Implementor>
-static bool
-AttrIncludes(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
-             nsAtom* aStr, bool aIgnoreCase)
-{
+static bool AttrIncludes(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                         nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     nsAutoString str;
     aValue->ToString(str);
-    WITH_COMPARATOR(aIgnoreCase, c,
-                    nsStyleUtil::ValueIncludes(str, nsDependentAtomString(aStr), c))
+    WITH_COMPARATOR(
+        aIgnoreCase, c,
+        nsStyleUtil::ValueIncludes(str, nsDependentAtomString(aStr), c))
   };
   return DoMatch(aElement, aNS, aName, match);
 }
 
 template <typename Implementor>
-static bool
-AttrHasSubstring(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
-                 nsAtom* aStr, bool aIgnoreCase)
-{
+static bool AttrHasSubstring(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                             nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     nsAutoString str;
     aValue->ToString(str);
@@ -1028,10 +886,8 @@ AttrHasSubstring(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
 }
 
 template <typename Implementor>
-static bool
-AttrHasPrefix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
-              nsAtom* aStr, bool aIgnoreCase)
-{
+static bool AttrHasPrefix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                          nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     nsAutoString str;
     aValue->ToString(str);
@@ -1042,10 +898,8 @@ AttrHasPrefix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
 }
 
 template <typename Implementor>
-static bool
-AttrHasSuffix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
-              nsAtom* aStr, bool aIgnoreCase)
-{
+static bool AttrHasSuffix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
+                          nsAtom* aStr, bool aIgnoreCase) {
   auto match = [aStr, aIgnoreCase](const nsAttrValue* aValue) {
     nsAutoString str;
     aValue->ToString(str);
@@ -1059,9 +913,7 @@ AttrHasSuffix(Implementor* aElement, nsAtom* aNS, nsAtom* aName,
  * Returns whether an element contains a class in its class list or not.
  */
 template <typename Implementor>
-static bool
-HasClass(Implementor* aElement, nsAtom* aClass, bool aIgnoreCase)
-{
+static bool HasClass(Implementor* aElement, nsAtom* aClass, bool aIgnoreCase) {
   const nsAttrValue* attr = aElement->DoGetClasses();
   if (!attr) {
     return false;
@@ -1084,9 +936,8 @@ HasClass(Implementor* aElement, nsAtom* aClass, bool aIgnoreCase)
  * invalidated by any DOM mutation. Use them in a tight scope.
  */
 template <typename Implementor>
-static uint32_t
-ClassOrClassList(Implementor* aElement, nsAtom** aClass, nsAtom*** aClassList)
-{
+static uint32_t ClassOrClassList(Implementor* aElement, nsAtom** aClass,
+                                 nsAtom*** aClassList) {
   const nsAttrValue* attr = aElement->DoGetClasses();
   if (!attr) {
     return 0;
@@ -1097,7 +948,8 @@ ClassOrClassList(Implementor* aElement, nsAtom** aClass, nsAtom*** aClassList)
   nsAttrValue::ValueType type = attr->Type();
   if (MOZ_UNLIKELY(type == nsAttrValue::eString)) {
     MOZ_ASSERT(nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(
-                 attr->GetStringValue()).IsEmpty());
+                   attr->GetStringValue())
+                   .IsEmpty());
     return 0;
   }
 
@@ -1129,8 +981,10 @@ ClassOrClassList(Implementor* aElement, nsAtom** aClass, nsAtom*** aClassList)
   // Note: We could also expose this array as an array of nsCOMPtrs, since
   // bindgen knows what those look like, and eliminate the reinterpret_cast.
   // But it's not obvious that that would be preferable.
-  static_assert(sizeof(RefPtr<nsAtom>) == sizeof(nsAtom*), "Bad simplification");
-  static_assert(alignof(RefPtr<nsAtom>) == alignof(nsAtom*), "Bad simplification");
+  static_assert(sizeof(RefPtr<nsAtom>) == sizeof(nsAtom*),
+                "Bad simplification");
+  static_assert(alignof(RefPtr<nsAtom>) == alignof(nsAtom*),
+                "Bad simplification");
 
   RefPtr<nsAtom>* elements = atomArray->Elements();
   nsAtom** rawElements = reinterpret_cast<nsAtom**>(elements);
@@ -1138,94 +992,71 @@ ClassOrClassList(Implementor* aElement, nsAtom** aClass, nsAtom*** aClassList)
   return atomArray->Length();
 }
 
-#define SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS(prefix_, implementor_)        \
-  nsAtom* prefix_##AtomAttrValue(implementor_ aElement, nsAtom* aName)           \
-  {                                                                              \
-    return AtomAttrValue(aElement, aName);                                       \
-  }                                                                              \
-  nsAtom* prefix_##LangValue(implementor_ aElement)                              \
-  {                                                                              \
-    return LangValue(aElement);                                                  \
-  }                                                                              \
-  bool prefix_##HasAttr(implementor_ aElement, nsAtom* aNS, nsAtom* aName)       \
-  {                                                                              \
-    return HasAttr(aElement, aNS, aName);                                        \
-  }                                                                              \
-  bool prefix_##AttrEquals(implementor_ aElement, nsAtom* aNS,                   \
-                           nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)        \
-  {                                                                              \
-    return AttrEquals(aElement, aNS, aName, aStr, aIgnoreCase);                  \
-  }                                                                              \
-  bool prefix_##AttrDashEquals(implementor_ aElement, nsAtom* aNS,               \
-                               nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)    \
-  {                                                                              \
-    return AttrDashEquals(aElement, aNS, aName, aStr, aIgnoreCase);              \
-  }                                                                              \
-  bool prefix_##AttrIncludes(implementor_ aElement, nsAtom* aNS,                 \
-                             nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)      \
-  {                                                                              \
-    return AttrIncludes(aElement, aNS, aName, aStr, aIgnoreCase);                \
-  }                                                                              \
-  bool prefix_##AttrHasSubstring(implementor_ aElement, nsAtom* aNS,             \
-                                 nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)  \
-  {                                                                              \
-    return AttrHasSubstring(aElement, aNS, aName, aStr, aIgnoreCase);            \
-  }                                                                              \
-  bool prefix_##AttrHasPrefix(implementor_ aElement, nsAtom* aNS,                \
-                              nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)     \
-  {                                                                              \
-    return AttrHasPrefix(aElement, aNS, aName, aStr, aIgnoreCase);               \
-  }                                                                              \
-  bool prefix_##AttrHasSuffix(implementor_ aElement, nsAtom* aNS,                \
-                              nsAtom* aName, nsAtom* aStr, bool aIgnoreCase)     \
-  {                                                                              \
-    return AttrHasSuffix(aElement, aNS, aName, aStr, aIgnoreCase);               \
-  }                                                                              \
-  uint32_t prefix_##ClassOrClassList(implementor_ aElement, nsAtom** aClass,     \
-                                     nsAtom*** aClassList)                       \
-  {                                                                              \
-    return ClassOrClassList(aElement, aClass, aClassList);                       \
-  }                                                                              \
-  bool prefix_##HasClass(implementor_ aElement, nsAtom* aClass, bool aIgnoreCase)\
-  {                                                                              \
-    return HasClass(aElement, aClass, aIgnoreCase);                              \
-  }                                                                              \
-
+#define SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS(prefix_, implementor_)      \
+  nsAtom* prefix_##AtomAttrValue(implementor_ aElement, nsAtom* aName) {       \
+    return AtomAttrValue(aElement, aName);                                     \
+  }                                                                            \
+  nsAtom* prefix_##LangValue(implementor_ aElement) {                          \
+    return LangValue(aElement);                                                \
+  }                                                                            \
+  bool prefix_##HasAttr(implementor_ aElement, nsAtom* aNS, nsAtom* aName) {   \
+    return HasAttr(aElement, aNS, aName);                                      \
+  }                                                                            \
+  bool prefix_##AttrEquals(implementor_ aElement, nsAtom* aNS, nsAtom* aName,  \
+                           nsAtom* aStr, bool aIgnoreCase) {                   \
+    return AttrEquals(aElement, aNS, aName, aStr, aIgnoreCase);                \
+  }                                                                            \
+  bool prefix_##AttrDashEquals(implementor_ aElement, nsAtom* aNS,             \
+                               nsAtom* aName, nsAtom* aStr,                    \
+                               bool aIgnoreCase) {                             \
+    return AttrDashEquals(aElement, aNS, aName, aStr, aIgnoreCase);            \
+  }                                                                            \
+  bool prefix_##AttrIncludes(implementor_ aElement, nsAtom* aNS,               \
+                             nsAtom* aName, nsAtom* aStr, bool aIgnoreCase) {  \
+    return AttrIncludes(aElement, aNS, aName, aStr, aIgnoreCase);              \
+  }                                                                            \
+  bool prefix_##AttrHasSubstring(implementor_ aElement, nsAtom* aNS,           \
+                                 nsAtom* aName, nsAtom* aStr,                  \
+                                 bool aIgnoreCase) {                           \
+    return AttrHasSubstring(aElement, aNS, aName, aStr, aIgnoreCase);          \
+  }                                                                            \
+  bool prefix_##AttrHasPrefix(implementor_ aElement, nsAtom* aNS,              \
+                              nsAtom* aName, nsAtom* aStr, bool aIgnoreCase) { \
+    return AttrHasPrefix(aElement, aNS, aName, aStr, aIgnoreCase);             \
+  }                                                                            \
+  bool prefix_##AttrHasSuffix(implementor_ aElement, nsAtom* aNS,              \
+                              nsAtom* aName, nsAtom* aStr, bool aIgnoreCase) { \
+    return AttrHasSuffix(aElement, aNS, aName, aStr, aIgnoreCase);             \
+  }                                                                            \
+  uint32_t prefix_##ClassOrClassList(implementor_ aElement, nsAtom** aClass,   \
+                                     nsAtom*** aClassList) {                   \
+    return ClassOrClassList(aElement, aClass, aClassList);                     \
+  }                                                                            \
+  bool prefix_##HasClass(implementor_ aElement, nsAtom* aClass,                \
+                         bool aIgnoreCase) {                                   \
+    return HasClass(aElement, aClass, aIgnoreCase);                            \
+  }
 
 SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS(Gecko_, RawGeckoElementBorrowed)
-SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS(Gecko_Snapshot, const ServoElementSnapshot*)
+SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS(Gecko_Snapshot,
+                                           const ServoElementSnapshot*)
 
 #undef SERVO_IMPL_ELEMENT_ATTR_MATCHING_FUNCTIONS
 
-nsAtom*
-Gecko_Atomize(const char* aString, uint32_t aLength)
-{
+nsAtom* Gecko_Atomize(const char* aString, uint32_t aLength) {
   return NS_Atomize(nsDependentCSubstring(aString, aLength)).take();
 }
 
-nsAtom*
-Gecko_Atomize16(const nsAString* aString)
-{
+nsAtom* Gecko_Atomize16(const nsAString* aString) {
   return NS_Atomize(*aString).take();
 }
 
-void
-Gecko_AddRefAtom(nsAtom* aAtom)
-{
-  NS_ADDREF(aAtom);
-}
+void Gecko_AddRefAtom(nsAtom* aAtom) { NS_ADDREF(aAtom); }
 
-void
-Gecko_ReleaseAtom(nsAtom* aAtom)
-{
-  NS_RELEASE(aAtom);
-}
+void Gecko_ReleaseAtom(nsAtom* aAtom) { NS_RELEASE(aAtom); }
 
-void
-Gecko_nsTArray_FontFamilyName_AppendNamed(nsTArray<FontFamilyName>* aNames,
-                                          nsAtom* aName,
-                                          bool aQuoted)
-{
+void Gecko_nsTArray_FontFamilyName_AppendNamed(nsTArray<FontFamilyName>* aNames,
+                                               nsAtom* aName, bool aQuoted) {
   FontFamilyName family;
   aName->ToString(family.mName);
   if (aQuoted) {
@@ -1235,50 +1066,41 @@ Gecko_nsTArray_FontFamilyName_AppendNamed(nsTArray<FontFamilyName>* aNames,
   aNames->AppendElement(family);
 }
 
-void
-Gecko_nsTArray_FontFamilyName_AppendGeneric(nsTArray<FontFamilyName>* aNames,
-                                            FontFamilyType aType)
-{
+void Gecko_nsTArray_FontFamilyName_AppendGeneric(
+    nsTArray<FontFamilyName>* aNames, FontFamilyType aType) {
   aNames->AppendElement(FontFamilyName(aType));
 }
 
-SharedFontList*
-Gecko_SharedFontList_Create()
-{
+SharedFontList* Gecko_SharedFontList_Create() {
   RefPtr<SharedFontList> fontlist = new SharedFontList();
   return fontlist.forget().take();
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(GeckoSharedFontListMallocSizeOf)
 
-size_t
-Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(SharedFontList* aFontlist)
-{
+size_t Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(
+    SharedFontList* aFontlist) {
   MOZ_ASSERT(NS_IsMainThread());
-  return aFontlist->SizeOfIncludingThisIfUnshared(GeckoSharedFontListMallocSizeOf);
+  return aFontlist->SizeOfIncludingThisIfUnshared(
+      GeckoSharedFontListMallocSizeOf);
 }
 
-size_t
-Gecko_SharedFontList_SizeOfIncludingThis(SharedFontList* aFontlist)
-{
+size_t Gecko_SharedFontList_SizeOfIncludingThis(SharedFontList* aFontlist) {
   MOZ_ASSERT(NS_IsMainThread());
   return aFontlist->SizeOfIncludingThis(GeckoSharedFontListMallocSizeOf);
 }
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(mozilla::SharedFontList, SharedFontList);
 
-void
-Gecko_CopyFontFamilyFrom(nsFont* dst, const nsFont* src)
-{
+void Gecko_CopyFontFamilyFrom(nsFont* dst, const nsFont* src) {
   dst->fontlist = src->fontlist;
 }
 
-void
-Gecko_nsFont_InitSystem(nsFont* aDest, int32_t aFontId,
-                        const nsStyleFont* aFont, RawGeckoPresContextBorrowed aPresContext)
-{
-  const nsFont* defaultVariableFont = ThreadSafeGetDefaultFontHelper(aPresContext, aFont->mLanguage,
-                                                                     kPresContext_DefaultVariableFont_ID);
+void Gecko_nsFont_InitSystem(nsFont* aDest, int32_t aFontId,
+                             const nsStyleFont* aFont,
+                             RawGeckoPresContextBorrowed aPresContext) {
+  const nsFont* defaultVariableFont = ThreadSafeGetDefaultFontHelper(
+      aPresContext, aFont->mLanguage, kPresContext_DefaultVariableFont_ID);
 
   // We have passed uninitialized memory to this function,
   // initialize it. We can't simply return an nsFont because then
@@ -1296,95 +1118,65 @@ Gecko_nsFont_InitSystem(nsFont* aDest, int32_t aFontId,
                                    defaultVariableFont);
 }
 
-void
-Gecko_nsFont_Destroy(nsFont* aDest)
-{
-  aDest->~nsFont();
-}
+void Gecko_nsFont_Destroy(nsFont* aDest) { aDest->~nsFont(); }
 
-gfxFontFeatureValueSet*
-Gecko_ConstructFontFeatureValueSet()
-{
+gfxFontFeatureValueSet* Gecko_ConstructFontFeatureValueSet() {
   return new gfxFontFeatureValueSet();
 }
 
-nsTArray<unsigned int>*
-Gecko_AppendFeatureValueHashEntry(gfxFontFeatureValueSet* aFontFeatureValues,
-                                  nsAtom* aFamily, uint32_t aAlternate, nsAtom* aName)
-{
+nsTArray<unsigned int>* Gecko_AppendFeatureValueHashEntry(
+    gfxFontFeatureValueSet* aFontFeatureValues, nsAtom* aFamily,
+    uint32_t aAlternate, nsAtom* aName) {
   MOZ_ASSERT(NS_IsMainThread());
   static_assert(sizeof(unsigned int) == sizeof(uint32_t),
                 "sizeof unsigned int and uint32_t must be the same");
   return aFontFeatureValues->AppendFeatureValueHashEntry(
-    nsDependentAtomString(aFamily),
-    nsDependentAtomString(aName),
-    aAlternate
-  );
+      nsDependentAtomString(aFamily), nsDependentAtomString(aName), aAlternate);
 }
 
-void
-Gecko_nsFont_SetFontFeatureValuesLookup(nsFont* aFont,
-                                        const RawGeckoPresContext* aPresContext)
-{
+void Gecko_nsFont_SetFontFeatureValuesLookup(
+    nsFont* aFont, const RawGeckoPresContext* aPresContext) {
   aFont->featureValueLookup = aPresContext->GetFontFeatureValuesLookup();
 }
 
-void
-Gecko_nsFont_ResetFontFeatureValuesLookup(nsFont* aFont)
-{
+void Gecko_nsFont_ResetFontFeatureValuesLookup(nsFont* aFont) {
   aFont->featureValueLookup = nullptr;
 }
 
-
-void
-Gecko_ClearAlternateValues(nsFont* aFont, size_t aLength)
-{
+void Gecko_ClearAlternateValues(nsFont* aFont, size_t aLength) {
   aFont->alternateValues.Clear();
   aFont->alternateValues.SetCapacity(aLength);
 }
 
-void
-Gecko_AppendAlternateValues(nsFont* aFont, uint32_t aAlternateName, nsAtom* aAtom)
-{
-  aFont->alternateValues.AppendElement(gfxAlternateValue {
-    aAlternateName,
-    nsDependentAtomString(aAtom)
-  });
+void Gecko_AppendAlternateValues(nsFont* aFont, uint32_t aAlternateName,
+                                 nsAtom* aAtom) {
+  aFont->alternateValues.AppendElement(
+      gfxAlternateValue{aAlternateName, nsDependentAtomString(aAtom)});
 }
 
-void
-Gecko_CopyAlternateValuesFrom(nsFont* aDest, const nsFont* aSrc)
-{
+void Gecko_CopyAlternateValuesFrom(nsFont* aDest, const nsFont* aSrc) {
   aDest->alternateValues.Clear();
   aDest->alternateValues.AppendElements(aSrc->alternateValues);
   aDest->featureValueLookup = aSrc->featureValueLookup;
 }
 
-void
-Gecko_SetImageOrientation(nsStyleVisibility* aVisibility,
-                          uint8_t aOrientation, bool aFlip)
-{
+void Gecko_SetImageOrientation(nsStyleVisibility* aVisibility,
+                               uint8_t aOrientation, bool aFlip) {
   aVisibility->mImageOrientation =
-    nsStyleImageOrientation::CreateAsOrientationAndFlip(aOrientation, aFlip);
+      nsStyleImageOrientation::CreateAsOrientationAndFlip(aOrientation, aFlip);
 }
 
-void
-Gecko_SetImageOrientationAsFromImage(nsStyleVisibility* aVisibility)
-{
+void Gecko_SetImageOrientationAsFromImage(nsStyleVisibility* aVisibility) {
   aVisibility->mImageOrientation = nsStyleImageOrientation::CreateAsFromImage();
 }
 
-void
-Gecko_CopyImageOrientationFrom(nsStyleVisibility* aDst,
-                               const nsStyleVisibility* aSrc)
-{
+void Gecko_CopyImageOrientationFrom(nsStyleVisibility* aDst,
+                                    const nsStyleVisibility* aSrc) {
   aDst->mImageOrientation = aSrc->mImageOrientation;
 }
 
-void
-Gecko_SetCounterStyleToName(CounterStylePtr* aPtr, nsAtom* aName,
-                            RawGeckoPresContextBorrowed aPresContext)
-{
+void Gecko_SetCounterStyleToName(CounterStylePtr* aPtr, nsAtom* aName,
+                                 RawGeckoPresContextBorrowed aPresContext) {
   // Try resolving the counter style if possible, and keep it unresolved
   // otherwise.
   CounterStyleManager* manager = aPresContext->CounterStyleManager();
@@ -1396,11 +1188,9 @@ Gecko_SetCounterStyleToName(CounterStylePtr* aPtr, nsAtom* aName,
   }
 }
 
-void
-Gecko_SetCounterStyleToSymbols(CounterStylePtr* aPtr, uint8_t aSymbolsType,
-                               nsACString const* const* aSymbols,
-                               uint32_t aSymbolsCount)
-{
+void Gecko_SetCounterStyleToSymbols(CounterStylePtr* aPtr, uint8_t aSymbolsType,
+                                    nsACString const* const* aSymbols,
+                                    uint32_t aSymbolsCount) {
   nsTArray<nsString> symbols(aSymbolsCount);
   for (uint32_t i = 0; i < aSymbolsCount; i++) {
     symbols.AppendElement(NS_ConvertUTF8toUTF16(*aSymbols[i]));
@@ -1408,178 +1198,145 @@ Gecko_SetCounterStyleToSymbols(CounterStylePtr* aPtr, uint8_t aSymbolsType,
   *aPtr = new AnonymousCounterStyle(aSymbolsType, Move(symbols));
 }
 
-void
-Gecko_SetCounterStyleToString(CounterStylePtr* aPtr, const nsACString* aSymbol)
-{
+void Gecko_SetCounterStyleToString(CounterStylePtr* aPtr,
+                                   const nsACString* aSymbol) {
   *aPtr = new AnonymousCounterStyle(NS_ConvertUTF8toUTF16(*aSymbol));
 }
 
-void
-Gecko_CopyCounterStyle(CounterStylePtr* aDst, const CounterStylePtr* aSrc)
-{
+void Gecko_CopyCounterStyle(CounterStylePtr* aDst,
+                            const CounterStylePtr* aSrc) {
   *aDst = *aSrc;
 }
 
-nsAtom*
-Gecko_CounterStyle_GetName(const CounterStylePtr* aPtr)
-{
+nsAtom* Gecko_CounterStyle_GetName(const CounterStylePtr* aPtr) {
   if (!aPtr->IsResolved()) {
     return aPtr->AsAtom();
   }
   return (*aPtr)->GetStyleName();
 }
 
-const AnonymousCounterStyle*
-Gecko_CounterStyle_GetAnonymous(const CounterStylePtr* aPtr)
-{
+const AnonymousCounterStyle* Gecko_CounterStyle_GetAnonymous(
+    const CounterStylePtr* aPtr) {
   return aPtr->AsAnonymous();
 }
 
-already_AddRefed<css::URLValue>
-ServoBundledURI::IntoCssUrl()
-{
+already_AddRefed<css::URLValue> ServoBundledURI::IntoCssUrl() {
   MOZ_ASSERT(mExtraData->GetReferrer());
   MOZ_ASSERT(mExtraData->GetPrincipal());
 
   RefPtr<css::URLValue> urlValue =
-    new css::URLValue(mURLString, do_AddRef(mExtraData));
+      new css::URLValue(mURLString, do_AddRef(mExtraData));
   return urlValue.forget();
 }
 
-already_AddRefed<css::ImageValue>
-ServoBundledURI::IntoCssImage(mozilla::CORSMode aCorsMode)
-{
+already_AddRefed<css::ImageValue> ServoBundledURI::IntoCssImage(
+    mozilla::CORSMode aCorsMode) {
   RefPtr<css::ImageValue> urlValue =
-    new css::ImageValue(mURLString, do_AddRef(mExtraData), aCorsMode);
+      new css::ImageValue(mURLString, do_AddRef(mExtraData), aCorsMode);
   return urlValue.forget();
 }
 
-void
-Gecko_SetNullImageValue(nsStyleImage* aImage)
-{
+void Gecko_SetNullImageValue(nsStyleImage* aImage) {
   MOZ_ASSERT(aImage);
   aImage->SetNull();
 }
 
-void
-Gecko_SetGradientImageValue(nsStyleImage* aImage, nsStyleGradient* aGradient)
-{
+void Gecko_SetGradientImageValue(nsStyleImage* aImage,
+                                 nsStyleGradient* aGradient) {
   MOZ_ASSERT(aImage);
   aImage->SetGradientData(aGradient);
 }
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(mozilla::css::ImageValue, ImageValue);
 
-static already_AddRefed<nsStyleImageRequest>
-CreateStyleImageRequest(nsStyleImageRequest::Mode aModeFlags,
-                        mozilla::css::ImageValue* aImageValue)
-{
+static already_AddRefed<nsStyleImageRequest> CreateStyleImageRequest(
+    nsStyleImageRequest::Mode aModeFlags,
+    mozilla::css::ImageValue* aImageValue) {
   RefPtr<nsStyleImageRequest> req =
-    new nsStyleImageRequest(aModeFlags, aImageValue);
+      new nsStyleImageRequest(aModeFlags, aImageValue);
   return req.forget();
 }
 
-mozilla::css::ImageValue*
-Gecko_ImageValue_Create(ServoBundledURI aURI, mozilla::CORSMode aCORSMode)
-{
+mozilla::css::ImageValue* Gecko_ImageValue_Create(ServoBundledURI aURI,
+                                                  mozilla::CORSMode aCORSMode) {
   return aURI.IntoCssImage(aCORSMode).take();
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(GeckoImageValueMallocSizeOf)
 
-size_t
-Gecko_ImageValue_SizeOfIncludingThis(mozilla::css::ImageValue* aImageValue)
-{
+size_t Gecko_ImageValue_SizeOfIncludingThis(
+    mozilla::css::ImageValue* aImageValue) {
   MOZ_ASSERT(NS_IsMainThread());
   return aImageValue->SizeOfIncludingThis(GeckoImageValueMallocSizeOf);
 }
 
-void
-Gecko_SetLayerImageImageValue(nsStyleImage* aImage,
-                              mozilla::css::ImageValue* aImageValue)
-{
+void Gecko_SetLayerImageImageValue(nsStyleImage* aImage,
+                                   mozilla::css::ImageValue* aImageValue) {
   MOZ_ASSERT(aImage && aImageValue);
 
   RefPtr<nsStyleImageRequest> req =
-    CreateStyleImageRequest(nsStyleImageRequest::Mode::Track, aImageValue);
+      CreateStyleImageRequest(nsStyleImageRequest::Mode::Track, aImageValue);
   aImage->SetImageRequest(req.forget());
 }
 
-void
-Gecko_SetImageElement(nsStyleImage* aImage, nsAtom* aAtom) {
+void Gecko_SetImageElement(nsStyleImage* aImage, nsAtom* aAtom) {
   MOZ_ASSERT(aImage);
   aImage->SetElementId(do_AddRef(aAtom));
 }
 
-void
-Gecko_CopyImageValueFrom(nsStyleImage* aImage, const nsStyleImage* aOther)
-{
+void Gecko_CopyImageValueFrom(nsStyleImage* aImage,
+                              const nsStyleImage* aOther) {
   MOZ_ASSERT(aImage);
   MOZ_ASSERT(aOther);
 
   *aImage = *aOther;
 }
 
-void
-Gecko_InitializeImageCropRect(nsStyleImage* aImage)
-{
+void Gecko_InitializeImageCropRect(nsStyleImage* aImage) {
   MOZ_ASSERT(aImage);
   aImage->SetCropRect(MakeUnique<nsStyleSides>());
 }
 
-void
-Gecko_SetCursorArrayLength(nsStyleUserInterface* aStyleUI, size_t aLen)
-{
+void Gecko_SetCursorArrayLength(nsStyleUserInterface* aStyleUI, size_t aLen) {
   aStyleUI->mCursorImages.Clear();
   aStyleUI->mCursorImages.SetLength(aLen);
 }
 
-void
-Gecko_SetCursorImageValue(nsCursorImage* aCursor,
-                          mozilla::css::ImageValue* aImageValue)
-{
+void Gecko_SetCursorImageValue(nsCursorImage* aCursor,
+                               mozilla::css::ImageValue* aImageValue) {
   MOZ_ASSERT(aCursor && aImageValue);
 
   aCursor->mImage =
-    CreateStyleImageRequest(nsStyleImageRequest::Mode::Discard, aImageValue);
+      CreateStyleImageRequest(nsStyleImageRequest::Mode::Discard, aImageValue);
 }
 
-void
-Gecko_CopyCursorArrayFrom(nsStyleUserInterface* aDest,
-                          const nsStyleUserInterface* aSrc)
-{
+void Gecko_CopyCursorArrayFrom(nsStyleUserInterface* aDest,
+                               const nsStyleUserInterface* aSrc) {
   aDest->mCursorImages = aSrc->mCursorImages;
 }
 
-void
-Gecko_SetContentDataImageValue(nsStyleContentData* aContent,
-                               mozilla::css::ImageValue* aImageValue)
-{
+void Gecko_SetContentDataImageValue(nsStyleContentData* aContent,
+                                    mozilla::css::ImageValue* aImageValue) {
   MOZ_ASSERT(aContent && aImageValue);
 
   RefPtr<nsStyleImageRequest> req =
-    CreateStyleImageRequest(nsStyleImageRequest::Mode::Track, aImageValue);
+      CreateStyleImageRequest(nsStyleImageRequest::Mode::Track, aImageValue);
   aContent->SetImageRequest(req.forget());
 }
 
-nsStyleContentData::CounterFunction*
-Gecko_SetCounterFunction(nsStyleContentData* aContent, nsStyleContentType aType)
-{
-  RefPtr<nsStyleContentData::CounterFunction>
-    counterFunc = new nsStyleContentData::CounterFunction();
+nsStyleContentData::CounterFunction* Gecko_SetCounterFunction(
+    nsStyleContentData* aContent, nsStyleContentType aType) {
+  RefPtr<nsStyleContentData::CounterFunction> counterFunc =
+      new nsStyleContentData::CounterFunction();
   nsStyleContentData::CounterFunction* ptr = counterFunc;
   aContent->SetCounters(aType, counterFunc.forget());
   return ptr;
 }
 
-nsStyleGradient*
-Gecko_CreateGradient(uint8_t aShape,
-                     uint8_t aSize,
-                     bool aRepeating,
-                     bool aLegacySyntax,
-                     bool aMozLegacySyntax,
-                     uint32_t aStopCount)
-{
+nsStyleGradient* Gecko_CreateGradient(uint8_t aShape, uint8_t aSize,
+                                      bool aRepeating, bool aLegacySyntax,
+                                      bool aMozLegacySyntax,
+                                      uint32_t aStopCount) {
   nsStyleGradient* result = new nsStyleGradient();
 
   result->mShape = aShape;
@@ -1606,85 +1363,70 @@ Gecko_CreateGradient(uint8_t aShape,
   return result;
 }
 
-const mozilla::css::URLValueData*
-Gecko_GetURLValue(const nsStyleImage* aImage)
-{
+const mozilla::css::URLValueData* Gecko_GetURLValue(
+    const nsStyleImage* aImage) {
   MOZ_ASSERT(aImage && aImage->GetType() == eStyleImageType_Image);
   return aImage->GetURLValue();
 }
 
-nsAtom*
-Gecko_GetImageElement(const nsStyleImage* aImage)
-{
+nsAtom* Gecko_GetImageElement(const nsStyleImage* aImage) {
   MOZ_ASSERT(aImage && aImage->GetType() == eStyleImageType_Element);
   return const_cast<nsAtom*>(aImage->GetElementId());
 }
 
-const nsStyleGradient*
-Gecko_GetGradientImageValue(const nsStyleImage* aImage)
-{
+const nsStyleGradient* Gecko_GetGradientImageValue(const nsStyleImage* aImage) {
   MOZ_ASSERT(aImage && aImage->GetType() == eStyleImageType_Gradient);
   return aImage->GetGradientData();
 }
 
-void
-Gecko_SetListStyleImageNone(nsStyleList* aList)
-{
+void Gecko_SetListStyleImageNone(nsStyleList* aList) {
   aList->mListStyleImage = nullptr;
 }
 
-void
-Gecko_SetListStyleImageImageValue(nsStyleList* aList,
-                             mozilla::css::ImageValue* aImageValue)
-{
+void Gecko_SetListStyleImageImageValue(nsStyleList* aList,
+                                       mozilla::css::ImageValue* aImageValue) {
   MOZ_ASSERT(aList && aImageValue);
 
   aList->mListStyleImage =
-    CreateStyleImageRequest(nsStyleImageRequest::Mode(0), aImageValue);
+      CreateStyleImageRequest(nsStyleImageRequest::Mode(0), aImageValue);
 }
 
-void
-Gecko_CopyListStyleImageFrom(nsStyleList* aList, const nsStyleList* aSource)
-{
+void Gecko_CopyListStyleImageFrom(nsStyleList* aList,
+                                  const nsStyleList* aSource) {
   aList->mListStyleImage = aSource->mListStyleImage;
 }
 
-void
-Gecko_EnsureTArrayCapacity(void* aArray, size_t aCapacity, size_t aElemSize)
-{
-  auto base =
-    reinterpret_cast<nsTArray_base<nsTArrayInfallibleAllocator,
-                                   nsTArray_CopyWithMemutils>*>(aArray);
+void Gecko_EnsureTArrayCapacity(void* aArray, size_t aCapacity,
+                                size_t aElemSize) {
+  auto base = reinterpret_cast<
+      nsTArray_base<nsTArrayInfallibleAllocator, nsTArray_CopyWithMemutils>*>(
+      aArray);
 
   base->EnsureCapacity<nsTArrayInfallibleAllocator>(aCapacity, aElemSize);
 }
 
-void
-Gecko_ClearPODTArray(void* aArray, size_t aElementSize, size_t aElementAlign)
-{
-  auto base =
-    reinterpret_cast<nsTArray_base<nsTArrayInfallibleAllocator,
-                                   nsTArray_CopyWithMemutils>*>(aArray);
+void Gecko_ClearPODTArray(void* aArray, size_t aElementSize,
+                          size_t aElementAlign) {
+  auto base = reinterpret_cast<
+      nsTArray_base<nsTArrayInfallibleAllocator, nsTArray_CopyWithMemutils>*>(
+      aArray);
 
-  base->template ShiftData<nsTArrayInfallibleAllocator>(0, base->Length(), 0,
-                                                        aElementSize, aElementAlign);
+  base->template ShiftData<nsTArrayInfallibleAllocator>(
+      0, base->Length(), 0, aElementSize, aElementAlign);
 }
 
-void Gecko_ResizeTArrayForStrings(nsTArray<nsString>* aArray, uint32_t aLength)
-{
+void Gecko_ResizeTArrayForStrings(nsTArray<nsString>* aArray,
+                                  uint32_t aLength) {
   aArray->SetLength(aLength);
 }
 
-void
-Gecko_SetStyleGridTemplate(UniquePtr<nsStyleGridTemplate>* aGridTemplate,
-                           nsStyleGridTemplate* aValue)
-{
+void Gecko_SetStyleGridTemplate(UniquePtr<nsStyleGridTemplate>* aGridTemplate,
+                                nsStyleGridTemplate* aValue) {
   aGridTemplate->reset(aValue);
 }
 
-nsStyleGridTemplate*
-Gecko_CreateStyleGridTemplate(uint32_t aTrackSizes, uint32_t aNameSize)
-{
+nsStyleGridTemplate* Gecko_CreateStyleGridTemplate(uint32_t aTrackSizes,
+                                                   uint32_t aNameSize) {
   nsStyleGridTemplate* result = new nsStyleGridTemplate;
   result->mMinTrackSizingFunctions.SetLength(aTrackSizes);
   result->mMaxTrackSizingFunctions.SetLength(aTrackSizes);
@@ -1692,10 +1434,9 @@ Gecko_CreateStyleGridTemplate(uint32_t aTrackSizes, uint32_t aNameSize)
   return result;
 }
 
-void
-Gecko_CopyStyleGridTemplateValues(UniquePtr<nsStyleGridTemplate>* aGridTemplate,
-                                  const nsStyleGridTemplate* aOther)
-{
+void Gecko_CopyStyleGridTemplateValues(
+    UniquePtr<nsStyleGridTemplate>* aGridTemplate,
+    const nsStyleGridTemplate* aOther) {
   if (aOther) {
     *aGridTemplate = MakeUnique<nsStyleGridTemplate>(*aOther);
   } else {
@@ -1703,27 +1444,26 @@ Gecko_CopyStyleGridTemplateValues(UniquePtr<nsStyleGridTemplate>* aGridTemplate,
   }
 }
 
-mozilla::css::GridTemplateAreasValue*
-Gecko_NewGridTemplateAreasValue(uint32_t aAreas, uint32_t aTemplates, uint32_t aColumns)
-{
-  RefPtr<mozilla::css::GridTemplateAreasValue> value = new mozilla::css::GridTemplateAreasValue;
+mozilla::css::GridTemplateAreasValue* Gecko_NewGridTemplateAreasValue(
+    uint32_t aAreas, uint32_t aTemplates, uint32_t aColumns) {
+  RefPtr<mozilla::css::GridTemplateAreasValue> value =
+      new mozilla::css::GridTemplateAreasValue;
   value->mNamedAreas.SetLength(aAreas);
   value->mTemplates.SetLength(aTemplates);
   value->mNColumns = aColumns;
   return value.forget().take();
 }
 
-NS_IMPL_THREADSAFE_FFI_REFCOUNTING(mozilla::css::GridTemplateAreasValue, GridTemplateAreasValue);
+NS_IMPL_THREADSAFE_FFI_REFCOUNTING(mozilla::css::GridTemplateAreasValue,
+                                   GridTemplateAreasValue);
 
-void
-Gecko_ClearAndResizeStyleContents(nsStyleContent* aContent, uint32_t aHowMany)
-{
+void Gecko_ClearAndResizeStyleContents(nsStyleContent* aContent,
+                                       uint32_t aHowMany) {
   aContent->AllocateContents(aHowMany);
 }
 
-void
-Gecko_CopyStyleContentsFrom(nsStyleContent* aContent, const nsStyleContent* aOther)
-{
+void Gecko_CopyStyleContentsFrom(nsStyleContent* aContent,
+                                 const nsStyleContent* aOther) {
   uint32_t count = aOther->ContentCount();
 
   aContent->AllocateContents(count);
@@ -1733,15 +1473,13 @@ Gecko_CopyStyleContentsFrom(nsStyleContent* aContent, const nsStyleContent* aOth
   }
 }
 
-void
-Gecko_ClearAndResizeCounterIncrements(nsStyleContent* aContent, uint32_t aHowMany)
-{
+void Gecko_ClearAndResizeCounterIncrements(nsStyleContent* aContent,
+                                           uint32_t aHowMany) {
   aContent->AllocateCounterIncrements(aHowMany);
 }
 
-void
-Gecko_CopyCounterIncrementsFrom(nsStyleContent* aContent, const nsStyleContent* aOther)
-{
+void Gecko_CopyCounterIncrementsFrom(nsStyleContent* aContent,
+                                     const nsStyleContent* aOther) {
   uint32_t count = aOther->CounterIncrementCount();
 
   aContent->AllocateCounterIncrements(count);
@@ -1752,15 +1490,13 @@ Gecko_CopyCounterIncrementsFrom(nsStyleContent* aContent, const nsStyleContent* 
   }
 }
 
-void
-Gecko_ClearAndResizeCounterResets(nsStyleContent* aContent, uint32_t aHowMany)
-{
+void Gecko_ClearAndResizeCounterResets(nsStyleContent* aContent,
+                                       uint32_t aHowMany) {
   aContent->AllocateCounterResets(aHowMany);
 }
 
-void
-Gecko_CopyCounterResetsFrom(nsStyleContent* aContent, const nsStyleContent* aOther)
-{
+void Gecko_CopyCounterResetsFrom(nsStyleContent* aContent,
+                                 const nsStyleContent* aOther) {
   uint32_t count = aOther->CounterResetCount();
 
   aContent->AllocateCounterResets(count);
@@ -1771,10 +1507,8 @@ Gecko_CopyCounterResetsFrom(nsStyleContent* aContent, const nsStyleContent* aOth
   }
 }
 
-void
-Gecko_EnsureImageLayersLength(nsStyleImageLayers* aLayers, size_t aLen,
-                              nsStyleImageLayers::LayerType aLayerType)
-{
+void Gecko_EnsureImageLayersLength(nsStyleImageLayers* aLayers, size_t aLen,
+                                   nsStyleImageLayers::LayerType aLayerType) {
   size_t oldLength = aLayers->mLayers.Length();
 
   aLayers->mLayers.EnsureLengthAtLeast(aLen);
@@ -1785,9 +1519,7 @@ Gecko_EnsureImageLayersLength(nsStyleImageLayers* aLayers, size_t aLen,
 }
 
 template <typename StyleType>
-static void
-EnsureStyleAutoArrayLength(StyleType* aArray, size_t aLen)
-{
+static void EnsureStyleAutoArrayLength(StyleType* aArray, size_t aLen) {
   size_t oldLength = aArray->Length();
 
   aArray->EnsureLengthAtLeast(aLen);
@@ -1797,38 +1529,26 @@ EnsureStyleAutoArrayLength(StyleType* aArray, size_t aLen)
   }
 }
 
-void
-Gecko_EnsureStyleAnimationArrayLength(void* aArray, size_t aLen)
-{
-  auto base =
-    static_cast<nsStyleAutoArray<StyleAnimation>*>(aArray);
+void Gecko_EnsureStyleAnimationArrayLength(void* aArray, size_t aLen) {
+  auto base = static_cast<nsStyleAutoArray<StyleAnimation>*>(aArray);
   EnsureStyleAutoArrayLength(base, aLen);
 }
 
-void
-Gecko_EnsureStyleTransitionArrayLength(void* aArray, size_t aLen)
-{
-  auto base =
-    reinterpret_cast<nsStyleAutoArray<StyleTransition>*>(aArray);
+void Gecko_EnsureStyleTransitionArrayLength(void* aArray, size_t aLen) {
+  auto base = reinterpret_cast<nsStyleAutoArray<StyleTransition>*>(aArray);
   EnsureStyleAutoArrayLength(base, aLen);
 }
 
-void
-Gecko_ClearWillChange(nsStyleDisplay* aDisplay, size_t aLength)
-{
+void Gecko_ClearWillChange(nsStyleDisplay* aDisplay, size_t aLength) {
   aDisplay->mWillChange.Clear();
   aDisplay->mWillChange.SetCapacity(aLength);
 }
 
-void
-Gecko_AppendWillChange(nsStyleDisplay* aDisplay, nsAtom* aAtom)
-{
+void Gecko_AppendWillChange(nsStyleDisplay* aDisplay, nsAtom* aAtom) {
   aDisplay->mWillChange.AppendElement(aAtom);
 }
 
-void
-Gecko_CopyWillChangeFrom(nsStyleDisplay* aDest, nsStyleDisplay* aSrc)
-{
+void Gecko_CopyWillChangeFrom(nsStyleDisplay* aDest, nsStyleDisplay* aSrc) {
   aDest->mWillChange.Clear();
   aDest->mWillChange.AppendElements(aSrc->mWillChange);
 }
@@ -1843,13 +1563,11 @@ enum class KeyframeInsertPosition {
   LastForOffset,
 };
 
-static Keyframe*
-GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
-                    float aOffset,
-                    const nsTimingFunction* aTimingFunction,
-                    KeyframeSearchDirection aSearchDirection,
-                    KeyframeInsertPosition aInsertPosition)
-{
+static Keyframe* GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
+                                     float aOffset,
+                                     const nsTimingFunction* aTimingFunction,
+                                     KeyframeSearchDirection aSearchDirection,
+                                     KeyframeInsertPosition aInsertPosition) {
   MOZ_ASSERT(aKeyframes, "The keyframe array should be valid");
   MOZ_ASSERT(aTimingFunction, "The timing function should be valid");
   MOZ_ASSERT(aOffset >= 0. && aOffset <= 1.,
@@ -1858,17 +1576,14 @@ GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
   size_t keyframeIndex;
   switch (aSearchDirection) {
     case KeyframeSearchDirection::Forwards:
-      if (nsAnimationManager::FindMatchingKeyframe(*aKeyframes,
-                                                   aOffset,
-                                                   *aTimingFunction,
-                                                   keyframeIndex)) {
+      if (nsAnimationManager::FindMatchingKeyframe(
+              *aKeyframes, aOffset, *aTimingFunction, keyframeIndex)) {
         return &(*aKeyframes)[keyframeIndex];
       }
       break;
     case KeyframeSearchDirection::Backwards:
       if (nsAnimationManager::FindMatchingKeyframe(Reversed(*aKeyframes),
-                                                   aOffset,
-                                                   *aTimingFunction,
+                                                   aOffset, *aTimingFunction,
                                                    keyframeIndex)) {
         return &(*aKeyframes)[aKeyframes->Length() - 1 - keyframeIndex];
       }
@@ -1876,11 +1591,8 @@ GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
       break;
   }
 
-  Keyframe* keyframe =
-    aKeyframes->InsertElementAt(
-      aInsertPosition == KeyframeInsertPosition::Prepend
-                         ? 0
-                         : keyframeIndex);
+  Keyframe* keyframe = aKeyframes->InsertElementAt(
+      aInsertPosition == KeyframeInsertPosition::Prepend ? 0 : keyframeIndex);
   keyframe->mOffset.emplace(aOffset);
   if (aTimingFunction->mType != nsTimingFunction::Type::Linear) {
     keyframe->mTimingFunction.emplace();
@@ -1890,62 +1602,45 @@ GetOrCreateKeyframe(nsTArray<Keyframe>* aKeyframes,
   return keyframe;
 }
 
-Keyframe*
-Gecko_GetOrCreateKeyframeAtStart(nsTArray<Keyframe>* aKeyframes,
-                                 float aOffset,
-                                 const nsTimingFunction* aTimingFunction)
-{
+Keyframe* Gecko_GetOrCreateKeyframeAtStart(
+    nsTArray<Keyframe>* aKeyframes, float aOffset,
+    const nsTimingFunction* aTimingFunction) {
   MOZ_ASSERT(aKeyframes->IsEmpty() ||
-             aKeyframes->ElementAt(0).mOffset.value() >= aOffset,
+                 aKeyframes->ElementAt(0).mOffset.value() >= aOffset,
              "The offset should be less than or equal to the first keyframe's "
              "offset if there are exisiting keyframes");
 
-  return GetOrCreateKeyframe(aKeyframes,
-                             aOffset,
-                             aTimingFunction,
+  return GetOrCreateKeyframe(aKeyframes, aOffset, aTimingFunction,
                              KeyframeSearchDirection::Forwards,
                              KeyframeInsertPosition::Prepend);
 }
 
-Keyframe*
-Gecko_GetOrCreateInitialKeyframe(nsTArray<Keyframe>* aKeyframes,
-                                 const nsTimingFunction* aTimingFunction)
-{
-  return GetOrCreateKeyframe(aKeyframes,
-                             0.,
-                             aTimingFunction,
+Keyframe* Gecko_GetOrCreateInitialKeyframe(
+    nsTArray<Keyframe>* aKeyframes, const nsTimingFunction* aTimingFunction) {
+  return GetOrCreateKeyframe(aKeyframes, 0., aTimingFunction,
                              KeyframeSearchDirection::Forwards,
                              KeyframeInsertPosition::LastForOffset);
 }
 
-Keyframe*
-Gecko_GetOrCreateFinalKeyframe(nsTArray<Keyframe>* aKeyframes,
-                               const nsTimingFunction* aTimingFunction)
-{
-  return GetOrCreateKeyframe(aKeyframes,
-                             1.,
-                             aTimingFunction,
+Keyframe* Gecko_GetOrCreateFinalKeyframe(
+    nsTArray<Keyframe>* aKeyframes, const nsTimingFunction* aTimingFunction) {
+  return GetOrCreateKeyframe(aKeyframes, 1., aTimingFunction,
                              KeyframeSearchDirection::Backwards,
                              KeyframeInsertPosition::LastForOffset);
 }
 
-PropertyValuePair*
-Gecko_AppendPropertyValuePair(nsTArray<PropertyValuePair>* aProperties,
-                              nsCSSPropertyID aProperty)
-{
+PropertyValuePair* Gecko_AppendPropertyValuePair(
+    nsTArray<PropertyValuePair>* aProperties, nsCSSPropertyID aProperty) {
   MOZ_ASSERT(aProperties);
-  return aProperties->AppendElement(PropertyValuePair {aProperty});
+  return aProperties->AppendElement(PropertyValuePair{aProperty});
 }
 
-void
-Gecko_ResetStyleCoord(nsStyleUnit* aUnit, nsStyleUnion* aValue)
-{
+void Gecko_ResetStyleCoord(nsStyleUnit* aUnit, nsStyleUnion* aValue) {
   nsStyleCoord::Reset(*aUnit, *aValue);
 }
 
-void
-Gecko_SetStyleCoordCalcValue(nsStyleUnit* aUnit, nsStyleUnion* aValue, nsStyleCoord::CalcValue aCalc)
-{
+void Gecko_SetStyleCoordCalcValue(nsStyleUnit* aUnit, nsStyleUnion* aValue,
+                                  nsStyleCoord::CalcValue aCalc) {
   // Calc units should be cleaned up first
   MOZ_ASSERT(*aUnit != nsStyleUnit::eStyleUnit_Calc);
   nsStyleCoord::Calc* calcRef = new nsStyleCoord::Calc();
@@ -1957,117 +1652,87 @@ Gecko_SetStyleCoordCalcValue(nsStyleUnit* aUnit, nsStyleUnion* aValue, nsStyleCo
   calcRef->AddRef();
 }
 
-void
-Gecko_CopyShapeSourceFrom(mozilla::StyleShapeSource* aDst, const mozilla::StyleShapeSource* aSrc)
-{
+void Gecko_CopyShapeSourceFrom(mozilla::StyleShapeSource* aDst,
+                               const mozilla::StyleShapeSource* aSrc) {
   MOZ_ASSERT(aDst);
   MOZ_ASSERT(aSrc);
 
   *aDst = *aSrc;
 }
 
-void
-Gecko_DestroyShapeSource(mozilla::StyleShapeSource* aShape)
-{
+void Gecko_DestroyShapeSource(mozilla::StyleShapeSource* aShape) {
   aShape->~StyleShapeSource();
 }
 
-void
-Gecko_StyleShapeSource_SetURLValue(StyleShapeSource* aShape, URLValue* aURL)
-{
+void Gecko_StyleShapeSource_SetURLValue(StyleShapeSource* aShape,
+                                        URLValue* aURL) {
   aShape->SetURL(aURL);
 }
 
-void
-Gecko_NewBasicShape(mozilla::StyleShapeSource* aShape,
-                    mozilla::StyleBasicShapeType aType)
-{
+void Gecko_NewBasicShape(mozilla::StyleShapeSource* aShape,
+                         mozilla::StyleBasicShapeType aType) {
   aShape->SetBasicShape(MakeUnique<mozilla::StyleBasicShape>(aType),
                         StyleGeometryBox::NoBox);
 }
 
-void
-Gecko_NewShapeImage(mozilla::StyleShapeSource* aShape)
-{
+void Gecko_NewShapeImage(mozilla::StyleShapeSource* aShape) {
   aShape->SetShapeImage(MakeUnique<nsStyleImage>());
 }
 
-void
-Gecko_ResetFilters(nsStyleEffects* effects, size_t new_len)
-{
+void Gecko_ResetFilters(nsStyleEffects* effects, size_t new_len) {
   effects->mFilters.Clear();
   effects->mFilters.SetLength(new_len);
 }
 
-void
-Gecko_CopyFiltersFrom(nsStyleEffects* aSrc, nsStyleEffects* aDest)
-{
+void Gecko_CopyFiltersFrom(nsStyleEffects* aSrc, nsStyleEffects* aDest) {
   aDest->mFilters = aSrc->mFilters;
 }
 
-void
-Gecko_nsStyleFilter_SetURLValue(nsStyleFilter* aEffects, URLValue* aURL)
-{
+void Gecko_nsStyleFilter_SetURLValue(nsStyleFilter* aEffects, URLValue* aURL) {
   aEffects->SetURL(aURL);
 }
 
-void
-Gecko_nsStyleSVGPaint_CopyFrom(nsStyleSVGPaint* aDest, const nsStyleSVGPaint* aSrc)
-{
+void Gecko_nsStyleSVGPaint_CopyFrom(nsStyleSVGPaint* aDest,
+                                    const nsStyleSVGPaint* aSrc) {
   *aDest = *aSrc;
 }
 
-void
-Gecko_nsStyleSVGPaint_SetURLValue(nsStyleSVGPaint* aPaint, URLValue* aURL)
-{
+void Gecko_nsStyleSVGPaint_SetURLValue(nsStyleSVGPaint* aPaint,
+                                       URLValue* aURL) {
   aPaint->SetPaintServer(aURL);
 }
 
-void Gecko_nsStyleSVGPaint_Reset(nsStyleSVGPaint* aPaint)
-{
-  aPaint->SetNone();
-}
+void Gecko_nsStyleSVGPaint_Reset(nsStyleSVGPaint* aPaint) { aPaint->SetNone(); }
 
-void
-Gecko_nsStyleSVG_SetDashArrayLength(nsStyleSVG* aSvg, uint32_t aLen)
-{
+void Gecko_nsStyleSVG_SetDashArrayLength(nsStyleSVG* aSvg, uint32_t aLen) {
   aSvg->mStrokeDasharray.Clear();
   aSvg->mStrokeDasharray.SetLength(aLen);
 }
 
-void
-Gecko_nsStyleSVG_CopyDashArray(nsStyleSVG* aDst, const nsStyleSVG* aSrc)
-{
+void Gecko_nsStyleSVG_CopyDashArray(nsStyleSVG* aDst, const nsStyleSVG* aSrc) {
   aDst->mStrokeDasharray = aSrc->mStrokeDasharray;
 }
 
-void
-Gecko_nsStyleSVG_SetContextPropertiesLength(nsStyleSVG* aSvg, uint32_t aLen)
-{
+void Gecko_nsStyleSVG_SetContextPropertiesLength(nsStyleSVG* aSvg,
+                                                 uint32_t aLen) {
   aSvg->mContextProps.Clear();
   aSvg->mContextProps.SetLength(aLen);
 }
 
-void
-Gecko_nsStyleSVG_CopyContextProperties(nsStyleSVG* aDst, const nsStyleSVG* aSrc)
-{
+void Gecko_nsStyleSVG_CopyContextProperties(nsStyleSVG* aDst,
+                                            const nsStyleSVG* aSrc) {
   aDst->mContextProps = aSrc->mContextProps;
   aDst->mContextPropsBits = aSrc->mContextPropsBits;
 }
 
-
-css::URLValue*
-Gecko_NewURLValue(ServoBundledURI aURI)
-{
+css::URLValue* Gecko_NewURLValue(ServoBundledURI aURI) {
   RefPtr<css::URLValue> url = aURI.IntoCssUrl();
   return url.forget().take();
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(GeckoURLValueMallocSizeOf)
 
-size_t
-Gecko_URLValue_SizeOfIncludingThis(URLValue* aURL)
-{
+size_t Gecko_URLValue_SizeOfIncludingThis(URLValue* aURL) {
   MOZ_ASSERT(NS_IsMainThread());
   return aURL->SizeOfIncludingThis(GeckoURLValueMallocSizeOf);
 }
@@ -2078,18 +1743,14 @@ NS_IMPL_THREADSAFE_FFI_REFCOUNTING(URLExtraData, URLExtraData);
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(nsStyleCoord::Calc, Calc);
 
-nsCSSShadowArray*
-Gecko_NewCSSShadowArray(uint32_t aLen)
-{
-  RefPtr<nsCSSShadowArray> arr = new(aLen) nsCSSShadowArray(aLen);
+nsCSSShadowArray* Gecko_NewCSSShadowArray(uint32_t aLen) {
+  RefPtr<nsCSSShadowArray> arr = new (aLen) nsCSSShadowArray(aLen);
   return arr.forget().take();
 }
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(nsCSSShadowArray, CSSShadowArray);
 
-nsStyleQuoteValues*
-Gecko_NewStyleQuoteValues(uint32_t aLen)
-{
+nsStyleQuoteValues* Gecko_NewStyleQuoteValues(uint32_t aLen) {
   RefPtr<nsStyleQuoteValues> values = new nsStyleQuoteValues;
   values->mQuotePairs.SetLength(aLen);
   return values.forget().take();
@@ -2097,9 +1758,7 @@ Gecko_NewStyleQuoteValues(uint32_t aLen)
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(nsStyleQuoteValues, QuoteValues);
 
-nsCSSValueSharedList*
-Gecko_NewCSSValueSharedList(uint32_t aLen)
-{
+nsCSSValueSharedList* Gecko_NewCSSValueSharedList(uint32_t aLen) {
   RefPtr<nsCSSValueSharedList> list = new nsCSSValueSharedList;
   if (aLen == 0) {
     return list.forget().take();
@@ -2115,157 +1774,119 @@ Gecko_NewCSSValueSharedList(uint32_t aLen)
   return list.forget().take();
 }
 
-nsCSSValueSharedList*
-Gecko_NewNoneTransform()
-{
+nsCSSValueSharedList* Gecko_NewNoneTransform() {
   RefPtr<nsCSSValueSharedList> list = new nsCSSValueSharedList;
   list->mHead = new nsCSSValueList;
   list->mHead->mValue.SetNoneValue();
   return list.forget().take();
 }
 
-void
-Gecko_CSSValue_SetNumber(nsCSSValueBorrowedMut aCSSValue, float aNumber)
-{
+void Gecko_CSSValue_SetNumber(nsCSSValueBorrowedMut aCSSValue, float aNumber) {
   aCSSValue->SetFloatValue(aNumber, eCSSUnit_Number);
 }
 
-float
-Gecko_CSSValue_GetNumber(nsCSSValueBorrowed aCSSValue)
-{
+float Gecko_CSSValue_GetNumber(nsCSSValueBorrowed aCSSValue) {
   return aCSSValue->GetFloatValue();
 }
 
-void
-Gecko_CSSValue_SetKeyword(nsCSSValueBorrowedMut aCSSValue, nsCSSKeyword aKeyword)
-{
+void Gecko_CSSValue_SetKeyword(nsCSSValueBorrowedMut aCSSValue,
+                               nsCSSKeyword aKeyword) {
   aCSSValue->SetEnumValue(aKeyword);
 }
 
-nsCSSKeyword
-Gecko_CSSValue_GetKeyword(nsCSSValueBorrowed aCSSValue)
-{
+nsCSSKeyword Gecko_CSSValue_GetKeyword(nsCSSValueBorrowed aCSSValue) {
   return aCSSValue->GetKeywordValue();
 }
 
-void
-Gecko_CSSValue_SetPercentage(nsCSSValueBorrowedMut aCSSValue, float aPercent)
-{
+void Gecko_CSSValue_SetPercentage(nsCSSValueBorrowedMut aCSSValue,
+                                  float aPercent) {
   aCSSValue->SetPercentValue(aPercent);
 }
 
-float
-Gecko_CSSValue_GetPercentage(nsCSSValueBorrowed aCSSValue)
-{
+float Gecko_CSSValue_GetPercentage(nsCSSValueBorrowed aCSSValue) {
   return aCSSValue->GetPercentValue();
 }
 
-void
-Gecko_CSSValue_SetPixelLength(nsCSSValueBorrowedMut aCSSValue, float aLen)
-{
+void Gecko_CSSValue_SetPixelLength(nsCSSValueBorrowedMut aCSSValue,
+                                   float aLen) {
   MOZ_ASSERT(aCSSValue->GetUnit() == eCSSUnit_Null ||
              aCSSValue->GetUnit() == eCSSUnit_Pixel);
   aCSSValue->SetFloatValue(aLen, eCSSUnit_Pixel);
 }
 
-void
-Gecko_CSSValue_SetCalc(nsCSSValueBorrowedMut aCSSValue, nsStyleCoord::CalcValue aCalc)
-{
+void Gecko_CSSValue_SetCalc(nsCSSValueBorrowedMut aCSSValue,
+                            nsStyleCoord::CalcValue aCalc) {
   aCSSValue->SetCalcValue(&aCalc);
 }
 
-nsStyleCoord::CalcValue
-Gecko_CSSValue_GetCalc(nsCSSValueBorrowed aCSSValue)
-{
+nsStyleCoord::CalcValue Gecko_CSSValue_GetCalc(nsCSSValueBorrowed aCSSValue) {
   return aCSSValue->GetCalcValue();
 }
 
-void
-Gecko_CSSValue_SetFunction(nsCSSValueBorrowedMut aCSSValue, int32_t aLen)
-{
+void Gecko_CSSValue_SetFunction(nsCSSValueBorrowedMut aCSSValue, int32_t aLen) {
   nsCSSValue::Array* arr = nsCSSValue::Array::Create(aLen);
   aCSSValue->SetArrayValue(arr, eCSSUnit_Function);
 }
 
-void
-Gecko_CSSValue_SetString(nsCSSValueBorrowedMut aCSSValue,
-                         const uint8_t* aString, uint32_t aLength,
-                         nsCSSUnit aUnit)
-{
+void Gecko_CSSValue_SetString(nsCSSValueBorrowedMut aCSSValue,
+                              const uint8_t* aString, uint32_t aLength,
+                              nsCSSUnit aUnit) {
   MOZ_ASSERT(aCSSValue->GetUnit() == eCSSUnit_Null);
   nsString string;
-  nsDependentCSubstring slice(reinterpret_cast<const char*>(aString),
-                                  aLength);
+  nsDependentCSubstring slice(reinterpret_cast<const char*>(aString), aLength);
   AppendUTF8toUTF16(slice, string);
   aCSSValue->SetStringValue(string, aUnit);
 }
 
-void
-Gecko_CSSValue_SetStringFromAtom(nsCSSValueBorrowedMut aCSSValue,
-                                 nsAtom* aAtom, nsCSSUnit aUnit)
-{
+void Gecko_CSSValue_SetStringFromAtom(nsCSSValueBorrowedMut aCSSValue,
+                                      nsAtom* aAtom, nsCSSUnit aUnit) {
   aCSSValue->SetStringValue(nsDependentAtomString(aAtom), aUnit);
 }
 
-void
-Gecko_CSSValue_SetAtomIdent(nsCSSValueBorrowedMut aCSSValue, nsAtom* aAtom)
-{
+void Gecko_CSSValue_SetAtomIdent(nsCSSValueBorrowedMut aCSSValue,
+                                 nsAtom* aAtom) {
   aCSSValue->SetAtomIdentValue(already_AddRefed<nsAtom>(aAtom));
 }
 
-void
-Gecko_CSSValue_SetArray(nsCSSValueBorrowedMut aCSSValue, int32_t aLength)
-{
+void Gecko_CSSValue_SetArray(nsCSSValueBorrowedMut aCSSValue, int32_t aLength) {
   MOZ_ASSERT(aCSSValue->GetUnit() == eCSSUnit_Null);
-  RefPtr<nsCSSValue::Array> array
-    = nsCSSValue::Array::Create(aLength);
+  RefPtr<nsCSSValue::Array> array = nsCSSValue::Array::Create(aLength);
   aCSSValue->SetArrayValue(array, eCSSUnit_Array);
 }
 
-void
-Gecko_CSSValue_SetURL(nsCSSValueBorrowedMut aCSSValue, URLValue* aURL)
-{
+void Gecko_CSSValue_SetURL(nsCSSValueBorrowedMut aCSSValue, URLValue* aURL) {
   MOZ_ASSERT(aCSSValue->GetUnit() == eCSSUnit_Null);
   aCSSValue->SetURLValue(aURL);
 }
 
-void
-Gecko_CSSValue_SetInt(nsCSSValueBorrowedMut aCSSValue,
-                      int32_t aInteger, nsCSSUnit aUnit)
-{
+void Gecko_CSSValue_SetInt(nsCSSValueBorrowedMut aCSSValue, int32_t aInteger,
+                           nsCSSUnit aUnit) {
   aCSSValue->SetIntValue(aInteger, aUnit);
 }
 
-void
-Gecko_CSSValue_SetFloat(nsCSSValueBorrowedMut aCSSValue,
-                        float aValue, nsCSSUnit aUnit)
-{
+void Gecko_CSSValue_SetFloat(nsCSSValueBorrowedMut aCSSValue, float aValue,
+                             nsCSSUnit aUnit) {
   aCSSValue->SetFloatValue(aValue, aUnit);
 }
 
-nsCSSValueBorrowedMut
-Gecko_CSSValue_GetArrayItem(nsCSSValueBorrowedMut aCSSValue, int32_t aIndex)
-{
+nsCSSValueBorrowedMut Gecko_CSSValue_GetArrayItem(
+    nsCSSValueBorrowedMut aCSSValue, int32_t aIndex) {
   return &aCSSValue->GetArrayValue()->Item(aIndex);
 }
 
-nsCSSValueBorrowed
-Gecko_CSSValue_GetArrayItemConst(nsCSSValueBorrowed aCSSValue, int32_t aIndex)
-{
+nsCSSValueBorrowed Gecko_CSSValue_GetArrayItemConst(
+    nsCSSValueBorrowed aCSSValue, int32_t aIndex) {
   return &aCSSValue->GetArrayValue()->Item(aIndex);
 }
 
-void
-Gecko_CSSValue_SetPair(nsCSSValueBorrowedMut aCSSValue,
-                       nsCSSValueBorrowed aXValue, nsCSSValueBorrowed aYValue)
-{
+void Gecko_CSSValue_SetPair(nsCSSValueBorrowedMut aCSSValue,
+                            nsCSSValueBorrowed aXValue,
+                            nsCSSValueBorrowed aYValue) {
   MOZ_ASSERT(NS_IsMainThread());
   aCSSValue->SetPairValue(*aXValue, *aYValue);
 }
 
-void
-Gecko_CSSValue_SetList(nsCSSValueBorrowedMut aCSSValue, uint32_t aLen)
-{
+void Gecko_CSSValue_SetList(nsCSSValueBorrowedMut aCSSValue, uint32_t aLen) {
   MOZ_ASSERT(NS_IsMainThread());
   nsCSSValueList* item = aCSSValue->SetListValue();
   for (uint32_t i = 1; i < aLen; ++i) {
@@ -2274,9 +1895,8 @@ Gecko_CSSValue_SetList(nsCSSValueBorrowedMut aCSSValue, uint32_t aLen)
   }
 }
 
-void
-Gecko_CSSValue_SetPairList(nsCSSValueBorrowedMut aCSSValue, uint32_t aLen)
-{
+void Gecko_CSSValue_SetPairList(nsCSSValueBorrowedMut aCSSValue,
+                                uint32_t aLen) {
   MOZ_ASSERT(NS_IsMainThread());
   nsCSSValuePairList* item = aCSSValue->SetPairListValue();
   for (uint32_t i = 1; i < aLen; ++i) {
@@ -2285,10 +1905,8 @@ Gecko_CSSValue_SetPairList(nsCSSValueBorrowedMut aCSSValue, uint32_t aLen)
   }
 }
 
-void
-Gecko_CSSValue_InitSharedList(nsCSSValueBorrowedMut aCSSValue,
-                              uint32_t aLen)
-{
+void Gecko_CSSValue_InitSharedList(nsCSSValueBorrowedMut aCSSValue,
+                                   uint32_t aLen) {
   MOZ_ASSERT(aLen > 0, "Must create at least one nsCSSValueList (mHead)");
 
   nsCSSValueSharedList* list = new nsCSSValueSharedList;
@@ -2301,58 +1919,48 @@ Gecko_CSSValue_InitSharedList(nsCSSValueBorrowedMut aCSSValue,
   }
 }
 
-void
-Gecko_CSSValue_Drop(nsCSSValueBorrowedMut aCSSValue)
-{
+void Gecko_CSSValue_Drop(nsCSSValueBorrowedMut aCSSValue) {
   aCSSValue->~nsCSSValue();
 }
 
-void
-Gecko_nsStyleFont_SetLang(nsStyleFont* aFont, nsAtom* aAtom)
-{
+void Gecko_nsStyleFont_SetLang(nsStyleFont* aFont, nsAtom* aAtom) {
   already_AddRefed<nsAtom> atom = already_AddRefed<nsAtom>(aAtom);
   aFont->mLanguage = atom;
   aFont->mExplicitLanguage = true;
 }
 
-void
-Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont, const nsStyleFont* aSource)
-{
+void Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont,
+                                    const nsStyleFont* aSource) {
   aFont->mLanguage = aSource->mLanguage;
 }
 
-void
-Gecko_nsStyleFont_FixupNoneGeneric(nsStyleFont* aFont,
-                                   RawGeckoPresContextBorrowed aPresContext)
-{
-  const nsFont* defaultVariableFont =
-    ThreadSafeGetDefaultFontHelper(aPresContext, aFont->mLanguage,
-                                   kPresContext_DefaultVariableFont_ID);
+void Gecko_nsStyleFont_FixupNoneGeneric(
+    nsStyleFont* aFont, RawGeckoPresContextBorrowed aPresContext) {
+  const nsFont* defaultVariableFont = ThreadSafeGetDefaultFontHelper(
+      aPresContext, aFont->mLanguage, kPresContext_DefaultVariableFont_ID);
   nsLayoutUtils::FixupNoneGeneric(&aFont->mFont, aPresContext,
                                   aFont->mGenericID, defaultVariableFont);
 }
 
-void
-Gecko_nsStyleFont_PrefillDefaultForGeneric(nsStyleFont* aFont,
-                                           RawGeckoPresContextBorrowed aPresContext,
-                                           uint8_t aGenericId)
-{
-  const nsFont* defaultFont = ThreadSafeGetDefaultFontHelper(aPresContext, aFont->mLanguage,
-                                                             aGenericId);
-  // In case of just the language changing, the parent could have had no generic,
-  // which Gecko just does regular cascading with. Do the same.
-  // This can only happen in the case where the language changed but the family did not
+void Gecko_nsStyleFont_PrefillDefaultForGeneric(
+    nsStyleFont* aFont, RawGeckoPresContextBorrowed aPresContext,
+    uint8_t aGenericId) {
+  const nsFont* defaultFont = ThreadSafeGetDefaultFontHelper(
+      aPresContext, aFont->mLanguage, aGenericId);
+  // In case of just the language changing, the parent could have had no
+  // generic, which Gecko just does regular cascading with. Do the same. This
+  // can only happen in the case where the language changed but the family did
+  // not
   if (aGenericId != kGenericFont_NONE) {
     aFont->mFont.fontlist = defaultFont->fontlist;
   } else {
-    aFont->mFont.fontlist.SetDefaultFontType(defaultFont->fontlist.GetDefaultFontType());
+    aFont->mFont.fontlist.SetDefaultFontType(
+        defaultFont->fontlist.GetDefaultFontType());
   }
 }
 
-void
-Gecko_nsStyleFont_FixupMinFontSize(nsStyleFont* aFont,
-                                   RawGeckoPresContextBorrowed aPresContext)
-{
+void Gecko_nsStyleFont_FixupMinFontSize(
+    nsStyleFont* aFont, RawGeckoPresContextBorrowed aPresContext) {
   nscoord minFontSize;
   bool needsCache = false;
 
@@ -2369,9 +1977,7 @@ Gecko_nsStyleFont_FixupMinFontSize(nsStyleFont* aFont,
   nsLayoutUtils::ApplyMinFontSize(aFont, aPresContext, minFontSize);
 }
 
-void
-FontSizePrefs::CopyFrom(const LangGroupFontPrefs& prefs)
-{
+void FontSizePrefs::CopyFrom(const LangGroupFontPrefs& prefs) {
   mDefaultVariableSize = prefs.mDefaultVariableFont.size;
   mDefaultFixedSize = prefs.mDefaultFixedFont.size;
   mDefaultSerifSize = prefs.mDefaultSerifFont.size;
@@ -2381,11 +1987,10 @@ FontSizePrefs::CopyFrom(const LangGroupFontPrefs& prefs)
   mDefaultFantasySize = prefs.mDefaultFantasyFont.size;
 }
 
-FontSizePrefs
-Gecko_GetBaseSize(nsAtom* aLanguage)
-{
+FontSizePrefs Gecko_GetBaseSize(nsAtom* aLanguage) {
   LangGroupFontPrefs prefs;
-  RefPtr<nsAtom> langGroupAtom = StaticPresData::Get()->GetUncachedLangGroup(aLanguage);
+  RefPtr<nsAtom> langGroupAtom =
+      StaticPresData::Get()->GetUncachedLangGroup(aLanguage);
 
   prefs.Initialize(langGroupAtom);
   FontSizePrefs sizes;
@@ -2394,30 +1999,24 @@ Gecko_GetBaseSize(nsAtom* aLanguage)
   return sizes;
 }
 
-RawGeckoElementBorrowedOrNull
-Gecko_GetBindingParent(RawGeckoElementBorrowed aElement)
-{
+RawGeckoElementBorrowedOrNull Gecko_GetBindingParent(
+    RawGeckoElementBorrowed aElement) {
   nsIContent* parent = aElement->GetBindingParent();
   return parent ? parent->AsElement() : nullptr;
 }
 
-RawServoAuthorStylesBorrowedOrNull
-Gecko_XBLBinding_GetRawServoStyles(RawGeckoXBLBindingBorrowed aXBLBinding)
-{
+RawServoAuthorStylesBorrowedOrNull Gecko_XBLBinding_GetRawServoStyles(
+    RawGeckoXBLBindingBorrowed aXBLBinding) {
   return aXBLBinding->GetServoStyles();
 }
 
-bool
-Gecko_XBLBinding_InheritsStyle(RawGeckoXBLBindingBorrowed aXBLBinding)
-{
+bool Gecko_XBLBinding_InheritsStyle(RawGeckoXBLBindingBorrowed aXBLBinding) {
   return aXBLBinding->InheritsStyle();
 }
 
 static StaticRefPtr<UACacheReporter> gUACacheReporter;
 
-void
-InitializeServo()
-{
+void InitializeServo() {
   URLExtraData::InitDummy();
   Servo_Initialize(URLExtraData::Dummy());
 
@@ -2427,9 +2026,7 @@ InitializeServo()
   sServoFFILock = new RWLock("Servo::FFILock");
 }
 
-void
-ShutdownServo()
-{
+void ShutdownServo() {
   MOZ_ASSERT(sServoFFILock);
 
   UnregisterWeakMemoryReporter(gUACacheReporter);
@@ -2441,24 +2038,19 @@ ShutdownServo()
 
 namespace mozilla {
 
-void
-AssertIsMainThreadOrServoFontMetricsLocked()
-{
+void AssertIsMainThreadOrServoFontMetricsLocked() {
   if (!NS_IsMainThread()) {
     MOZ_ASSERT(sServoFFILock &&
                sServoFFILock->LockedForWritingByCurrentThread());
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
-GeckoFontMetrics
-Gecko_GetFontMetrics(RawGeckoPresContextBorrowed aPresContext,
-                     bool aIsVertical,
-                     const nsStyleFont* aFont,
-                     nscoord aFontSize,
-                     bool aUseUserFontSet)
-{
+GeckoFontMetrics Gecko_GetFontMetrics(RawGeckoPresContextBorrowed aPresContext,
+                                      bool aIsVertical,
+                                      const nsStyleFont* aFont,
+                                      nscoord aFontSize, bool aUseUserFontSet) {
   AutoWriteLock guard(*sServoFFILock);
   GeckoFontMetrics ret;
 
@@ -2480,29 +2072,26 @@ Gecko_GetFontMetrics(RawGeckoPresContextBorrowed aPresContext,
       nsLayoutUtils::FlushUserFontSet::No);
 
   ret.mXSize = fm->XHeight();
-  gfxFloat zeroWidth = fm->GetThebesFontGroup()->GetFirstValidFont()->
-                           GetMetrics(fm->Orientation()).zeroOrAveCharWidth;
+  gfxFloat zeroWidth = fm->GetThebesFontGroup()
+                           ->GetFirstValidFont()
+                           ->GetMetrics(fm->Orientation())
+                           .zeroOrAveCharWidth;
   ret.mChSize = ceil(aPresContext->AppUnitsPerDevPixel() * zeroWidth);
   return ret;
 }
 
-int32_t
-Gecko_GetAppUnitsPerPhysicalInch(RawGeckoPresContextBorrowed aPresContext)
-{
+int32_t Gecko_GetAppUnitsPerPhysicalInch(
+    RawGeckoPresContextBorrowed aPresContext) {
   nsPresContext* presContext = const_cast<nsPresContext*>(aPresContext);
   return presContext->DeviceContext()->AppUnitsPerPhysicalInch();
 }
 
-ServoStyleSheet*
-Gecko_LoadStyleSheet(css::Loader* aLoader,
-                     ServoStyleSheet* aParent,
-                     SheetLoadData* aParentLoadData,
-                     css::LoaderReusableStyleSheets* aReusableSheets,
-                     RawGeckoURLExtraData* aURLExtraData,
-                     const uint8_t* aURLString,
-                     uint32_t aURLStringLength,
-                     RawServoMediaListStrong aMediaList)
-{
+ServoStyleSheet* Gecko_LoadStyleSheet(
+    css::Loader* aLoader, ServoStyleSheet* aParent,
+    SheetLoadData* aParentLoadData,
+    css::LoaderReusableStyleSheets* aReusableSheets,
+    RawGeckoURLExtraData* aURLExtraData, const uint8_t* aURLString,
+    uint32_t aURLStringLength, RawServoMediaListStrong aMediaList) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aLoader, "Should've catched this before");
   MOZ_ASSERT(aParent, "Only used for @import, so parent should exist!");
@@ -2518,11 +2107,11 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
 
   StyleSheet* previousFirstChild = aParent->GetFirstChild();
   if (NS_SUCCEEDED(rv)) {
-    rv = aLoader->LoadChildSheet(aParent, aParentLoadData, uri, media, nullptr, aReusableSheets);
+    rv = aLoader->LoadChildSheet(aParent, aParentLoadData, uri, media, nullptr,
+                                 aReusableSheets);
   }
 
-  if (NS_FAILED(rv) ||
-      !aParent->GetFirstChild() ||
+  if (NS_FAILED(rv) || !aParent->GetFirstChild() ||
       aParent->GetFirstChild() == previousFirstChild) {
     // Servo and Gecko have different ideas of what a valid URL is, so we might
     // get in here with a URL string that NS_NewURI can't handle.  We may also
@@ -2531,7 +2120,7 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
     // realize it has hit an import cycle, so we mark it complete to make the
     // sheet readable from JS.
     RefPtr<ServoStyleSheet> emptySheet =
-      aParent->CreateEmptyChildSheet(media.forget());
+        aParent->CreateEmptyChildSheet(media.forget());
     // Make a dummy URI if we don't have one because some methods assume
     // non-null URIs.
     if (!uri) {
@@ -2545,22 +2134,19 @@ Gecko_LoadStyleSheet(css::Loader* aLoader,
   }
 
   RefPtr<ServoStyleSheet> sheet =
-    static_cast<ServoStyleSheet*>(aParent->GetFirstChild());
+      static_cast<ServoStyleSheet*>(aParent->GetFirstChild());
   return sheet.forget().take();
 }
 
-nsCSSKeyword
-Gecko_LookupCSSKeyword(const uint8_t* aString, uint32_t aLength)
-{
+nsCSSKeyword Gecko_LookupCSSKeyword(const uint8_t* aString, uint32_t aLength) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsDependentCSubstring keyword(reinterpret_cast<const char*>(aString), aLength);
+  nsDependentCSubstring keyword(reinterpret_cast<const char*>(aString),
+                                aLength);
   return nsCSSKeywords::LookupKeyword(keyword);
 }
 
-const char*
-Gecko_CSSKeywordString(nsCSSKeyword aKeyword, uint32_t* aLength)
-{
+const char* Gecko_CSSKeywordString(nsCSSKeyword aKeyword, uint32_t* aLength) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aLength);
   const nsCString& value = nsCSSKeywords::GetStringValue(aKeyword);
@@ -2568,24 +2154,19 @@ Gecko_CSSKeywordString(nsCSSKeyword aKeyword, uint32_t* aLength)
   return value.get();
 }
 
-nsCSSFontFaceRule*
-Gecko_CSSFontFaceRule_Create(uint32_t aLine, uint32_t aColumn)
-{
+nsCSSFontFaceRule* Gecko_CSSFontFaceRule_Create(uint32_t aLine,
+                                                uint32_t aColumn) {
   RefPtr<nsCSSFontFaceRule> rule = new nsCSSFontFaceRule(aLine, aColumn);
   return rule.forget().take();
 }
 
-nsCSSFontFaceRule*
-Gecko_CSSFontFaceRule_Clone(const nsCSSFontFaceRule* aRule)
-{
+nsCSSFontFaceRule* Gecko_CSSFontFaceRule_Clone(const nsCSSFontFaceRule* aRule) {
   RefPtr<css::Rule> rule = aRule->Clone();
   return static_cast<nsCSSFontFaceRule*>(rule.forget().take());
 }
 
-void
-Gecko_CSSFontFaceRule_GetCssText(const nsCSSFontFaceRule* aRule,
-                                 nsAString* aResult)
-{
+void Gecko_CSSFontFaceRule_GetCssText(const nsCSSFontFaceRule* aRule,
+                                      nsAString* aResult) {
   // GetCSSText serializes nsCSSValues, which have a heap write
   // hazard when dealing with color values (nsCSSKeywords::AddRefTable)
   // We only serialize on the main thread; assert to convince the analysis
@@ -2595,16 +2176,12 @@ Gecko_CSSFontFaceRule_GetCssText(const nsCSSFontFaceRule* aRule,
   aRule->GetCssText(*aResult);
 }
 
-void
-Gecko_AddPropertyToSet(nsCSSPropertyIDSetBorrowedMut aPropertySet,
-                       nsCSSPropertyID aProperty)
-{
+void Gecko_AddPropertyToSet(nsCSSPropertyIDSetBorrowedMut aPropertySet,
+                            nsCSSPropertyID aProperty) {
   aPropertySet->AddProperty(aProperty);
 }
 
-int32_t
-Gecko_RegisterNamespace(nsAtom* aNamespace)
-{
+int32_t Gecko_RegisterNamespace(nsAtom* aNamespace) {
   int32_t id;
 
   MOZ_ASSERT(NS_IsMainThread());
@@ -2621,24 +2198,19 @@ Gecko_RegisterNamespace(nsAtom* aNamespace)
 
 NS_IMPL_FFI_REFCOUNTING(nsCSSFontFaceRule, CSSFontFaceRule);
 
-nsCSSCounterStyleRule*
-Gecko_CSSCounterStyle_Create(nsAtom* aName)
-{
+nsCSSCounterStyleRule* Gecko_CSSCounterStyle_Create(nsAtom* aName) {
   RefPtr<nsCSSCounterStyleRule> rule = new nsCSSCounterStyleRule(aName, 0, 0);
   return rule.forget().take();
 }
 
-nsCSSCounterStyleRule*
-Gecko_CSSCounterStyle_Clone(const nsCSSCounterStyleRule* aRule)
-{
+nsCSSCounterStyleRule* Gecko_CSSCounterStyle_Clone(
+    const nsCSSCounterStyleRule* aRule) {
   RefPtr<css::Rule> rule = aRule->Clone();
   return static_cast<nsCSSCounterStyleRule*>(rule.forget().take());
 }
 
-void
-Gecko_CSSCounterStyle_GetCssText(const nsCSSCounterStyleRule* aRule,
-                                 nsAString* aResult)
-{
+void Gecko_CSSCounterStyle_GetCssText(const nsCSSCounterStyleRule* aRule,
+                                      nsAString* aResult) {
   MOZ_ASSERT(NS_IsMainThread());
   aRule->GetCssText(*aResult);
 }
@@ -2647,49 +2219,35 @@ NS_IMPL_FFI_REFCOUNTING(nsCSSCounterStyleRule, CSSCounterStyleRule);
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(nsCSSValueSharedList, CSSValueSharedList);
 
-#define STYLE_STRUCT(name, checkdata_cb)                                      \
-                                                                              \
-void                                                                          \
-Gecko_Construct_Default_nsStyle##name(nsStyle##name* ptr,                     \
-                                      const nsPresContext* pres_context)      \
-{                                                                             \
-  new (ptr) nsStyle##name(pres_context);                                      \
-}                                                                             \
-                                                                              \
-void                                                                          \
-Gecko_CopyConstruct_nsStyle##name(nsStyle##name* ptr,                         \
-                                  const nsStyle##name* other)                 \
-{                                                                             \
-  new (ptr) nsStyle##name(*other);                                            \
-}                                                                             \
-                                                                              \
-void                                                                          \
-Gecko_Destroy_nsStyle##name(nsStyle##name* ptr)                               \
-{                                                                             \
-  ptr->~nsStyle##name();                                                      \
-}
+#define STYLE_STRUCT(name, checkdata_cb)                               \
+                                                                       \
+  void Gecko_Construct_Default_nsStyle##name(                          \
+      nsStyle##name* ptr, const nsPresContext* pres_context) {         \
+    new (ptr) nsStyle##name(pres_context);                             \
+  }                                                                    \
+                                                                       \
+  void Gecko_CopyConstruct_nsStyle##name(nsStyle##name* ptr,           \
+                                         const nsStyle##name* other) { \
+    new (ptr) nsStyle##name(*other);                                   \
+  }                                                                    \
+                                                                       \
+  void Gecko_Destroy_nsStyle##name(nsStyle##name* ptr) {               \
+    ptr->~nsStyle##name();                                             \
+  }
 
-void
-Gecko_RegisterProfilerThread(const char* name)
-{
+void Gecko_RegisterProfilerThread(const char* name) {
   PROFILER_REGISTER_THREAD(name);
 }
 
-void
-Gecko_UnregisterProfilerThread()
-{
-  PROFILER_UNREGISTER_THREAD();
-}
+void Gecko_UnregisterProfilerThread() { PROFILER_UNREGISTER_THREAD(); }
 
-bool
-Gecko_DocumentRule_UseForPresentation(RawGeckoPresContextBorrowed aPresContext,
-                                      const nsACString* aPattern,
-                                      css::URLMatchingFunction aURLMatchingFunction)
-{
+bool Gecko_DocumentRule_UseForPresentation(
+    RawGeckoPresContextBorrowed aPresContext, const nsACString* aPattern,
+    css::URLMatchingFunction aURLMatchingFunction) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsIDocument *doc = aPresContext->Document();
-  nsIURI *docURI = doc->GetDocumentURI();
+  nsIDocument* doc = aPresContext->Document();
+  nsIURI* docURI = doc->GetDocumentURI();
   nsAutoCString docURISpec;
   if (docURI) {
     // If GetSpec fails (due to OOM) just skip these URI-specific CSS rules.
@@ -2701,9 +2259,7 @@ Gecko_DocumentRule_UseForPresentation(RawGeckoPresContextBorrowed aPresContext,
                                    aURLMatchingFunction);
 }
 
-void
-Gecko_SetJemallocThreadLocalArena(bool enabled)
-{
+void Gecko_SetJemallocThreadLocalArena(bool enabled) {
 #if defined(MOZ_MEMORY)
   jemalloc_thread_local_arena(enabled);
 #endif
@@ -2714,43 +2270,29 @@ Gecko_SetJemallocThreadLocalArena(bool enabled)
 #undef STYLE_STRUCT
 
 #ifndef MOZ_STYLO
-#define SERVO_BINDING_FUNC(name_, return_, ...)                               \
-  return_ name_(__VA_ARGS__) {                                                \
-    MOZ_CRASH("stylo: shouldn't be calling " #name_ "in a non-stylo build");  \
+#define SERVO_BINDING_FUNC(name_, return_, ...)                              \
+  return_ name_(__VA_ARGS__) {                                               \
+    MOZ_CRASH("stylo: shouldn't be calling " #name_ "in a non-stylo build"); \
   }
 #include "ServoBindingList.h"
 #undef SERVO_BINDING_FUNC
 #endif
 
-ErrorReporter*
-Gecko_CreateCSSErrorReporter(ServoStyleSheet* sheet,
-                             Loader* loader,
-                             nsIURI* uri)
-{
+ErrorReporter* Gecko_CreateCSSErrorReporter(ServoStyleSheet* sheet,
+                                            Loader* loader, nsIURI* uri) {
   MOZ_ASSERT(NS_IsMainThread());
   return new ErrorReporter(sheet, loader, uri);
 }
 
-void
-Gecko_DestroyCSSErrorReporter(ErrorReporter* reporter)
-{
-  delete reporter;
-}
+void Gecko_DestroyCSSErrorReporter(ErrorReporter* reporter) { delete reporter; }
 
-void
-Gecko_ReportUnexpectedCSSError(ErrorReporter* reporter,
-                               const char* message,
-                               const char* param,
-                               uint32_t paramLen,
-                               const char* prefix,
-                               const char* prefixParam,
-                               uint32_t prefixParamLen,
-                               const char* suffix,
-                               const char* source,
-                               uint32_t sourceLen,
-                               uint32_t lineNumber,
-                               uint32_t colNumber)
-{
+void Gecko_ReportUnexpectedCSSError(ErrorReporter* reporter,
+                                    const char* message, const char* param,
+                                    uint32_t paramLen, const char* prefix,
+                                    const char* prefixParam,
+                                    uint32_t prefixParamLen, const char* suffix,
+                                    const char* source, uint32_t sourceLen,
+                                    uint32_t lineNumber, uint32_t colNumber) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (prefix) {
@@ -2778,32 +2320,26 @@ Gecko_ReportUnexpectedCSSError(ErrorReporter* reporter,
   reporter->OutputError(lineNumber, colNumber, sourceValue);
 }
 
-void
-Gecko_AddBufferToCrashReport(const void* addr, size_t len)
-{
+void Gecko_AddBufferToCrashReport(const void* addr, size_t len) {
   MOZ_ASSERT(NS_IsMainThread());
-  nsCOMPtr<nsICrashReporter> cr = do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+  nsCOMPtr<nsICrashReporter> cr =
+      do_GetService("@mozilla.org/toolkit/crash-reporter;1");
   NS_ENSURE_TRUE_VOID(cr);
-  cr->RegisterAppMemory((uint64_t) addr, len);
+  cr->RegisterAppMemory((uint64_t)addr, len);
 }
 
-void
-Gecko_AnnotateCrashReport(const char* key_str, const char* value_str)
-{
+void Gecko_AnnotateCrashReport(const char* key_str, const char* value_str) {
   MOZ_ASSERT(NS_IsMainThread());
   nsDependentCString key(key_str);
   nsDependentCString value(value_str);
-  nsCOMPtr<nsICrashReporter> cr = do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+  nsCOMPtr<nsICrashReporter> cr =
+      do_GetService("@mozilla.org/toolkit/crash-reporter;1");
   NS_ENSURE_TRUE_VOID(cr);
   cr->AnnotateCrashReport(key, value);
 }
 
-void
-Gecko_ContentList_AppendAll(
-  nsSimpleContentList* aList,
-  const Element** aElements,
-  size_t aLength)
-{
+void Gecko_ContentList_AppendAll(nsSimpleContentList* aList,
+                                 const Element** aElements, size_t aLength) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aElements);
   MOZ_ASSERT(aLength);
@@ -2816,30 +2352,19 @@ Gecko_ContentList_AppendAll(
   }
 }
 
-const nsTArray<Element*>*
-Gecko_GetElementsWithId(const nsIDocument* aDocument, nsAtom* aId)
-{
+const nsTArray<Element*>* Gecko_GetElementsWithId(const nsIDocument* aDocument,
+                                                  nsAtom* aId) {
   MOZ_ASSERT(aDocument);
   MOZ_ASSERT(aId);
 
   return aDocument->GetAllElementsForId(nsDependentAtomString(aId));
 }
 
-bool
-Gecko_GetBoolPrefValue(const char* aPrefName)
-{
+bool Gecko_GetBoolPrefValue(const char* aPrefName) {
   MOZ_ASSERT(NS_IsMainThread());
   return Preferences::GetBool(aPrefName);
 }
 
-bool
-Gecko_IsInServoTraversal()
-{
-  return ServoStyleSet::IsInServoTraversal();
-}
+bool Gecko_IsInServoTraversal() { return ServoStyleSet::IsInServoTraversal(); }
 
-bool
-Gecko_IsMainThread()
-{
-  return NS_IsMainThread();
-}
+bool Gecko_IsMainThread() { return NS_IsMainThread(); }

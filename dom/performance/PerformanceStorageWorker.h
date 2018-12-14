@@ -17,13 +17,12 @@ class WorkerPrivate;
 
 class PerformanceProxyData;
 
-class PerformanceStorageWorker final : public PerformanceStorage
-{
-public:
+class PerformanceStorageWorker final : public PerformanceStorage {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PerformanceStorageWorker, override)
 
-  static already_AddRefed<PerformanceStorageWorker>
-  Create(WorkerPrivate* aWorkerPrivate);
+  static already_AddRefed<PerformanceStorageWorker> Create(
+      WorkerPrivate* aWorkerPrivate);
 
   void InitializeOnWorker();
 
@@ -34,7 +33,7 @@ public:
 
   void AddEntryOnWorker(UniquePtr<PerformanceProxyData>&& aData);
 
-private:
+ private:
   explicit PerformanceStorageWorker(WorkerPrivate* aWorkerPrivate);
   ~PerformanceStorageWorker();
 
@@ -56,7 +55,7 @@ private:
   UniquePtr<WorkerHolder> mWorkerHolder;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PerformanceStorageWorker_h
+#endif  // mozilla_dom_PerformanceStorageWorker_h

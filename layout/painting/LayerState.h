@@ -22,6 +22,6 @@ enum LayerState {
   LAYER_SVG_EFFECTS
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

@@ -9,20 +9,15 @@
 #include "nsIClipboardDragDropHookList.h"
 #include "nsArrayEnumerator.h"
 
-nsTransferableHookData::nsTransferableHookData()
-{
-}
+nsTransferableHookData::nsTransferableHookData() {}
 
-nsTransferableHookData::~nsTransferableHookData()
-{
-}
+nsTransferableHookData::~nsTransferableHookData() {}
 
 NS_IMPL_ISUPPORTS(nsTransferableHookData, nsIClipboardDragDropHookList)
 
 NS_IMETHODIMP
 nsTransferableHookData::AddClipboardDragDropHooks(
-    nsIClipboardDragDropHooks* aOverrides)
-{
+    nsIClipboardDragDropHooks* aOverrides) {
   NS_ENSURE_ARG(aOverrides);
 
   // don't let a hook be added more than once
@@ -37,8 +32,7 @@ nsTransferableHookData::AddClipboardDragDropHooks(
 
 NS_IMETHODIMP
 nsTransferableHookData::RemoveClipboardDragDropHooks(
-    nsIClipboardDragDropHooks* aOverrides)
-{
+    nsIClipboardDragDropHooks* aOverrides) {
   NS_ENSURE_ARG(aOverrides);
   if (!mHookList.RemoveObject(aOverrides)) {
     return NS_ERROR_FAILURE;
@@ -48,7 +42,6 @@ nsTransferableHookData::RemoveClipboardDragDropHooks(
 }
 
 NS_IMETHODIMP
-nsTransferableHookData::GetHookEnumerator(nsISimpleEnumerator** aResult)
-{
+nsTransferableHookData::GetHookEnumerator(nsISimpleEnumerator** aResult) {
   return NS_NewArrayEnumerator(aResult, mHookList);
 }

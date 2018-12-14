@@ -22,29 +22,28 @@ namespace mozilla {
 
 namespace detail {
 
-template<typename UnsignedType>
-struct WrapToSignedHelper
-{
+template <typename UnsignedType>
+struct WrapToSignedHelper {
   static_assert(mozilla::IsUnsigned<UnsignedType>::value,
                 "WrapToSigned must be passed an unsigned type");
 
   using SignedType = typename mozilla::MakeSigned<UnsignedType>::Type;
 
   static constexpr SignedType MaxValue =
-    (UnsignedType(1) << (CHAR_BIT * sizeof(SignedType) - 1)) - 1;
+      (UnsignedType(1) << (CHAR_BIT * sizeof(SignedType) - 1)) - 1;
   static constexpr SignedType MinValue = -MaxValue - 1;
 
   static constexpr UnsignedType MinValueUnsigned =
-    static_cast<UnsignedType>(MinValue);
+      static_cast<UnsignedType>(MinValue);
   static constexpr UnsignedType MaxValueUnsigned =
-    static_cast<UnsignedType>(MaxValue);
+      static_cast<UnsignedType>(MaxValue);
 
   // Overflow-correctness was proven in bug 1432646 and is explained in the
   // comment below.  This function is very hot, both at compile time and
   // runtime, so disable all overflow checking in it.
-  MOZ_NO_SANITIZE_UNSIGNED_OVERFLOW MOZ_NO_SANITIZE_SIGNED_OVERFLOW
-  static constexpr SignedType compute(UnsignedType aValue)
-  {
+  MOZ_NO_SANITIZE_UNSIGNED_OVERFLOW
+  MOZ_NO_SANITIZE_SIGNED_OVERFLOW static constexpr SignedType compute(
+      UnsignedType aValue) {
     // This algorithm was originally provided here:
     // https://stackoverflow.com/questions/13150449/efficient-unsigned-to-signed-cast-avoiding-implementation-defined-behavior
     //
@@ -68,12 +67,12 @@ struct WrapToSignedHelper
     // and this computation produces values spanning [MinValue, 0): exactly the
     // desired range of all negative signed integers.
     return (aValue <= MaxValueUnsigned)
-           ? static_cast<SignedType>(aValue)
-           : static_cast<SignedType>(aValue - MinValueUnsigned) + MinValue;
+               ? static_cast<SignedType>(aValue)
+               : static_cast<SignedType>(aValue - MinValueUnsigned) + MinValue;
   }
 };
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Convert an unsigned value to signed, if necessary wrapping around.
@@ -82,25 +81,21 @@ struct WrapToSignedHelper
  * these days -- but this function makes explicit that such conversion is
  * happening.
  */
-template<typename UnsignedType>
+template <typename UnsignedType>
 inline constexpr typename detail::WrapToSignedHelper<UnsignedType>::SignedType
-WrapToSigned(UnsignedType aValue)
-{
+WrapToSigned(UnsignedType aValue) {
   return detail::WrapToSignedHelper<UnsignedType>::compute(aValue);
 }
 
 namespace detail {
 
-template<typename T>
-struct WrappingMultiplyHelper
-{
-private:
+template <typename T>
+struct WrappingMultiplyHelper {
+ private:
   using UnsignedT = typename MakeUnsigned<T>::Type;
 
   MOZ_NO_SANITIZE_UNSIGNED_OVERFLOW
-  static UnsignedT
-  multiply(UnsignedT aX, UnsignedT aY)
-  {
+  static UnsignedT multiply(UnsignedT aX, UnsignedT aY) {
     // |mozilla::WrappingMultiply| isn't constexpr because MSVC warns about
     // well- defined unsigned integer overflows that may happen here.
     // https://msdn.microsoft.com/en-us/library/4kze989h.aspx  And constexpr
@@ -116,25 +111,21 @@ private:
     return static_cast<UnsignedT>(1U * aX * aY);
   }
 
-  static T
-  toResult(UnsignedT aX, UnsignedT aY)
-  {
+  static T toResult(UnsignedT aX, UnsignedT aY) {
     // We could always return WrapToSigned and rely on unsigned conversion
     // undoing the wrapping when |T| is unsigned, but this seems clearer.
-    return IsSigned<T>::value
-           ? WrapToSigned(multiply(aX, aY))
-           : multiply(aX, aY);
+    return IsSigned<T>::value ? WrapToSigned(multiply(aX, aY))
+                              : multiply(aX, aY);
   }
 
-public:
+ public:
   MOZ_NO_SANITIZE_UNSIGNED_OVERFLOW
-  static T compute(T aX, T aY)
-  {
+  static T compute(T aX, T aY) {
     return toResult(static_cast<UnsignedT>(aX), static_cast<UnsignedT>(aY));
   }
 };
 
-} // namespace detail
+}  // namespace detail
 
 /**
  * Multiply two integers of the same type, and return the result converted to
@@ -177,10 +168,8 @@ public:
  * most compilers in most situations, even though it's emphatically not required
  * to do so.
  */
-template<typename T>
-inline T
-WrappingMultiply(T aX, T aY)
-{
+template <typename T>
+inline T WrappingMultiply(T aX, T aY) {
   return detail::WrappingMultiplyHelper<T>::compute(aX, aY);
 }
 

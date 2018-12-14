@@ -25,9 +25,8 @@ class nsDOMCSSRGBColor;
  * Read-only CSS primitive value - a DOM object representing values in DOM
  * computed style.
  */
-class nsROCSSPrimitiveValue final : public mozilla::dom::CSSValue
-{
-public:
+class nsROCSSPrimitiveValue final : public mozilla::dom::CSSValue {
+ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsROCSSPrimitiveValue)
 
@@ -46,7 +45,7 @@ public:
                       mozilla::ErrorResult& aRv);
   void GetCounterValue(mozilla::ErrorResult& aRv);
   nsDOMCSSRect* GetRectValue(mozilla::ErrorResult& aRv);
-  nsDOMCSSRGBColor *GetRGBColorValue(mozilla::ErrorResult& aRv);
+  nsDOMCSSRGBColor* GetRGBColorValue(mozilla::ErrorResult& aRv);
 
   // nsROCSSPrimitiveValue
   nsROCSSPrimitiveValue();
@@ -71,43 +70,40 @@ public:
   void SetString(
       const nsAString& aString,
       uint16_t aType = mozilla::dom::CSSPrimitiveValueBinding::CSS_STRING);
-  void SetURI(nsIURI *aURI);
+  void SetURI(nsIURI* aURI);
   void SetColor(nsDOMCSSRGBColor* aColor);
   void SetRect(nsDOMCSSRect* aRect);
   void SetTime(float aValue);
   void Reset();
 
-  nsISupports* GetParentObject() const
-  {
-    return nullptr;
-  }
+  nsISupports* GetParentObject() const { return nullptr; }
 
-  virtual JSObject *WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-private:
+ private:
   ~nsROCSSPrimitiveValue();
 
   uint16_t mType;
 
   union {
-    nscoord         mAppUnits;
-    float           mFloat;
-    int32_t         mInt32;
-    uint32_t        mUint32;
+    nscoord mAppUnits;
+    float mFloat;
+    int32_t mInt32;
+    uint32_t mUint32;
     // These can't be nsCOMPtr/nsRefPtr's because they are used inside a union.
     nsDOMCSSRGBColor* MOZ_OWNING_REF mColor;
     nsDOMCSSRect* MOZ_OWNING_REF mRect;
-    char16_t*      mString;
+    char16_t* mString;
     nsIURI* MOZ_OWNING_REF mURI;
-    nsCSSKeyword    mKeyword;
+    nsCSSKeyword mKeyword;
   } mValue;
 };
 
-inline nsROCSSPrimitiveValue*
-mozilla::dom::CSSValue::AsPrimitiveValue()
-{
-  return CssValueType() == CSSValueBinding::CSS_PRIMITIVE_VALUE ?
-    static_cast<nsROCSSPrimitiveValue*>(this) : nullptr;
+inline nsROCSSPrimitiveValue* mozilla::dom::CSSValue::AsPrimitiveValue() {
+  return CssValueType() == CSSValueBinding::CSS_PRIMITIVE_VALUE
+             ? static_cast<nsROCSSPrimitiveValue*>(this)
+             : nullptr;
 }
 
 #endif /* nsROCSSPrimitiveValue_h___ */

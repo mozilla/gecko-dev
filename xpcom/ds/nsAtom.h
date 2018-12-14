@@ -15,9 +15,8 @@ namespace mozilla {
 struct AtomsSizes;
 }
 
-class nsAtom
-{
-public:
+class nsAtom {
+ public:
   void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                               mozilla::AtomsSizes& aSizes) const;
 
@@ -27,22 +26,20 @@ public:
     HTML5Atom = 2,
   };
 
-  bool Equals(char16ptr_t aString, uint32_t aLength) const
-  {
+  bool Equals(char16ptr_t aString, uint32_t aLength) const {
     return mLength == aLength &&
            memcmp(mString, aString, mLength * sizeof(char16_t)) == 0;
   }
 
-  bool Equals(const nsAString& aString) const
-  {
+  bool Equals(const nsAString& aString) const {
     return Equals(aString.BeginReading(), aString.Length());
   }
 
   AtomKind Kind() const { return static_cast<AtomKind>(mKind); }
 
   bool IsDynamic() const { return Kind() == AtomKind::DynamicAtom; }
-  bool IsHTML5()   const { return Kind() == AtomKind::HTML5Atom; }
-  bool IsStatic()  const { return Kind() == AtomKind::StaticAtom; }
+  bool IsHTML5() const { return Kind() == AtomKind::HTML5Atom; }
+  bool IsStatic() const { return Kind() == AtomKind::StaticAtom; }
 
   char16ptr_t GetUTF16String() const { return mString; }
 
@@ -53,8 +50,7 @@ public:
 
   // This is not valid for static atoms. The caller must *not* mutate the
   // string buffer, otherwise all hell will break loose.
-  nsStringBuffer* GetStringBuffer() const
-  {
+  nsStringBuffer* GetStringBuffer() const {
     // See the comment on |mString|'s declaration.
     MOZ_ASSERT(IsDynamic() || IsHTML5());
     return nsStringBuffer::FromData(const_cast<char16_t*>(mString));
@@ -65,8 +61,7 @@ public:
   // rather than Hash() so we can use mozilla::BloomFilter<N, nsAtom>, because
   // BloomFilter requires elements to implement a function called hash().
   //
-  uint32_t hash() const
-  {
+  uint32_t hash() const {
     MOZ_ASSERT(!IsHTML5());
     return mHash;
   }
@@ -78,12 +73,12 @@ public:
 
   typedef mozilla::TrueType HasThreadSafeRefCnt;
 
-private:
+ private:
   friend class nsAtomTable;
   friend class nsAtomSubTable;
   friend class nsHtml5AtomEntry;
 
-protected:
+ protected:
   // Used by nsDynamicAtom and directly (by nsHtml5AtomEntry) for HTML5 atoms.
   nsAtom(AtomKind aKind, const nsAString& aString, uint32_t aHash);
 
@@ -92,8 +87,8 @@ protected:
 
   ~nsAtom();
 
-  const uint32_t mLength:30;
-  const uint32_t mKind:2; // nsAtom::AtomKind
+  const uint32_t mLength : 30;
+  const uint32_t mKind : 2;  // nsAtom::AtomKind
   const uint32_t mHash;
   // WARNING! For static atoms, this is a pointer to a static char buffer. For
   // non-static atoms it points to the chars in an nsStringBuffer. This means
@@ -109,9 +104,8 @@ protected:
 // This class would be |final| if it wasn't for nsICSSAnonBoxPseudo and
 // nsICSSPseudoElement, which are trivial subclasses used to ensure only
 // certain atoms are passed to certain functions.
-class nsStaticAtom : public nsAtom
-{
-public:
+class nsStaticAtom : public nsAtom {
+ public:
   // These are deleted so it's impossible to RefPtr<nsStaticAtom>. Raw
   // nsStaticAtom pointers should be used instead.
   MozExternalRefCountType AddRef() = delete;
@@ -121,13 +115,12 @@ public:
     return already_AddRefed<nsAtom>(static_cast<nsAtom*>(this));
   }
 
-private:
+ private:
   friend class nsAtomTable;
 
   // Construction is done entirely by |friend|s.
   nsStaticAtom(const char16_t* aString, uint32_t aLength, uint32_t aHash)
-    : nsAtom(aString, aLength, aHash)
-  {}
+      : nsAtom(aString, aLength, aHash) {}
 };
 
 // The four forms of NS_Atomize (for use with |RefPtr<nsAtom>|) return the
@@ -168,24 +161,20 @@ nsStaticAtom* NS_GetStaticAtom(const nsAString& aUTF16String);
 // Record that all static atoms have been inserted.
 void NS_SetStaticAtomsDone();
 
-class nsAtomString : public nsString
-{
-public:
+class nsAtomString : public nsString {
+ public:
   explicit nsAtomString(const nsAtom* aAtom) { aAtom->ToString(*this); }
 };
 
-class nsAtomCString : public nsCString
-{
-public:
+class nsAtomCString : public nsCString {
+ public:
   explicit nsAtomCString(nsAtom* aAtom) { aAtom->ToUTF8String(*this); }
 };
 
-class nsDependentAtomString : public nsDependentString
-{
-public:
+class nsDependentAtomString : public nsDependentString {
+ public:
   explicit nsDependentAtomString(const nsAtom* aAtom)
-    : nsDependentString(aAtom->GetUTF16String(), aAtom->GetLength())
-  {}
+      : nsDependentString(aAtom->GetUTF16String(), aAtom->GetLength()) {}
 };
 
 #endif  // nsAtom_h

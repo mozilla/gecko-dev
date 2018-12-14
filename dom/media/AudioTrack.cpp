@@ -12,31 +12,21 @@
 namespace mozilla {
 namespace dom {
 
-AudioTrack::AudioTrack(const nsAString& aId,
-                       const nsAString& aKind,
-                       const nsAString& aLabel,
-                       const nsAString& aLanguage,
+AudioTrack::AudioTrack(const nsAString& aId, const nsAString& aKind,
+                       const nsAString& aLabel, const nsAString& aLanguage,
                        bool aEnabled)
-  : MediaTrack(aId, aKind, aLabel, aLanguage)
-  , mEnabled(aEnabled)
-{
-}
+    : MediaTrack(aId, aKind, aLabel, aLanguage), mEnabled(aEnabled) {}
 
-JSObject*
-AudioTrack::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* AudioTrack::WrapObject(JSContext* aCx,
+                                 JS::Handle<JSObject*> aGivenProto) {
   return AudioTrackBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-AudioTrack::SetEnabled(bool aEnabled)
-{
+void AudioTrack::SetEnabled(bool aEnabled) {
   SetEnabledInternal(aEnabled, MediaTrack::DEFAULT);
 }
 
-void
-AudioTrack::SetEnabledInternal(bool aEnabled, int aFlags)
-{
+void AudioTrack::SetEnabledInternal(bool aEnabled, int aFlags) {
   if (aEnabled == mEnabled) {
     return;
   }
@@ -65,5 +55,5 @@ AudioTrack::SetEnabledInternal(bool aEnabled, int aFlags)
   }
 }
 
-} // namespace dom
-} //namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

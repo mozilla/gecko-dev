@@ -63,9 +63,8 @@ class WidgetTouchEvent;
 class AccessibleCaretEventHub : public nsIReflowObserver,
                                 public nsIScrollObserver,
                                 public nsISelectionListener,
-                                public nsSupportsWeakReference
-{
-public:
+                                public nsSupportsWeakReference {
+ public:
   explicit AccessibleCaretEventHub(nsIPresShell* aPresShell);
   void Init();
   void Terminate();
@@ -88,18 +87,17 @@ public:
   class State;
   State* GetState() const;
 
-protected:
+ protected:
   virtual ~AccessibleCaretEventHub() = default;
 
-#define MOZ_DECL_STATE_CLASS_GETTER(aClassName)                                \
-  class aClassName;                                                            \
+#define MOZ_DECL_STATE_CLASS_GETTER(aClassName) \
+  class aClassName;                             \
   static State* aClassName();
 
-#define MOZ_IMPL_STATE_CLASS_GETTER(aClassName)                                \
-  AccessibleCaretEventHub::State* AccessibleCaretEventHub::aClassName()        \
-  {                                                                            \
-    static class aClassName singleton;                                         \
-    return &singleton;                                                         \
+#define MOZ_IMPL_STATE_CLASS_GETTER(aClassName)                           \
+  AccessibleCaretEventHub::State* AccessibleCaretEventHub::aClassName() { \
+    static class aClassName singleton;                                    \
+    return &singleton;                                                    \
   }
 
   // Concrete state getters
@@ -145,7 +143,7 @@ protected:
   nsCOMPtr<nsITimer> mLongTapInjectorTimer;
 
   // Last mouse button down event or touch start event point.
-  nsPoint mPressPoint{ NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE };
+  nsPoint mPressPoint{NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE};
 
   // For filter multitouch event
   int32_t mActiveTouchId = kInvalidTouchId;
@@ -161,7 +159,7 @@ protected:
 
   static const int32_t kMoveStartToleranceInPixel = 5;
   static const int32_t kInvalidTouchId = -1;
-  static const int32_t kDefaultTouchId = 0; // For mouse event
+  static const int32_t kDefaultTouchId = 0;  // For mouse event
 };
 
 // -----------------------------------------------------------------------------
@@ -169,32 +167,27 @@ protected:
 // class, and override the methods to handle the events or callbacks. A concrete
 // state is also responsible for transforming itself to the next concrete state.
 //
-class AccessibleCaretEventHub::State
-{
-public:
+class AccessibleCaretEventHub::State {
+ public:
   virtual const char* Name() const { return ""; }
 
   virtual nsEventStatus OnPress(AccessibleCaretEventHub* aContext,
                                 const nsPoint& aPoint, int32_t aTouchId,
-                                EventClassID aEventClass)
-  {
+                                EventClassID aEventClass) {
     return nsEventStatus_eIgnore;
   }
 
   virtual nsEventStatus OnMove(AccessibleCaretEventHub* aContext,
-                               const nsPoint& aPoint)
-  {
+                               const nsPoint& aPoint) {
     return nsEventStatus_eIgnore;
   }
 
-  virtual nsEventStatus OnRelease(AccessibleCaretEventHub* aContext)
-  {
+  virtual nsEventStatus OnRelease(AccessibleCaretEventHub* aContext) {
     return nsEventStatus_eIgnore;
   }
 
   virtual nsEventStatus OnLongTap(AccessibleCaretEventHub* aContext,
-                                  const nsPoint& aPoint)
-  {
+                                  const nsPoint& aPoint) {
     return nsEventStatus_eIgnore;
   }
 
@@ -216,6 +209,6 @@ public:
   State& operator=(const State&) = delete;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // AccessibleCaretEventHub_h
+#endif  // AccessibleCaretEventHub_h

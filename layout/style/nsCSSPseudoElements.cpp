@@ -29,60 +29,53 @@ using namespace mozilla;
 
 // Array of nsStaticAtomSetup for each of the pseudo-elements.
 static const nsStaticAtomSetup sCSSPseudoElementAtomSetup[] = {
-  #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
-    NS_STATIC_ATOM_SUBCLASS_SETUP(nsCSSPseudoElements, name_)
-  #include "nsCSSPseudoElementList.h"
-  #undef CSS_PSEUDO_ELEMENT
+#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
+  NS_STATIC_ATOM_SUBCLASS_SETUP(nsCSSPseudoElements, name_)
+#include "nsCSSPseudoElementList.h"
+#undef CSS_PSEUDO_ELEMENT
 };
 
 // Flags data for each of the pseudo-elements, which must be separate
 // from the previous array since there's no place for it in
 // nsStaticAtomSetup.
-/* static */ const uint32_t
-nsCSSPseudoElements::kPseudoElementFlags[] = {
-#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
-  flags_,
+/* static */ const uint32_t nsCSSPseudoElements::kPseudoElementFlags[] = {
+#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) flags_,
 #include "nsCSSPseudoElementList.h"
 #undef CSS_PSEUDO_ELEMENT
 };
 
-void nsCSSPseudoElements::AddRefAtoms()
-{
+void nsCSSPseudoElements::AddRefAtoms() {
   NS_RegisterStaticAtoms(sCSSPseudoElementAtomSetup);
 }
 
-bool nsCSSPseudoElements::IsPseudoElement(nsAtom *aAtom)
-{
+bool nsCSSPseudoElements::IsPseudoElement(nsAtom *aAtom) {
   return nsAtomListUtils::IsMember(aAtom, sCSSPseudoElementAtomSetup,
                                    ArrayLength(sCSSPseudoElementAtomSetup));
 }
 
-/* static */ bool
-nsCSSPseudoElements::IsCSS2PseudoElement(nsAtom *aAtom)
-{
+/* static */ bool nsCSSPseudoElements::IsCSS2PseudoElement(nsAtom *aAtom) {
   // We don't implement this using PseudoElementHasFlags because callers
   // want to pass things that could be anon boxes.
   NS_ASSERTION(nsCSSPseudoElements::IsPseudoElement(aAtom) ||
-               nsCSSAnonBoxes::IsAnonBox(aAtom),
+                   nsCSSAnonBoxes::IsAnonBox(aAtom),
                "must be pseudo element or anon box");
   bool result = aAtom == nsCSSPseudoElements::after ||
-                  aAtom == nsCSSPseudoElements::before ||
-                  aAtom == nsCSSPseudoElements::firstLetter ||
-                  aAtom == nsCSSPseudoElements::firstLine;
-  NS_ASSERTION(nsCSSAnonBoxes::IsAnonBox(aAtom) ||
-               result == PseudoElementHasFlags(
-                   GetPseudoType(aAtom, EnabledState::eIgnoreEnabledState),
-                   CSS_PSEUDO_ELEMENT_IS_CSS2),
-               "result doesn't match flags");
+                aAtom == nsCSSPseudoElements::before ||
+                aAtom == nsCSSPseudoElements::firstLetter ||
+                aAtom == nsCSSPseudoElements::firstLine;
+  NS_ASSERTION(
+      nsCSSAnonBoxes::IsAnonBox(aAtom) ||
+          result == PseudoElementHasFlags(
+                        GetPseudoType(aAtom, EnabledState::eIgnoreEnabledState),
+                        CSS_PSEUDO_ELEMENT_IS_CSS2),
+      "result doesn't match flags");
   return result;
 }
 
-/* static */ CSSPseudoElementType
-nsCSSPseudoElements::GetPseudoType(nsAtom *aAtom, EnabledState aEnabledState)
-{
+/* static */ CSSPseudoElementType nsCSSPseudoElements::GetPseudoType(
+    nsAtom *aAtom, EnabledState aEnabledState) {
   for (CSSPseudoElementTypeBase i = 0;
-       i < ArrayLength(sCSSPseudoElementAtomSetup);
-       ++i) {
+       i < ArrayLength(sCSSPseudoElementAtomSetup); ++i) {
     if (*sCSSPseudoElementAtomSetup[i].mAtomp == aAtom) {
       auto type = static_cast<Type>(i);
       // ::moz-placeholder is an alias for ::placeholder
@@ -110,17 +103,15 @@ nsCSSPseudoElements::GetPseudoType(nsAtom *aAtom, EnabledState aEnabledState)
   return Type::NotPseudo;
 }
 
-/* static */ nsAtom*
-nsCSSPseudoElements::GetPseudoAtom(Type aType)
-{
+/* static */ nsAtom *nsCSSPseudoElements::GetPseudoAtom(Type aType) {
   NS_ASSERTION(aType < Type::Count, "Unexpected type");
-  return *sCSSPseudoElementAtomSetup[
-    static_cast<CSSPseudoElementTypeBase>(aType)].mAtomp;
+  return *sCSSPseudoElementAtomSetup[static_cast<CSSPseudoElementTypeBase>(
+                                         aType)]
+              .mAtomp;
 }
 
-/* static */ already_AddRefed<nsAtom>
-nsCSSPseudoElements::GetPseudoAtom(const nsAString& aPseudoElement)
-{
+/* static */ already_AddRefed<nsAtom> nsCSSPseudoElements::GetPseudoAtom(
+    const nsAString &aPseudoElement) {
   if (DOMStringIsNull(aPseudoElement) || aPseudoElement.IsEmpty() ||
       aPseudoElement.First() != char16_t(':')) {
     return nullptr;
@@ -151,16 +142,14 @@ nsCSSPseudoElements::GetPseudoAtom(const nsAString& aPseudoElement)
   return pseudo.forget();
 }
 
-/* static */ bool
-nsCSSPseudoElements::PseudoElementSupportsUserActionState(const Type aType)
-{
+/* static */ bool nsCSSPseudoElements::PseudoElementSupportsUserActionState(
+    const Type aType) {
   return PseudoElementHasFlags(aType,
                                CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE);
 }
 
-/* static */ nsString
-nsCSSPseudoElements::PseudoTypeAsString(Type aPseudoType)
-{
+/* static */ nsString nsCSSPseudoElements::PseudoTypeAsString(
+    Type aPseudoType) {
   switch (aPseudoType) {
     case CSSPseudoElementType::before:
       return NS_LITERAL_STRING("::before");
@@ -172,4 +161,3 @@ nsCSSPseudoElements::PseudoTypeAsString(Type aPseudoType)
       return EmptyString();
   }
 }
-

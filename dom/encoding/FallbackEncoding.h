@@ -15,9 +15,8 @@ namespace mozilla {
 class Encoding;
 namespace dom {
 
-class FallbackEncoding : public nsIObserver
-{
-public:
+class FallbackEncoding : public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
@@ -70,23 +69,19 @@ public:
    */
   static void Shutdown();
 
-private:
-
+ private:
   /**
    * The fallback cache.
    */
   static FallbackEncoding* sInstance;
 
   FallbackEncoding();
-  virtual ~FallbackEncoding() {};
+  virtual ~FallbackEncoding(){};
 
   /**
    * Invalidates the cache.
    */
-  void Invalidate()
-  {
-    mFallback = nullptr;
-  }
+  void Invalidate() { mFallback = nullptr; }
 
   static void PrefChanged(const char*, void*);
 
@@ -99,8 +94,7 @@ private:
   const Encoding* mFallback;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_FallbackEncoding_h_
-
+#endif  // mozilla_dom_FallbackEncoding_h_

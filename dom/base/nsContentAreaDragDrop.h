@@ -4,10 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 #ifndef nsContentAreaDragDrop_h__
 #define nsContentAreaDragDrop_h__
-
 
 #include "nsCOMPtr.h"
 
@@ -23,16 +21,14 @@ class nsIFile;
 namespace mozilla {
 namespace dom {
 class DataTransfer;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 //
 // class nsContentAreaDragDrop, used to generate the dragdata
 //
-class nsContentAreaDragDrop
-{
-public:
-
+class nsContentAreaDragDrop {
+ public:
   /**
    * Determine what data in the content area, if any, is being dragged.
    *
@@ -54,13 +50,11 @@ public:
    *                           the drag, or empty string if it's from
    *                           browser chrome or OS
    */
-  static nsresult GetDragData(nsPIDOMWindowOuter* aWindow,
-                              nsIContent* aTarget,
+  static nsresult GetDragData(nsPIDOMWindowOuter* aWindow, nsIContent* aTarget,
                               nsIContent* aSelectionTargetNode,
                               bool aIsAltKeyPressed,
                               mozilla::dom::DataTransfer* aDataTransfer,
-                              bool* aCanDrag,
-                              nsISelection** aSelection,
+                              bool* aCanDrag, nsISelection** aSelection,
                               nsIContent** aDragNode,
                               nsACString& aPrincipalURISpec);
 };
@@ -68,18 +62,15 @@ public:
 // this is used to save images to disk lazily when the image data is asked for
 // during the drop instead of when it is added to the drag data transfer. This
 // ensures that the image data is only created when an image drop is allowed.
-class nsContentAreaDragDropDataProvider : public nsIFlavorDataProvider
-{
+class nsContentAreaDragDropDataProvider : public nsIFlavorDataProvider {
   virtual ~nsContentAreaDragDropDataProvider() {}
 
-public:
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIFLAVORDATAPROVIDER
 
-  nsresult SaveURIToFile(nsIURI* inSourceURI,
-                         nsIFile* inDestFile, bool isPrivate);
+  nsresult SaveURIToFile(nsIURI* inSourceURI, nsIFile* inDestFile,
+                         bool isPrivate);
 };
 
-
 #endif /* nsContentAreaDragDrop_h__ */
-

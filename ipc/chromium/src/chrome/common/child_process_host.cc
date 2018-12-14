@@ -22,19 +22,15 @@ using mozilla::ipc::FileDescriptor;
 
 ChildProcessHost::ChildProcessHost()
     : ALLOW_THIS_IN_INITIALIZER_LIST(listener_(this)),
-      opening_channel_(false) {
-}
+      opening_channel_(false) {}
 
-
-ChildProcessHost::~ChildProcessHost() {
-}
+ChildProcessHost::~ChildProcessHost() {}
 
 bool ChildProcessHost::CreateChannel() {
   channel_id_ = IPC::Channel::GenerateVerifiedChannelID(std::wstring());
-  channel_.reset(new IPC::Channel(
-      channel_id_, IPC::Channel::MODE_SERVER, &listener_));
-  if (!channel_->Connect())
-    return false;
+  channel_.reset(
+      new IPC::Channel(channel_id_, IPC::Channel::MODE_SERVER, &listener_));
+  if (!channel_->Connect()) return false;
 
   opening_channel_ = true;
 
@@ -45,7 +41,8 @@ bool ChildProcessHost::CreateChannel(FileDescriptor& aFileDescriptor) {
   if (channel_.get()) {
     channel_->Close();
   }
-  channel_ = mozilla::ipc::OpenDescriptor(aFileDescriptor, IPC::Channel::MODE_SERVER);
+  channel_ =
+      mozilla::ipc::OpenDescriptor(aFileDescriptor, IPC::Channel::MODE_SERVER);
   if (!channel_->Connect()) {
     return false;
   }
@@ -56,11 +53,9 @@ bool ChildProcessHost::CreateChannel(FileDescriptor& aFileDescriptor) {
 }
 
 ChildProcessHost::ListenerHook::ListenerHook(ChildProcessHost* host)
-    : host_(host) {
-}
+    : host_(host) {}
 
-void ChildProcessHost::ListenerHook::OnMessageReceived(
-    IPC::Message&& msg) {
+void ChildProcessHost::ListenerHook::OnMessageReceived(IPC::Message&& msg) {
   host_->OnMessageReceived(mozilla::Move(msg));
 }
 
@@ -74,6 +69,7 @@ void ChildProcessHost::ListenerHook::OnChannelError() {
   host_->OnChannelError();
 }
 
-void ChildProcessHost::ListenerHook::GetQueuedMessages(std::queue<IPC::Message>& queue) {
+void ChildProcessHost::ListenerHook::GetQueuedMessages(
+    std::queue<IPC::Message>& queue) {
   host_->GetQueuedMessages(queue);
 }

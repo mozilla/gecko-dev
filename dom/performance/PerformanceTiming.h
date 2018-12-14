@@ -22,48 +22,33 @@ namespace dom {
 
 class PerformanceTiming;
 
-class PerformanceTimingData final
-{
+class PerformanceTimingData final {
   friend class PerformanceTiming;
 
-public:
+ public:
   // This can return null.
-  static PerformanceTimingData*
-  Create(nsITimedChannel* aChannel,
-         nsIHttpChannel* aHttpChannel,
-         DOMHighResTimeStamp aZeroTime,
-         nsAString& aInitiatorType,
-         nsAString& aEntryName);
+  static PerformanceTimingData* Create(nsITimedChannel* aChannel,
+                                       nsIHttpChannel* aHttpChannel,
+                                       DOMHighResTimeStamp aZeroTime,
+                                       nsAString& aInitiatorType,
+                                       nsAString& aEntryName);
 
-  PerformanceTimingData(nsITimedChannel* aChannel,
-                        nsIHttpChannel* aHttpChannel,
+  PerformanceTimingData(nsITimedChannel* aChannel, nsIHttpChannel* aHttpChannel,
                         DOMHighResTimeStamp aZeroTime);
 
-  void
-  SetPropertiesFromHttpChannel(nsIHttpChannel* aHttpChannel);
+  void SetPropertiesFromHttpChannel(nsIHttpChannel* aHttpChannel);
 
-  bool IsInitialized() const
-  {
-    return mInitialized;
-  }
+  bool IsInitialized() const { return mInitialized; }
 
-  const nsString& NextHopProtocol() const
-  {
-    return mNextHopProtocol;
-  }
+  const nsString& NextHopProtocol() const { return mNextHopProtocol; }
 
-  uint64_t TransferSize() const
-  {
-    return mTimingAllowed ? mTransferSize : 0;
-  }
+  uint64_t TransferSize() const { return mTimingAllowed ? mTransferSize : 0; }
 
-  uint64_t EncodedBodySize() const
-  {
+  uint64_t EncodedBodySize() const {
     return mTimingAllowed ? mEncodedBodySize : 0;
   }
 
-  uint64_t DecodedBodySize() const
-  {
+  uint64_t DecodedBodySize() const {
     return mTimingAllowed ? mDecodedBodySize : 0;
   }
 
@@ -76,23 +61,22 @@ public:
    *          page), if the given TimeStamp is valid. Otherwise, it will return
    *          the FetchStart timing value.
    */
-  inline DOMHighResTimeStamp
-  TimeStampToReducedDOMHighResOrFetchStart(Performance* aPerformance,
-                                           TimeStamp aStamp)
-  {
+  inline DOMHighResTimeStamp TimeStampToReducedDOMHighResOrFetchStart(
+      Performance* aPerformance, TimeStamp aStamp) {
     MOZ_ASSERT(aPerformance);
 
-    if(aStamp.IsNull()) {
+    if (aStamp.IsNull()) {
       return FetchStartHighRes(aPerformance);
     }
 
-    DOMHighResTimeStamp rawTimestamp = TimeStampToDOMHighRes(aPerformance, aStamp);
+    DOMHighResTimeStamp rawTimestamp =
+        TimeStampToDOMHighRes(aPerformance, aStamp);
     if (aPerformance->IsSystemPrincipal()) {
       return rawTimestamp;
     }
 
-    return nsRFPService::ReduceTimePrecisionAsMSecs(rawTimestamp,
-      aPerformance->GetRandomTimelineSeed());
+    return nsRFPService::ReduceTimePrecisionAsMSecs(
+        rawTimestamp, aPerformance->GetRandomTimelineSeed());
   }
 
   /**
@@ -111,8 +95,8 @@ public:
    * "performance.navigationStart" (for navigation timing).
    * For the resource timing, mZeroTime is set to 0, causing the result to be a
    * relative time.
-   * For the navigation timing, mZeroTime is set to "performance.navigationStart"
-   * causing the result be an absolute time.
+   * For the navigation timing, mZeroTime is set to
+   * "performance.navigationStart" causing the result be an absolute time.
    *
    * @param   aStamp
    *          The TimeStamp recorded for a specific event. This TimeStamp can't
@@ -122,9 +106,8 @@ public:
    *   page
    * - an absolute wall clock time since the unix epoch
    */
-  inline DOMHighResTimeStamp
-  TimeStampToDOMHighRes(Performance* aPerformance, TimeStamp aStamp) const
-  {
+  inline DOMHighResTimeStamp TimeStampToDOMHighRes(Performance* aPerformance,
+                                                   TimeStamp aStamp) const {
     MOZ_ASSERT(aPerformance);
     MOZ_ASSERT(!aStamp.IsNull());
 
@@ -164,12 +147,9 @@ public:
 
   // Cached result of CheckAllowedOrigin. If false, security sensitive
   // attributes of the resourceTiming object will be set to 0
-  bool TimingAllowed() const
-  {
-    return mTimingAllowed;
-  }
+  bool TimingAllowed() const { return mTimingAllowed; }
 
-private:
+ private:
   // Checks if the resource is either same origin as the page that started
   // the load, or if the response contains the Timing-Allow-Origin header
   // with a value of * or matching the domain of the loading Principal
@@ -226,51 +206,44 @@ private:
 };
 
 // Script "performance.timing" object
-class PerformanceTiming final : public nsWrapperCache
-{
-public:
-/**
- * @param   aPerformance
- *          The performance object (the JS parent).
- *          This will allow access to "window.performance.timing" attribute for
- *          the navigation timing (can't be null).
- * @param   aChannel
- *          An nsITimedChannel used to gather all the networking timings by both
- *          the navigation timing and the resource timing (can't be null).
- * @param   aHttpChannel
- *          An nsIHttpChannel (the resource's http channel).
- *          This will be used by the resource timing cross-domain check
- *          algorithm.
- *          Argument is null for the navigation timing (navigation timing uses
- *          another algorithm for the cross-domain redirects).
- * @param   aZeroTime
- *          The offset that will be added to the timestamp of each event. This
- *          argument should be equal to performance.navigationStart for
- *          navigation timing and "0" for the resource timing.
- */
-  PerformanceTiming(Performance* aPerformance,
-                    nsITimedChannel* aChannel,
+class PerformanceTiming final : public nsWrapperCache {
+ public:
+  /**
+   * @param   aPerformance
+   *          The performance object (the JS parent).
+   *          This will allow access to "window.performance.timing" attribute
+   * for the navigation timing (can't be null).
+   * @param   aChannel
+   *          An nsITimedChannel used to gather all the networking timings by
+   * both the navigation timing and the resource timing (can't be null).
+   * @param   aHttpChannel
+   *          An nsIHttpChannel (the resource's http channel).
+   *          This will be used by the resource timing cross-domain check
+   *          algorithm.
+   *          Argument is null for the navigation timing (navigation timing uses
+   *          another algorithm for the cross-domain redirects).
+   * @param   aZeroTime
+   *          The offset that will be added to the timestamp of each event. This
+   *          argument should be equal to performance.navigationStart for
+   *          navigation timing and "0" for the resource timing.
+   */
+  PerformanceTiming(Performance* aPerformance, nsITimedChannel* aChannel,
                     nsIHttpChannel* aHttpChannel,
                     DOMHighResTimeStamp aZeroTime);
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(PerformanceTiming)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(PerformanceTiming)
 
-  nsDOMNavigationTiming* GetDOMTiming() const
-  {
+  nsDOMNavigationTiming* GetDOMTiming() const {
     return mPerformance->GetDOMTiming();
   }
 
-  Performance* GetParentObject() const
-  {
-    return mPerformance;
-  }
+  Performance* GetParentObject() const { return mPerformance; }
 
-  virtual JSObject* WrapObject(JSContext *cx,
+  virtual JSObject* WrapObject(JSContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // PerformanceNavigation WebIDL methods
-  DOMTimeMilliSec NavigationStart() const
-  {
+  DOMTimeMilliSec NavigationStart() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -279,12 +252,11 @@ public:
       return GetDOMTiming()->GetNavigationStart();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetNavigationStart(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetNavigationStart(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec UnloadEventStart()
-  {
+  DOMTimeMilliSec UnloadEventStart() {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -293,12 +265,11 @@ public:
       return GetDOMTiming()->GetUnloadEventStart();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetUnloadEventStart(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetUnloadEventStart(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec UnloadEventEnd()
-  {
+  DOMTimeMilliSec UnloadEventEnd() {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -307,8 +278,8 @@ public:
       return GetDOMTiming()->GetUnloadEventEnd();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetUnloadEventEnd(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetUnloadEventEnd(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
   // Low resolution (used by navigation timing)
@@ -324,8 +295,7 @@ public:
   DOMTimeMilliSec ResponseStart();
   DOMTimeMilliSec ResponseEnd();
 
-  DOMTimeMilliSec DomLoading()
-  {
+  DOMTimeMilliSec DomLoading() {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -334,12 +304,10 @@ public:
       return GetDOMTiming()->GetDomLoading();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetDomLoading(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetDomLoading(), mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec DomInteractive() const
-  {
+  DOMTimeMilliSec DomInteractive() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -348,12 +316,11 @@ public:
       return GetDOMTiming()->GetDomInteractive();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetDomInteractive(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetDomInteractive(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec DomContentLoadedEventStart() const
-  {
+  DOMTimeMilliSec DomContentLoadedEventStart() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -362,12 +329,11 @@ public:
       return GetDOMTiming()->GetDomContentLoadedEventStart();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetDomContentLoadedEventStart(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetDomContentLoadedEventStart(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec DomContentLoadedEventEnd() const
-  {
+  DOMTimeMilliSec DomContentLoadedEventEnd() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -376,12 +342,11 @@ public:
       return GetDOMTiming()->GetDomContentLoadedEventEnd();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetDomContentLoadedEventEnd(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetDomContentLoadedEventEnd(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec DomComplete() const
-  {
+  DOMTimeMilliSec DomComplete() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -390,12 +355,11 @@ public:
       return GetDOMTiming()->GetDomComplete();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetDomComplete(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetDomComplete(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec LoadEventStart() const
-  {
+  DOMTimeMilliSec LoadEventStart() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -404,12 +368,11 @@ public:
       return GetDOMTiming()->GetLoadEventStart();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetLoadEventStart(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetLoadEventStart(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec LoadEventEnd() const
-  {
+  DOMTimeMilliSec LoadEventEnd() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -418,12 +381,11 @@ public:
       return GetDOMTiming()->GetLoadEventEnd();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetLoadEventEnd(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetLoadEventEnd(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  DOMTimeMilliSec TimeToNonBlankPaint() const
-  {
+  DOMTimeMilliSec TimeToNonBlankPaint() const {
     if (!nsContentUtils::IsPerformanceTimingEnabled() ||
         nsContentUtils::ShouldResistFingerprinting()) {
       return 0;
@@ -432,16 +394,13 @@ public:
       return GetDOMTiming()->GetTimeToNonBlankPaint();
     }
     return nsRFPService::ReduceTimePrecisionAsMSecs(
-      GetDOMTiming()->GetTimeToNonBlankPaint(),
-      mPerformance->GetRandomTimelineSeed());
+        GetDOMTiming()->GetTimeToNonBlankPaint(),
+        mPerformance->GetRandomTimelineSeed());
   }
 
-  PerformanceTimingData* Data() const
-  {
-    return mTimingData.get();
-  }
+  PerformanceTimingData* Data() const { return mTimingData.get(); }
 
-private:
+ private:
   ~PerformanceTiming();
 
   bool IsTopLevelContentDocument() const;
@@ -451,7 +410,7 @@ private:
   UniquePtr<PerformanceTimingData> mTimingData;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PerformanceTiming_h
+#endif  // mozilla_dom_PerformanceTiming_h

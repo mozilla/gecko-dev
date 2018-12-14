@@ -11,15 +11,13 @@
 
 namespace mozilla {
 
-WebGLExtensionShaderTextureLod::WebGLExtensionShaderTextureLod(WebGLContext* webgl)
-    : WebGLExtensionBase(webgl)
-{
-}
+WebGLExtensionShaderTextureLod::WebGLExtensionShaderTextureLod(
+    WebGLContext* webgl)
+    : WebGLExtensionBase(webgl) {}
 
-WebGLExtensionShaderTextureLod::~WebGLExtensionShaderTextureLod()
-{
-}
+WebGLExtensionShaderTextureLod::~WebGLExtensionShaderTextureLod() {}
 
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionShaderTextureLod, EXT_shader_texture_lod)
+IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionShaderTextureLod,
+                          EXT_shader_texture_lod)
 
-} // namespace mozilla
+}  // namespace mozilla

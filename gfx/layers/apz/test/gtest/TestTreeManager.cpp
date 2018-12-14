@@ -29,8 +29,8 @@ TEST_F(APZCTreeManagerTester, ScrollablePaintedLayers) {
   manager->UpdateHitTestingTree(0, root, false, 0, 0);
   EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[2]));
 
-  // Change the scrollId of layers[2] to match that of layers[1], ensure we get the same
-  // APZC for both again
+  // Change the scrollId of layers[2] to match that of layers[1], ensure we get
+  // the same APZC for both again
   SetScrollableFrameMetrics(layers[2], FrameMetrics::START_SCROLL_ID + 1);
   manager->UpdateHitTestingTree(0, root, false, 0, 0);
   EXPECT_EQ(ApzcOf(layers[1]), ApzcOf(layers[2]));
@@ -70,7 +70,8 @@ TEST_F(APZCTreeManagerTester, Bug1194876) {
   // layers[0], but we tell it the real target APZC is layers[0].
   MultiTouchInput mti;
   mti = CreateMultiTouchInput(MultiTouchInput::MULTITOUCH_START, mcc->Time());
-  mti.mTouches.AppendElement(SingleTouchData(0, ParentLayerPoint(25, 50), ScreenSize(0, 0), 0, 0));
+  mti.mTouches.AppendElement(
+      SingleTouchData(0, ParentLayerPoint(25, 50), ScreenSize(0, 0), 0, 0));
   manager->ReceiveInputEvent(mti, nullptr, &blockId);
   manager->ContentReceivedInputBlock(blockId, false);
   targets.AppendElement(ApzcOf(layers[0])->GetGuid());
@@ -81,7 +82,8 @@ TEST_F(APZCTreeManagerTester, Bug1194876) {
   // Second touch goes down (first touch remains down), APZCTM will again hit
   // layers[1]. Again we tell it both touches landed on layers[0], but because
   // layers[1] is the RCD layer, it will end up being the multitouch target.
-  mti.mTouches.AppendElement(SingleTouchData(1, ParentLayerPoint(75, 50), ScreenSize(0, 0), 0, 0));
+  mti.mTouches.AppendElement(
+      SingleTouchData(1, ParentLayerPoint(75, 50), ScreenSize(0, 0), 0, 0));
   manager->ReceiveInputEvent(mti, nullptr, &blockId);
   manager->ContentReceivedInputBlock(blockId, false);
   targets.AppendElement(ApzcOf(layers[0])->GetGuid());
@@ -103,10 +105,10 @@ TEST_F(APZCTreeManagerTester, Bug1198900) {
 
   ScreenPoint origin(100, 50);
   ScrollWheelInput swi(MillisecondsSinceStartup(mcc->Time()), mcc->Time(), 0,
-    ScrollWheelInput::SCROLLMODE_INSTANT, ScrollWheelInput::SCROLLDELTA_PIXEL,
-    origin, 0, 10, false);
+                       ScrollWheelInput::SCROLLMODE_INSTANT,
+                       ScrollWheelInput::SCROLLDELTA_PIXEL, origin, 0, 10,
+                       false);
   uint64_t blockId;
   manager->ReceiveInputEvent(swi, nullptr, &blockId);
   manager->ContentReceivedInputBlock(blockId, /* preventDefault= */ true);
 }
-

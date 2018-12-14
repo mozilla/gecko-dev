@@ -16,72 +16,59 @@
 /******************************************************************************
  * nsSubDocumentFrame
  *****************************************************************************/
-class nsSubDocumentFrame final
-  : public nsAtomicContainerFrame
-  , public nsIReflowCallback
-{
-public:
+class nsSubDocumentFrame final : public nsAtomicContainerFrame,
+                                 public nsIReflowCallback {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsSubDocumentFrame)
 
   explicit nsSubDocumentFrame(nsStyleContext* aContext);
 
 #ifdef DEBUG_FRAME_DUMP
-  void List(FILE* out = stderr, const char* aPrefix = "", uint32_t aFlags = 0) const override;
+  void List(FILE* out = stderr, const char* aPrefix = "",
+            uint32_t aFlags = 0) const override;
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   NS_DECL_QUERYFRAME
 
-  bool IsFrameOfType(uint32_t aFlags) const override
-  {
-    return nsAtomicContainerFrame::IsFrameOfType(aFlags &
-      ~(nsIFrame::eReplaced |
-        nsIFrame::eReplacedSizing |
-        nsIFrame::eReplacedContainsBlock));
+  bool IsFrameOfType(uint32_t aFlags) const override {
+    return nsAtomicContainerFrame::IsFrameOfType(
+        aFlags & ~(nsIFrame::eReplaced | nsIFrame::eReplacedSizing |
+                   nsIFrame::eReplacedContainsBlock));
   }
 
-  void Init(nsIContent*       aContent,
-            nsContainerFrame* aParent,
-            nsIFrame*         aPrevInFlow) override;
+  void Init(nsIContent* aContent, nsContainerFrame* aParent,
+            nsIFrame* aPrevInFlow) override;
 
-  void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  void DestroyFrom(nsIFrame* aDestructRoot,
+                   PostDestroyData& aPostDestroyData) override;
 
-  nscoord GetMinISize(gfxContext *aRenderingContext) override;
-  nscoord GetPrefISize(gfxContext *aRenderingContext) override;
+  nscoord GetMinISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
   mozilla::IntrinsicSize GetIntrinsicSize() override;
-  nsSize  GetIntrinsicRatio() override;
+  nsSize GetIntrinsicRatio() override;
 
-  mozilla::LogicalSize
-  ComputeAutoSize(gfxContext*                 aRenderingContext,
-                  mozilla::WritingMode        aWritingMode,
-                  const mozilla::LogicalSize& aCBSize,
-                  nscoord                     aAvailableISize,
-                  const mozilla::LogicalSize& aMargin,
-                  const mozilla::LogicalSize& aBorder,
-                  const mozilla::LogicalSize& aPadding,
-                  ComputeSizeFlags            aFlags) override;
+  mozilla::LogicalSize ComputeAutoSize(
+      gfxContext* aRenderingContext, mozilla::WritingMode aWritingMode,
+      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
+      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
+      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
 
-  mozilla::LogicalSize
-  ComputeSize(gfxContext*                 aRenderingContext,
-              mozilla::WritingMode        aWritingMode,
-              const mozilla::LogicalSize& aCBSize,
-              nscoord                     aAvailableISize,
-              const mozilla::LogicalSize& aMargin,
-              const mozilla::LogicalSize& aBorder,
-              const mozilla::LogicalSize& aPadding,
-              ComputeSizeFlags            aFlags) override;
+  mozilla::LogicalSize ComputeSize(
+      gfxContext* aRenderingContext, mozilla::WritingMode aWritingMode,
+      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
+      const mozilla::LogicalSize& aMargin, const mozilla::LogicalSize& aBorder,
+      const mozilla::LogicalSize& aPadding, ComputeSizeFlags aFlags) override;
 
-  void Reflow(nsPresContext*     aPresContext,
-              ReflowOutput&      aDesiredSize,
+  void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
-              nsReflowStatus&    aStatus) override;
+              nsReflowStatus& aStatus) override;
 
-  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+  void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  nsresult AttributeChanged(int32_t aNameSpaceID,
-                            nsAtom* aAttribute,
+  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
   // if the content is "visibility:hidden", then just hide the view
@@ -94,14 +81,12 @@ public:
   mozilla::a11y::AccType AccessibleType() override;
 #endif
 
-  nsresult GetDocShell(nsIDocShell **aDocShell);
+  nsresult GetDocShell(nsIDocShell** aDocShell);
   nsresult BeginSwapDocShells(nsIFrame* aOther);
   void EndSwapDocShells(nsIFrame* aOther);
   nsView* EnsureInnerView();
   nsIFrame* GetSubdocumentRootFrame();
-  enum {
-    IGNORE_PAINT_SUPPRESSION = 0x1
-  };
+  enum { IGNORE_PAINT_SUPPRESSION = 0x1 };
   nsIPresShell* GetSubdocumentPresShellForPainting(uint32_t aFlags);
   mozilla::ScreenIntSize GetSubdocumentSize();
 
@@ -109,14 +94,12 @@ public:
   bool ReflowFinished() override;
   void ReflowCallbackCanceled() override;
 
-  bool ShouldClipSubdocument()
-  {
+  bool ShouldClipSubdocument() {
     nsFrameLoader* frameLoader = FrameLoader();
     return !frameLoader || frameLoader->ShouldClipSubdocument();
   }
 
-  bool ShouldClampScrollPosition()
-  {
+  bool ShouldClampScrollPosition() {
     nsFrameLoader* frameLoader = FrameLoader();
     return !frameLoader || frameLoader->ShouldClampScrollPosition();
   }
@@ -127,14 +110,13 @@ public:
    */
   bool PassPointerEventsToChildren();
 
-  void MaybeShowViewer()
-  {
+  void MaybeShowViewer() {
     if (!mDidCreateDoc && !mCallingShow) {
       ShowViewer();
     }
   }
 
-protected:
+ protected:
   friend class AsyncFrameInit;
 
   // Helper method to look up the HTML marginwidth & marginheight attributes.

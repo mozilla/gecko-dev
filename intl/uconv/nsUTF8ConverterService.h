@@ -9,16 +9,15 @@
 
 //==============================================================
 
-class nsUTF8ConverterService: public nsIUTF8ConverterService {
-public:
+class nsUTF8ConverterService : public nsIUTF8ConverterService {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIUTF8CONVERTERSERVICE
 
   nsUTF8ConverterService() {}
 
-private:
+ private:
   virtual ~nsUTF8ConverterService() {}
 };
 
-#endif // nsUTF8ConverterService_h__
-
+#endif  // nsUTF8ConverterService_h__

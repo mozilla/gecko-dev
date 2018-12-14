@@ -30,24 +30,17 @@ using namespace dom;
 
 NS_IMPL_ISUPPORTS(EventListenerChange, nsIEventListenerChange)
 
-EventListenerChange::~EventListenerChange()
-{
-}
+EventListenerChange::~EventListenerChange() {}
 
-EventListenerChange::EventListenerChange(dom::EventTarget* aTarget) :
-  mTarget(aTarget)
-{
-}
+EventListenerChange::EventListenerChange(dom::EventTarget* aTarget)
+    : mTarget(aTarget) {}
 
-void
-EventListenerChange::AddChangedListenerName(nsAtom* aEventName)
-{
+void EventListenerChange::AddChangedListenerName(nsAtom* aEventName) {
   mChangedListenerNames.AppendElement(aEventName);
 }
 
 NS_IMETHODIMP
-EventListenerChange::GetTarget(nsIDOMEventTarget** aTarget)
-{
+EventListenerChange::GetTarget(nsIDOMEventTarget** aTarget) {
   NS_ENSURE_ARG_POINTER(aTarget);
   NS_ADDREF(*aTarget = mTarget);
   return NS_OK;
@@ -55,8 +48,7 @@ EventListenerChange::GetTarget(nsIDOMEventTarget** aTarget)
 
 NS_IMETHODIMP
 EventListenerChange::GetCountOfEventListenerChangesAffectingAccessibility(
-  uint32_t* aCount)
-{
+    uint32_t* aCount) {
   *aCount = 0;
 
   size_t length = mChangedListenerNames.Length();
@@ -90,37 +82,32 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(EventListenerInfo)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(EventListenerInfo)
 
 NS_IMETHODIMP
-EventListenerInfo::GetType(nsAString& aType)
-{
+EventListenerInfo::GetType(nsAString& aType) {
   aType = mType;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-EventListenerInfo::GetCapturing(bool* aCapturing)
-{
+EventListenerInfo::GetCapturing(bool* aCapturing) {
   *aCapturing = mCapturing;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-EventListenerInfo::GetAllowsUntrusted(bool* aAllowsUntrusted)
-{
+EventListenerInfo::GetAllowsUntrusted(bool* aAllowsUntrusted) {
   *aAllowsUntrusted = mAllowsUntrusted;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-EventListenerInfo::GetInSystemEventGroup(bool* aInSystemEventGroup)
-{
+EventListenerInfo::GetInSystemEventGroup(bool* aInSystemEventGroup) {
   *aInSystemEventGroup = mInSystemEventGroup;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 EventListenerInfo::GetListenerObject(JSContext* aCx,
-                                     JS::MutableHandle<JS::Value> aObject)
-{
+                                     JS::MutableHandle<JS::Value> aObject) {
   Maybe<JSAutoCompartment> ac;
   GetJSVal(aCx, ac, aObject);
   return NS_OK;
@@ -132,11 +119,8 @@ EventListenerInfo::GetListenerObject(JSContext* aCx,
 
 NS_IMPL_ISUPPORTS(EventListenerService, nsIEventListenerService)
 
-bool
-EventListenerInfo::GetJSVal(JSContext* aCx,
-                            Maybe<JSAutoCompartment>& aAc,
-                            JS::MutableHandle<JS::Value> aJSVal)
-{
+bool EventListenerInfo::GetJSVal(JSContext* aCx, Maybe<JSAutoCompartment>& aAc,
+                                 JS::MutableHandle<JS::Value> aJSVal) {
   aJSVal.setNull();
   nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS = do_QueryInterface(mListener);
   if (wrappedJS) {
@@ -152,7 +136,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
   nsCOMPtr<JSEventHandler> jsHandler = do_QueryInterface(mListener);
   if (jsHandler && jsHandler->GetTypedEventHandler().HasEventHandler()) {
     JS::Handle<JSObject*> handler =
-      jsHandler->GetTypedEventHandler().Ptr()->CallableOrNull();
+        jsHandler->GetTypedEventHandler().Ptr()->CallableOrNull();
     if (handler) {
       aAc.emplace(aCx, handler);
       aJSVal.setObject(*handler);
@@ -163,8 +147,7 @@ EventListenerInfo::GetJSVal(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-EventListenerInfo::ToSource(nsAString& aResult)
-{
+EventListenerInfo::ToSource(nsAString& aResult) {
   aResult.SetIsVoid(true);
 
   AutoSafeJSContext cx;
@@ -182,17 +165,14 @@ EventListenerInfo::ToSource(nsAString& aResult)
   return NS_OK;
 }
 
-EventListenerService*
-EventListenerService::sInstance = nullptr;
+EventListenerService* EventListenerService::sInstance = nullptr;
 
-EventListenerService::EventListenerService()
-{
+EventListenerService::EventListenerService() {
   MOZ_ASSERT(!sInstance);
   sInstance = this;
 }
 
-EventListenerService::~EventListenerService()
-{
+EventListenerService::~EventListenerService() {
   MOZ_ASSERT(sInstance == this);
   sInstance = nullptr;
 }
@@ -200,8 +180,7 @@ EventListenerService::~EventListenerService()
 NS_IMETHODIMP
 EventListenerService::GetListenerInfoFor(nsIDOMEventTarget* aEventTarget,
                                          uint32_t* aCount,
-                                         nsIEventListenerInfo*** aOutArray)
-{
+                                         nsIEventListenerInfo*** aOutArray) {
   NS_ENSURE_ARG_POINTER(aEventTarget);
   *aCount = 0;
   *aOutArray = nullptr;
@@ -227,10 +206,8 @@ EventListenerService::GetListenerInfoFor(nsIDOMEventTarget* aEventTarget,
 
 NS_IMETHODIMP
 EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
-                                             bool aComposed,
-                                             uint32_t* aCount,
-                                             nsIDOMEventTarget*** aOutArray)
-{
+                                             bool aComposed, uint32_t* aCount,
+                                             nsIDOMEventTarget*** aOutArray) {
   *aCount = 0;
   *aOutArray = nullptr;
   NS_ENSURE_ARG(aEventTarget);
@@ -245,8 +222,7 @@ EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
     return NS_OK;
   }
 
-  *aOutArray =
-    static_cast<nsIDOMEventTarget**>(
+  *aOutArray = static_cast<nsIDOMEventTarget**>(
       moz_xmalloc(sizeof(nsIDOMEventTarget*) * count));
   NS_ENSURE_TRUE(*aOutArray, NS_ERROR_OUT_OF_MEMORY);
 
@@ -260,9 +236,7 @@ EventListenerService::GetEventTargetChainFor(nsIDOMEventTarget* aEventTarget,
 
 NS_IMETHODIMP
 EventListenerService::HasListenersFor(nsIDOMEventTarget* aEventTarget,
-                                      const nsAString& aType,
-                                      bool* aRetVal)
-{
+                                      const nsAString& aType, bool* aRetVal) {
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(aEventTarget);
   NS_ENSURE_TRUE(eventTarget, NS_ERROR_NO_INTERFACE);
 
@@ -272,11 +246,10 @@ EventListenerService::HasListenersFor(nsIDOMEventTarget* aEventTarget,
 }
 
 NS_IMETHODIMP
-EventListenerService::AddSystemEventListener(nsIDOMEventTarget *aTarget,
+EventListenerService::AddSystemEventListener(nsIDOMEventTarget* aTarget,
                                              const nsAString& aType,
                                              nsIDOMEventListener* aListener,
-                                             bool aUseCapture)
-{
+                                             bool aUseCapture) {
   NS_PRECONDITION(aTarget, "Missing target");
   NS_PRECONDITION(aListener, "Missing listener");
 
@@ -286,19 +259,17 @@ EventListenerService::AddSystemEventListener(nsIDOMEventTarget *aTarget,
   EventListenerManager* manager = eventTarget->GetOrCreateListenerManager();
   NS_ENSURE_STATE(manager);
 
-  EventListenerFlags flags =
-    aUseCapture ? TrustedEventsAtSystemGroupCapture() :
-                  TrustedEventsAtSystemGroupBubble();
+  EventListenerFlags flags = aUseCapture ? TrustedEventsAtSystemGroupCapture()
+                                         : TrustedEventsAtSystemGroupBubble();
   manager->AddEventListenerByType(aListener, aType, flags);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-EventListenerService::RemoveSystemEventListener(nsIDOMEventTarget *aTarget,
+EventListenerService::RemoveSystemEventListener(nsIDOMEventTarget* aTarget,
                                                 const nsAString& aType,
                                                 nsIDOMEventListener* aListener,
-                                                bool aUseCapture)
-{
+                                                bool aUseCapture) {
   NS_PRECONDITION(aTarget, "Missing target");
   NS_PRECONDITION(aListener, "Missing listener");
 
@@ -307,9 +278,8 @@ EventListenerService::RemoveSystemEventListener(nsIDOMEventTarget *aTarget,
 
   EventListenerManager* manager = eventTarget->GetExistingListenerManager();
   if (manager) {
-    EventListenerFlags flags =
-      aUseCapture ? TrustedEventsAtSystemGroupCapture() :
-                    TrustedEventsAtSystemGroupBubble();
+    EventListenerFlags flags = aUseCapture ? TrustedEventsAtSystemGroupCapture()
+                                           : TrustedEventsAtSystemGroupBubble();
     manager->RemoveEventListenerByType(aListener, aType, flags);
   }
 
@@ -321,8 +291,7 @@ EventListenerService::AddListenerForAllEvents(nsIDOMEventTarget* aTarget,
                                               nsIDOMEventListener* aListener,
                                               bool aUseCapture,
                                               bool aWantsUntrusted,
-                                              bool aSystemEventGroup)
-{
+                                              bool aSystemEventGroup) {
   NS_ENSURE_STATE(aTarget && aListener);
 
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(aTarget);
@@ -331,7 +300,7 @@ EventListenerService::AddListenerForAllEvents(nsIDOMEventTarget* aTarget,
   EventListenerManager* manager = eventTarget->GetOrCreateListenerManager();
   NS_ENSURE_STATE(manager);
   manager->AddListenerForAllEvents(aListener, aUseCapture, aWantsUntrusted,
-                               aSystemEventGroup);
+                                   aSystemEventGroup);
   return NS_OK;
 }
 
@@ -339,8 +308,7 @@ NS_IMETHODIMP
 EventListenerService::RemoveListenerForAllEvents(nsIDOMEventTarget* aTarget,
                                                  nsIDOMEventListener* aListener,
                                                  bool aUseCapture,
-                                                 bool aSystemEventGroup)
-{
+                                                 bool aSystemEventGroup) {
   NS_ENSURE_STATE(aTarget && aListener);
 
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(aTarget);
@@ -348,14 +316,15 @@ EventListenerService::RemoveListenerForAllEvents(nsIDOMEventTarget* aTarget,
 
   EventListenerManager* manager = eventTarget->GetExistingListenerManager();
   if (manager) {
-    manager->RemoveListenerForAllEvents(aListener, aUseCapture, aSystemEventGroup);
+    manager->RemoveListenerForAllEvents(aListener, aUseCapture,
+                                        aSystemEventGroup);
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-EventListenerService::AddListenerChangeListener(nsIListenerChangeListener* aListener)
-{
+EventListenerService::AddListenerChangeListener(
+    nsIListenerChangeListener* aListener) {
   if (!mChangeListeners.Contains(aListener)) {
     mChangeListeners.AppendElement(aListener);
   }
@@ -363,16 +332,14 @@ EventListenerService::AddListenerChangeListener(nsIListenerChangeListener* aList
 };
 
 NS_IMETHODIMP
-EventListenerService::RemoveListenerChangeListener(nsIListenerChangeListener* aListener)
-{
+EventListenerService::RemoveListenerChangeListener(
+    nsIListenerChangeListener* aListener) {
   mChangeListeners.RemoveElement(aListener);
   return NS_OK;
 };
 
-void
-EventListenerService::NotifyAboutMainThreadListenerChangeInternal(dom::EventTarget* aTarget,
-                                                                  nsAtom* aName)
-{
+void EventListenerService::NotifyAboutMainThreadListenerChangeInternal(
+    dom::EventTarget* aTarget, nsAtom* aName) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aTarget);
   if (mChangeListeners.IsEmpty()) {
@@ -382,8 +349,8 @@ EventListenerService::NotifyAboutMainThreadListenerChangeInternal(dom::EventTarg
   if (!mPendingListenerChanges) {
     mPendingListenerChanges = nsArrayBase::Create();
     nsCOMPtr<nsIRunnable> runnable =
-      NewRunnableMethod("EventListenerService::NotifyPendingChanges",
-                        this, &EventListenerService::NotifyPendingChanges);
+        NewRunnableMethod("EventListenerService::NotifyPendingChanges", this,
+                          &EventListenerService::NotifyPendingChanges);
     if (nsCOMPtr<nsIGlobalObject> global = aTarget->GetOwnerGlobal()) {
       global->Dispatch(TaskCategory::Other, runnable.forget());
     } else if (nsCOMPtr<nsINode> node = do_QueryInterface(aTarget)) {
@@ -394,35 +361,31 @@ EventListenerService::NotifyAboutMainThreadListenerChangeInternal(dom::EventTarg
   }
 
   RefPtr<EventListenerChange> changes =
-    mPendingListenerChangesSet.LookupForAdd(aTarget).OrInsert(
-      [this, aTarget] () {
-        EventListenerChange* c = new EventListenerChange(aTarget);
-        mPendingListenerChanges->AppendElement(c);
-        return c;
-      });
+      mPendingListenerChangesSet.LookupForAdd(aTarget).OrInsert(
+          [this, aTarget]() {
+            EventListenerChange* c = new EventListenerChange(aTarget);
+            mPendingListenerChanges->AppendElement(c);
+            return c;
+          });
   changes->AddChangedListenerName(aName);
 }
 
-void
-EventListenerService::NotifyPendingChanges()
-{
+void EventListenerService::NotifyPendingChanges() {
   nsCOMPtr<nsIMutableArray> changes;
   mPendingListenerChanges.swap(changes);
   mPendingListenerChangesSet.Clear();
 
   nsTObserverArray<nsCOMPtr<nsIListenerChangeListener>>::EndLimitedIterator
-    iter(mChangeListeners);
+      iter(mChangeListeners);
   while (iter.HasMore()) {
     nsCOMPtr<nsIListenerChangeListener> listener = iter.GetNext();
     listener->ListenersChanged(changes);
   }
 }
 
-} // namespace mozilla
+}  // namespace mozilla
 
-nsresult
-NS_NewEventListenerService(nsIEventListenerService** aResult)
-{
+nsresult NS_NewEventListenerService(nsIEventListenerService** aResult) {
   *aResult = new mozilla::EventListenerService();
   NS_ADDREF(*aResult);
   return NS_OK;

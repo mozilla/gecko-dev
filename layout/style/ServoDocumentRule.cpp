@@ -15,15 +15,11 @@ namespace mozilla {
 
 ServoDocumentRule::ServoDocumentRule(RefPtr<RawServoDocumentRule> aRawRule,
                                      uint32_t aLine, uint32_t aColumn)
-  : CSSMozDocumentRule(Servo_DocumentRule_GetRules(aRawRule).Consume(),
-                       aLine, aColumn)
-  , mRawRule(Move(aRawRule))
-{
-}
+    : CSSMozDocumentRule(Servo_DocumentRule_GetRules(aRawRule).Consume(), aLine,
+                         aColumn),
+      mRawRule(Move(aRawRule)) {}
 
-ServoDocumentRule::~ServoDocumentRule()
-{
-}
+ServoDocumentRule::~ServoDocumentRule() {}
 
 NS_IMPL_ADDREF_INHERITED(ServoDocumentRule, CSSMozDocumentRule)
 NS_IMPL_RELEASE_INHERITED(ServoDocumentRule, CSSMozDocumentRule)
@@ -32,9 +28,7 @@ NS_IMPL_RELEASE_INHERITED(ServoDocumentRule, CSSMozDocumentRule)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServoDocumentRule)
 NS_INTERFACE_MAP_END_INHERITING(CSSMozDocumentRule)
 
-/* virtual */ already_AddRefed<css::Rule>
-ServoDocumentRule::Clone() const
-{
+/* virtual */ already_AddRefed<css::Rule> ServoDocumentRule::Clone() const {
   // Rule::Clone is only used when CSSStyleSheetInner is cloned in
   // preparation of being mutated. However, ServoStyleSheet never clones
   // anything, so this method should never be called.
@@ -43,10 +37,8 @@ ServoDocumentRule::Clone() const
 }
 
 #ifdef MOZ_OLD_STYLE
-/* virtual */ bool
-ServoDocumentRule::UseForPresentation(nsPresContext* aPresContext,
-                                      nsMediaQueryResultCacheKey& aKey)
-{
+/* virtual */ bool ServoDocumentRule::UseForPresentation(
+    nsPresContext* aPresContext, nsMediaQueryResultCacheKey& aKey) {
   // GroupRule::UseForPresentation is only used in nsCSSRuleProcessor,
   // so this should never be called.
   MOZ_ASSERT_UNREACHABLE("Shouldn't be calling UseForPresentation");
@@ -55,9 +47,7 @@ ServoDocumentRule::UseForPresentation(nsPresContext* aPresContext,
 #endif
 
 #ifdef DEBUG
-/* virtual */ void
-ServoDocumentRule::List(FILE* out, int32_t aIndent) const
-{
+/* virtual */ void ServoDocumentRule::List(FILE* out, int32_t aIndent) const {
   nsAutoCString str;
   for (int32_t i = 0; i < aIndent; i++) {
     str.AppendLiteral("  ");
@@ -67,31 +57,23 @@ ServoDocumentRule::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
-void
-ServoDocumentRule::GetConditionText(nsAString& aConditionText)
-{
+void ServoDocumentRule::GetConditionText(nsAString& aConditionText) {
   Servo_DocumentRule_GetConditionText(mRawRule, &aConditionText);
 }
 
-void
-ServoDocumentRule::SetConditionText(const nsAString& aConditionText,
-                                    ErrorResult& aRv)
-{
+void ServoDocumentRule::SetConditionText(const nsAString& aConditionText,
+                                         ErrorResult& aRv) {
   aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
 
-/* virtual */ void
-ServoDocumentRule::GetCssText(nsAString& aCssText) const
-{
+/* virtual */ void ServoDocumentRule::GetCssText(nsAString& aCssText) const {
   Servo_DocumentRule_GetCssText(mRawRule, &aCssText);
 }
 
-/* virtual */ size_t
-ServoDocumentRule::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-  const
-{
+/* virtual */ size_t ServoDocumentRule::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   // TODO Implement this!
   return aMallocSizeOf(this);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

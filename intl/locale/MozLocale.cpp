@@ -13,11 +13,10 @@
 using namespace mozilla::intl;
 
 /**
- * Note: The file name is `MozLocale` to avoid compilation problems on case-insensitive
- * Windows. The class name is `Locale`.
+ * Note: The file name is `MozLocale` to avoid compilation problems on
+ * case-insensitive Windows. The class name is `Locale`.
  */
-Locale::Locale(const nsACString& aLocale)
-{
+Locale::Locale(const nsACString& aLocale) {
   int32_t position = 0;
 
   if (!IsASCII(aLocale)) {
@@ -48,8 +47,9 @@ Locale::Locale(const nsACString& aLocale)
    *           ["-" region]        2ALPHA
    *           *("-" variant)      3*8alphanum
    *
-   * The `position` variable represents the currently expected section of the tag
-   * and intentionally skips positions (like `extlang`) which may be added later.
+   * The `position` variable represents the currently expected section of the
+   * tag and intentionally skips positions (like `extlang`) which may be added
+   * later.
    */
   for (const nsACString& subTag : normLocale.Split('-')) {
     auto slen = subTag.Length();
@@ -79,9 +79,7 @@ Locale::Locale(const nsACString& aLocale)
   }
 }
 
-const nsCString
-Locale::AsString() const
-{
+const nsCString Locale::AsString() const {
   nsCString tag;
 
   if (!mIsValid) {
@@ -108,33 +106,16 @@ Locale::AsString() const
   return tag;
 }
 
-const nsACString&
-Locale::GetLanguage() const
-{
-  return mLanguage;
-}
+const nsACString& Locale::GetLanguage() const { return mLanguage; }
 
-const nsACString&
-Locale::GetScript() const
-{
-  return mScript;
-}
+const nsACString& Locale::GetScript() const { return mScript; }
 
-const nsACString&
-Locale::GetRegion() const
-{
-  return mRegion;
-}
+const nsACString& Locale::GetRegion() const { return mRegion; }
 
-const nsTArray<nsCString>&
-Locale::GetVariants() const
-{
-  return mVariants;
-}
+const nsTArray<nsCString>& Locale::GetVariants() const { return mVariants; }
 
-bool
-Locale::Matches(const Locale& aOther, bool aThisRange, bool aOtherRange) const
-{
+bool Locale::Matches(const Locale& aOther, bool aThisRange,
+                     bool aOtherRange) const {
   if (!IsValid() || !aOther.IsValid()) {
     return false;
   }
@@ -163,9 +144,7 @@ Locale::Matches(const Locale& aOther, bool aThisRange, bool aOtherRange) const
   return true;
 }
 
-bool
-Locale::AddLikelySubtags()
-{
+bool Locale::AddLikelySubtags() {
   const int32_t kLocaleMax = 160;
   char maxLocale[kLocaleMax];
 
@@ -193,14 +172,6 @@ Locale::AddLikelySubtags()
   return true;
 }
 
-void
-Locale::ClearVariants()
-{
-  mVariants.Clear();
-}
+void Locale::ClearVariants() { mVariants.Clear(); }
 
-void
-Locale::ClearRegion()
-{
-  mRegion.Truncate();
-}
+void Locale::ClearRegion() { mRegion.Truncate(); }

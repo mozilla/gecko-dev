@@ -14,11 +14,10 @@ namespace mozilla {
 
 class ServoKeyframeList;
 
-class ServoKeyframesRule final : public dom::CSSKeyframesRule
-{
-public:
-  ServoKeyframesRule(RefPtr<RawServoKeyframesRule> aRawRule,
-                     uint32_t aLine, uint32_t aColumn);
+class ServoKeyframesRule final : public dom::CSSKeyframesRule {
+ public:
+  ServoKeyframesRule(RefPtr<RawServoKeyframesRule> aRawRule, uint32_t aLine,
+                     uint32_t aColumn);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServoKeyframesRule,
@@ -42,18 +41,18 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const final;
 
-private:
+ private:
   uint32_t FindRuleIndexForKey(const nsAString& aKey);
 
-  template<typename Func>
+  template <typename Func>
   void UpdateRule(Func aCallback);
 
   virtual ~ServoKeyframesRule();
 
   RefPtr<RawServoKeyframesRule> mRawRule;
-  RefPtr<ServoKeyframeList> mKeyframeList; // lazily constructed
+  RefPtr<ServoKeyframeList> mKeyframeList;  // lazily constructed
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ServoKeyframesRule_h
+#endif  // mozilla_ServoKeyframesRule_h

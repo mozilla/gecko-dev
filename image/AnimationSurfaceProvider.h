@@ -23,39 +23,36 @@ namespace image {
  * dynamically generates surfaces for the current playback state of the
  * animation.
  */
-class AnimationSurfaceProvider final
-  : public ISurfaceProvider
-  , public IDecodingTask
-{
-public:
+class AnimationSurfaceProvider final : public ISurfaceProvider,
+                                       public IDecodingTask {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AnimationSurfaceProvider, override)
 
   AnimationSurfaceProvider(NotNull<RasterImage*> aImage,
                            const SurfaceKey& aSurfaceKey,
-                           NotNull<Decoder*> aDecoder,
-                           size_t aCurrentFrame);
-
+                           NotNull<Decoder*> aDecoder, size_t aCurrentFrame);
 
   //////////////////////////////////////////////////////////////////////////////
   // ISurfaceProvider implementation.
   //////////////////////////////////////////////////////////////////////////////
 
-public:
+ public:
   // We use the ISurfaceProvider constructor of DrawableSurface to indicate that
   // our surfaces are computed lazily.
-  DrawableSurface Surface() override { return DrawableSurface(WrapNotNull(this)); }
+  DrawableSurface Surface() override {
+    return DrawableSurface(WrapNotNull(this));
+  }
 
   bool IsFinished() const override;
   bool IsFullyDecoded() const override;
   size_t LogicalSizeInBytes() const override;
-  void AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
-                              size_t& aHeapSizeOut,
+  void AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf, size_t& aHeapSizeOut,
                               size_t& aNonHeapSizeOut,
                               size_t& aExtHandlesOut) override;
   void Reset() override;
   void Advance(size_t aFrame) override;
 
-protected:
+ protected:
   DrawableFrameRef DrawableRef(size_t aFrame) override;
 
   // Animation frames are always locked. This is because we only want to release
@@ -64,14 +61,13 @@ protected:
   // from the middle of the animation, which is not worth the complexity of
   // dealing with.
   bool IsLocked() const override { return true; }
-  void SetLocked(bool) override { }
-
+  void SetLocked(bool) override {}
 
   //////////////////////////////////////////////////////////////////////////////
   // IDecodingTask implementation.
   //////////////////////////////////////////////////////////////////////////////
 
-public:
+ public:
   void Run() override;
   bool ShouldPreferSyncRun() const override;
 
@@ -79,7 +75,7 @@ public:
   // don't block layout or page load.
   TaskPriority Priority() const override { return TaskPriority::eLow; }
 
-private:
+ private:
   virtual ~AnimationSurfaceProvider();
 
   void DropImageReference();
@@ -108,7 +104,7 @@ private:
   AnimationFrameBuffer mFrames;
 };
 
-} // namespace image
-} // namespace mozilla
+}  // namespace image
+}  // namespace mozilla
 
-#endif // mozilla_image_AnimationSurfaceProvider_h
+#endif  // mozilla_image_AnimationSurfaceProvider_h

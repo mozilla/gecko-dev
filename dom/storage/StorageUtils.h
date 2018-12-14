@@ -13,23 +13,19 @@ namespace mozilla {
 namespace dom {
 namespace StorageUtils {
 
-nsresult
-GenerateOriginKey(nsIPrincipal* aPrincipal, nsACString& aOriginAttrSuffix,
-                  nsACString& aOriginKey);
+nsresult GenerateOriginKey(nsIPrincipal* aPrincipal,
+                           nsACString& aOriginAttrSuffix,
+                           nsACString& aOriginKey);
 
-bool
-PrincipalsEqual(nsIPrincipal* aObjectPrincipal,
-                nsIPrincipal* aSubjectPrincipal);
+bool PrincipalsEqual(nsIPrincipal* aObjectPrincipal,
+                     nsIPrincipal* aSubjectPrincipal);
 
-void
-ReverseString(const nsACString& aSource, nsACString& aResult);
+void ReverseString(const nsACString& aSource, nsACString& aResult);
 
-nsresult
-CreateReversedDomain(const nsACString& aAsciiDomain,
-                     nsACString& aKey);
+nsresult CreateReversedDomain(const nsACString& aAsciiDomain, nsACString& aKey);
 
-} // StorageUtils namespace
-} // dom namespace
-} // mozilla namespace
+}  // namespace StorageUtils
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_StorageUtils_h
+#endif  // mozilla_dom_StorageUtils_h

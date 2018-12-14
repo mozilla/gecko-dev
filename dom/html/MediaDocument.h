@@ -12,35 +12,32 @@
 #include "nsGenericHTMLElement.h"
 #include "nsIStringBundle.h"
 
-#define NSMEDIADOCUMENT_PROPERTIES_URI "chrome://global/locale/layout/MediaDocument.properties"
+#define NSMEDIADOCUMENT_PROPERTIES_URI \
+  "chrome://global/locale/layout/MediaDocument.properties"
 
 namespace mozilla {
 namespace dom {
 
-class MediaDocument : public nsHTMLDocument
-{
-public:
+class MediaDocument : public nsHTMLDocument {
+ public:
   MediaDocument();
   virtual ~MediaDocument();
 
   virtual nsresult Init() override;
 
-  virtual nsresult StartDocumentLoad(const char*         aCommand,
-                                     nsIChannel*         aChannel,
-                                     nsILoadGroup*       aLoadGroup,
-                                     nsISupports*        aContainer,
+  virtual nsresult StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
+                                     nsILoadGroup* aLoadGroup,
+                                     nsISupports* aContainer,
                                      nsIStreamListener** aDocListener,
-                                     bool                aReset = true,
-                                     nsIContentSink*     aSink = nullptr) override;
+                                     bool aReset = true,
+                                     nsIContentSink* aSink = nullptr) override;
 
-  virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject) override;
+  virtual void SetScriptGlobalObject(
+      nsIScriptGlobalObject* aGlobalObject) override;
 
-  virtual bool WillIgnoreCharsetOverride() override
-  {
-    return true;
-  }
+  virtual bool WillIgnoreCharsetOverride() override { return true; }
 
-protected:
+ protected:
   void BecomeInteractive();
 
   virtual nsresult CreateSyntheticDocument();
@@ -64,30 +61,26 @@ protected:
   // for a new subclass. aWidth and aHeight are pixels for |ImageDocument|,
   // but could be in other units for other 'media', in which case you have to
   // define format names accordingly.
-  void UpdateTitleAndCharset(const nsACString&  aTypeStr,
-                             nsIChannel* aChannel,
+  void UpdateTitleAndCharset(const nsACString& aTypeStr, nsIChannel* aChannel,
                              const char* const* aFormatNames = sFormatNames,
-                             int32_t            aWidth = 0,
-                             int32_t            aHeight = 0,
-                             const nsAString&   aStatus = EmptyString());
+                             int32_t aWidth = 0, int32_t aHeight = 0,
+                             const nsAString& aStatus = EmptyString());
 
-  nsCOMPtr<nsIStringBundle>     mStringBundle;
-  static const char* const      sFormatNames[4];
+  nsCOMPtr<nsIStringBundle> mStringBundle;
+  static const char* const sFormatNames[4];
 
-private:
-  enum                          {eWithNoInfo, eWithFile, eWithDim, eWithDimAndFile};
-  bool                          mDocumentElementInserted;
+ private:
+  enum { eWithNoInfo, eWithFile, eWithDim, eWithDimAndFile };
+  bool mDocumentElementInserted;
 };
 
-
-class MediaDocumentStreamListener: public nsIStreamListener
-{
-protected:
+class MediaDocumentStreamListener : public nsIStreamListener {
+ protected:
   virtual ~MediaDocumentStreamListener();
 
-public:
+ public:
   explicit MediaDocumentStreamListener(MediaDocument* aDocument);
-  void SetStreamListener(nsIStreamListener *aListener);
+  void SetStreamListener(nsIStreamListener* aListener);
 
   NS_DECL_ISUPPORTS
 
@@ -95,16 +88,13 @@ public:
 
   NS_DECL_NSISTREAMLISTENER
 
-  void DropDocumentRef()
-  {
-    mDocument = nullptr;
-  }
+  void DropDocumentRef() { mDocument = nullptr; }
 
   RefPtr<MediaDocument> mDocument;
   nsCOMPtr<nsIStreamListener> mNextStream;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_MediaDocument_h */

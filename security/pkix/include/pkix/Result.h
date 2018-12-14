@@ -27,7 +27,8 @@
 
 #include <cassert>
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 static const unsigned int FATAL_ERROR_FLAG = 0x800;
 
@@ -83,128 +84,110 @@ static const unsigned int FATAL_ERROR_FLAG = 0x800;
 // The third argument to MOZILLA_PKIX_MAP() is used, along with the first
 // argument, for maintaining the mapping of mozilla::pkix error codes to
 // NSS/NSPR error codes in pkixnss.cpp.
-#define MOZILLA_PKIX_MAP_LIST \
-    MOZILLA_PKIX_MAP(Success, 0, 0) \
-    MOZILLA_PKIX_MAP(ERROR_BAD_DER, 1, \
-                     SEC_ERROR_BAD_DER) \
-    MOZILLA_PKIX_MAP(ERROR_CA_CERT_INVALID, 2, \
-                     SEC_ERROR_CA_CERT_INVALID) \
-    MOZILLA_PKIX_MAP(ERROR_BAD_SIGNATURE, 3, \
-                     SEC_ERROR_BAD_SIGNATURE) \
-    MOZILLA_PKIX_MAP(ERROR_CERT_BAD_ACCESS_LOCATION, 4, \
-                     SEC_ERROR_CERT_BAD_ACCESS_LOCATION) \
-    MOZILLA_PKIX_MAP(ERROR_CERT_NOT_IN_NAME_SPACE, 5, \
-                     SEC_ERROR_CERT_NOT_IN_NAME_SPACE) \
-    MOZILLA_PKIX_MAP(ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED, 6, \
-                     SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED) \
-    MOZILLA_PKIX_MAP(ERROR_CONNECT_REFUSED, 7, \
-                     PR_CONNECT_REFUSED_ERROR) \
-    MOZILLA_PKIX_MAP(ERROR_EXPIRED_CERTIFICATE, 8, \
-                     SEC_ERROR_EXPIRED_CERTIFICATE) \
-    MOZILLA_PKIX_MAP(ERROR_EXTENSION_VALUE_INVALID, 9, \
-                     SEC_ERROR_EXTENSION_VALUE_INVALID) \
-    MOZILLA_PKIX_MAP(ERROR_INADEQUATE_CERT_TYPE, 10, \
-                     SEC_ERROR_INADEQUATE_CERT_TYPE) \
-    MOZILLA_PKIX_MAP(ERROR_INADEQUATE_KEY_USAGE, 11, \
-                     SEC_ERROR_INADEQUATE_KEY_USAGE) \
-    MOZILLA_PKIX_MAP(ERROR_INVALID_ALGORITHM, 12, \
-                     SEC_ERROR_INVALID_ALGORITHM) \
-    MOZILLA_PKIX_MAP(ERROR_INVALID_DER_TIME, 13, \
-                     SEC_ERROR_INVALID_TIME) \
-    MOZILLA_PKIX_MAP(ERROR_KEY_PINNING_FAILURE, 14, \
-                     MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE) \
-    MOZILLA_PKIX_MAP(ERROR_PATH_LEN_CONSTRAINT_INVALID, 15, \
-                     SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID) \
-    MOZILLA_PKIX_MAP(ERROR_POLICY_VALIDATION_FAILED, 16, \
-                     SEC_ERROR_POLICY_VALIDATION_FAILED) \
-    MOZILLA_PKIX_MAP(ERROR_REVOKED_CERTIFICATE, 17, \
-                     SEC_ERROR_REVOKED_CERTIFICATE) \
-    MOZILLA_PKIX_MAP(ERROR_UNKNOWN_CRITICAL_EXTENSION, 18, \
-                     SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION) \
-    MOZILLA_PKIX_MAP(ERROR_UNKNOWN_ERROR, 19, \
-                     PR_UNKNOWN_ERROR) \
-    MOZILLA_PKIX_MAP(ERROR_UNKNOWN_ISSUER, 20, \
-                     SEC_ERROR_UNKNOWN_ISSUER) \
-    MOZILLA_PKIX_MAP(ERROR_UNTRUSTED_CERT, 21, \
-                     SEC_ERROR_UNTRUSTED_CERT) \
-    MOZILLA_PKIX_MAP(ERROR_UNTRUSTED_ISSUER, 22, \
-                     SEC_ERROR_UNTRUSTED_ISSUER) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_BAD_SIGNATURE, 23, \
-                     SEC_ERROR_OCSP_BAD_SIGNATURE) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_INVALID_SIGNING_CERT, 24, \
-                     SEC_ERROR_OCSP_INVALID_SIGNING_CERT) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_MALFORMED_REQUEST, 25, \
-                     SEC_ERROR_OCSP_MALFORMED_REQUEST) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_MALFORMED_RESPONSE, 26, \
-                     SEC_ERROR_OCSP_MALFORMED_RESPONSE) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_OLD_RESPONSE, 27, \
-                     SEC_ERROR_OCSP_OLD_RESPONSE) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_REQUEST_NEEDS_SIG, 28, \
-                     SEC_ERROR_OCSP_REQUEST_NEEDS_SIG) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_RESPONDER_CERT_INVALID, 29, \
-                     SEC_ERROR_OCSP_RESPONDER_CERT_INVALID) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_SERVER_ERROR, 30, \
-                     SEC_ERROR_OCSP_SERVER_ERROR) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_TRY_SERVER_LATER, 31, \
-                     SEC_ERROR_OCSP_TRY_SERVER_LATER) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_UNAUTHORIZED_REQUEST, 32, \
-                     SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_UNKNOWN_RESPONSE_STATUS, 33, \
-                     SEC_ERROR_OCSP_UNKNOWN_RESPONSE_STATUS) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_UNKNOWN_CERT, 34, \
-                     SEC_ERROR_OCSP_UNKNOWN_CERT) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_FUTURE_RESPONSE, 35, \
-                     SEC_ERROR_OCSP_FUTURE_RESPONSE) \
-    MOZILLA_PKIX_MAP(ERROR_INVALID_KEY, 36, \
-                     SEC_ERROR_INVALID_KEY) \
-    MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_KEYALG, 37, \
-                     SEC_ERROR_UNSUPPORTED_KEYALG) \
-    MOZILLA_PKIX_MAP(ERROR_EXPIRED_ISSUER_CERTIFICATE, 38, \
-                     SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE) \
-    MOZILLA_PKIX_MAP(ERROR_CA_CERT_USED_AS_END_ENTITY, 39, \
-                     MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY) \
-    MOZILLA_PKIX_MAP(ERROR_INADEQUATE_KEY_SIZE, 40, \
-                     MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE) \
-    MOZILLA_PKIX_MAP(ERROR_V1_CERT_USED_AS_CA, 41, \
-                     MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA) \
-    MOZILLA_PKIX_MAP(ERROR_BAD_CERT_DOMAIN, 42, \
-                     SSL_ERROR_BAD_CERT_DOMAIN) \
-    MOZILLA_PKIX_MAP(ERROR_NO_RFC822NAME_MATCH, 43, \
-                     MOZILLA_PKIX_ERROR_NO_RFC822NAME_MATCH) \
-    MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_ELLIPTIC_CURVE, 44, \
-                     SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE) \
-    MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_CERTIFICATE, 45, \
-                     MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE) \
-    MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE, 46, \
-                     MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE) \
-    MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_EC_POINT_FORM, 47, \
-                     SEC_ERROR_UNSUPPORTED_EC_POINT_FORM) \
-    MOZILLA_PKIX_MAP(ERROR_SIGNATURE_ALGORITHM_MISMATCH, 48, \
-                     MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH) \
-    MOZILLA_PKIX_MAP(ERROR_OCSP_RESPONSE_FOR_CERT_MISSING, 49, \
-                     MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING) \
-    MOZILLA_PKIX_MAP(ERROR_VALIDITY_TOO_LONG, 50, \
-                     MOZILLA_PKIX_ERROR_VALIDITY_TOO_LONG) \
-    MOZILLA_PKIX_MAP(ERROR_REQUIRED_TLS_FEATURE_MISSING, 51, \
-                     MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING) \
-    MOZILLA_PKIX_MAP(ERROR_INVALID_INTEGER_ENCODING, 52, \
-                     MOZILLA_PKIX_ERROR_INVALID_INTEGER_ENCODING) \
-    MOZILLA_PKIX_MAP(ERROR_EMPTY_ISSUER_NAME, 53, \
-                     MOZILLA_PKIX_ERROR_EMPTY_ISSUER_NAME) \
-    MOZILLA_PKIX_MAP(ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED, 54, \
-                     MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED) \
-    MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_ARGS, FATAL_ERROR_FLAG | 1, \
-                     SEC_ERROR_INVALID_ARGS) \
-    MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_STATE, FATAL_ERROR_FLAG | 2, \
-                     PR_INVALID_STATE_ERROR) \
-    MOZILLA_PKIX_MAP(FATAL_ERROR_LIBRARY_FAILURE, FATAL_ERROR_FLAG | 3, \
-                     SEC_ERROR_LIBRARY_FAILURE) \
-    MOZILLA_PKIX_MAP(FATAL_ERROR_NO_MEMORY, FATAL_ERROR_FLAG | 4, \
-                     SEC_ERROR_NO_MEMORY) \
-    /* nothing here */
+#define MOZILLA_PKIX_MAP_LIST                                                  \
+  MOZILLA_PKIX_MAP(Success, 0, 0)                                              \
+  MOZILLA_PKIX_MAP(ERROR_BAD_DER, 1, SEC_ERROR_BAD_DER)                        \
+  MOZILLA_PKIX_MAP(ERROR_CA_CERT_INVALID, 2, SEC_ERROR_CA_CERT_INVALID)        \
+  MOZILLA_PKIX_MAP(ERROR_BAD_SIGNATURE, 3, SEC_ERROR_BAD_SIGNATURE)            \
+  MOZILLA_PKIX_MAP(ERROR_CERT_BAD_ACCESS_LOCATION, 4,                          \
+                   SEC_ERROR_CERT_BAD_ACCESS_LOCATION)                         \
+  MOZILLA_PKIX_MAP(ERROR_CERT_NOT_IN_NAME_SPACE, 5,                            \
+                   SEC_ERROR_CERT_NOT_IN_NAME_SPACE)                           \
+  MOZILLA_PKIX_MAP(ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED, 6,                 \
+                   SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED)                \
+  MOZILLA_PKIX_MAP(ERROR_CONNECT_REFUSED, 7, PR_CONNECT_REFUSED_ERROR)         \
+  MOZILLA_PKIX_MAP(ERROR_EXPIRED_CERTIFICATE, 8,                               \
+                   SEC_ERROR_EXPIRED_CERTIFICATE)                              \
+  MOZILLA_PKIX_MAP(ERROR_EXTENSION_VALUE_INVALID, 9,                           \
+                   SEC_ERROR_EXTENSION_VALUE_INVALID)                          \
+  MOZILLA_PKIX_MAP(ERROR_INADEQUATE_CERT_TYPE, 10,                             \
+                   SEC_ERROR_INADEQUATE_CERT_TYPE)                             \
+  MOZILLA_PKIX_MAP(ERROR_INADEQUATE_KEY_USAGE, 11,                             \
+                   SEC_ERROR_INADEQUATE_KEY_USAGE)                             \
+  MOZILLA_PKIX_MAP(ERROR_INVALID_ALGORITHM, 12, SEC_ERROR_INVALID_ALGORITHM)   \
+  MOZILLA_PKIX_MAP(ERROR_INVALID_DER_TIME, 13, SEC_ERROR_INVALID_TIME)         \
+  MOZILLA_PKIX_MAP(ERROR_KEY_PINNING_FAILURE, 14,                              \
+                   MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE)                     \
+  MOZILLA_PKIX_MAP(ERROR_PATH_LEN_CONSTRAINT_INVALID, 15,                      \
+                   SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID)                      \
+  MOZILLA_PKIX_MAP(ERROR_POLICY_VALIDATION_FAILED, 16,                         \
+                   SEC_ERROR_POLICY_VALIDATION_FAILED)                         \
+  MOZILLA_PKIX_MAP(ERROR_REVOKED_CERTIFICATE, 17,                              \
+                   SEC_ERROR_REVOKED_CERTIFICATE)                              \
+  MOZILLA_PKIX_MAP(ERROR_UNKNOWN_CRITICAL_EXTENSION, 18,                       \
+                   SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION)                       \
+  MOZILLA_PKIX_MAP(ERROR_UNKNOWN_ERROR, 19, PR_UNKNOWN_ERROR)                  \
+  MOZILLA_PKIX_MAP(ERROR_UNKNOWN_ISSUER, 20, SEC_ERROR_UNKNOWN_ISSUER)         \
+  MOZILLA_PKIX_MAP(ERROR_UNTRUSTED_CERT, 21, SEC_ERROR_UNTRUSTED_CERT)         \
+  MOZILLA_PKIX_MAP(ERROR_UNTRUSTED_ISSUER, 22, SEC_ERROR_UNTRUSTED_ISSUER)     \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_BAD_SIGNATURE, 23, SEC_ERROR_OCSP_BAD_SIGNATURE) \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_INVALID_SIGNING_CERT, 24,                        \
+                   SEC_ERROR_OCSP_INVALID_SIGNING_CERT)                        \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_MALFORMED_REQUEST, 25,                           \
+                   SEC_ERROR_OCSP_MALFORMED_REQUEST)                           \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_MALFORMED_RESPONSE, 26,                          \
+                   SEC_ERROR_OCSP_MALFORMED_RESPONSE)                          \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_OLD_RESPONSE, 27, SEC_ERROR_OCSP_OLD_RESPONSE)   \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_REQUEST_NEEDS_SIG, 28,                           \
+                   SEC_ERROR_OCSP_REQUEST_NEEDS_SIG)                           \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_RESPONDER_CERT_INVALID, 29,                      \
+                   SEC_ERROR_OCSP_RESPONDER_CERT_INVALID)                      \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_SERVER_ERROR, 30, SEC_ERROR_OCSP_SERVER_ERROR)   \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_TRY_SERVER_LATER, 31,                            \
+                   SEC_ERROR_OCSP_TRY_SERVER_LATER)                            \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_UNAUTHORIZED_REQUEST, 32,                        \
+                   SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST)                        \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_UNKNOWN_RESPONSE_STATUS, 33,                     \
+                   SEC_ERROR_OCSP_UNKNOWN_RESPONSE_STATUS)                     \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_UNKNOWN_CERT, 34, SEC_ERROR_OCSP_UNKNOWN_CERT)   \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_FUTURE_RESPONSE, 35,                             \
+                   SEC_ERROR_OCSP_FUTURE_RESPONSE)                             \
+  MOZILLA_PKIX_MAP(ERROR_INVALID_KEY, 36, SEC_ERROR_INVALID_KEY)               \
+  MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_KEYALG, 37, SEC_ERROR_UNSUPPORTED_KEYALG) \
+  MOZILLA_PKIX_MAP(ERROR_EXPIRED_ISSUER_CERTIFICATE, 38,                       \
+                   SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE)                       \
+  MOZILLA_PKIX_MAP(ERROR_CA_CERT_USED_AS_END_ENTITY, 39,                       \
+                   MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY)              \
+  MOZILLA_PKIX_MAP(ERROR_INADEQUATE_KEY_SIZE, 40,                              \
+                   MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE)                     \
+  MOZILLA_PKIX_MAP(ERROR_V1_CERT_USED_AS_CA, 41,                               \
+                   MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA)                      \
+  MOZILLA_PKIX_MAP(ERROR_BAD_CERT_DOMAIN, 42, SSL_ERROR_BAD_CERT_DOMAIN)       \
+  MOZILLA_PKIX_MAP(ERROR_NO_RFC822NAME_MATCH, 43,                              \
+                   MOZILLA_PKIX_ERROR_NO_RFC822NAME_MATCH)                     \
+  MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_ELLIPTIC_CURVE, 44,                       \
+                   SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE)                       \
+  MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_CERTIFICATE, 45,                        \
+                   MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE)               \
+  MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE, 46,                 \
+                   MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE)        \
+  MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_EC_POINT_FORM, 47,                        \
+                   SEC_ERROR_UNSUPPORTED_EC_POINT_FORM)                        \
+  MOZILLA_PKIX_MAP(ERROR_SIGNATURE_ALGORITHM_MISMATCH, 48,                     \
+                   MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH)            \
+  MOZILLA_PKIX_MAP(ERROR_OCSP_RESPONSE_FOR_CERT_MISSING, 49,                   \
+                   MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING)          \
+  MOZILLA_PKIX_MAP(ERROR_VALIDITY_TOO_LONG, 50,                                \
+                   MOZILLA_PKIX_ERROR_VALIDITY_TOO_LONG)                       \
+  MOZILLA_PKIX_MAP(ERROR_REQUIRED_TLS_FEATURE_MISSING, 51,                     \
+                   MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING)            \
+  MOZILLA_PKIX_MAP(ERROR_INVALID_INTEGER_ENCODING, 52,                         \
+                   MOZILLA_PKIX_ERROR_INVALID_INTEGER_ENCODING)                \
+  MOZILLA_PKIX_MAP(ERROR_EMPTY_ISSUER_NAME, 53,                                \
+                   MOZILLA_PKIX_ERROR_EMPTY_ISSUER_NAME)                       \
+  MOZILLA_PKIX_MAP(ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED, 54,              \
+                   MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED)     \
+  MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_ARGS, FATAL_ERROR_FLAG | 1,             \
+                   SEC_ERROR_INVALID_ARGS)                                     \
+  MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_STATE, FATAL_ERROR_FLAG | 2,            \
+                   PR_INVALID_STATE_ERROR)                                     \
+  MOZILLA_PKIX_MAP(FATAL_ERROR_LIBRARY_FAILURE, FATAL_ERROR_FLAG | 3,          \
+                   SEC_ERROR_LIBRARY_FAILURE)                                  \
+  MOZILLA_PKIX_MAP(FATAL_ERROR_NO_MEMORY, FATAL_ERROR_FLAG | 4,                \
+                   SEC_ERROR_NO_MEMORY)                                        \
+  /* nothing here */
 
-enum class Result
-{
+enum class Result {
 #define MOZILLA_PKIX_MAP(name, value, nss_name) name = value,
   MOZILLA_PKIX_MAP_LIST
 #undef MOZILLA_PKIX_MAP
@@ -219,19 +202,16 @@ const char* MapResultToName(Result result);
 // results in less line wrapping.
 static const Result Success = Result::Success;
 
-inline bool
-IsFatalError(Result rv)
-{
+inline bool IsFatalError(Result rv) {
   return (static_cast<unsigned int>(rv) & FATAL_ERROR_FLAG) != 0;
 }
 
-inline Result
-NotReached(const char* /*explanation*/, Result result)
-{
+inline Result NotReached(const char* /*explanation*/, Result result) {
   assert(false);
   return result;
 }
 
-} } // namespace mozilla::pkix
+}  // namespace pkix
+}  // namespace mozilla
 
-#endif // mozilla_pkix_Result_h
+#endif  // mozilla_pkix_Result_h

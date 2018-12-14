@@ -10,9 +10,8 @@
 
 namespace mozilla {
 
-/* static */ bool
-WaveDecoder::IsSupportedType(const MediaContainerType& aContainerType)
-{
+/* static */ bool WaveDecoder::IsSupportedType(
+    const MediaContainerType& aContainerType) {
   if (!MediaDecoder::IsWaveEnabled()) {
     return false;
   }
@@ -29,4 +28,4 @@ WaveDecoder::IsSupportedType(const MediaContainerType& aContainerType)
   return false;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

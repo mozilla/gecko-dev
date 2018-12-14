@@ -15,15 +15,15 @@
 // nsMaybeWeakPtr is a helper object to hold a strong-or-weak reference
 // to the template class.  It's pretty minimal, but sufficient.
 
-template<class T>
-class nsMaybeWeakPtr
-{
-public:
+template <class T>
+class nsMaybeWeakPtr {
+ public:
   MOZ_IMPLICIT nsMaybeWeakPtr(nsISupports* aRef) : mPtr(aRef) {}
-  MOZ_IMPLICIT nsMaybeWeakPtr(const nsCOMPtr<nsIWeakReference>& aRef) : mPtr(aRef) {}
+  MOZ_IMPLICIT nsMaybeWeakPtr(const nsCOMPtr<nsIWeakReference>& aRef)
+      : mPtr(aRef) {}
   MOZ_IMPLICIT nsMaybeWeakPtr(const nsCOMPtr<T>& aRef) : mPtr(aRef) {}
 
-  bool operator==(const nsMaybeWeakPtr<T> &other) const {
+  bool operator==(const nsMaybeWeakPtr<T>& other) const {
     return mPtr == other.mPtr;
   }
 
@@ -31,7 +31,7 @@ public:
 
   const nsCOMPtr<T> GetValue() const;
 
-private:
+ private:
   nsCOMPtr<nsISupports> mPtr;
 };
 
@@ -39,14 +39,12 @@ private:
 // grab a weak reference to a given object if requested.  It only allows a
 // given object to appear in the array once.
 
-template<class T>
-class nsMaybeWeakPtrArray : public nsTArray<nsMaybeWeakPtr<T>>
-{
+template <class T>
+class nsMaybeWeakPtrArray : public nsTArray<nsMaybeWeakPtr<T>> {
   typedef nsTArray<nsMaybeWeakPtr<T>> MaybeWeakArray;
 
-public:
-  nsresult AppendWeakElement(T* aElement, bool aOwnsWeak)
-  {
+ public:
+  nsresult AppendWeakElement(T* aElement, bool aOwnsWeak) {
     nsCOMPtr<nsISupports> ref;
     if (aOwnsWeak) {
       ref = do_GetWeakReference(aElement);
@@ -63,8 +61,7 @@ public:
     return NS_OK;
   }
 
-  nsresult RemoveWeakElement(T* aElement)
-  {
+  nsresult RemoveWeakElement(T* aElement) {
     if (MaybeWeakArray::RemoveElement(aElement)) {
       return NS_OK;
     }
@@ -86,10 +83,8 @@ public:
   }
 };
 
-template<class T>
-const nsCOMPtr<T>
-nsMaybeWeakPtr<T>::GetValue() const
-{
+template <class T>
+const nsCOMPtr<T> nsMaybeWeakPtr<T>::GetValue() const {
   if (!mPtr) {
     return nullptr;
   }
@@ -112,19 +107,14 @@ nsMaybeWeakPtr<T>::GetValue() const
 }
 
 template <typename T>
-inline void
-ImplCycleCollectionUnlink(nsMaybeWeakPtrArray<T>& aField)
-{
+inline void ImplCycleCollectionUnlink(nsMaybeWeakPtrArray<T>& aField) {
   aField.Clear();
 }
 
 template <typename E>
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            nsMaybeWeakPtrArray<E>& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback,
+    nsMaybeWeakPtrArray<E>& aField, const char* aName, uint32_t aFlags = 0) {
   aFlags |= CycleCollectionEdgeNameArrayFlag;
   size_t length = aField.Length();
   for (size_t i = 0; i < length; ++i) {
@@ -132,14 +122,13 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
   }
 }
 
-// Call a method on each element in the array, but only if the element is
-// non-null.
+  // Call a method on each element in the array, but only if the element is
+  // non-null.
 
-#define ENUMERATE_WEAKARRAY(array, type, method)                           \
-  for (uint32_t array_idx = 0; array_idx < array.Length(); ++array_idx) {  \
-    const nsCOMPtr<type> &e = array.ElementAt(array_idx).GetValue();       \
-    if (e)                                                                 \
-      e->method;                                                           \
+#define ENUMERATE_WEAKARRAY(array, type, method)                          \
+  for (uint32_t array_idx = 0; array_idx < array.Length(); ++array_idx) { \
+    const nsCOMPtr<type>& e = array.ElementAt(array_idx).GetValue();      \
+    if (e) e->method;                                                     \
   }
 
 #endif

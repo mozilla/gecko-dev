@@ -18,11 +18,9 @@ namespace binding_detail {
 // constructor and destructor behavior. FakeString uses inline storage
 // for small strings and a nsStringBuffer for longer strings.
 struct FakeString {
-  FakeString() :
-    mDataFlags(nsString::DataFlags::TERMINATED),
-    mClassFlags(nsString::ClassFlags(0))
-  {
-  }
+  FakeString()
+      : mDataFlags(nsString::DataFlags::TERMINATED),
+        mClassFlags(nsString::ClassFlags(0)) {}
 
   ~FakeString() {
     if (mDataFlags & nsString::DataFlags::SHARED) {
@@ -56,26 +54,16 @@ struct FakeString {
   }
 
   void SetIsVoid(bool aValue) {
-    MOZ_ASSERT(aValue,
-               "We don't support SetIsVoid(false) on FakeString!");
+    MOZ_ASSERT(aValue, "We don't support SetIsVoid(false) on FakeString!");
     Truncate();
     mDataFlags |= nsString::DataFlags::VOIDED;
   }
 
-  const nsString::char_type* Data() const
-  {
-    return mData;
-  }
+  const nsString::char_type* Data() const { return mData; }
 
-  nsString::char_type* BeginWriting()
-  {
-    return mData;
-  }
+  nsString::char_type* BeginWriting() { return mData; }
 
-  nsString::size_type Length() const
-  {
-    return mLength;
-  }
+  nsString::size_type Length() const { return mLength; }
 
   // Reserve space to write aLength chars, not including null-terminator.
   bool SetLength(nsString::size_type aLength, mozilla::fallible_t const&) {
@@ -83,7 +71,8 @@ struct FakeString {
     if (aLength < sInlineCapacity) {
       SetData(mInlineStorage);
     } else {
-      RefPtr<nsStringBuffer> buf = nsStringBuffer::Alloc((aLength + 1) * sizeof(nsString::char_type));
+      RefPtr<nsStringBuffer> buf =
+          nsStringBuffer::Alloc((aLength + 1) * sizeof(nsString::char_type));
       if (MOZ_UNLIKELY(!buf)) {
         return false;
       }
@@ -101,14 +90,12 @@ struct FakeString {
     return reinterpret_cast<const nsString*>(this);
   }
 
-operator const nsAString& () const {
+  operator const nsAString&() const {
     return *reinterpret_cast<const nsString*>(this);
   }
 
-private:
-  nsAString* ToAStringPtr() {
-    return reinterpret_cast<nsString*>(this);
-  }
+ private:
+  nsAString* ToAStringPtr() { return reinterpret_cast<nsString*>(this); }
 
   // mData is left uninitialized for optimization purposes.
   nsString::char_type* mData;
@@ -140,28 +127,27 @@ private:
   friend class StringAsserter;
 
   class StringAsserter : public nsString {
-  public:
+   public:
     static void StaticAsserts() {
-      static_assert(offsetof(FakeString, mInlineStorage) ==
-                      sizeof(nsString),
+      static_assert(offsetof(FakeString, mInlineStorage) == sizeof(nsString),
                     "FakeString should include all nsString members");
-      static_assert(offsetof(FakeString, mData) ==
-                      offsetof(StringAsserter, mData),
-                    "Offset of mData should match");
-      static_assert(offsetof(FakeString, mLength) ==
-                      offsetof(StringAsserter, mLength),
-                    "Offset of mLength should match");
+      static_assert(
+          offsetof(FakeString, mData) == offsetof(StringAsserter, mData),
+          "Offset of mData should match");
+      static_assert(
+          offsetof(FakeString, mLength) == offsetof(StringAsserter, mLength),
+          "Offset of mLength should match");
       static_assert(offsetof(FakeString, mDataFlags) ==
-                      offsetof(StringAsserter, mDataFlags),
+                        offsetof(StringAsserter, mDataFlags),
                     "Offset of mDataFlags should match");
       static_assert(offsetof(FakeString, mClassFlags) ==
-                      offsetof(StringAsserter, mClassFlags),
+                        offsetof(StringAsserter, mClassFlags),
                     "Offset of mClassFlags should match");
     }
   };
 };
-} // namespace binding_detail
-} // namespace dom
-} // namespace mozilla
+}  // namespace binding_detail
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_FakeString_h__ */

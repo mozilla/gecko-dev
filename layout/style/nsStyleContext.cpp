@@ -62,9 +62,9 @@ enum DebugStyleStruct {
 #undef STYLE_STRUCT
 };
 
-#define STYLE_STRUCT(name, checkdata_cb) \
+#define STYLE_STRUCT(name, checkdata_cb)                      \
   static_assert(static_cast<int>(eDebugStyleStruct_##name) == \
-                  static_cast<int>(eStyleStruct_##name), \
+                    static_cast<int>(eStyleStruct_##name),    \
                 "Style struct IDs are not declared in order?");
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
@@ -83,15 +83,14 @@ const uint32_t nsStyleContext::sDependencyTable[] = {
 
 nsStyleContext::nsStyleContext(nsAtom* aPseudoTag,
                                CSSPseudoElementType aPseudoType)
-  : mPseudoTag(aPseudoTag)
-  , mBits(((uint64_t)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT)
-{
+    : mPseudoTag(aPseudoTag),
+      mBits(((uint64_t)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT) {
   // This check has to be done "backward", because if it were written the
   // more natural way it wouldn't fail even when it needed to.
-  static_assert((UINT64_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
-                 static_cast<CSSPseudoElementTypeBase>(
-                   CSSPseudoElementType::MAX),
-                "pseudo element bits no longer fit in a uint64_t");
+  static_assert(
+      (UINT64_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
+          static_cast<CSSPseudoElementTypeBase>(CSSPseudoElementType::MAX),
+      "pseudo element bits no longer fit in a uint64_t");
 
 #define eStyleStruct_LastItem (nsStyleStructID_Length - 1)
   static_assert(NS_STYLE_INHERIT_MASK & NS_STYLE_INHERIT_BIT(LastItem),
@@ -99,19 +98,17 @@ nsStyleContext::nsStyleContext(nsAtom* aPseudoTag,
 #undef eStyleStruct_LastItem
 
 #ifdef DEBUG
-  static_assert(MOZ_ARRAY_LENGTH(nsStyleContext::sDependencyTable)
-                  == nsStyleStructID_Length,
+  static_assert(MOZ_ARRAY_LENGTH(nsStyleContext::sDependencyTable) ==
+                    nsStyleStructID_Length,
                 "Number of items in dependency table doesn't match IDs");
 #endif
 }
 
 // TODO(stylo-everywhere): Remove aSamePointerStructs.
-nsChangeHint
-nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
-                                    uint32_t* aEqualStructs,
-                                    uint32_t* aSamePointerStructs,
-                                    bool aIgnoreVariables)
-{
+nsChangeHint nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
+                                                 uint32_t* aEqualStructs,
+                                                 uint32_t* aSamePointerStructs,
+                                                 bool aIgnoreVariables) {
   AUTO_PROFILER_LABEL("nsStyleContext::CalcStyleDifference", CSS);
 
   static_assert(nsStyleStructID_Length <= 32,
@@ -164,8 +161,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
   } else {
     if (aIgnoreVariables ||
         Servo_ComputedValues_EqualCustomProperties(
-          AsServo()->ComputedData(),
-          aNewContext->ComputedData())) {
+            AsServo()->ComputedData(), aNewContext->ComputedData())) {
       *aEqualStructs |= NS_STYLE_INHERIT_BIT(Variables);
     }
   }
@@ -186,36 +182,35 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
   // we need to use the aRelevantStructs bitfield passed in to determine
   // whether to return a struct or not, since this->mBits might not yet
   // be correct (due to not calling ResolveSameStructsAs on it yet).
-#define PEEK(struct_)                                                         \
-  (IsGecko()                                                                  \
-   ? PeekStyle##struct_()                                                     \
-   : AsServo()->ComputedData()->GetStyle##struct_())                          \
+#define PEEK(struct_)               \
+  (IsGecko() ? PeekStyle##struct_() \
+             : AsServo()->ComputedData()->GetStyle##struct_())
 
 #define EXPAND(...) __VA_ARGS__
-#define DO_STRUCT_DIFFERENCE_WITH_ARGS(struct_, extra_args_)                  \
-  PR_BEGIN_MACRO                                                              \
-    const nsStyle##struct_* this##struct_ = PEEK(struct_);                    \
-    if (this##struct_) {                                                      \
-      structsFound |= NS_STYLE_INHERIT_BIT(struct_);                          \
-                                                                              \
-      const nsStyle##struct_* other##struct_ =                                \
-        aNewContext->ThreadsafeStyle##struct_();                              \
-      if (this##struct_ == other##struct_) {                                  \
-        /* The very same struct, so we know that there will be no */          \
-        /* differences.                                           */          \
-        *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                      \
-      } else {                                                                \
-        nsChangeHint difference =                                             \
-          this##struct_->CalcDifference(*other##struct_ EXPAND extra_args_);  \
-        hint |= difference;                                                   \
-        if (!difference) {                                                    \
-          *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                    \
-        }                                                                     \
-      }                                                                       \
-    } else {                                                                  \
-      *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                        \
-    }                                                                         \
-    styleStructCount++;                                                       \
+#define DO_STRUCT_DIFFERENCE_WITH_ARGS(struct_, extra_args_)                 \
+  PR_BEGIN_MACRO                                                             \
+  const nsStyle##struct_* this##struct_ = PEEK(struct_);                     \
+  if (this##struct_) {                                                       \
+    structsFound |= NS_STYLE_INHERIT_BIT(struct_);                           \
+                                                                             \
+    const nsStyle##struct_* other##struct_ =                                 \
+        aNewContext->ThreadsafeStyle##struct_();                             \
+    if (this##struct_ == other##struct_) {                                   \
+      /* The very same struct, so we know that there will be no */           \
+      /* differences.                                           */           \
+      *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                       \
+    } else {                                                                 \
+      nsChangeHint difference =                                              \
+          this##struct_->CalcDifference(*other##struct_ EXPAND extra_args_); \
+      hint |= difference;                                                    \
+      if (!difference) {                                                     \
+        *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                     \
+      }                                                                      \
+    }                                                                        \
+  } else {                                                                   \
+    *aEqualStructs |= NS_STYLE_INHERIT_BIT(struct_);                         \
+  }                                                                          \
+  styleStructCount++;                                                        \
   PR_END_MACRO
 #define DO_STRUCT_DIFFERENCE(struct_) \
   DO_STRUCT_DIFFERENCE_WITH_ARGS(struct_, ())
@@ -255,15 +250,15 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
              "missing a call to DO_STRUCT_DIFFERENCE");
 
 #ifdef DEBUG
-  #define STYLE_STRUCT_LIST_IGNORE_VARIABLES
-  #define STYLE_STRUCT(name_, callback_)                                      \
-    MOZ_ASSERT(!!(structsFound & NS_STYLE_INHERIT_BIT(name_)) ==              \
-               (PEEK(name_) != nullptr),                                      \
-               "PeekStyleData results must not change in the middle of "      \
-               "difference calculation.");
-  #include "nsStyleStructList.h"
-  #undef STYLE_STRUCT
-  #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#define STYLE_STRUCT_LIST_IGNORE_VARIABLES
+#define STYLE_STRUCT(name_, callback_)                                 \
+  MOZ_ASSERT(!!(structsFound & NS_STYLE_INHERIT_BIT(name_)) ==         \
+                 (PEEK(name_) != nullptr),                             \
+             "PeekStyleData results must not change in the middle of " \
+             "difference calculation.");
+#include "nsStyleStructList.h"
+#undef STYLE_STRUCT
+#undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
 #endif
 
   // We check for struct pointer equality here rather than as part of the
@@ -277,12 +272,12 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
   *aSamePointerStructs = 0;
 
 #define STYLE_STRUCT_LIST_IGNORE_VARIABLES
-#define STYLE_STRUCT(name_, callback_)                                        \
-  {                                                                           \
-    const nsStyle##name_* data = PEEK(name_);                                 \
-    if (!data || data == aNewContext->ThreadsafeStyle##name_()) {             \
-      *aSamePointerStructs |= NS_STYLE_INHERIT_BIT(name_);                    \
-    }                                                                         \
+#define STYLE_STRUCT(name_, callback_)                            \
+  {                                                               \
+    const nsStyle##name_* data = PEEK(name_);                     \
+    if (!data || data == aNewContext->ThreadsafeStyle##name_()) { \
+      *aSamePointerStructs |= NS_STYLE_INHERIT_BIT(name_);        \
+    }                                                             \
   }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT_LIST_IGNORE_VARIABLES
@@ -307,11 +302,11 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
   nsStyleContext* thisVis = GetStyleIfVisited();
   nsStyleContext* otherVis = aNewContext->GetStyleIfVisited();
   if (!thisVis != !otherVis) {
-    // One style context has a style-if-visited and the other doesn't.
-    // Presume a difference.
-#define STYLE_STRUCT(name_, fields_)                                \
-    *aSamePointerStructs &= ~NS_STYLE_INHERIT_BIT(name_);           \
-    *aEqualStructs &= ~NS_STYLE_INHERIT_BIT(name_);
+  // One style context has a style-if-visited and the other doesn't.
+  // Presume a difference.
+#define STYLE_STRUCT(name_, fields_)                    \
+  *aSamePointerStructs &= ~NS_STYLE_INHERIT_BIT(name_); \
+  *aEqualStructs &= ~NS_STYLE_INHERIT_BIT(name_);
 #include "nsCSSVisitedDependentPropList.h"
 #undef STYLE_STRUCT
     hint |= nsChangeHint_RepaintFrame;
@@ -325,18 +320,16 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
     // due to change being true already or due to the old style context
     // not having a style-if-visited), but not the other way around.
 #define STYLE_FIELD(name_) thisVisStruct->name_ != otherVisStruct->name_
-#define STYLE_STRUCT(name_, fields_)                                    \
-    if (PEEK(name_)) {                                                  \
-      const nsStyle##name_* thisVisStruct =                             \
-        thisVis->ThreadsafeStyle##name_();                              \
-      const nsStyle##name_* otherVisStruct =                            \
-        otherVis->ThreadsafeStyle##name_();                             \
-      if (MOZ_FOR_EACH_SEPARATED(STYLE_FIELD, (||), (), fields_)) {     \
-        *aSamePointerStructs &= ~NS_STYLE_INHERIT_BIT(name_);           \
-        *aEqualStructs &= ~NS_STYLE_INHERIT_BIT(name_);                 \
-        change = true;                                                  \
-      }                                                                 \
-    }
+#define STYLE_STRUCT(name_, fields_)                                           \
+  if (PEEK(name_)) {                                                           \
+    const nsStyle##name_* thisVisStruct = thisVis->ThreadsafeStyle##name_();   \
+    const nsStyle##name_* otherVisStruct = otherVis->ThreadsafeStyle##name_(); \
+    if (MOZ_FOR_EACH_SEPARATED(STYLE_FIELD, (||), (), fields_)) {              \
+      *aSamePointerStructs &= ~NS_STYLE_INHERIT_BIT(name_);                    \
+      *aEqualStructs &= ~NS_STYLE_INHERIT_BIT(name_);                          \
+      change = true;                                                           \
+    }                                                                          \
+  }
 #include "nsCSSVisitedDependentPropList.h"
 #undef STYLE_STRUCT
 #undef STYLE_FIELD
@@ -360,12 +353,14 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
     // doesn't use Peek* functions to get the structs on the old
     // context.  But this isn't a big concern because these struct
     // getters should be called during frame construction anyway.
-    if (ThreadsafeStyleDisplay()->IsAbsPosContainingBlockForAppropriateFrame(this) ==
-        aNewContext->ThreadsafeStyleDisplay()->
-          IsAbsPosContainingBlockForAppropriateFrame(aNewContext) &&
-        ThreadsafeStyleDisplay()->IsFixedPosContainingBlockForAppropriateFrame(this) ==
-        aNewContext->ThreadsafeStyleDisplay()->
-          IsFixedPosContainingBlockForAppropriateFrame(aNewContext)) {
+    if (ThreadsafeStyleDisplay()->IsAbsPosContainingBlockForAppropriateFrame(
+            this) ==
+            aNewContext->ThreadsafeStyleDisplay()
+                ->IsAbsPosContainingBlockForAppropriateFrame(aNewContext) &&
+        ThreadsafeStyleDisplay()->IsFixedPosContainingBlockForAppropriateFrame(
+            this) ==
+            aNewContext->ThreadsafeStyleDisplay()
+                ->IsFixedPosContainingBlockForAppropriateFrame(aNewContext)) {
       // While some styles that cause the frame to be a containing block
       // has changed, the overall result hasn't.
       hint &= ~nsChangeHint_UpdateContainingBlock;
@@ -380,38 +375,34 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aNewContext,
 namespace mozilla {
 
 #ifdef MOZ_OLD_STYLE
-void
-GeckoStyleContext::EnsureSameStructsCached(nsStyleContext* aOldContext)
-{
-  // NOTE(emilio): We could do better here for stylo, where we only call
-  // Style##name_() because we need to run FinishStyle, but otherwise this
-  // is only a bitwise or.
-  //
-  // We could reduce the FFI traffic we do only doing it for structs that have
-  // non-trivial FinishStyle.
+void GeckoStyleContext::EnsureSameStructsCached(nsStyleContext* aOldContext) {
+// NOTE(emilio): We could do better here for stylo, where we only call
+// Style##name_() because we need to run FinishStyle, but otherwise this
+// is only a bitwise or.
+//
+// We could reduce the FFI traffic we do only doing it for structs that have
+// non-trivial FinishStyle.
 
-#define STYLE_STRUCT(name_, checkdata_cb_)                                    \
-  if (aOldContext->PeekStyle##name_()) {                                      \
-    Style##name_();                                                           \
+#define STYLE_STRUCT(name_, checkdata_cb_) \
+  if (aOldContext->PeekStyle##name_()) {   \
+    Style##name_();                        \
   }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 }
 #endif
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #ifdef DEBUG
-void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants)
-{
+void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants) {
   nsAutoCString str;
   // Indent
   int32_t ix;
-  for (ix = aIndent; --ix >= 0; ) {
+  for (ix = aIndent; --ix >= 0;) {
     str.AppendLiteral("  ");
   }
-  str.Append(nsPrintfCString("%p(%d) parent=%p ",
-                             (void*)this,
+  str.Append(nsPrintfCString("%p(%d) parent=%p ", (void*)this,
 #ifdef MOZ_OLD_STYLE
                              IsGecko() ? AsGecko()->mRefCnt : 0,
                              IsGecko() ? AsGecko()->GetParent() : nullptr
@@ -420,7 +411,7 @@ void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants)
 #endif
                              ));
   if (mPseudoTag) {
-    nsAutoString  buffer;
+    nsAutoString buffer;
     mPseudoTag->ToString(buffer);
     AppendUTF16toUTF8(buffer, str);
     str.Append(' ');
@@ -434,13 +425,13 @@ void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants)
       fprintf_stderr(out, "%s{\n", str.get());
       str.Truncate();
       while (ruleNode) {
-        nsIStyleRule *styleRule = ruleNode->GetRule();
+        nsIStyleRule* styleRule = ruleNode->GetRule();
         if (styleRule) {
           styleRule->List(out, aIndent + 1);
         }
         ruleNode = ruleNode->GetParent();
       }
-      for (ix = aIndent; --ix >= 0; ) {
+      for (ix = aIndent; --ix >= 0;) {
         str.AppendLiteral("  ");
       }
       fprintf_stderr(out, "%s}\n", str.get());
@@ -463,74 +454,61 @@ void nsStyleContext::List(FILE* out, int32_t aIndent, bool aListDescendants)
 #endif
 
 #ifdef MOZ_OLD_STYLE
-already_AddRefed<GeckoStyleContext>
-NS_NewStyleContext(GeckoStyleContext* aParentContext,
-                   nsAtom* aPseudoTag,
-                   CSSPseudoElementType aPseudoType,
-                   nsRuleNode* aRuleNode,
-                   bool aSkipParentDisplayBasedStyleFixup)
-{
+already_AddRefed<GeckoStyleContext> NS_NewStyleContext(
+    GeckoStyleContext* aParentContext, nsAtom* aPseudoTag,
+    CSSPseudoElementType aPseudoType, nsRuleNode* aRuleNode,
+    bool aSkipParentDisplayBasedStyleFixup) {
   RefPtr<nsRuleNode> node = aRuleNode;
-  RefPtr<GeckoStyleContext> context =
-    new (aRuleNode->PresContext())
-    GeckoStyleContext(aParentContext, aPseudoTag, aPseudoType, node.forget(),
-                   aSkipParentDisplayBasedStyleFixup);
+  RefPtr<GeckoStyleContext> context = new (aRuleNode->PresContext())
+      GeckoStyleContext(aParentContext, aPseudoTag, aPseudoType, node.forget(),
+                        aSkipParentDisplayBasedStyleFixup);
   return context.forget();
 }
 #endif
 
-nsIPresShell*
-nsStyleContext::Arena()
-{
-  return PresContext()->PresShell();
-}
+nsIPresShell* nsStyleContext::Arena() { return PresContext()->PresShell(); }
 
-template<typename Func>
-static nscolor
-GetVisitedDependentColorInternal(nsStyleContext* aSc, Func aColorFunc)
-{
+template <typename Func>
+static nscolor GetVisitedDependentColorInternal(nsStyleContext* aSc,
+                                                Func aColorFunc) {
   nscolor colors[2];
   colors[0] = aColorFunc(aSc);
   if (nsStyleContext* visitedStyle = aSc->GetStyleIfVisited()) {
     colors[1] = aColorFunc(visitedStyle);
-    return nsStyleContext::
-      CombineVisitedColors(colors, aSc->RelevantLinkVisited());
+    return nsStyleContext::CombineVisitedColors(colors,
+                                                aSc->RelevantLinkVisited());
   }
   return colors[0];
 }
 
-static nscolor
-ExtractColor(nsStyleContext* aContext, const nscolor& aColor)
-{
+static nscolor ExtractColor(nsStyleContext* aContext, const nscolor& aColor) {
   return aColor;
 }
 
-static nscolor
-ExtractColor(nsStyleContext* aContext, const StyleComplexColor& aColor)
-{
+static nscolor ExtractColor(nsStyleContext* aContext,
+                            const StyleComplexColor& aColor) {
   return aContext->StyleColor()->CalcComplexColor(aColor);
 }
 
-static nscolor
-ExtractColor(nsStyleContext* aContext, const nsStyleSVGPaint& aPaintServer)
-{
+static nscolor ExtractColor(nsStyleContext* aContext,
+                            const nsStyleSVGPaint& aPaintServer) {
   return aPaintServer.Type() == eStyleSVGPaintType_Color
-    ? aPaintServer.GetColor() : NS_RGBA(0, 0, 0, 0);
+             ? aPaintServer.GetColor()
+             : NS_RGBA(0, 0, 0, 0);
 }
 
 #define STYLE_FIELD(struct_, field_) aField == &struct_::field_ ||
-#define STYLE_STRUCT(name_, fields_)                                          \
-  template<> nscolor                                                          \
-  nsStyleContext::GetVisitedDependentColor(                                   \
-    decltype(nsStyle##name_::MOZ_ARG_1 fields_) nsStyle##name_::* aField)     \
-  {                                                                           \
-    MOZ_ASSERT(MOZ_FOR_EACH(STYLE_FIELD, (nsStyle##name_,), fields_) false,   \
-               "Getting visited-dependent color for a field in nsStyle"#name_ \
-               " which is not listed in nsCSSVisitedDependentPropList.h");    \
-    return GetVisitedDependentColorInternal(this,                             \
-                                            [aField](nsStyleContext* sc) {    \
-      return ExtractColor(sc, sc->Style##name_()->*aField);                   \
-    });                                                                       \
+#define STYLE_STRUCT(name_, fields_)                                           \
+  template <>                                                                  \
+  nscolor nsStyleContext::GetVisitedDependentColor(                            \
+      decltype(nsStyle##name_::MOZ_ARG_1 fields_) nsStyle##name_::*aField) {   \
+    MOZ_ASSERT(MOZ_FOR_EACH(STYLE_FIELD, (nsStyle##name_, ), fields_) false,   \
+               "Getting visited-dependent color for a field in nsStyle" #name_ \
+               " which is not listed in nsCSSVisitedDependentPropList.h");     \
+    return GetVisitedDependentColorInternal(                                   \
+        this, [aField](nsStyleContext* sc) {                                   \
+          return ExtractColor(sc, sc->Style##name_()->*aField);                \
+        });                                                                    \
   }
 #include "nsCSSVisitedDependentPropList.h"
 #undef STYLE_STRUCT
@@ -540,11 +518,10 @@ struct ColorIndexSet {
   uint8_t colorIndex, alphaIndex;
 };
 
-static const ColorIndexSet gVisitedIndices[2] = { { 0, 0 }, { 1, 0 } };
+static const ColorIndexSet gVisitedIndices[2] = {{0, 0}, {1, 0}};
 
-/* static */ nscolor
-nsStyleContext::CombineVisitedColors(nscolor *aColors, bool aLinkIsVisited)
-{
+/* static */ nscolor nsStyleContext::CombineVisitedColors(nscolor* aColors,
+                                                          bool aLinkIsVisited) {
   if (NS_GET_A(aColors[1]) == 0) {
     // If the style-if-visited is transparent, then just use the
     // unvisited style rather than using the (meaningless) color
@@ -555,8 +532,7 @@ nsStyleContext::CombineVisitedColors(nscolor *aColors, bool aLinkIsVisited)
 
   // NOTE: We want this code to have as little timing dependence as
   // possible on whether this->RelevantLinkVisited() is true.
-  const ColorIndexSet &set =
-    gVisitedIndices[aLinkIsVisited ? 1 : 0];
+  const ColorIndexSet& set = gVisitedIndices[aLinkIsVisited ? 1 : 0];
 
   nscolor colorColor = aColors[set.colorIndex];
   nscolor alphaColor = aColors[set.alphaIndex];
@@ -565,13 +541,11 @@ nsStyleContext::CombineVisitedColors(nscolor *aColors, bool aLinkIsVisited)
 }
 
 #ifdef DEBUG
-/* static */ const char*
-nsStyleContext::StructName(nsStyleStructID aSID)
-{
+/* static */ const char* nsStyleContext::StructName(nsStyleStructID aSID) {
   switch (aSID) {
-#define STYLE_STRUCT(name_, checkdata_cb)                                     \
-    case eStyleStruct_##name_:                                                \
-      return #name_;
+#define STYLE_STRUCT(name_, checkdata_cb) \
+  case eStyleStruct_##name_:              \
+    return #name_;
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
     default:
@@ -579,14 +553,12 @@ nsStyleContext::StructName(nsStyleStructID aSID)
   }
 }
 
-/* static */ bool
-nsStyleContext::LookupStruct(const nsACString& aName, nsStyleStructID& aResult)
-{
+/* static */ bool nsStyleContext::LookupStruct(const nsACString& aName,
+                                               nsStyleStructID& aResult) {
   if (false)
     ;
-#define STYLE_STRUCT(name_, checkdata_cb_)                                    \
-  else if (aName.EqualsLiteral(#name_))                                       \
-    aResult = eStyleStruct_##name_;
+#define STYLE_STRUCT(name_, checkdata_cb_) \
+  else if (aName.EqualsLiteral(#name_)) aResult = eStyleStruct_##name_;
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
   else
@@ -594,9 +566,7 @@ nsStyleContext::LookupStruct(const nsACString& aName, nsStyleStructID& aResult)
   return true;
 }
 
-void
-nsStyleContext::FrameAddRef()
-{
+void nsStyleContext::FrameAddRef() {
 #ifdef MOZ_OLD_STYLE
   if (auto gecko = GetAsGecko()) {
     gecko->FrameAddRef();
@@ -604,9 +574,7 @@ nsStyleContext::FrameAddRef()
 #endif
 }
 
-void
-nsStyleContext::FrameRelease()
-{
+void nsStyleContext::FrameRelease() {
 #ifdef MOZ_OLD_STYLE
   if (auto gecko = GetAsGecko()) {
     gecko->FrameRelease();

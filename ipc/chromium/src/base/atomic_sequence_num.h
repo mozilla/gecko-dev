@@ -24,16 +24,14 @@ class AtomicSequenceNumber;
 class StaticAtomicSequenceNumber {
  public:
   inline int GetNext() {
-    return static_cast<int>(
-        base::subtle::NoBarrier_AtomicIncrement(&seq_, 1) - 1);
+    return static_cast<int>(base::subtle::NoBarrier_AtomicIncrement(&seq_, 1) -
+                            1);
   }
 
  private:
   friend class AtomicSequenceNumber;
 
-  inline void Reset() {
-    base::subtle::Release_Store(&seq_, 0);
-  }
+  inline void Reset() { base::subtle::Release_Store(&seq_, 0); }
 
   base::subtle::Atomic32 seq_;
 };
@@ -44,13 +42,9 @@ class StaticAtomicSequenceNumber {
 // sequence number in the global scope.
 class AtomicSequenceNumber {
  public:
-  AtomicSequenceNumber() {
-    seq_.Reset();
-  }
+  AtomicSequenceNumber() { seq_.Reset(); }
 
-  inline int GetNext() {
-    return seq_.GetNext();
-  }
+  inline int GetNext() { return seq_.GetNext(); }
 
  private:
   StaticAtomicSequenceNumber seq_;

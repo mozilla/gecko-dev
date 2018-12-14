@@ -11,27 +11,20 @@ namespace mozilla {
 namespace media {
 
 MediaSystemResourceManagerChild::MediaSystemResourceManagerChild()
-  : mDestroyed(false)
-{
-}
+    : mDestroyed(false) {}
 
-MediaSystemResourceManagerChild::~MediaSystemResourceManagerChild()
-{
-}
+MediaSystemResourceManagerChild::~MediaSystemResourceManagerChild() {}
 
-mozilla::ipc::IPCResult
-MediaSystemResourceManagerChild::RecvResponse(const uint32_t& aId,
-                                              const bool& aSuccess)
-{
+mozilla::ipc::IPCResult MediaSystemResourceManagerChild::RecvResponse(
+    const uint32_t& aId, const bool& aSuccess) {
   if (mManager) {
     mManager->RecvResponse(aId, aSuccess);
   }
   return IPC_OK();
 }
 
-void
-MediaSystemResourceManagerChild::ActorDestroy(ActorDestroyReason aActorDestroyReason)
-{
+void MediaSystemResourceManagerChild::ActorDestroy(
+    ActorDestroyReason aActorDestroyReason) {
   MOZ_ASSERT(!mDestroyed);
   if (mManager) {
     mManager->OnIpcClosed();
@@ -39,9 +32,7 @@ MediaSystemResourceManagerChild::ActorDestroy(ActorDestroyReason aActorDestroyRe
   mDestroyed = true;
 }
 
-void
-MediaSystemResourceManagerChild::Destroy()
-{
+void MediaSystemResourceManagerChild::Destroy() {
   if (mDestroyed) {
     return;
   }
@@ -49,5 +40,5 @@ MediaSystemResourceManagerChild::Destroy()
   // WARNING: |this| is dead, hands off
 }
 
-} // namespace media
-} // namespace mozilla
+}  // namespace media
+}  // namespace mozilla

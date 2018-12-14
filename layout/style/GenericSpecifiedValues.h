@@ -29,22 +29,16 @@ class ServoSpecifiedValues;
 // (MapAttributesIntoRule) to use regardless of the style backend. If the style
 // backend is Gecko, this will contain an nsRuleData. If it is Servo, it will be
 // a PropertyDeclarationBlock.
-class GenericSpecifiedValues
-{
-protected:
-  explicit GenericSpecifiedValues(StyleBackendType aType, nsIDocument* aDoc, uint32_t aSIDs)
-    : mType(aType)
-    , mDocument(aDoc)
-    , mSIDs(aSIDs)
-  {}
+class GenericSpecifiedValues {
+ protected:
+  explicit GenericSpecifiedValues(StyleBackendType aType, nsIDocument* aDoc,
+                                  uint32_t aSIDs)
+      : mType(aType), mDocument(aDoc), mSIDs(aSIDs) {}
 
-public:
+ public:
   MOZ_DECL_STYLO_METHODS(nsRuleData, ServoSpecifiedValues)
 
-  nsIDocument* Document()
-  {
-    return mDocument;
-  }
+  nsIDocument* Document() { return mDocument; }
 
   // Whether we should ignore document colors.
   inline bool ShouldIgnoreColors() const;
@@ -55,8 +49,7 @@ public:
   // Check if we are able to hold longhands from a given
   // style struct. Pass the result of NS_STYLE_INHERIT_BIT to this
   // function. Can accept multiple inherit bits or'd together.
-  inline bool ShouldComputeStyleStruct(uint64_t aInheritBits)
-  {
+  inline bool ShouldComputeStyleStruct(uint64_t aInheritBits) {
     return aInheritBits & mSIDs;
   }
 
@@ -72,18 +65,16 @@ public:
   inline void SetKeywordValue(nsCSSPropertyID aId, int32_t aValue);
   inline void SetKeywordValueIfUnset(nsCSSPropertyID aId, int32_t aValue);
 
-  template<typename T,
-           typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  void SetKeywordValue(nsCSSPropertyID aId, T aValue)
-  {
+  template <typename T,
+            typename = typename std::enable_if<std::is_enum<T>::value>::type>
+  void SetKeywordValue(nsCSSPropertyID aId, T aValue) {
     static_assert(mozilla::EnumTypeFitsWithin<T, int32_t>::value,
                   "aValue must be an enum that fits within 32 bits");
     SetKeywordValue(aId, static_cast<int32_t>(aValue));
   }
-  template<typename T,
-           typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  void SetKeywordValueIfUnset(nsCSSPropertyID aId, T aValue)
-  {
+  template <typename T,
+            typename = typename std::enable_if<std::is_enum<T>::value>::type>
+  void SetKeywordValueIfUnset(nsCSSPropertyID aId, T aValue) {
     static_assert(mozilla::EnumTypeFitsWithin<T, int32_t>::value,
                   "aValue must be an enum that fits within 32 bits");
     SetKeywordValueIfUnset(aId, static_cast<int32_t>(aValue));
@@ -118,7 +109,8 @@ public:
 
   // Set font-family to a string
   inline void SetFontFamily(const nsString& aValue);
-  // Add a quirks-mode override to the decoration color of elements nested in <a>
+  // Add a quirks-mode override to the decoration color of elements nested in
+  // <a>
   inline void SetTextDecorationColorOverride();
   inline void SetBackgroundImage(nsAttrValue& value);
 
@@ -127,6 +119,6 @@ public:
   const uint32_t mSIDs;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_GenericSpecifiedValues_h
+#endif  // mozilla_GenericSpecifiedValues_h

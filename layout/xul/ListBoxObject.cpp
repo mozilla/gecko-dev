@@ -20,41 +20,33 @@ namespace dom {
 NS_IMPL_ISUPPORTS_INHERITED(ListBoxObject, BoxObject, nsIListBoxObject,
                             nsPIListBoxObject)
 
-ListBoxObject::ListBoxObject()
-  : mListBoxBody(nullptr)
-{
-}
+ListBoxObject::ListBoxObject() : mListBoxBody(nullptr) {}
 
-ListBoxObject::~ListBoxObject()
-{
-}
+ListBoxObject::~ListBoxObject() {}
 
-JSObject* ListBoxObject::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* ListBoxObject::WrapObject(JSContext* aCx,
+                                    JS::Handle<JSObject*> aGivenProto) {
   return ListBoxObjectBinding::Wrap(aCx, this, aGivenProto);
 }
 
 // nsIListBoxObject
 NS_IMETHODIMP
-ListBoxObject::GetRowCount(int32_t *aResult)
-{
+ListBoxObject::GetRowCount(int32_t* aResult) {
   *aResult = GetRowCount();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-ListBoxObject::GetItemAtIndex(int32_t index, nsIDOMElement **_retval)
-{
+ListBoxObject::GetItemAtIndex(int32_t index, nsIDOMElement** _retval) {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     return body->GetItemAtIndex(index, _retval);
   }
   return NS_OK;
- }
+}
 
 NS_IMETHODIMP
-ListBoxObject::GetIndexOfItem(nsIDOMElement* aElement, int32_t *aResult)
-{
+ListBoxObject::GetIndexOfItem(nsIDOMElement* aElement, int32_t* aResult) {
   *aResult = 0;
 
   nsListBoxBodyFrame* body = GetListBoxBody(true);
@@ -66,9 +58,7 @@ ListBoxObject::GetIndexOfItem(nsIDOMElement* aElement, int32_t *aResult)
 
 // ListBoxObject
 
-int32_t
-ListBoxObject::GetRowCount()
-{
+int32_t ListBoxObject::GetRowCount() {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     return body->GetRowCount();
@@ -76,9 +66,7 @@ ListBoxObject::GetRowCount()
   return 0;
 }
 
-int32_t
-ListBoxObject::GetRowHeight()
-{
+int32_t ListBoxObject::GetRowHeight() {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     return body->GetRowHeightPixels();
@@ -86,9 +74,7 @@ ListBoxObject::GetRowHeight()
   return 0;
 }
 
-int32_t
-ListBoxObject::GetNumberOfVisibleRows()
-{
+int32_t ListBoxObject::GetNumberOfVisibleRows() {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     return body->GetNumberOfVisibleRows();
@@ -96,9 +82,7 @@ ListBoxObject::GetNumberOfVisibleRows()
   return 0;
 }
 
-int32_t
-ListBoxObject::GetIndexOfFirstVisibleRow()
-{
+int32_t ListBoxObject::GetIndexOfFirstVisibleRow() {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     return body->GetIndexOfFirstVisibleRow();
@@ -106,45 +90,35 @@ ListBoxObject::GetIndexOfFirstVisibleRow()
   return 0;
 }
 
-void
-ListBoxObject::EnsureIndexIsVisible(int32_t aRowIndex)
-{
+void ListBoxObject::EnsureIndexIsVisible(int32_t aRowIndex) {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     body->EnsureIndexIsVisible(aRowIndex);
   }
 }
 
-void
-ListBoxObject::ScrollToIndex(int32_t aRowIndex)
-{
+void ListBoxObject::ScrollToIndex(int32_t aRowIndex) {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     body->ScrollToIndex(aRowIndex);
   }
 }
 
-void
-ListBoxObject::ScrollByLines(int32_t aNumLines)
-{
+void ListBoxObject::ScrollByLines(int32_t aNumLines) {
   nsListBoxBodyFrame* body = GetListBoxBody(true);
   if (body) {
     body->ScrollByLines(aNumLines);
   }
 }
 
-already_AddRefed<Element>
-ListBoxObject::GetItemAtIndex(int32_t index)
-{
+already_AddRefed<Element> ListBoxObject::GetItemAtIndex(int32_t index) {
   nsCOMPtr<nsIDOMElement> el;
   GetItemAtIndex(index, getter_AddRefs(el));
   nsCOMPtr<Element> ret(do_QueryInterface(el));
   return ret.forget();
 }
 
-int32_t
-ListBoxObject::GetIndexOfItem(Element& aElement)
-{
+int32_t ListBoxObject::GetIndexOfItem(Element& aElement) {
   int32_t ret;
   nsCOMPtr<nsIDOMElement> el(do_QueryInterface(&aElement));
   GetIndexOfItem(el, &ret);
@@ -153,15 +127,14 @@ ListBoxObject::GetIndexOfItem(Element& aElement)
 
 //////////////////////
 
-static nsIContent*
-FindBodyContent(nsIContent* aParent)
-{
+static nsIContent* FindBodyContent(nsIContent* aParent) {
   if (aParent->IsXULElement(nsGkAtoms::listboxbody)) {
     return aParent;
   }
 
   mozilla::dom::FlattenedChildIterator iter(aParent);
-  for (nsIContent* child = iter.GetNextChild(); child; child = iter.GetNextChild()) {
+  for (nsIContent* child = iter.GetNextChild(); child;
+       child = iter.GetNextChild()) {
     nsIContent* result = FindBodyContent(child);
     if (result) {
       return result;
@@ -171,9 +144,7 @@ FindBodyContent(nsIContent* aParent)
   return nullptr;
 }
 
-nsListBoxBodyFrame*
-ListBoxObject::GetListBoxBody(bool aFlush)
-{
+nsListBoxBodyFrame* ListBoxObject::GetListBoxBody(bool aFlush) {
   if (mListBoxBody) {
     return mListBoxBody;
   }
@@ -183,9 +154,8 @@ ListBoxObject::GetListBoxBody(bool aFlush)
     return nullptr;
   }
 
-  nsIFrame* frame = aFlush ?
-                      GetFrame(false) /* does FlushType::Frames */ :
-                      mContent->GetPrimaryFrame();
+  nsIFrame* frame = aFlush ? GetFrame(false) /* does FlushType::Frames */
+                           : mContent->GetPrimaryFrame();
   if (!frame) {
     return nullptr;
   }
@@ -200,7 +170,7 @@ ListBoxObject::GetListBoxBody(bool aFlush)
   // this frame will be a nsGFXScrollFrame
   frame = content->GetPrimaryFrame();
   if (!frame) {
-     return nullptr;
+    return nullptr;
   }
 
   nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
@@ -211,39 +181,30 @@ ListBoxObject::GetListBoxBody(bool aFlush)
   // this frame will be the one we want
   nsIFrame* yeahBaby = scrollFrame->GetScrolledFrame();
   if (!yeahBaby) {
-     return nullptr;
+    return nullptr;
   }
 
   // It's a frame. Refcounts are irrelevant.
   nsListBoxBodyFrame* listBoxBody = do_QueryFrame(yeahBaby);
-  NS_ENSURE_TRUE(listBoxBody &&
-                 listBoxBody->SetBoxObject(this),
-                 nullptr);
+  NS_ENSURE_TRUE(listBoxBody && listBoxBody->SetBoxObject(this), nullptr);
   mListBoxBody = listBoxBody;
   return mListBoxBody;
 }
 
-void
-ListBoxObject::Clear()
-{
+void ListBoxObject::Clear() {
   ClearCachedValues();
   BoxObject::Clear();
 }
 
-void
-ListBoxObject::ClearCachedValues()
-{
-  mListBoxBody = nullptr;
-}
+void ListBoxObject::ClearCachedValues() { mListBoxBody = nullptr; }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-// Creation Routine ///////////////////////////////////////////////////////////////////////
+// Creation Routine
+// ///////////////////////////////////////////////////////////////////////
 
-nsresult
-NS_NewListBoxObject(nsIBoxObject** aResult)
-{
+nsresult NS_NewListBoxObject(nsIBoxObject** aResult) {
   NS_ADDREF(*aResult = new mozilla::dom::ListBoxObject());
   return NS_OK;
 }

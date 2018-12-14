@@ -15,15 +15,12 @@
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
 
-nsListBoxLayout::nsListBoxLayout() : nsGridRowGroupLayout()
-{
-}
+nsListBoxLayout::nsListBoxLayout() : nsGridRowGroupLayout() {}
 
 ////////// nsBoxLayout //////////////
 
-nsSize
-nsListBoxLayout::GetXULPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
-{
+nsSize nsListBoxLayout::GetXULPrefSize(nsIFrame* aBox,
+                                       nsBoxLayoutState& aBoxLayoutState) {
   nsSize pref = nsGridRowGroupLayout::GetXULPrefSize(aBox, aBoxLayoutState);
 
   nsListBoxBodyFrame* frame = static_cast<nsListBoxBodyFrame*>(aBox);
@@ -33,23 +30,21 @@ nsListBoxLayout::GetXULPrefSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutStat
     // Pad the height.
     nscoord y = frame->GetAvailableHeight();
     if (pref.height > y && y > 0 && rowheight > 0) {
-      nscoord m = (pref.height-y)%rowheight;
+      nscoord m = (pref.height - y) % rowheight;
       nscoord remainder = m == 0 ? 0 : rowheight - m;
       pref.height += remainder;
     }
     if (nsContentUtils::HasNonEmptyAttr(frame->GetContent(), kNameSpaceID_None,
                                         nsGkAtoms::sizemode)) {
       nscoord width = frame->ComputeIntrinsicISize(aBoxLayoutState);
-      if (width > pref.width)
-        pref.width = width;
+      if (width > pref.width) pref.width = width;
     }
   }
   return pref;
 }
 
-nsSize
-nsListBoxLayout::GetXULMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
-{
+nsSize nsListBoxLayout::GetXULMinSize(nsIFrame* aBox,
+                                      nsBoxLayoutState& aBoxLayoutState) {
   nsSize minSize = nsGridRowGroupLayout::GetXULMinSize(aBox, aBoxLayoutState);
 
   nsListBoxBodyFrame* frame = static_cast<nsListBoxBodyFrame*>(aBox);
@@ -59,23 +54,21 @@ nsListBoxLayout::GetXULMinSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState
     // Pad the height.
     nscoord y = frame->GetAvailableHeight();
     if (minSize.height > y && y > 0 && rowheight > 0) {
-      nscoord m = (minSize.height-y)%rowheight;
+      nscoord m = (minSize.height - y) % rowheight;
       nscoord remainder = m == 0 ? 0 : rowheight - m;
       minSize.height += remainder;
     }
     if (nsContentUtils::HasNonEmptyAttr(frame->GetContent(), kNameSpaceID_None,
                                         nsGkAtoms::sizemode)) {
       nscoord width = frame->ComputeIntrinsicISize(aBoxLayoutState);
-      if (width > minSize.width)
-        minSize.width = width;
+      if (width > minSize.width) minSize.width = width;
     }
   }
   return minSize;
 }
 
-nsSize
-nsListBoxLayout::GetXULMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState)
-{
+nsSize nsListBoxLayout::GetXULMaxSize(nsIFrame* aBox,
+                                      nsBoxLayoutState& aBoxLayoutState) {
   nsSize maxSize = nsGridRowGroupLayout::GetXULMaxSize(aBox, aBoxLayoutState);
 
   nsListBoxBodyFrame* frame = static_cast<nsListBoxBodyFrame*>(aBox);
@@ -85,7 +78,7 @@ nsListBoxLayout::GetXULMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState
     // Pad the height.
     nscoord y = frame->GetAvailableHeight();
     if (maxSize.height > y && y > 0 && rowheight > 0) {
-      nscoord m = (maxSize.height-y)%rowheight;
+      nscoord m = (maxSize.height - y) % rowheight;
       nscoord remainder = m == 0 ? 0 : rowheight - m;
       maxSize.height += remainder;
     }
@@ -94,11 +87,9 @@ nsListBoxLayout::GetXULMaxSize(nsIFrame* aBox, nsBoxLayoutState& aBoxLayoutState
 }
 
 NS_IMETHODIMP
-nsListBoxLayout::XULLayout(nsIFrame* aBox, nsBoxLayoutState& aState)
-{
+nsListBoxLayout::XULLayout(nsIFrame* aBox, nsBoxLayoutState& aState) {
   return LayoutInternal(aBox, aState);
 }
-
 
 /////////// nsListBoxLayout /////////////////////////
 
@@ -106,8 +97,7 @@ nsListBoxLayout::XULLayout(nsIFrame* aBox, nsBoxLayoutState& aState)
  * Called to layout our our children. Does no frame construction
  */
 NS_IMETHODIMP
-nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
-{
+nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState) {
   int32_t redrawStart = -1;
 
   // Get the start y position.
@@ -167,13 +157,12 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
     } else {
       // if the child did not need to be relayed out. Then its easy.
       // Place the child by just grabbing its rect and adjusting the y.
-      int32_t newPos = yOffset+margin.top;
+      int32_t newPos = yOffset + margin.top;
 
       // are we pushing down or pulling up any rows?
       // Then we may have to redraw everything below the moved
       // rows.
-      if (redrawStart == -1 && childRect.y != newPos)
-        redrawStart = newPos;
+      if (redrawStart == -1 && childRect.y != newPos) redrawStart = newPos;
 
       childRect.y = newPos;
       box->SetXULBounds(aState, childRect);
@@ -196,7 +185,8 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
 
   // if rows were pushed down or pulled up because some rows were added
   // before them then redraw everything under the inserted rows. The inserted
-  // rows will automatically be redrawn because the were marked dirty on insertion.
+  // rows will automatically be redrawn because the were marked dirty on
+  // insertion.
   if (redrawStart > -1) {
     aBox->XULRedraw(aState);
   }
@@ -204,10 +194,10 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
   return NS_OK;
 }
 
-// Creation Routines ///////////////////////////////////////////////////////////////////////
+// Creation Routines
+// ///////////////////////////////////////////////////////////////////////
 
-already_AddRefed<nsBoxLayout> NS_NewListBoxLayout()
-{
+already_AddRefed<nsBoxLayout> NS_NewListBoxLayout() {
   RefPtr<nsBoxLayout> layout = new nsListBoxLayout();
   return layout.forget();
 }

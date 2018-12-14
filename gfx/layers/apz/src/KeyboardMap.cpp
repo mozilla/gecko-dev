@@ -6,48 +6,39 @@
 
 #include "mozilla/layers/KeyboardMap.h"
 
-#include "mozilla/TextEvents.h" // for IgnoreModifierState, ShortcutKeyCandidate
+#include "mozilla/TextEvents.h"  // for IgnoreModifierState, ShortcutKeyCandidate
 
 namespace mozilla {
 namespace layers {
 
-KeyboardShortcut::KeyboardShortcut()
-{
-}
+KeyboardShortcut::KeyboardShortcut() {}
 
 KeyboardShortcut::KeyboardShortcut(KeyboardInput::KeyboardEventType aEventType,
-                                   uint32_t aKeyCode,
-                                   uint32_t aCharCode,
+                                   uint32_t aKeyCode, uint32_t aCharCode,
                                    Modifiers aModifiers,
                                    Modifiers aModifiersMask,
                                    const KeyboardScrollAction& aAction)
-  : mAction(aAction)
-  , mKeyCode(aKeyCode)
-  , mCharCode(aCharCode)
-  , mModifiers(aModifiers)
-  , mModifiersMask(aModifiersMask)
-  , mEventType(aEventType)
-  , mDispatchToContent(false)
-{
-}
+    : mAction(aAction),
+      mKeyCode(aKeyCode),
+      mCharCode(aCharCode),
+      mModifiers(aModifiers),
+      mModifiersMask(aModifiersMask),
+      mEventType(aEventType),
+      mDispatchToContent(false) {}
 
 KeyboardShortcut::KeyboardShortcut(KeyboardInput::KeyboardEventType aEventType,
-                                   uint32_t aKeyCode,
-                                   uint32_t aCharCode,
+                                   uint32_t aKeyCode, uint32_t aCharCode,
                                    Modifiers aModifiers,
                                    Modifiers aModifiersMask)
-  : mKeyCode(aKeyCode)
-  , mCharCode(aCharCode)
-  , mModifiers(aModifiers)
-  , mModifiersMask(aModifiersMask)
-  , mEventType(aEventType)
-  , mDispatchToContent(true)
-{
-}
+    : mKeyCode(aKeyCode),
+      mCharCode(aCharCode),
+      mModifiers(aModifiers),
+      mModifiersMask(aModifiersMask),
+      mEventType(aEventType),
+      mDispatchToContent(true) {}
 
-/* static */ void
-KeyboardShortcut::AppendHardcodedShortcuts(nsTArray<KeyboardShortcut>& aShortcuts)
-{
+/* static */ void KeyboardShortcut::AppendHardcodedShortcuts(
+    nsTArray<KeyboardShortcut>& aShortcuts) {
   // Tab
   KeyboardShortcut tab1;
   tab1.mDispatchToContent = true;
@@ -69,20 +60,15 @@ KeyboardShortcut::AppendHardcodedShortcuts(nsTArray<KeyboardShortcut>& aShortcut
   aShortcuts.AppendElement(tab2);
 }
 
-bool
-KeyboardShortcut::Matches(const KeyboardInput& aInput,
-                          const IgnoreModifierState& aIgnore,
-                          uint32_t aOverrideCharCode) const
-{
-  return mEventType == aInput.mType &&
-         MatchesKey(aInput, aOverrideCharCode) &&
+bool KeyboardShortcut::Matches(const KeyboardInput& aInput,
+                               const IgnoreModifierState& aIgnore,
+                               uint32_t aOverrideCharCode) const {
+  return mEventType == aInput.mType && MatchesKey(aInput, aOverrideCharCode) &&
          MatchesModifiers(aInput, aIgnore);
 }
 
-bool
-KeyboardShortcut::MatchesKey(const KeyboardInput& aInput,
-                             uint32_t aOverrideCharCode) const
-{
+bool KeyboardShortcut::MatchesKey(const KeyboardInput& aInput,
+                                  uint32_t aOverrideCharCode) const {
   // Compare by the key code if we have one
   if (!mCharCode) {
     return mKeyCode == aInput.mKeyCode;
@@ -107,10 +93,8 @@ KeyboardShortcut::MatchesKey(const KeyboardInput& aInput,
   return mCharCode == charCode;
 }
 
-bool
-KeyboardShortcut::MatchesModifiers(const KeyboardInput& aInput,
-                                   const IgnoreModifierState& aIgnore) const
-{
+bool KeyboardShortcut::MatchesModifiers(
+    const KeyboardInput& aInput, const IgnoreModifierState& aIgnore) const {
   Modifiers modifiersMask = mModifiersMask;
 
   // If we are ignoring Shift or OS, then unset that part of the mask
@@ -126,17 +110,12 @@ KeyboardShortcut::MatchesModifiers(const KeyboardInput& aInput,
 }
 
 KeyboardMap::KeyboardMap(nsTArray<KeyboardShortcut>&& aShortcuts)
-  : mShortcuts(aShortcuts)
-{
-}
+    : mShortcuts(aShortcuts) {}
 
-KeyboardMap::KeyboardMap()
-{
-}
+KeyboardMap::KeyboardMap() {}
 
-Maybe<KeyboardShortcut>
-KeyboardMap::FindMatch(const KeyboardInput& aEvent) const
-{
+Maybe<KeyboardShortcut> KeyboardMap::FindMatch(
+    const KeyboardInput& aEvent) const {
   // If there are no shortcut candidates, then just search with with the
   // keyboard input
   if (aEvent.mShortcutCandidates.IsEmpty()) {
@@ -156,11 +135,9 @@ KeyboardMap::FindMatch(const KeyboardInput& aEvent) const
   return Nothing();
 }
 
-Maybe<KeyboardShortcut>
-KeyboardMap::FindMatchInternal(const KeyboardInput& aEvent,
-                               const IgnoreModifierState& aIgnore,
-                               uint32_t aOverrideCharCode) const
-{
+Maybe<KeyboardShortcut> KeyboardMap::FindMatchInternal(
+    const KeyboardInput& aEvent, const IgnoreModifierState& aIgnore,
+    uint32_t aOverrideCharCode) const {
   for (auto& shortcut : mShortcuts) {
     if (shortcut.Matches(aEvent, aIgnore, aOverrideCharCode)) {
       return Some(shortcut);
@@ -182,5 +159,5 @@ KeyboardMap::FindMatchInternal(const KeyboardInput& aEvent,
   return Nothing();
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

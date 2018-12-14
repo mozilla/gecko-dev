@@ -26,46 +26,42 @@ namespace wasm {
 
 // Describes the JS scripted caller of a request to compile a wasm module.
 
-struct ScriptedCaller
-{
-    UniqueChars filename;
-    unsigned line;
-    unsigned column;
+struct ScriptedCaller {
+  UniqueChars filename;
+  unsigned line;
+  unsigned column;
 };
 
-struct ResponseURLs
-{
-    UniqueChars baseURL;
-    UniqueChars sourceMapURL;
+struct ResponseURLs {
+  UniqueChars baseURL;
+  UniqueChars sourceMapURL;
 };
 
 // Describes all the parameters that control wasm compilation.
 
-struct CompileArgs : ShareableBase<CompileArgs>
-{
-    Assumptions assumptions;
-    ScriptedCaller scriptedCaller;
-    ResponseURLs responseURLs;
-    bool baselineEnabled;
-    bool debugEnabled;
-    bool ionEnabled;
-    bool sharedMemoryEnabled;
-    bool testTiering;
+struct CompileArgs : ShareableBase<CompileArgs> {
+  Assumptions assumptions;
+  ScriptedCaller scriptedCaller;
+  ResponseURLs responseURLs;
+  bool baselineEnabled;
+  bool debugEnabled;
+  bool ionEnabled;
+  bool sharedMemoryEnabled;
+  bool testTiering;
 
-    CompileArgs(Assumptions&& assumptions, ScriptedCaller&& scriptedCaller)
+  CompileArgs(Assumptions&& assumptions, ScriptedCaller&& scriptedCaller)
       : assumptions(Move(assumptions)),
         scriptedCaller(Move(scriptedCaller)),
         baselineEnabled(false),
         debugEnabled(false),
         ionEnabled(false),
         sharedMemoryEnabled(false),
-        testTiering(false)
-    {}
+        testTiering(false) {}
 
-    // If CompileArgs is constructed without arguments, initFromContext() must
-    // be called to complete initialization.
-    CompileArgs() = default;
-    bool initFromContext(JSContext* cx, ScriptedCaller&& scriptedCaller);
+  // If CompileArgs is constructed without arguments, initFromContext() must
+  // be called to complete initialization.
+  CompileArgs() = default;
+  bool initFromContext(JSContext* cx, ScriptedCaller&& scriptedCaller);
 };
 
 typedef RefPtr<CompileArgs> MutableCompileArgs;
@@ -74,8 +70,7 @@ typedef RefPtr<const CompileArgs> SharedCompileArgs;
 // Return the estimated compiled (machine) code size for the given bytecode size
 // compiled at the given tier.
 
-double
-EstimateCompiledCodeSize(Tier tier, size_t bytecodeSize);
+double EstimateCompiledCodeSize(Tier tier, size_t bytecodeSize);
 
 // Compile the given WebAssembly bytecode with the given arguments into a
 // wasm::Module. On success, the Module is returned. On failure, the returned
@@ -83,14 +78,14 @@ EstimateCompiledCodeSize(Tier tier, size_t bytecodeSize);
 //  - *error points to a string description of the error
 //  - *error is null and the caller should report out-of-memory.
 
-SharedModule
-CompileBuffer(const CompileArgs& args, const ShareableBytes& bytecode, UniqueChars* error);
+SharedModule CompileBuffer(const CompileArgs& args,
+                           const ShareableBytes& bytecode, UniqueChars* error);
 
-// Attempt to compile the second tier of the given wasm::Module, returning whether
-// tier-2 compilation succeeded and Module::finishTier2 was called.
+// Attempt to compile the second tier of the given wasm::Module, returning
+// whether tier-2 compilation succeeded and Module::finishTier2 was called.
 
-bool
-CompileTier2(const CompileArgs& args, Module& module, Atomic<bool>* cancelled);
+bool CompileTier2(const CompileArgs& args, Module& module,
+                  Atomic<bool>* cancelled);
 
 // Compile the given WebAssembly module which has been broken into three
 // partitions:
@@ -112,16 +107,14 @@ CompileTier2(const CompileArgs& args, Module& module, Atomic<bool>* cancelled);
 typedef ExclusiveWaitableData<const uint8_t*> ExclusiveStreamEnd;
 typedef ExclusiveWaitableData<const Bytes*> ExclusiveTailBytesPtr;
 
-SharedModule
-CompileStreaming(const CompileArgs& args,
-                 const Bytes& envBytes,
-                 const Bytes& codeBytes,
-                 const ExclusiveStreamEnd& codeStreamEnd,
-                 const ExclusiveTailBytesPtr& tailBytesPtr,
-                 const Atomic<bool>& cancelled,
-                 UniqueChars* error);
+SharedModule CompileStreaming(const CompileArgs& args, const Bytes& envBytes,
+                              const Bytes& codeBytes,
+                              const ExclusiveStreamEnd& codeStreamEnd,
+                              const ExclusiveTailBytesPtr& tailBytesPtr,
+                              const Atomic<bool>& cancelled,
+                              UniqueChars* error);
 
 }  // namespace wasm
 }  // namespace js
 
-#endif // namespace wasm_compile_h
+#endif  // namespace wasm_compile_h

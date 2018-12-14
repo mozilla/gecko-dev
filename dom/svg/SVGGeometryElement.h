@@ -23,8 +23,8 @@ struct nsSVGMark {
 
   float x, y, angle;
   Type type;
-  nsSVGMark(float aX, float aY, float aAngle, Type aType) :
-    x(aX), y(aY), angle(aAngle), type(aType) {}
+  nsSVGMark(float aX, float aY, float aAngle, Type aType)
+      : x(aX), y(aY), angle(aAngle), type(aType) {}
 };
 
 namespace mozilla {
@@ -34,9 +34,8 @@ class SVGAnimatedNumber;
 
 typedef mozilla::dom::SVGGraphicsElement SVGGeometryElementBase;
 
-class SVGGeometryElement : public SVGGeometryElementBase
-{
-protected:
+class SVGGeometryElement : public SVGGeometryElementBase {
+ protected:
   typedef mozilla::gfx::CapStyle CapStyle;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::FillRule FillRule;
@@ -48,8 +47,9 @@ protected:
   typedef mozilla::gfx::Rect Rect;
   typedef mozilla::gfx::StrokeOptions StrokeOptions;
 
-public:
-  explicit SVGGeometryElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+ public:
+  explicit SVGGeometryElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
@@ -61,25 +61,23 @@ public:
    * Causes this element to discard any Path object that GetOrBuildPath may
    * have cached.
    */
-  void ClearAnyCachedPath() final {
-    mCachedPath = nullptr;
-  }
+  void ClearAnyCachedPath() final { mCachedPath = nullptr; }
 
-  virtual bool AttributeDefinesGeometry(const nsAtom *aName);
+  virtual bool AttributeDefinesGeometry(const nsAtom* aName);
 
   /**
-   * Returns true if this element's geometry depends on the width or height of its
-   * coordinate context (typically the viewport established by its nearest <svg>
-   * ancestor). In other words, returns true if one of the attributes for which
-   * AttributeDefinesGeometry returns true has a percentage value.
+   * Returns true if this element's geometry depends on the width or height of
+   * its coordinate context (typically the viewport established by its nearest
+   * <svg> ancestor). In other words, returns true if one of the attributes for
+   * which AttributeDefinesGeometry returns true has a percentage value.
    *
-   * This could be moved up to a more general class so it can be used for non-leaf
-   * elements, but that would require care and for now there's no need.
+   * This could be moved up to a more general class so it can be used for
+   * non-leaf elements, but that would require care and for now there's no need.
    */
   bool GeometryDependsOnCoordCtx();
 
   virtual bool IsMarkable();
-  virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks);
+  virtual void GetMarkPoints(nsTArray<nsSVGMark>* aMarks);
 
   /**
    * A method that can be faster than using a Moz2D Path and calling GetBounds/
@@ -98,24 +96,20 @@ public:
    * If |aToNonScalingStrokeSpace| is non-null then |*aToNonScalingStrokeSpace|
    * must be non-singular.
    */
-  virtual bool GetGeometryBounds(Rect* aBounds, const StrokeOptions& aStrokeOptions,
-                                 const Matrix& aToBoundsSpace,
-                                 const Matrix* aToNonScalingStrokeSpace = nullptr) {
+  virtual bool GetGeometryBounds(
+      Rect* aBounds, const StrokeOptions& aStrokeOptions,
+      const Matrix& aToBoundsSpace,
+      const Matrix* aToNonScalingStrokeSpace = nullptr) {
     return false;
   }
 
   /**
    * For use with GetAsSimplePath.
    */
-  class SimplePath
-  {
-  public:
-    SimplePath()
-      : mType(NONE)
-    {}
-    bool IsPath() const {
-      return mType != NONE;
-    }
+  class SimplePath {
+   public:
+    SimplePath() : mType(NONE) {}
+    bool IsPath() const { return mType != NONE; }
     void SetRect(Float x, Float y, Float width, Float height) {
       mX = x;
       mY = y;
@@ -127,9 +121,7 @@ public:
       MOZ_ASSERT(mType == RECT);
       return Rect(mX, mY, mWidthOrX2, mHeightOrY2);
     }
-    bool IsRect() const {
-      return mType == RECT;
-    }
+    bool IsRect() const { return mType == RECT; }
     void SetLine(Float x1, Float y1, Float x2, Float y2) {
       mX = x1;
       mY = y1;
@@ -145,16 +137,11 @@ public:
       MOZ_ASSERT(mType == LINE);
       return Point(mWidthOrX2, mHeightOrY2);
     }
-    bool IsLine() const {
-      return mType == LINE;
-    }
-    void Reset() {
-      mType = NONE;
-    }
-  private:
-    enum Type {
-      NONE, RECT, LINE
-    };
+    bool IsLine() const { return mType == LINE; }
+    void Reset() { mType = NONE; }
+
+   private:
+    enum Type { NONE, RECT, LINE };
     Float mX, mY, mWidthOrX2, mHeightOrY2;
     Type mType;
   };
@@ -210,10 +197,10 @@ public:
   // WebIDL
   already_AddRefed<SVGAnimatedNumber> PathLength();
   float GetTotalLength();
-  already_AddRefed<nsISVGPoint>
-    GetPointAtLength(float distance, ErrorResult& rv);
+  already_AddRefed<nsISVGPoint> GetPointAtLength(float distance,
+                                                 ErrorResult& rv);
 
-protected:
+ protected:
   // nsSVGElement method
   virtual NumberAttributesInfo GetNumberInfo() override;
 
@@ -222,7 +209,7 @@ protected:
   mutable RefPtr<Path> mCachedPath;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGGeometryElement_h
+#endif  // mozilla_dom_SVGGeometryElement_h

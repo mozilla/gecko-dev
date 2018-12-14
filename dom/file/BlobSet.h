@@ -17,9 +17,8 @@ namespace dom {
 
 class BlobImpl;
 
-class BlobSet final
-{
-public:
+class BlobSet final {
+ public:
   nsresult AppendVoidPtr(const void* aData, uint32_t aLength);
 
   nsresult AppendString(const nsAString& aString, bool nativeEOL);
@@ -28,11 +27,11 @@ public:
 
   nsTArray<RefPtr<BlobImpl>>& GetBlobImpls() { return mBlobImpls; }
 
-private:
+ private:
   nsTArray<RefPtr<BlobImpl>> mBlobImpls;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_BlobSet_h
+#endif  // mozilla_dom_BlobSet_h

@@ -17,9 +17,8 @@
 class nsNPAPIPluginInstance;
 class nsIWidget;
 
-class nsIObjectFrame : public nsQueryFrame
-{
-public:
+class nsIObjectFrame : public nsQueryFrame {
+ public:
   NS_DECL_QUERYFRAME_TARGET(nsIObjectFrame)
 
   NS_IMETHOD GetPluginInstance(nsNPAPIPluginInstance** aPluginInstance) = 0;

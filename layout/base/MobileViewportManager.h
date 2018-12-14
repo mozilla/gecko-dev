@@ -18,16 +18,14 @@ class nsIDocument;
 class nsIPresShell;
 class nsViewportInfo;
 
-class MobileViewportManager final : public nsIDOMEventListener
-                                  , public nsIObserver
-{
-public:
+class MobileViewportManager final : public nsIDOMEventListener,
+                                    public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
   NS_DECL_NSIOBSERVER
 
-  MobileViewportManager(nsIPresShell* aPresShell,
-                        nsIDocument* aDocument);
+  MobileViewportManager(nsIPresShell* aPresShell, nsIDocument* aDocument);
   void Destroy();
 
   /* Provide a resolution to use during the first paint instead of the default
@@ -39,10 +37,10 @@ public:
   void SetRestoreResolution(float aResolution,
                             mozilla::LayoutDeviceIntSize aDisplaySize);
 
-private:
+ private:
   void SetRestoreResolution(float aResolution);
 
-public:
+ public:
   /* Notify the MobileViewportManager that a reflow was requested in the
    * presShell.*/
   void RequestReflow();
@@ -51,7 +49,7 @@ public:
    * updated, and the SPCSPS needs to be updated. */
   void ResolutionUpdated();
 
-private:
+ private:
   ~MobileViewportManager();
 
   /* Called to compute the initial viewport on page load or before-first-paint,
@@ -69,28 +67,32 @@ private:
   mozilla::CSSToScreenScale ClampZoom(const mozilla::CSSToScreenScale& aZoom,
                                       const nsViewportInfo& aViewportInfo);
 
-  /* Helper to update the given resolution according to changed display and viewport widths. */
-  mozilla::LayoutDeviceToLayerScale
-  ScaleResolutionWithDisplayWidth(const mozilla::LayoutDeviceToLayerScale& aRes,
-                                  const float& aDisplayWidthChangeRatio,
-                                  const mozilla::CSSSize& aNewViewport,
-                                  const mozilla::CSSSize& aOldViewport);
+  /* Helper to update the given resolution according to changed display and
+   * viewport widths. */
+  mozilla::LayoutDeviceToLayerScale ScaleResolutionWithDisplayWidth(
+      const mozilla::LayoutDeviceToLayerScale& aRes,
+      const float& aDisplayWidthChangeRatio,
+      const mozilla::CSSSize& aNewViewport,
+      const mozilla::CSSSize& aOldViewport);
 
   /* Updates the presShell resolution and returns the new zoom. */
-  mozilla::CSSToScreenScale UpdateResolution(const nsViewportInfo& aViewportInfo,
-                                             const mozilla::ScreenIntSize& aDisplaySize,
-                                             const mozilla::CSSSize& aViewport,
-                                             const mozilla::Maybe<float>& aDisplayWidthChangeRatio);
+  mozilla::CSSToScreenScale UpdateResolution(
+      const nsViewportInfo& aViewportInfo,
+      const mozilla::ScreenIntSize& aDisplaySize,
+      const mozilla::CSSSize& aViewport,
+      const mozilla::Maybe<float>& aDisplayWidthChangeRatio);
 
   /* Updates the scroll-position-clamping scrollport size */
   void UpdateSPCSPS(const mozilla::ScreenIntSize& aDisplaySize,
                     const mozilla::CSSToScreenScale& aZoom);
 
-  /* Updates the displayport margins for the presShell's root scrollable frame */
+  /* Updates the displayport margins for the presShell's root scrollable frame
+   */
   void UpdateDisplayPortMargins();
 
   nsCOMPtr<nsIDocument> mDocument;
-  nsIPresShell* MOZ_NON_OWNING_REF mPresShell; // raw ref since the presShell owns this
+  nsIPresShell* MOZ_NON_OWNING_REF
+      mPresShell;  // raw ref since the presShell owns this
   nsCOMPtr<nsIDOMEventTarget> mEventTarget;
   bool mIsFirstPaint;
   bool mPainted;

@@ -20,32 +20,25 @@ namespace mozilla {
 namespace gfx {
 
 PrintTargetEMF::PrintTargetEMF(HDC aDC, const IntSize& aSize)
-  : PrintTarget(/* not using cairo_surface_t */ nullptr, aSize)
-  , mPDFiumProcess(nullptr)
-  , mPrinterDC(aDC)
-  , mChannelBroken(false)
-{
-}
+    : PrintTarget(/* not using cairo_surface_t */ nullptr, aSize),
+      mPDFiumProcess(nullptr),
+      mPrinterDC(aDC),
+      mChannelBroken(false) {}
 
-PrintTargetEMF::~PrintTargetEMF()
-{
+PrintTargetEMF::~PrintTargetEMF() {
   if (mPDFiumProcess) {
     mPDFiumProcess->Delete();
   }
 }
 
-/* static */ already_AddRefed<PrintTargetEMF>
-PrintTargetEMF::CreateOrNull(HDC aDC, const IntSize& aSizeInPoints)
-{
+/* static */ already_AddRefed<PrintTargetEMF> PrintTargetEMF::CreateOrNull(
+    HDC aDC, const IntSize& aSizeInPoints) {
   return do_AddRef(new PrintTargetEMF(aDC, aSizeInPoints));
 }
 
-nsresult
-PrintTargetEMF::BeginPrinting(const nsAString& aTitle,
-                              const nsAString& aPrintToFileName,
-                              int32_t aStartPage,
-                              int32_t aEndPage)
-{
+nsresult PrintTargetEMF::BeginPrinting(const nsAString& aTitle,
+                                       const nsAString& aPrintToFileName,
+                                       int32_t aStartPage, int32_t aEndPage) {
   mTitle = aTitle;
 
   const uint32_t DOC_TITLE_LENGTH = MAX_PATH - 1;
@@ -60,7 +53,8 @@ PrintTargetEMF::BeginPrinting(const nsAString& aTitle,
 
   nsString docName(aPrintToFileName);
   docinfo.cbSize = sizeof(docinfo);
-  docinfo.lpszDocName = titleStr.Length() > 0 ? titleStr.get() : L"Mozilla Document";
+  docinfo.lpszDocName =
+      titleStr.Length() > 0 ? titleStr.get() : L"Mozilla Document";
   docinfo.lpszOutput = docName.Length() > 0 ? docName.get() : nullptr;
   docinfo.lpszDatatype = nullptr;
   docinfo.fwType = 0;
@@ -75,30 +69,24 @@ PrintTargetEMF::BeginPrinting(const nsAString& aTitle,
   return NS_OK;
 }
 
-nsresult
-PrintTargetEMF::EndPrinting()
-{
+nsresult PrintTargetEMF::EndPrinting() {
   mPDFiumProcess->GetActor()->EndConversion();
   return (::EndDoc(mPrinterDC) <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
-nsresult
-PrintTargetEMF::AbortPrinting()
-{
+nsresult PrintTargetEMF::AbortPrinting() {
   return (::AbortDoc(mPrinterDC) <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
-nsresult
-PrintTargetEMF::BeginPage()
-{
+nsresult PrintTargetEMF::BeginPage() {
   MOZ_ASSERT(!mPDFFileForOnePage && !mTargetForCurrentPage);
   NS_ENSURE_TRUE(!mChannelBroken, NS_ERROR_FAILURE);
-  NS_ENSURE_TRUE(::StartPage(mPrinterDC) >0, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(::StartPage(mPrinterDC) > 0, NS_ERROR_FAILURE);
 
   // We create a new file for each page so that we can make sure each new
   // mPDFFileForOnePage contains one single page.
   nsresult rv =
-   NS_OpenAnonymousTemporaryNsIFile(getter_AddRefs(mPDFFileForOnePage));
+      NS_OpenAnonymousTemporaryNsIFile(getter_AddRefs(mPDFFileForOnePage));
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
   nsAutoCString filePath;
@@ -111,7 +99,7 @@ PrintTargetEMF::BeginPage()
 #else
   mPDFFileForOnePage->GetNativePath(filePath);
 #endif
-  auto  stream = MakeUnique<SkFILEWStream>(filePath.get());
+  auto stream = MakeUnique<SkFILEWStream>(filePath.get());
 
   // Creating a new PrintTargetSkPDF for each page so that we can convert each
   // of them into EMF contents individually by the PDFium processes.
@@ -122,9 +110,7 @@ PrintTargetEMF::BeginPage()
   return NS_OK;
 }
 
-nsresult
-PrintTargetEMF::EndPage()
-{
+nsresult PrintTargetEMF::EndPage() {
   NS_ENSURE_TRUE(!mChannelBroken, NS_ERROR_FAILURE);
 
   mTargetForCurrentPage->EndPage();
@@ -133,14 +119,14 @@ PrintTargetEMF::EndPage()
   mTargetForCurrentPage = nullptr;
 
   PRFileDesc* prfile;
-  nsresult rv = mPDFFileForOnePage->OpenNSPRFileDesc(PR_RDONLY, PR_IRWXU,
-                                                     &prfile);
+  nsresult rv =
+      mPDFFileForOnePage->OpenNSPRFileDesc(PR_RDONLY, PR_IRWXU, &prfile);
   NS_ENSURE_SUCCESS(rv, rv);
-  FileDescriptor descriptor(FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(prfile)));
-  if (!mPDFiumProcess->GetActor()->SendConvertToEMF(descriptor,
-                                        ::GetDeviceCaps(mPrinterDC, HORZRES),
-                                        ::GetDeviceCaps(mPrinterDC, VERTRES)))
-  {
+  FileDescriptor descriptor(
+      FileDescriptor::PlatformHandleType(PR_FileDesc2NativeHandle(prfile)));
+  if (!mPDFiumProcess->GetActor()->SendConvertToEMF(
+          descriptor, ::GetDeviceCaps(mPrinterDC, HORZRES),
+          ::GetDeviceCaps(mPrinterDC, VERTRES))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -149,17 +135,13 @@ PrintTargetEMF::EndPage()
   return NS_OK;
 }
 
-already_AddRefed<DrawTarget>
-PrintTargetEMF::MakeDrawTarget(const IntSize& aSize,
-                               DrawEventRecorder* aRecorder)
-{
+already_AddRefed<DrawTarget> PrintTargetEMF::MakeDrawTarget(
+    const IntSize& aSize, DrawEventRecorder* aRecorder) {
   MOZ_ASSERT(!mChannelBroken);
   return mTargetForCurrentPage->MakeDrawTarget(aSize, aRecorder);
 }
 
-already_AddRefed<DrawTarget>
-PrintTargetEMF::GetReferenceDrawTarget()
-{
+already_AddRefed<DrawTarget> PrintTargetEMF::GetReferenceDrawTarget() {
   if (!mRefTarget) {
     auto dummy = MakeUnique<SkNullWStream>();
     mRefTarget = PrintTargetSkPDF::CreateOrNull(Move(dummy), mSize);
@@ -172,13 +154,12 @@ PrintTargetEMF::GetReferenceDrawTarget()
   return mRefDT.forget();
 }
 
-void
-PrintTargetEMF::ConvertToEMFDone(const nsresult& aResult,
-                                 mozilla::ipc::Shmem&& aEMF)
-{
+void PrintTargetEMF::ConvertToEMFDone(const nsresult& aResult,
+                                      mozilla::ipc::Shmem&& aEMF) {
   MOZ_ASSERT_IF(NS_FAILED(aResult), aEMF.Size<uint8_t>() == 0);
-  MOZ_ASSERT(!mChannelBroken, "It is not possible to get conversion callback "
-                              "after the channel was broken.");
+  MOZ_ASSERT(!mChannelBroken,
+             "It is not possible to get conversion callback "
+             "after the channel was broken.");
 
   if (NS_SUCCEEDED(aResult)) {
     if (::StartPage(mPrinterDC) > 0) {
@@ -203,5 +184,5 @@ PrintTargetEMF::ConvertToEMFDone(const nsresult& aResult,
   }
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

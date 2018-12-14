@@ -16,56 +16,47 @@
 //
 
 class nsMathMLmrootFrame : public nsMathMLContainerFrame {
-public:
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmrootFrame)
 
-  friend nsIFrame* NS_NewMathMLmrootFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+  friend nsIFrame* NS_NewMathMLmrootFrame(nsIPresShell* aPresShell,
+                                          nsStyleContext* aContext);
 
-  virtual void
-  SetAdditionalStyleContext(int32_t          aIndex,
-                            nsStyleContext*  aStyleContext) override;
-  virtual nsStyleContext*
-  GetAdditionalStyleContext(int32_t aIndex) const override;
+  virtual void SetAdditionalStyleContext(
+      int32_t aIndex, nsStyleContext* aStyleContext) override;
+  virtual nsStyleContext* GetAdditionalStyleContext(
+      int32_t aIndex) const override;
 
-  virtual void
-  Init(nsIContent*       aContent,
-       nsContainerFrame* aParent,
-       nsIFrame*         aPrevInFlow) override;
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* aPrevInFlow) override;
 
   NS_IMETHOD
   TransmitAutomaticData() override;
 
-  virtual void
-  Reflow(nsPresContext*          aPresContext,
-         ReflowOutput&     aDesiredSize,
-         const ReflowInput& aReflowInput,
-         nsReflowStatus&          aStatus) override;
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus& aStatus) override;
 
-  void
-  GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
-                     nsFontMetrics* aFontMetrics,
-                     nscoord* aIndexOffset,
-                     nscoord* aSqrOffset);
+  void GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
+                          nsFontMetrics* aFontMetrics, nscoord* aIndexOffset,
+                          nscoord* aSqrOffset);
 
-  virtual void
-  GetIntrinsicISizeMetrics(gfxContext* aRenderingContext,
-                           ReflowOutput& aDesiredSize) override;
+  virtual void GetIntrinsicISizeMetrics(gfxContext* aRenderingContext,
+                                        ReflowOutput& aDesiredSize) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
-  uint8_t
-  ScriptIncrement(nsIFrame* aFrame) override
-  {
+  uint8_t ScriptIncrement(nsIFrame* aFrame) override {
     return (aFrame && aFrame == mFrames.LastChild()) ? 2 : 0;
   }
 
-protected:
+ protected:
   explicit nsMathMLmrootFrame(nsStyleContext* aContext);
   virtual ~nsMathMLmrootFrame();
 
   nsMathMLChar mSqrChar;
-  nsRect       mBarRect;
+  nsRect mBarRect;
 };
 
 #endif /* nsMathMLmrootFrame_h___ */

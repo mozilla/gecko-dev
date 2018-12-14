@@ -21,16 +21,14 @@ using namespace mozilla::dom;
  ****************************************************************/
 
 nsAutoWindowStateHelper::nsAutoWindowStateHelper(nsPIDOMWindowOuter* aWindow)
-  : mWindow(aWindow)
-  , mDefaultEnabled(DispatchEventToChrome("DOMWillOpenModalDialog"))
-{
+    : mWindow(aWindow),
+      mDefaultEnabled(DispatchEventToChrome("DOMWillOpenModalDialog")) {
   if (mWindow) {
     mWindow->EnterModalState();
   }
 }
 
-nsAutoWindowStateHelper::~nsAutoWindowStateHelper()
-{
+nsAutoWindowStateHelper::~nsAutoWindowStateHelper() {
   if (mWindow) {
     mWindow->LeaveModalState();
   }
@@ -40,9 +38,7 @@ nsAutoWindowStateHelper::~nsAutoWindowStateHelper()
   }
 }
 
-bool
-nsAutoWindowStateHelper::DispatchEventToChrome(const char* aEventName)
-{
+bool nsAutoWindowStateHelper::DispatchEventToChrome(const char* aEventName) {
   // XXXbz should we skip dispatching the event if the inner changed?
   // That is, should we store both the inner and the outer?
   if (!mWindow) {
@@ -57,8 +53,8 @@ nsAutoWindowStateHelper::DispatchEventToChrome(const char* aEventName)
   }
 
   ErrorResult rv;
-  RefPtr<Event> event = doc->CreateEvent(NS_LITERAL_STRING("Events"),
-                                         CallerType::System, rv);
+  RefPtr<Event> event =
+      doc->CreateEvent(NS_LITERAL_STRING("Events"), CallerType::System, rv);
   if (rv.Failed()) {
     rv.SuppressException();
     return false;

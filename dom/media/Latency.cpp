@@ -16,56 +16,46 @@
 
 using namespace mozilla;
 
-const char* LatencyLogIndex2Strings[] = {
-  "Audio MediaStreamTrack",
-  "Video MediaStreamTrack",
-  "Cubeb",
-  "AudioStream",
-  "NetEQ",
-  "AudioCapture Base",
-  "AudioCapture Samples",
-  "AudioTrackInsertion",
-  "MediaPipeline Audio Insertion",
-  "AudioTransmit",
-  "AudioReceive",
-  "MediaPipelineAudioPlayout",
-  "MediaStream Create",
-  "AudioStream Create",
-  "AudioSendRTP",
-  "AudioRecvRTP"
-};
+const char* LatencyLogIndex2Strings[] = {"Audio MediaStreamTrack",
+                                         "Video MediaStreamTrack",
+                                         "Cubeb",
+                                         "AudioStream",
+                                         "NetEQ",
+                                         "AudioCapture Base",
+                                         "AudioCapture Samples",
+                                         "AudioTrackInsertion",
+                                         "MediaPipeline Audio Insertion",
+                                         "AudioTransmit",
+                                         "AudioReceive",
+                                         "MediaPipelineAudioPlayout",
+                                         "MediaStream Create",
+                                         "AudioStream Create",
+                                         "AudioSendRTP",
+                                         "AudioRecvRTP"};
 
 static StaticRefPtr<AsyncLatencyLogger> gAsyncLogger;
 
-LogModule*
-GetLatencyLog()
-{
+LogModule* GetLatencyLog() {
   static LazyLogModule sLog("MediaLatency");
   return sLog;
 }
 
-class LogEvent : public Runnable
-{
-public:
-  LogEvent(AsyncLatencyLogger::LatencyLogIndex aIndex,
-           uint64_t aID,
-           int64_t aValue,
-           TimeStamp aTimeStamp)
-    : mozilla::Runnable("LogEvent")
-    , mIndex(aIndex)
-    , mID(aID)
-    , mValue(aValue)
-    , mTimeStamp(aTimeStamp)
-  {}
-  LogEvent(AsyncLatencyLogger::LatencyLogIndex aIndex,
-           uint64_t aID,
+class LogEvent : public Runnable {
+ public:
+  LogEvent(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID,
+           int64_t aValue, TimeStamp aTimeStamp)
+      : mozilla::Runnable("LogEvent"),
+        mIndex(aIndex),
+        mID(aID),
+        mValue(aValue),
+        mTimeStamp(aTimeStamp) {}
+  LogEvent(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID,
            int64_t aValue)
-    : mozilla::Runnable("LogEvent")
-    , mIndex(aIndex)
-    , mID(aID)
-    , mValue(aValue)
-    , mTimeStamp(TimeStamp())
-  {}
+      : mozilla::Runnable("LogEvent"),
+        mIndex(aIndex),
+        mID(aID),
+        mValue(aValue),
+        mTimeStamp(TimeStamp()) {}
   ~LogEvent() {}
 
   NS_IMETHOD Run() override {
@@ -73,62 +63,58 @@ public:
     return NS_OK;
   }
 
-protected:
+ protected:
   AsyncLatencyLogger::LatencyLogIndex mIndex;
   uint64_t mID;
   int64_t mValue;
   TimeStamp mTimeStamp;
 };
 
-void LogLatency(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID, int64_t aValue)
-{
+void LogLatency(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID,
+                int64_t aValue) {
   AsyncLatencyLogger::Get()->Log(aIndex, aID, aValue);
 }
 
-void LogTime(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID, int64_t aValue)
-{
+void LogTime(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID,
+             int64_t aValue) {
   TimeStamp now = TimeStamp::Now();
   AsyncLatencyLogger::Get()->Log(aIndex, aID, aValue, now);
 }
 
-void LogTime(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID, int64_t aValue, TimeStamp &aTime)
-{
+void LogTime(AsyncLatencyLogger::LatencyLogIndex aIndex, uint64_t aID,
+             int64_t aValue, TimeStamp& aTime) {
   AsyncLatencyLogger::Get()->Log(aIndex, aID, aValue, aTime);
 }
 
-void LogTime(uint32_t aIndex, uint64_t aID, int64_t aValue)
-{
-  LogTime(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID, aValue);
+void LogTime(uint32_t aIndex, uint64_t aID, int64_t aValue) {
+  LogTime(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID,
+          aValue);
 }
-void LogTime(uint32_t aIndex, uint64_t aID, int64_t aValue, TimeStamp &aTime)
-{
-  LogTime(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID, aValue, aTime);
+void LogTime(uint32_t aIndex, uint64_t aID, int64_t aValue, TimeStamp& aTime) {
+  LogTime(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID, aValue,
+          aTime);
 }
-void LogLatency(uint32_t aIndex, uint64_t aID, int64_t aValue)
-{
-  LogLatency(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID, aValue);
+void LogLatency(uint32_t aIndex, uint64_t aID, int64_t aValue) {
+  LogLatency(static_cast<AsyncLatencyLogger::LatencyLogIndex>(aIndex), aID,
+             aValue);
 }
 
 /* static */
-void AsyncLatencyLogger::InitializeStatics()
-{
+void AsyncLatencyLogger::InitializeStatics() {
   NS_ASSERTION(NS_IsMainThread(), "Main thread only");
 
-  //Make sure that the underlying logger is allocated.
+  // Make sure that the underlying logger is allocated.
   GetLatencyLog();
   gAsyncLogger = new AsyncLatencyLogger();
 }
 
 /* static */
-void AsyncLatencyLogger::ShutdownLogger()
-{
-  gAsyncLogger = nullptr;
-}
+void AsyncLatencyLogger::ShutdownLogger() { gAsyncLogger = nullptr; }
 
 /* static */
-AsyncLatencyLogger* AsyncLatencyLogger::Get(bool aStartTimer)
-{
-  // Users don't generally null-check the result since we should live longer than they
+AsyncLatencyLogger* AsyncLatencyLogger::Get(bool aStartTimer) {
+  // Users don't generally null-check the result since we should live longer
+  // than they
   MOZ_ASSERT(gAsyncLogger);
 
   if (aStartTimer) {
@@ -140,31 +126,24 @@ AsyncLatencyLogger* AsyncLatencyLogger::Get(bool aStartTimer)
 NS_IMPL_ISUPPORTS(AsyncLatencyLogger, nsIObserver)
 
 AsyncLatencyLogger::AsyncLatencyLogger()
-  : mThread(nullptr),
-    mMutex("AsyncLatencyLogger")
-{
+    : mThread(nullptr), mMutex("AsyncLatencyLogger") {
   NS_ASSERTION(NS_IsMainThread(), "Main thread only");
   nsContentUtils::RegisterShutdownObserver(this);
 }
 
-AsyncLatencyLogger::~AsyncLatencyLogger()
-{
-  AsyncLatencyLogger::Shutdown();
-}
+AsyncLatencyLogger::~AsyncLatencyLogger() { AsyncLatencyLogger::Shutdown(); }
 
-void AsyncLatencyLogger::Shutdown()
-{
+void AsyncLatencyLogger::Shutdown() {
   nsContentUtils::UnregisterShutdownObserver(this);
 
   MutexAutoLock lock(mMutex);
   if (mThread) {
     mThread->Shutdown();
   }
-  mStart = TimeStamp(); // make sure we don't try to restart it for any reason
+  mStart = TimeStamp();  // make sure we don't try to restart it for any reason
 }
 
-void AsyncLatencyLogger::Init()
-{
+void AsyncLatencyLogger::Init() {
   MutexAutoLock lock(mMutex);
   if (mStart.IsNull()) {
     nsresult rv = NS_NewNamedThread("Latency Logger", getter_AddRefs(mThread));
@@ -173,16 +152,13 @@ void AsyncLatencyLogger::Init()
   }
 }
 
-void AsyncLatencyLogger::GetStartTime(TimeStamp &aStart)
-{
+void AsyncLatencyLogger::GetStartTime(TimeStamp& aStart) {
   MutexAutoLock lock(mMutex);
   aStart = mStart;
 }
 
-nsresult
-AsyncLatencyLogger::Observe(nsISupports* aSubject, const char* aTopic,
-                            const char16_t* aData)
-{
+nsresult AsyncLatencyLogger::Observe(nsISupports* aSubject, const char* aTopic,
+                                     const char16_t* aData) {
   MOZ_ASSERT(NS_IsMainThread());
   if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
     Shutdown();
@@ -191,35 +167,34 @@ AsyncLatencyLogger::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 // aID is a sub-identifier (in particular a specific MediaStramTrack)
-void AsyncLatencyLogger::WriteLog(LatencyLogIndex aIndex, uint64_t aID, int64_t aValue,
-                                  TimeStamp aTimeStamp)
-{
+void AsyncLatencyLogger::WriteLog(LatencyLogIndex aIndex, uint64_t aID,
+                                  int64_t aValue, TimeStamp aTimeStamp) {
   if (aTimeStamp.IsNull()) {
     MOZ_LOG(GetLatencyLog(), LogLevel::Debug,
-      ("Latency: %s,%" PRIu64 ",%" PRId64 ",%" PRId64,
-       LatencyLogIndex2Strings[aIndex], aID, GetTimeStamp(), aValue));
+            ("Latency: %s,%" PRIu64 ",%" PRId64 ",%" PRId64,
+             LatencyLogIndex2Strings[aIndex], aID, GetTimeStamp(), aValue));
   } else {
     MOZ_LOG(GetLatencyLog(), LogLevel::Debug,
-      ("Latency: %s,%" PRIu64 ",%" PRId64 ",%" PRId64 ",%" PRId64,
-       LatencyLogIndex2Strings[aIndex], aID, GetTimeStamp(), aValue,
-       static_cast<int64_t>((aTimeStamp - gAsyncLogger->mStart).ToMilliseconds())));
+            ("Latency: %s,%" PRIu64 ",%" PRId64 ",%" PRId64 ",%" PRId64,
+             LatencyLogIndex2Strings[aIndex], aID, GetTimeStamp(), aValue,
+             static_cast<int64_t>(
+                 (aTimeStamp - gAsyncLogger->mStart).ToMilliseconds())));
   }
 }
 
-int64_t AsyncLatencyLogger::GetTimeStamp()
-{
+int64_t AsyncLatencyLogger::GetTimeStamp() {
   TimeDuration t = TimeStamp::Now() - mStart;
   return t.ToMilliseconds();
 }
 
-void AsyncLatencyLogger::Log(LatencyLogIndex aIndex, uint64_t aID, int64_t aValue)
-{
+void AsyncLatencyLogger::Log(LatencyLogIndex aIndex, uint64_t aID,
+                             int64_t aValue) {
   TimeStamp null;
   Log(aIndex, aID, aValue, null);
 }
 
-void AsyncLatencyLogger::Log(LatencyLogIndex aIndex, uint64_t aID, int64_t aValue, TimeStamp &aTime)
-{
+void AsyncLatencyLogger::Log(LatencyLogIndex aIndex, uint64_t aID,
+                             int64_t aValue, TimeStamp& aTime) {
   if (MOZ_LOG_TEST(GetLatencyLog(), LogLevel::Debug)) {
     nsCOMPtr<nsIRunnable> event = new LogEvent(aIndex, aID, aValue, aTime);
     if (mThread) {

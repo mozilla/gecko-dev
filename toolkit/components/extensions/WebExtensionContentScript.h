@@ -31,9 +31,8 @@ using ContentScriptInit = dom::WebExtensionContentScriptInit;
 
 class WebExtensionPolicy;
 
-class MOZ_STACK_CLASS DocInfo final
-{
-public:
+class MOZ_STACK_CLASS DocInfo final {
+ public:
   DocInfo(const URLInfo& aURL, nsILoadInfo* aLoadInfo);
 
   MOZ_IMPLICIT DocInfo(nsPIDOMWindowOuter* aWindow);
@@ -54,15 +53,14 @@ public:
 
   uint64_t FrameID() const;
 
-  nsPIDOMWindowOuter* GetWindow() const
-  {
+  nsPIDOMWindowOuter* GetWindow() const {
     if (mObj.is<Window>()) {
       return mObj.as<Window>();
     }
     return nullptr;
   }
 
-private:
+ private:
   void SetURL(const URLInfo& aURL);
 
   const URLInfo mURL;
@@ -79,36 +77,27 @@ private:
   const Variant<LoadInfo, Window> mObj;
 };
 
-
-class WebExtensionContentScript final : public nsISupports
-                                      , public nsWrapperCache
-{
+class WebExtensionContentScript final : public nsISupports,
+                                        public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WebExtensionContentScript)
-
 
   using MatchGlobArray = nsTArray<RefPtr<MatchGlob>>;
   using RunAtEnum = dom::ContentScriptRunAt;
 
-  static already_AddRefed<WebExtensionContentScript>
-  Constructor(dom::GlobalObject& aGlobal,
-              WebExtensionPolicy& aExtension,
-              const ContentScriptInit& aInit,
-              ErrorResult& aRv);
-
+  static already_AddRefed<WebExtensionContentScript> Constructor(
+      dom::GlobalObject& aGlobal, WebExtensionPolicy& aExtension,
+      const ContentScriptInit& aInit, ErrorResult& aRv);
 
   bool Matches(const DocInfo& aDoc) const;
   bool MatchesURI(const URLInfo& aURL) const;
 
-  bool MatchesLoadInfo(const URLInfo& aURL, nsILoadInfo* aLoadInfo) const
-  {
+  bool MatchesLoadInfo(const URLInfo& aURL, nsILoadInfo* aLoadInfo) const {
     return Matches({aURL, aLoadInfo});
   }
-  bool MatchesWindow(nsPIDOMWindowOuter* aWindow) const
-  {
+  bool MatchesWindow(nsPIDOMWindowOuter* aWindow) const {
     return Matches(aWindow);
   }
-
 
   WebExtensionPolicy* Extension() { return mExtension; }
   const WebExtensionPolicy* Extension() const { return mExtension; }
@@ -125,39 +114,34 @@ class WebExtensionContentScript final : public nsISupports
   MatchPatternSet* GetExcludeMatches() { return mExcludeMatches; }
   const MatchPatternSet* GetExcludeMatches() const { return mExcludeMatches; }
 
-  void GetIncludeGlobs(Nullable<MatchGlobArray>& aGlobs)
-  {
+  void GetIncludeGlobs(Nullable<MatchGlobArray>& aGlobs) {
     ToNullable(mExcludeGlobs, aGlobs);
   }
-  void GetExcludeGlobs(Nullable<MatchGlobArray>& aGlobs)
-  {
+  void GetExcludeGlobs(Nullable<MatchGlobArray>& aGlobs) {
     ToNullable(mExcludeGlobs, aGlobs);
   }
 
-  void GetCssPaths(nsTArray<nsString>& aPaths) const
-  {
+  void GetCssPaths(nsTArray<nsString>& aPaths) const {
     aPaths.AppendElements(mCssPaths);
   }
-  void GetJsPaths(nsTArray<nsString>& aPaths) const
-  {
+  void GetJsPaths(nsTArray<nsString>& aPaths) const {
     aPaths.AppendElements(mJsPaths);
   }
 
-
   WebExtensionPolicy* GetParentObject() const { return mExtension; }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::HandleObject aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::HandleObject aGivenProto) override;
 
-protected:
+ protected:
   friend class WebExtensionPolicy;
 
   virtual ~WebExtensionContentScript() = default;
 
   WebExtensionContentScript(WebExtensionPolicy& aExtension,
-                            const ContentScriptInit& aInit,
-                            ErrorResult& aRv);
+                            const ContentScriptInit& aInit, ErrorResult& aRv);
 
-private:
+ private:
   RefPtr<WebExtensionPolicy> mExtension;
 
   bool mHasActiveTabPermission;
@@ -179,9 +163,7 @@ private:
   bool mMatchAboutBlank;
 
   template <typename T, typename U>
-  void
-  ToNullable(const Nullable<T>& aInput, Nullable<U>& aOutput)
-  {
+  void ToNullable(const Nullable<T>& aInput, Nullable<U>& aOutput) {
     if (aInput.IsNull()) {
       aOutput.SetNull();
     } else {
@@ -190,7 +172,7 @@ private:
   }
 };
 
-} // namespace extensions
-} // namespace mozilla
+}  // namespace extensions
+}  // namespace mozilla
 
-#endif // mozilla_extensions_WebExtensionContentScript_h
+#endif  // mozilla_extensions_WebExtensionContentScript_h

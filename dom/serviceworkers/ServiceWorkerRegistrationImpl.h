@@ -23,70 +23,55 @@ class ServiceWorker;
 ////////////////////////////////////////////////////
 // Main Thread implementation
 
-class ServiceWorkerRegistrationMainThread final : public ServiceWorkerRegistration::Inner
-                                                , public ServiceWorkerRegistrationListener
-{
-public:
+class ServiceWorkerRegistrationMainThread final
+    : public ServiceWorkerRegistration::Inner,
+      public ServiceWorkerRegistrationListener {
+ public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerRegistrationMainThread, override)
 
-  explicit ServiceWorkerRegistrationMainThread(const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  explicit ServiceWorkerRegistrationMainThread(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor);
 
   // ServiceWorkerRegistration::Inner
-  void
-  SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  already_AddRefed<Promise>
-  Update(ErrorResult& aRv) override;
+  already_AddRefed<Promise> Update(ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  Unregister(ErrorResult& aRv) override;
+  already_AddRefed<Promise> Unregister(ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  ShowNotification(JSContext* aCx,
-                   const nsAString& aTitle,
-                   const NotificationOptions& aOptions,
-                   ErrorResult& aRv) override;
+  already_AddRefed<Promise> ShowNotification(
+      JSContext* aCx, const nsAString& aTitle,
+      const NotificationOptions& aOptions, ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  GetNotifications(const GetNotificationOptions& aOptions,
-                   ErrorResult& aRv) override;
+  already_AddRefed<Promise> GetNotifications(
+      const GetNotificationOptions& aOptions, ErrorResult& aRv) override;
 
-  already_AddRefed<PushManager>
-  GetPushManager(JSContext* aCx, ErrorResult& aRv) override;
+  already_AddRefed<PushManager> GetPushManager(JSContext* aCx,
+                                               ErrorResult& aRv) override;
 
   // ServiceWorkerRegistrationListener
-  void
-  UpdateFound() override;
+  void UpdateFound() override;
 
-  void
-  UpdateState(const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
+  void UpdateState(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
 
-  void
-  RegistrationRemoved() override;
+  void RegistrationRemoved() override;
 
-  void
-  GetScope(nsAString& aScope) const override
-  {
-    aScope = mScope;
-  }
+  void GetScope(nsAString& aScope) const override { aScope = mScope; }
 
-  bool
-  MatchesDescriptor(const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
+  bool MatchesDescriptor(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
 
-private:
+ private:
   ~ServiceWorkerRegistrationMainThread();
 
-  void
-  StartListeningForEvents();
+  void StartListeningForEvents();
 
-  void
-  StopListeningForEvents();
+  void StopListeningForEvents();
 
-  void
-  RegistrationRemovedInternal();
+  void RegistrationRemovedInternal();
 
   RefPtr<ServiceWorkerRegistration> mOuter;
   const nsString mScope;
@@ -98,59 +83,48 @@ private:
 
 class WorkerListener;
 
-class ServiceWorkerRegistrationWorkerThread final : public ServiceWorkerRegistration::Inner
-                                                  , public WorkerHolder
-{
-public:
+class ServiceWorkerRegistrationWorkerThread final
+    : public ServiceWorkerRegistration::Inner,
+      public WorkerHolder {
+ public:
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerRegistrationWorkerThread, override)
 
-  ServiceWorkerRegistrationWorkerThread(WorkerPrivate* aWorkerPrivate,
-                                        const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  ServiceWorkerRegistrationWorkerThread(
+      WorkerPrivate* aWorkerPrivate,
+      const ServiceWorkerRegistrationDescriptor& aDescriptor);
 
-  void
-  RegistrationRemoved();
+  void RegistrationRemoved();
 
   // ServiceWorkerRegistration::Inner
-  void
-  SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void SetServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  void
-  ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
+  void ClearServiceWorkerRegistration(ServiceWorkerRegistration* aReg) override;
 
-  already_AddRefed<Promise>
-  Update(ErrorResult& aRv) override;
+  already_AddRefed<Promise> Update(ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  Unregister(ErrorResult& aRv) override;
+  already_AddRefed<Promise> Unregister(ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  ShowNotification(JSContext* aCx,
-                   const nsAString& aTitle,
-                   const NotificationOptions& aOptions,
-                   ErrorResult& aRv) override;
+  already_AddRefed<Promise> ShowNotification(
+      JSContext* aCx, const nsAString& aTitle,
+      const NotificationOptions& aOptions, ErrorResult& aRv) override;
 
-  already_AddRefed<Promise>
-  GetNotifications(const GetNotificationOptions& aOptions,
-                   ErrorResult& aRv) override;
+  already_AddRefed<Promise> GetNotifications(
+      const GetNotificationOptions& aOptions, ErrorResult& aRv) override;
 
-  already_AddRefed<PushManager>
-  GetPushManager(JSContext* aCx, ErrorResult& aRv) override;
+  already_AddRefed<PushManager> GetPushManager(JSContext* aCx,
+                                               ErrorResult& aRv) override;
 
   // WorkerHolder
-  bool
-  Notify(WorkerStatus aStatus) override;
+  bool Notify(WorkerStatus aStatus) override;
 
-  void
-  UpdateFound();
+  void UpdateFound();
 
-private:
+ private:
   ~ServiceWorkerRegistrationWorkerThread();
 
-  void
-  InitListener();
+  void InitListener();
 
-  void
-  ReleaseListener();
+  void ReleaseListener();
 
   // Store a strong reference to the outer binding object.  This will create
   // a ref-cycle.  We must hold it alive in case any events need to be fired
@@ -163,5 +137,5 @@ private:
   RefPtr<WorkerListener> mListener;
 };
 
-} // dom namespace
-} // mozilla namespace
+}  // namespace dom
+}  // namespace mozilla

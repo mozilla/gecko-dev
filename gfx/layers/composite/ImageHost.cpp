@@ -6,16 +6,16 @@
 
 #include "ImageHost.h"
 
-#include "LayersLogging.h"              // for AppendToString
+#include "LayersLogging.h"               // for AppendToString
 #include "composite/CompositableHost.h"  // for CompositableHost, etc
-#include "ipc/IPCMessageUtils.h"        // for null_t
-#include "mozilla/layers/Compositor.h"  // for Compositor
-#include "mozilla/layers/Effects.h"     // for TexturedEffect, Effect, etc
-#include "mozilla/layers/LayerManagerComposite.h"     // for TexturedEffect, Effect, etc
+#include "ipc/IPCMessageUtils.h"         // for null_t
+#include "mozilla/layers/Compositor.h"   // for Compositor
+#include "mozilla/layers/Effects.h"      // for TexturedEffect, Effect, etc
+#include "mozilla/layers/LayerManagerComposite.h"  // for TexturedEffect, Effect, etc
 #include "nsAString.h"
-#include "nsDebug.h"                    // for NS_WARNING, NS_ASSERTION
-#include "nsPrintfCString.h"            // for nsPrintfCString
-#include "nsString.h"                   // for nsAutoCString
+#include "nsDebug.h"          // for NS_WARNING, NS_ASSERTION
+#include "nsPrintfCString.h"  // for nsPrintfCString
+#include "nsString.h"         // for nsAutoCString
 
 namespace mozilla {
 
@@ -26,18 +26,11 @@ namespace layers {
 class ISurfaceAllocator;
 
 ImageHost::ImageHost(const TextureInfo& aTextureInfo)
-  : CompositableHost(aTextureInfo)
-  , ImageComposite()
-  , mLocked(false)
-{}
+    : CompositableHost(aTextureInfo), ImageComposite(), mLocked(false) {}
 
-ImageHost::~ImageHost()
-{
-}
+ImageHost::~ImageHost() {}
 
-void
-ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
-{
+void ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures) {
   MOZ_ASSERT(!mLocked);
 
   CompositableHost::UseTextureHost(aTextures);
@@ -48,8 +41,8 @@ ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
   for (uint32_t i = 0; i < aTextures.Length(); ++i) {
     const TimedTexture& t = aTextures[i];
     MOZ_ASSERT(t.mTexture);
-    if (i + 1 < aTextures.Length() &&
-        t.mProducerID == mLastProducerID && t.mFrameID < mLastFrameID) {
+    if (i + 1 < aTextures.Length() && t.mProducerID == mLastProducerID &&
+        t.mFrameID < mLastFrameID) {
       // Ignore frames before a frame that we already composited. We don't
       // ever want to display these frames. This could be important if
       // the frame producer adjusts timestamps (e.g. to track the audio clock)
@@ -69,8 +62,9 @@ ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
   mImages.SwapElements(newImages);
   newImages.Clear();
 
-  // If we only have one image we can upload it right away, otherwise we'll upload
-  // on-demand during composition after we have picked the proper timestamp.
+  // If we only have one image we can upload it right away, otherwise we'll
+  // upload on-demand during composition after we have picked the proper
+  // timestamp.
   if (mImages.Length() == 1) {
     SetCurrentTextureHost(mImages[0].mTextureHost);
   }
@@ -80,7 +74,8 @@ ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
   // Video producers generally send replacement images with the same frameID but
   // slightly different timestamps in order to sync with the audio clock. This
   // means that any CompositeUntil() call we made in Composite() may no longer
-  // guarantee that we'll composite until the next frame is ready. Fix that here.
+  // guarantee that we'll composite until the next frame is ready. Fix that
+  // here.
   if (lm && mLastFrameID >= 0) {
     for (size_t i = 0; i < mImages.Length(); ++i) {
       bool frameComesAfter = mImages[i].mFrameID > mLastFrameID ||
@@ -94,15 +89,13 @@ ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
   }
 }
 
-void
-ImageHost::SetCurrentTextureHost(TextureHost* aTexture)
-{
+void ImageHost::SetCurrentTextureHost(TextureHost* aTexture) {
   if (aTexture == mCurrentTextureHost.get()) {
     return;
   }
 
-  bool swapTextureSources = !!mCurrentTextureHost && !!mCurrentTextureSource
-                            && mCurrentTextureHost->HasIntermediateBuffer();
+  bool swapTextureSources = !!mCurrentTextureHost && !!mCurrentTextureSource &&
+                            mCurrentTextureHost->HasIntermediateBuffer();
 
   if (swapTextureSources) {
     auto dataSource = mCurrentTextureSource->AsDataTextureSource();
@@ -128,17 +121,13 @@ ImageHost::SetCurrentTextureHost(TextureHost* aTexture)
   mCurrentTextureHost->PrepareTextureSource(mCurrentTextureSource);
 }
 
-void
-ImageHost::CleanupResources()
-{
+void ImageHost::CleanupResources() {
   mExtraTextureSource = nullptr;
   mCurrentTextureSource = nullptr;
   mCurrentTextureHost = nullptr;
 }
 
-void
-ImageHost::RemoveTextureHost(TextureHost* aTexture)
-{
+void ImageHost::RemoveTextureHost(TextureHost* aTexture) {
   MOZ_ASSERT(!mLocked);
 
   CompositableHost::RemoveTextureHost(aTexture);
@@ -151,9 +140,7 @@ ImageHost::RemoveTextureHost(TextureHost* aTexture)
   }
 }
 
-TimeStamp
-ImageHost::GetCompositionTime() const
-{
+TimeStamp ImageHost::GetCompositionTime() const {
   TimeStamp time;
   if (HostLayerManager* lm = GetLayerManager()) {
     time = lm->GetCompositionTime();
@@ -161,9 +148,7 @@ ImageHost::GetCompositionTime() const
   return time;
 }
 
-TextureHost*
-ImageHost::GetAsTextureHost(IntRect* aPictureRect)
-{
+TextureHost* ImageHost::GetAsTextureHost(IntRect* aPictureRect) {
   TimedImage* img = ChooseImage();
   if (img) {
     SetCurrentTextureHost(img->mTextureHost);
@@ -174,10 +159,8 @@ ImageHost::GetAsTextureHost(IntRect* aPictureRect)
   return img ? img->mTextureHost.get() : nullptr;
 }
 
-void ImageHost::Attach(Layer* aLayer,
-                       TextureSourceProvider* aProvider,
-                       AttachFlags aFlags)
-{
+void ImageHost::Attach(Layer* aLayer, TextureSourceProvider* aProvider,
+                       AttachFlags aFlags) {
   CompositableHost::Attach(aLayer, aProvider, aFlags);
   for (auto& img : mImages) {
     img.mTextureHost->SetTextureSourceProvider(aProvider);
@@ -185,17 +168,13 @@ void ImageHost::Attach(Layer* aLayer,
   }
 }
 
-void
-ImageHost::Composite(Compositor* aCompositor,
-                     LayerComposite* aLayer,
-                     EffectChain& aEffectChain,
-                     float aOpacity,
-                     const gfx::Matrix4x4& aTransform,
-                     const gfx::SamplingFilter aSamplingFilter,
-                     const gfx::IntRect& aClipRect,
-                     const nsIntRegion* aVisibleRegion,
-                     const Maybe<gfx::Polygon>& aGeometry)
-{
+void ImageHost::Composite(Compositor* aCompositor, LayerComposite* aLayer,
+                          EffectChain& aEffectChain, float aOpacity,
+                          const gfx::Matrix4x4& aTransform,
+                          const gfx::SamplingFilter aSamplingFilter,
+                          const gfx::IntRect& aClipRect,
+                          const nsIntRegion* aVisibleRegion,
+                          const Maybe<gfx::Polygon>& aGeometry) {
   RenderInfo info;
   if (!PrepareToRender(aCompositor, &info)) {
     return;
@@ -223,8 +202,8 @@ ImageHost::Composite(Compositor* aCompositor,
     bool isAlphaPremultiplied =
         !(mCurrentTextureHost->GetFlags() & TextureFlags::NON_PREMULTIPLIED);
     RefPtr<TexturedEffect> effect =
-        CreateTexturedEffect(mCurrentTextureHost,
-            mCurrentTextureSource.get(), aSamplingFilter, isAlphaPremultiplied);
+        CreateTexturedEffect(mCurrentTextureHost, mCurrentTextureSource.get(),
+                             aSamplingFilter, isAlphaPremultiplied);
     if (!effect) {
       return;
     }
@@ -241,10 +220,10 @@ ImageHost::Composite(Compositor* aCompositor,
     }
 
     aEffectChain.mPrimaryEffect = effect;
-    gfx::Rect pictureRect(0, 0, img->mPictureRect.Width(), img->mPictureRect.Height());
+    gfx::Rect pictureRect(0, 0, img->mPictureRect.Width(),
+                          img->mPictureRect.Height());
     BigImageIterator* it = mCurrentTextureSource->AsBigImageIterator();
     if (it) {
-
       // This iteration does not work if we have multiple texture sources here
       // (e.g. 3 YCbCr textures). There's nothing preventing the different
       // planes from having different resolutions or tile sizes. For example, a
@@ -258,47 +237,51 @@ ImageHost::Composite(Compositor* aCompositor,
       // the corresponding source tiles from all planes, with appropriate
       // per-plane per-tile texture coords.
       // DrawQuad currently assumes that all planes use the same texture coords.
-      MOZ_ASSERT(it->GetTileCount() == 1 || !mCurrentTextureSource->GetNextSibling(),
-                 "Can't handle multi-plane BigImages");
+      MOZ_ASSERT(
+          it->GetTileCount() == 1 || !mCurrentTextureSource->GetNextSibling(),
+          "Can't handle multi-plane BigImages");
 
       it->BeginBigImageIteration();
       do {
         IntRect tileRect = it->GetTileRect();
-        gfx::Rect rect(tileRect.X(), tileRect.Y(), tileRect.Width(), tileRect.Height());
+        gfx::Rect rect(tileRect.X(), tileRect.Y(), tileRect.Width(),
+                       tileRect.Height());
         rect = rect.Intersect(pictureRect);
-        effect->mTextureCoords = Rect(Float(rect.X() - tileRect.X()) / tileRect.Width(),
-                                      Float(rect.Y() - tileRect.Y()) / tileRect.Height(),
-                                      Float(rect.Width()) / tileRect.Width(),
-                                      Float(rect.Height()) / tileRect.Height());
+        effect->mTextureCoords =
+            Rect(Float(rect.X() - tileRect.X()) / tileRect.Width(),
+                 Float(rect.Y() - tileRect.Y()) / tileRect.Height(),
+                 Float(rect.Width()) / tileRect.Width(),
+                 Float(rect.Height()) / tileRect.Height());
         if (img->mTextureHost->GetFlags() & TextureFlags::ORIGIN_BOTTOM_LEFT) {
           effect->mTextureCoords.SetRectY(effect->mTextureCoords.YMost(),
                                           -effect->mTextureCoords.Height());
         }
-        aCompositor->DrawGeometry(rect, aClipRect, aEffectChain,
-                                  aOpacity, aTransform, aGeometry);
-        aCompositor->DrawDiagnostics(diagnosticFlags | DiagnosticFlags::BIGIMAGE,
-                                     rect, aClipRect, aTransform, mFlashCounter);
+        aCompositor->DrawGeometry(rect, aClipRect, aEffectChain, aOpacity,
+                                  aTransform, aGeometry);
+        aCompositor->DrawDiagnostics(
+            diagnosticFlags | DiagnosticFlags::BIGIMAGE, rect, aClipRect,
+            aTransform, mFlashCounter);
       } while (it->NextTile());
       it->EndBigImageIteration();
       // layer border
-      aCompositor->DrawDiagnostics(diagnosticFlags, pictureRect,
-                                   aClipRect, aTransform, mFlashCounter);
+      aCompositor->DrawDiagnostics(diagnosticFlags, pictureRect, aClipRect,
+                                   aTransform, mFlashCounter);
     } else {
       IntSize textureSize = mCurrentTextureSource->GetSize();
-      effect->mTextureCoords = Rect(Float(img->mPictureRect.X()) / textureSize.width,
-                                    Float(img->mPictureRect.Y()) / textureSize.height,
-                                    Float(img->mPictureRect.Width()) / textureSize.width,
-                                    Float(img->mPictureRect.Height()) / textureSize.height);
+      effect->mTextureCoords =
+          Rect(Float(img->mPictureRect.X()) / textureSize.width,
+               Float(img->mPictureRect.Y()) / textureSize.height,
+               Float(img->mPictureRect.Width()) / textureSize.width,
+               Float(img->mPictureRect.Height()) / textureSize.height);
 
       if (img->mTextureHost->GetFlags() & TextureFlags::ORIGIN_BOTTOM_LEFT) {
         effect->mTextureCoords.SetRectY(effect->mTextureCoords.YMost(),
                                         -effect->mTextureCoords.Height());
       }
 
-      aCompositor->DrawGeometry(pictureRect, aClipRect, aEffectChain,
-                                aOpacity, aTransform, aGeometry);
-      aCompositor->DrawDiagnostics(diagnosticFlags,
-                                   pictureRect, aClipRect,
+      aCompositor->DrawGeometry(pictureRect, aClipRect, aEffectChain, aOpacity,
+                                aTransform, aGeometry);
+      aCompositor->DrawDiagnostics(diagnosticFlags, pictureRect, aClipRect,
                                    aTransform, mFlashCounter);
     }
   }
@@ -306,9 +289,8 @@ ImageHost::Composite(Compositor* aCompositor,
   FinishRendering(info);
 }
 
-bool
-ImageHost::PrepareToRender(TextureSourceProvider* aProvider, RenderInfo* aOutInfo)
-{
+bool ImageHost::PrepareToRender(TextureSourceProvider* aProvider,
+                                RenderInfo* aOutInfo) {
   HostLayerManager* lm = GetLayerManager();
   if (!lm) {
     return false;
@@ -320,7 +302,8 @@ ImageHost::PrepareToRender(TextureSourceProvider* aProvider, RenderInfo* aOutInf
   }
 
   if (uint32_t(imageIndex) + 1 < mImages.Length()) {
-    lm->CompositeUntil(mImages[imageIndex + 1].mTimeStamp + TimeDuration::FromMilliseconds(BIAS_TIME_MS));
+    lm->CompositeUntil(mImages[imageIndex + 1].mTimeStamp +
+                       TimeDuration::FromMilliseconds(BIAS_TIME_MS));
   }
 
   TimedImage* img = &mImages[imageIndex];
@@ -333,9 +316,7 @@ ImageHost::PrepareToRender(TextureSourceProvider* aProvider, RenderInfo* aOutInf
   return true;
 }
 
-RefPtr<TextureSource>
-ImageHost::AcquireTextureSource(const RenderInfo& aInfo)
-{
+RefPtr<TextureSource> ImageHost::AcquireTextureSource(const RenderInfo& aInfo) {
   MOZ_ASSERT(aInfo.host == mCurrentTextureHost);
   if (!aInfo.host->AcquireTextureSource(mCurrentTextureSource)) {
     return nullptr;
@@ -343,9 +324,7 @@ ImageHost::AcquireTextureSource(const RenderInfo& aInfo)
   return mCurrentTextureSource.get();
 }
 
-void
-ImageHost::FinishRendering(const RenderInfo& aInfo)
-{
+void ImageHost::FinishRendering(const RenderInfo& aInfo) {
   HostLayerManager* lm = GetLayerManager();
   TimedImage* img = aInfo.img;
   int imageIndex = aInfo.imageIndex;
@@ -355,9 +334,8 @@ ImageHost::FinishRendering(const RenderInfo& aInfo)
       ImageCompositeNotificationInfo info;
       info.mImageBridgeProcessId = mAsyncRef.mProcessId;
       info.mNotification = ImageCompositeNotification(
-        mAsyncRef.mHandle,
-        img->mTimeStamp, lm->GetCompositionTime(),
-        img->mFrameID, img->mProducerID);
+          mAsyncRef.mHandle, img->mTimeStamp, lm->GetCompositionTime(),
+          img->mFrameID, img->mProducerID);
       lm->AppendImageCompositeNotification(info);
     }
     mLastFrameID = img->mFrameID;
@@ -369,16 +347,14 @@ ImageHost::FinishRendering(const RenderInfo& aInfo)
   // since callers of ChooseImage(Index) assume the same image will be chosen
   // during a given composition. This must happen after autoLock's
   // destructor!
-  mBias = UpdateBias(
-      lm->GetCompositionTime(), mImages[imageIndex].mTimeStamp,
-      uint32_t(imageIndex + 1) < mImages.Length() ?
-          mImages[imageIndex + 1].mTimeStamp : TimeStamp(),
-      mBias);
+  mBias = UpdateBias(lm->GetCompositionTime(), mImages[imageIndex].mTimeStamp,
+                     uint32_t(imageIndex + 1) < mImages.Length()
+                         ? mImages[imageIndex + 1].mTimeStamp
+                         : TimeStamp(),
+                     mBias);
 }
 
-void
-ImageHost::SetTextureSourceProvider(TextureSourceProvider* aProvider)
-{
+void ImageHost::SetTextureSourceProvider(TextureSourceProvider* aProvider) {
   if (mTextureSourceProvider != aProvider) {
     for (auto& img : mImages) {
       img.mTextureHost->SetTextureSourceProvider(aProvider);
@@ -387,9 +363,7 @@ ImageHost::SetTextureSourceProvider(TextureSourceProvider* aProvider)
   CompositableHost::SetTextureSourceProvider(aProvider);
 }
 
-void
-ImageHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
-{
+void ImageHost::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
   aStream << aPrefix;
   aStream << nsPrintfCString("ImageHost (0x%p)", this).get();
 
@@ -402,23 +376,17 @@ ImageHost::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   }
 }
 
-void
-ImageHost::Dump(std::stringstream& aStream,
-                const char* aPrefix,
-                bool aDumpHtml)
-{
+void ImageHost::Dump(std::stringstream& aStream, const char* aPrefix,
+                     bool aDumpHtml) {
   for (auto& img : mImages) {
     aStream << aPrefix;
-    aStream << (aDumpHtml ? "<ul><li>TextureHost: "
-                             : "TextureHost: ");
+    aStream << (aDumpHtml ? "<ul><li>TextureHost: " : "TextureHost: ");
     DumpTextureHost(aStream, img.mTextureHost);
     aStream << (aDumpHtml ? " </li></ul> " : " ");
   }
 }
 
-already_AddRefed<gfx::DataSourceSurface>
-ImageHost::GetAsSurface()
-{
+already_AddRefed<gfx::DataSourceSurface> ImageHost::GetAsSurface() {
   TimedImage* img = ChooseImage();
   if (img) {
     return img->mTextureHost->GetAsSurface();
@@ -426,9 +394,7 @@ ImageHost::GetAsSurface()
   return nullptr;
 }
 
-bool
-ImageHost::Lock()
-{
+bool ImageHost::Lock() {
   MOZ_ASSERT(!mLocked);
   TimedImage* img = ChooseImage();
   if (!img) {
@@ -444,9 +410,7 @@ ImageHost::Lock()
   return true;
 }
 
-void
-ImageHost::Unlock()
-{
+void ImageHost::Unlock() {
   MOZ_ASSERT(mLocked);
 
   if (mCurrentTextureHost) {
@@ -455,9 +419,7 @@ ImageHost::Unlock()
   mLocked = false;
 }
 
-IntSize
-ImageHost::GetImageSize() const
-{
+IntSize ImageHost::GetImageSize() const {
   const TimedImage* img = ChooseImage();
   if (img) {
     return IntSize(img->mPictureRect.Width(), img->mPictureRect.Height());
@@ -465,16 +427,13 @@ ImageHost::GetImageSize() const
   return IntSize();
 }
 
-bool
-ImageHost::IsOpaque()
-{
+bool ImageHost::IsOpaque() {
   const TimedImage* img = ChooseImage();
   if (!img) {
     return false;
   }
 
-  if (img->mPictureRect.Width() == 0 ||
-      img->mPictureRect.Height() == 0 ||
+  if (img->mPictureRect.Width() == 0 || img->mPictureRect.Height() == 0 ||
       !img->mTextureHost) {
     return false;
   }
@@ -486,9 +445,8 @@ ImageHost::IsOpaque()
   return false;
 }
 
-already_AddRefed<TexturedEffect>
-ImageHost::GenEffect(const gfx::SamplingFilter aSamplingFilter)
-{
+already_AddRefed<TexturedEffect> ImageHost::GenEffect(
+    const gfx::SamplingFilter aSamplingFilter) {
   TimedImage* img = ChooseImage();
   if (!img) {
     return nullptr;
@@ -502,11 +460,9 @@ ImageHost::GenEffect(const gfx::SamplingFilter aSamplingFilter)
     isAlphaPremultiplied = false;
   }
 
-  return CreateTexturedEffect(mCurrentTextureHost,
-                              mCurrentTextureSource,
-                              aSamplingFilter,
-                              isAlphaPremultiplied);
+  return CreateTexturedEffect(mCurrentTextureHost, mCurrentTextureSource,
+                              aSamplingFilter, isAlphaPremultiplied);
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

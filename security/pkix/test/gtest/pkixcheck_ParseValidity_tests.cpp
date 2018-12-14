@@ -28,55 +28,52 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-#define OLDER_UTCTIME \
-  0x17, 13,                               /* tag, length */ \
-  '9', '9', '0', '1', '0', '1',           /* (19)99-01-01 */ \
-  '0', '0', '0', '0', '0', '0', 'Z'       /* 00:00:00Z */
+#define OLDER_UTCTIME                                      \
+  0x17, 13,                             /* tag, length */  \
+      '9', '9', '0', '1', '0', '1',     /* (19)99-01-01 */ \
+      '0', '0', '0', '0', '0', '0', 'Z' /* 00:00:00Z */
 
-#define NEWER_UTCTIME \
-  0x17, 13,                               /* tag, length */ \
-  '2', '1', '0', '1', '0', '1',           /* 2021-01-01 */ \
-  '0', '0', '0', '0', '0', '0', 'Z'       /* 00:00:00Z */
+#define NEWER_UTCTIME                                     \
+  0x17, 13,                             /* tag, length */ \
+      '2', '1', '0', '1', '0', '1',     /* 2021-01-01 */  \
+      '0', '0', '0', '0', '0', '0', 'Z' /* 00:00:00Z */
 
 static const Time FUTURE_TIME(YMDHMS(2025, 12, 31, 12, 23, 56));
 
-class pkixcheck_ParseValidity : public ::testing::Test { };
+class pkixcheck_ParseValidity : public ::testing::Test {};
 
-TEST_F(pkixcheck_ParseValidity, BothEmptyNull)
-{
+TEST_F(pkixcheck_ParseValidity, BothEmptyNull) {
   static const uint8_t DER[] = {
-    0x17/*UTCTime*/, 0/*length*/,
-    0x17/*UTCTime*/, 0/*length*/,
+      0x17 /*UTCTime*/,
+      0 /*length*/,
+      0x17 /*UTCTime*/,
+      0 /*length*/,
   };
   static const Input validity(DER);
   ASSERT_EQ(Result::ERROR_INVALID_DER_TIME, ParseValidity(validity));
 }
 
-TEST_F(pkixcheck_ParseValidity, NotBeforeEmptyNull)
-{
+TEST_F(pkixcheck_ParseValidity, NotBeforeEmptyNull) {
+  static const uint8_t DER[] = {0x17 /*UTCTime*/, 0x00 /*length*/,
+                                NEWER_UTCTIME};
+  static const Input validity(DER);
+  ASSERT_EQ(Result::ERROR_INVALID_DER_TIME, ParseValidity(validity));
+}
+
+TEST_F(pkixcheck_ParseValidity, NotAfterEmptyNull) {
   static const uint8_t DER[] = {
-    0x17/*UTCTime*/, 0x00/*length*/,
-    NEWER_UTCTIME
+      NEWER_UTCTIME,
+      0x17 /*UTCTime*/,
+      0x00 /*length*/,
   };
   static const Input validity(DER);
   ASSERT_EQ(Result::ERROR_INVALID_DER_TIME, ParseValidity(validity));
 }
 
-TEST_F(pkixcheck_ParseValidity, NotAfterEmptyNull)
-{
+TEST_F(pkixcheck_ParseValidity, InvalidNotAfterBeforeNotBefore) {
   static const uint8_t DER[] = {
-    NEWER_UTCTIME,
-    0x17/*UTCTime*/, 0x00/*length*/,
-  };
-  static const Input validity(DER);
-  ASSERT_EQ(Result::ERROR_INVALID_DER_TIME, ParseValidity(validity));
-}
-
-TEST_F(pkixcheck_ParseValidity, InvalidNotAfterBeforeNotBefore)
-{
-  static const uint8_t DER[] = {
-    NEWER_UTCTIME,
-    OLDER_UTCTIME,
+      NEWER_UTCTIME,
+      OLDER_UTCTIME,
   };
   static const Input validity(DER);
   ASSERT_EQ(Result::ERROR_INVALID_DER_TIME, ParseValidity(validity));

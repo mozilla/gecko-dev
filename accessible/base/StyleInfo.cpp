@@ -14,38 +14,30 @@
 using namespace mozilla;
 using namespace mozilla::a11y;
 
-StyleInfo::StyleInfo(dom::Element* aElement) :
-  mElement(aElement)
-{
-  mStyleContext =
-    nsComputedDOMStyle::GetStyleContextNoFlush(aElement, nullptr);
+StyleInfo::StyleInfo(dom::Element* aElement) : mElement(aElement) {
+  mStyleContext = nsComputedDOMStyle::GetStyleContextNoFlush(aElement, nullptr);
 }
 
-void
-StyleInfo::Display(nsAString& aValue)
-{
+void StyleInfo::Display(nsAString& aValue) {
   aValue.Truncate();
   AppendASCIItoUTF16(
-    nsCSSProps::ValueToKeyword(mStyleContext->StyleDisplay()->mDisplay,
-                               nsCSSProps::kDisplayKTable), aValue);
+      nsCSSProps::ValueToKeyword(mStyleContext->StyleDisplay()->mDisplay,
+                                 nsCSSProps::kDisplayKTable),
+      aValue);
 }
 
-void
-StyleInfo::TextAlign(nsAString& aValue)
-{
+void StyleInfo::TextAlign(nsAString& aValue) {
   aValue.Truncate();
   AppendASCIItoUTF16(
-    nsCSSProps::ValueToKeyword(mStyleContext->StyleText()->mTextAlign,
-                               nsCSSProps::kTextAlignKTable), aValue);
+      nsCSSProps::ValueToKeyword(mStyleContext->StyleText()->mTextAlign,
+                                 nsCSSProps::kTextAlignKTable),
+      aValue);
 }
 
-void
-StyleInfo::TextIndent(nsAString& aValue)
-{
+void StyleInfo::TextIndent(nsAString& aValue) {
   aValue.Truncate();
 
-  const nsStyleCoord& styleCoord =
-    mStyleContext->StyleText()->mTextIndent;
+  const nsStyleCoord& styleCoord = mStyleContext->StyleText()->mTextIndent;
 
   nscoord coordVal = 0;
   switch (styleCoord.GetUnit()) {
@@ -78,10 +70,9 @@ StyleInfo::TextIndent(nsAString& aValue)
   }
 }
 
-void
-StyleInfo::Margin(Side aSide, nsAString& aValue)
-{
-  MOZ_ASSERT(mElement->GetPrimaryFrame(), " mElement->GetPrimaryFrame() needs to be valid pointer");
+void StyleInfo::Margin(Side aSide, nsAString& aValue) {
+  MOZ_ASSERT(mElement->GetPrimaryFrame(),
+             " mElement->GetPrimaryFrame() needs to be valid pointer");
   aValue.Truncate();
 
   nscoord coordVal = mElement->GetPrimaryFrame()->GetUsedMargin().Side(aSide);
@@ -89,9 +80,7 @@ StyleInfo::Margin(Side aSide, nsAString& aValue)
   aValue.AppendLiteral("px");
 }
 
-void
-StyleInfo::FormatColor(const nscolor& aValue, nsString& aFormattedValue)
-{
+void StyleInfo::FormatColor(const nscolor& aValue, nsString& aFormattedValue) {
   // Combine the string like rgb(R, G, B) from nscolor.
   aFormattedValue.AppendLiteral("rgb(");
   aFormattedValue.AppendInt(NS_GET_R(aValue));
@@ -102,19 +91,16 @@ StyleInfo::FormatColor(const nscolor& aValue, nsString& aFormattedValue)
   aFormattedValue.Append(')');
 }
 
-void
-StyleInfo::FormatFontStyle(const nscoord& aValue, nsAString& aFormattedValue)
-{
+void StyleInfo::FormatFontStyle(const nscoord& aValue,
+                                nsAString& aFormattedValue) {
   nsCSSKeyword keyword =
-    nsCSSProps::ValueToKeywordEnum(aValue, nsCSSProps::kFontStyleKTable);
+      nsCSSProps::ValueToKeywordEnum(aValue, nsCSSProps::kFontStyleKTable);
   AppendUTF8toUTF16(nsCSSKeywords::GetStringValue(keyword), aFormattedValue);
 }
 
-void
-StyleInfo::FormatTextDecorationStyle(uint8_t aValue, nsAString& aFormattedValue)
-{
-  nsCSSKeyword keyword =
-    nsCSSProps::ValueToKeywordEnum(aValue,
-                                   nsCSSProps::kTextDecorationStyleKTable);
+void StyleInfo::FormatTextDecorationStyle(uint8_t aValue,
+                                          nsAString& aFormattedValue) {
+  nsCSSKeyword keyword = nsCSSProps::ValueToKeywordEnum(
+      aValue, nsCSSProps::kTextDecorationStyleKTable);
   AppendUTF8toUTF16(nsCSSKeywords::GetStringValue(keyword), aFormattedValue);
 }

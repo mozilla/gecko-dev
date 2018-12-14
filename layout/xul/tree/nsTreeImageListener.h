@@ -14,10 +14,9 @@
 #include "mozilla/Attributes.h"
 
 // This class handles image load observation.
-class nsTreeImageListener final : public imgINotificationObserver
-{
-public:
-  explicit nsTreeImageListener(nsTreeBodyFrame *aTreeFrame);
+class nsTreeImageListener final : public imgINotificationObserver {
+ public:
+  explicit nsTreeImageListener(nsTreeBodyFrame* aTreeFrame);
 
   NS_DECL_ISUPPORTS
   NS_DECL_IMGINOTIFICATIONOBSERVER
@@ -26,42 +25,42 @@ public:
 
   friend class nsTreeBodyFrame;
 
-protected:
+ protected:
   ~nsTreeImageListener();
 
   void UnsuppressInvalidation() { mInvalidationSuppressed = false; }
   void Invalidate();
   void AddCell(int32_t aIndex, nsITreeColumn* aCol);
 
-private:
+ private:
   nsTreeBodyFrame* mTreeFrame;
 
   // A guard that prevents us from recursive painting.
   bool mInvalidationSuppressed;
 
   class InvalidationArea {
-    public:
-      explicit InvalidationArea(nsITreeColumn* aCol);
-      ~InvalidationArea() { delete mNext; }
+   public:
+    explicit InvalidationArea(nsITreeColumn* aCol);
+    ~InvalidationArea() { delete mNext; }
 
-      friend class nsTreeImageListener;
+    friend class nsTreeImageListener;
 
-    protected:
-      void AddRow(int32_t aIndex);
-      nsITreeColumn* GetCol() { return mCol.get(); }
-      int32_t GetMin() { return mMin; }
-      int32_t GetMax() { return mMax; }
-      InvalidationArea* GetNext() { return mNext; }
-      void SetNext(InvalidationArea* aNext) { mNext = aNext; }
+   protected:
+    void AddRow(int32_t aIndex);
+    nsITreeColumn* GetCol() { return mCol.get(); }
+    int32_t GetMin() { return mMin; }
+    int32_t GetMax() { return mMax; }
+    InvalidationArea* GetNext() { return mNext; }
+    void SetNext(InvalidationArea* aNext) { mNext = aNext; }
 
-    private:
-      nsCOMPtr<nsITreeColumn> mCol;
-      int32_t                 mMin;
-      int32_t                 mMax;
-      InvalidationArea*       mNext;
+   private:
+    nsCOMPtr<nsITreeColumn> mCol;
+    int32_t mMin;
+    int32_t mMax;
+    InvalidationArea* mNext;
   };
 
   InvalidationArea* mInvalidationArea;
 };
 
-#endif // nsTreeImageListener_h__
+#endif  // nsTreeImageListener_h__

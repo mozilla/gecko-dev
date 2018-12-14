@@ -25,13 +25,12 @@ class OriginAttributesPattern;
 
 namespace dom {
 
-class LocalStorageManager final : public nsIDOMStorageManager
-                                , public StorageObserverSink
-{
+class LocalStorageManager final : public nsIDOMStorageManager,
+                                  public StorageObserverSink {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMSTORAGEMANAGER
 
-public:
+ public:
   LocalStorageManager();
 
   // Reads the preference for DOM storage quota
@@ -42,13 +41,13 @@ public:
                               const nsACString& aOriginNoSuffix);
 
   // Returns object keeping usage cache for the scope.
-  already_AddRefed<StorageUsage>
-  GetOriginUsage(const nsACString& aOriginNoSuffix);
+  already_AddRefed<StorageUsage> GetOriginUsage(
+      const nsACString& aOriginNoSuffix);
 
   static nsCString CreateOrigin(const nsACString& aOriginSuffix,
                                 const nsACString& aOriginNoSuffix);
 
-private:
+ private:
   ~LocalStorageManager();
 
   // StorageObserverSink, handler to various chrome clearing notification
@@ -58,17 +57,13 @@ private:
 
   // Since nsTHashtable doesn't like multiple inheritance, we have to aggregate
   // LocalStorageCache into the entry.
-  class LocalStorageCacheHashKey : public nsCStringHashKey
-  {
-  public:
+  class LocalStorageCacheHashKey : public nsCStringHashKey {
+   public:
     explicit LocalStorageCacheHashKey(const nsACString* aKey)
-      : nsCStringHashKey(aKey)
-      , mCache(new LocalStorageCache(aKey))
-    {}
+        : nsCStringHashKey(aKey), mCache(new LocalStorageCache(aKey)) {}
 
     LocalStorageCacheHashKey(const LocalStorageCacheHashKey& aOther)
-      : nsCStringHashKey(aOther)
-    {
+        : nsCStringHashKey(aOther) {
       NS_ERROR("Shouldn't be called");
     }
 
@@ -76,7 +71,7 @@ private:
     // Keep the cache referenced forever, used for sessionStorage.
     void HardRef() { mCacheRef = mCache; }
 
-  private:
+   private:
     // weak ref only since cache references its manager.
     LocalStorageCache* mCache;
     // hard ref when this is sessionStorage to keep it alive forever.
@@ -85,9 +80,9 @@ private:
 
   // Ensures cache for a scope, when it doesn't exist it is created and
   // initalized, this also starts preload of persistent data.
-  already_AddRefed<LocalStorageCache> PutCache(const nsACString& aOriginSuffix,
-                                               const nsACString& aOriginNoSuffix,
-                                               nsIPrincipal* aPrincipal);
+  already_AddRefed<LocalStorageCache> PutCache(
+      const nsACString& aOriginSuffix, const nsACString& aOriginNoSuffix,
+      nsIPrincipal* aPrincipal);
 
   enum class CreateMode {
     // GetStorage: do not create if it's not already in memory.
@@ -99,11 +94,9 @@ private:
   };
 
   // Helper for creation of DOM storage objects
-  nsresult GetStorageInternal(CreateMode aCreate,
-                              mozIDOMWindow* aWindow,
+  nsresult GetStorageInternal(CreateMode aCreate, mozIDOMWindow* aWindow,
                               nsIPrincipal* aPrincipal,
-                              const nsAString& aDocumentURI,
-                              bool aPrivate,
+                              const nsAString& aDocumentURI, bool aPrivate,
                               nsIDOMStorage** aRetval);
 
   // Suffix->origin->cache map
@@ -126,7 +119,7 @@ private:
   // Like Self, but creates an instance if we're not yet initialized.
   static LocalStorageManager* Ensure();
 
-private:
+ private:
   // Keeps usage cache objects for eTLD+1 scopes we have touched.
   nsDataHashtable<nsCStringHashKey, RefPtr<StorageUsage> > mUsages;
 
@@ -138,7 +131,7 @@ private:
   static LocalStorageManager* sSelf;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_StorageManager_h
+#endif  // mozilla_dom_StorageManager_h

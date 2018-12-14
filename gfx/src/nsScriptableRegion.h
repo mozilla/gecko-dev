@@ -13,16 +13,16 @@
 #include "mozilla/Attributes.h"
 
 class nsScriptableRegion final : public nsIScriptableRegion {
-public:
-	nsScriptableRegion();
+ public:
+  nsScriptableRegion();
 
-	NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS
 
-	NS_DECL_NSISCRIPTABLEREGION
+  NS_DECL_NSISCRIPTABLEREGION
 
-private:
-        ~nsScriptableRegion() {}
-	nsIntRegion mRegion;
+ private:
+  ~nsScriptableRegion() {}
+  nsIntRegion mRegion;
 };
 
 #endif

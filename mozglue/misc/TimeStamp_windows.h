@@ -13,8 +13,7 @@ namespace mozilla {
 
 class TimeStamp;
 
-class TimeStampValue
-{
+class TimeStampValue {
   friend struct IPC::ParamTraits<mozilla::TimeStampValue>;
   friend class TimeStamp;
   friend void StartupTimelineRecordExternal(int, uint64_t);
@@ -31,53 +30,40 @@ class TimeStampValue
 
   struct _SomethingVeryRandomHere;
   constexpr MOZ_IMPLICIT TimeStampValue(_SomethingVeryRandomHere* aNullValue)
-    : mGTC(0)
-    , mQPC(0)
-    , mHasQPC(false)
-    , mIsNull(true)
-  {
-  }
+      : mGTC(0), mQPC(0), mHasQPC(false), mIsNull(true) {}
 
-public:
+ public:
   MFBT_API uint64_t operator-(const TimeStampValue& aOther) const;
 
-  TimeStampValue operator+(const int64_t aOther) const
-  {
+  TimeStampValue operator+(const int64_t aOther) const {
     return TimeStampValue(mGTC + aOther, mQPC + aOther, mHasQPC);
   }
-  TimeStampValue operator-(const int64_t aOther) const
-  {
+  TimeStampValue operator-(const int64_t aOther) const {
     return TimeStampValue(mGTC - aOther, mQPC - aOther, mHasQPC);
   }
   MFBT_API TimeStampValue& operator+=(const int64_t aOther);
   MFBT_API TimeStampValue& operator-=(const int64_t aOther);
 
-  bool operator<(const TimeStampValue& aOther) const
-  {
+  bool operator<(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) < 0;
   }
-  bool operator>(const TimeStampValue& aOther) const
-  {
+  bool operator>(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) > 0;
   }
-  bool operator<=(const TimeStampValue& aOther) const
-  {
+  bool operator<=(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) <= 0;
   }
-  bool operator>=(const TimeStampValue& aOther) const
-  {
+  bool operator>=(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) >= 0;
   }
-  bool operator==(const TimeStampValue& aOther) const
-  {
+  bool operator==(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) == 0;
   }
-  bool operator!=(const TimeStampValue& aOther) const
-  {
+  bool operator!=(const TimeStampValue& aOther) const {
     return int64_t(*this - aOther) != 0;
   }
 };
 
-}
+}  // namespace mozilla
 
 #endif /* mozilla_TimeStamp_h */

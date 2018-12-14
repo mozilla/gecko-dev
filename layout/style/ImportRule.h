@@ -29,16 +29,17 @@ class MediaList;
 
 namespace css {
 
-class ImportRule final : public dom::CSSImportRule
-{
-public:
+class ImportRule final : public dom::CSSImportRule {
+ public:
   ImportRule(nsMediaList* aMedia, const nsString& aURLSpec,
              uint32_t aLineNumber, uint32_t aColumnNumber);
-private:
+
+ private:
   // for |Clone|
   ImportRule(const ImportRule& aCopy);
   ~ImportRule();
-public:
+
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ImportRule, Rule)
 
@@ -50,7 +51,8 @@ public:
 
   void SetSheet(CSSStyleSheet*);
 
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
   // WebIDL interface
   void GetCssText(nsAString& aCssText) const override;
@@ -58,13 +60,13 @@ public:
   dom::MediaList* GetMedia() const final;
   StyleSheet* GetStyleSheet() const final;
 
-private:
-  nsString  mURLSpec;
+ private:
+  nsString mURLSpec;
   RefPtr<nsMediaList> mMedia;
   RefPtr<CSSStyleSheet> mChildSheet;
 };
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 #endif /* mozilla_css_ImportRule_h__ */

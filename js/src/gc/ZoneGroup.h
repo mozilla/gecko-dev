@@ -13,7 +13,9 @@
 
 namespace js {
 
-namespace jit { class JitZoneGroup; }
+namespace jit {
+class JitZoneGroup;
+}
 
 class AutoKeepAtoms;
 
@@ -27,134 +29,128 @@ typedef Vector<JS::Zone*, 4, SystemAllocPolicy> ZoneVector;
 // compartments, GC things and so forth may only be used by the thread that has
 // entered the zone group.
 
-class ZoneGroup
-{
-  public:
-    JSRuntime* const runtime;
+class ZoneGroup {
+ public:
+  JSRuntime* const runtime;
 
-  private:
-    // The context with exclusive access to this zone group.
-    UnprotectedData<CooperatingContext> ownerContext_;
+ private:
+  // The context with exclusive access to this zone group.
+  UnprotectedData<CooperatingContext> ownerContext_;
 
-    // The number of times the context has entered this zone group.
-    UnprotectedData<size_t> enterCount;
+  // The number of times the context has entered this zone group.
+  UnprotectedData<size_t> enterCount;
 
-    // If this flag is true, then we may need to block before entering this zone
-    // group. Blocking happens using JSContext::yieldToEmbedding.
-    UnprotectedData<bool> useExclusiveLocking_;
+  // If this flag is true, then we may need to block before entering this zone
+  // group. Blocking happens using JSContext::yieldToEmbedding.
+  UnprotectedData<bool> useExclusiveLocking_;
 
-  public:
-    CooperatingContext& ownerContext() { return ownerContext_.ref(); }
-    void* addressOfOwnerContext() { return &ownerContext_.ref().cx; }
+ public:
+  CooperatingContext& ownerContext() { return ownerContext_.ref(); }
+  void* addressOfOwnerContext() { return &ownerContext_.ref().cx; }
 
-    void enter(JSContext* cx);
-    void leave();
-    bool canEnterWithoutYielding(JSContext* cx);
-    bool ownedByCurrentThread();
+  void enter(JSContext* cx);
+  void leave();
+  bool canEnterWithoutYielding(JSContext* cx);
+  bool ownedByCurrentThread();
 
-    // All zones in the group.
-  private:
-    ZoneGroupOrGCTaskData<ZoneVector> zones_;
-  public:
-    ZoneVector& zones() { return zones_.ref(); }
+  // All zones in the group.
+ private:
+  ZoneGroupOrGCTaskData<ZoneVector> zones_;
 
-  private:
-    enum class HelperThreadUse : uint32_t
-    {
-        None,
-        Pending,
-        Active
-    };
+ public:
+  ZoneVector& zones() { return zones_.ref(); }
 
-    mozilla::Atomic<HelperThreadUse> helperThreadUse;
+ private:
+  enum class HelperThreadUse : uint32_t { None, Pending, Active };
 
-  public:
-    // Whether a zone in this group was created for use by a helper thread.
-    bool createdForHelperThread() const {
-        return helperThreadUse != HelperThreadUse::None;
-    }
-    // Whether a zone in this group is currently in use by a helper thread.
-    bool usedByHelperThread() const {
-        return helperThreadUse == HelperThreadUse::Active;
-    }
-    void setCreatedForHelperThread() {
-        MOZ_ASSERT(helperThreadUse == HelperThreadUse::None);
-        helperThreadUse = HelperThreadUse::Pending;
-    }
-    void setUsedByHelperThread() {
-        MOZ_ASSERT(helperThreadUse == HelperThreadUse::Pending);
-        helperThreadUse = HelperThreadUse::Active;
-    }
-    void clearUsedByHelperThread() {
-        MOZ_ASSERT(helperThreadUse != HelperThreadUse::None);
-        helperThreadUse = HelperThreadUse::None;
-    }
+  mozilla::Atomic<HelperThreadUse> helperThreadUse;
 
-    explicit ZoneGroup(JSRuntime* runtime);
-    ~ZoneGroup();
+ public:
+  // Whether a zone in this group was created for use by a helper thread.
+  bool createdForHelperThread() const {
+    return helperThreadUse != HelperThreadUse::None;
+  }
+  // Whether a zone in this group is currently in use by a helper thread.
+  bool usedByHelperThread() const {
+    return helperThreadUse == HelperThreadUse::Active;
+  }
+  void setCreatedForHelperThread() {
+    MOZ_ASSERT(helperThreadUse == HelperThreadUse::None);
+    helperThreadUse = HelperThreadUse::Pending;
+  }
+  void setUsedByHelperThread() {
+    MOZ_ASSERT(helperThreadUse == HelperThreadUse::Pending);
+    helperThreadUse = HelperThreadUse::Active;
+  }
+  void clearUsedByHelperThread() {
+    MOZ_ASSERT(helperThreadUse != HelperThreadUse::None);
+    helperThreadUse = HelperThreadUse::None;
+  }
 
-    bool init();
+  explicit ZoneGroup(JSRuntime* runtime);
+  ~ZoneGroup();
 
-    inline Nursery& nursery();
-    inline gc::StoreBuffer& storeBuffer();
+  bool init();
 
-    inline bool isCollecting();
-    inline bool isGCScheduled();
+  inline Nursery& nursery();
+  inline gc::StoreBuffer& storeBuffer();
 
-    // See the useExclusiveLocking_ field above.
-    void setUseExclusiveLocking() { useExclusiveLocking_ = true; }
-    bool useExclusiveLocking() { return useExclusiveLocking_; }
+  inline bool isCollecting();
+  inline bool isGCScheduled();
 
-    // Delete an empty zone after its contents have been merged.
-    void deleteEmptyZone(Zone* zone);
+  // See the useExclusiveLocking_ field above.
+  void setUseExclusiveLocking() { useExclusiveLocking_ = true; }
+  bool useExclusiveLocking() { return useExclusiveLocking_; }
+
+  // Delete an empty zone after its contents have been merged.
+  void deleteEmptyZone(Zone* zone);
 
 #ifdef DEBUG
-  private:
-    // The number of possible bailing places encounters before forcefully bailing
-    // in that place. Zero means inactive.
-    ZoneGroupData<uint32_t> ionBailAfter_;
+ private:
+  // The number of possible bailing places encounters before forcefully bailing
+  // in that place. Zero means inactive.
+  ZoneGroupData<uint32_t> ionBailAfter_;
 
-  public:
-    void* addressOfIonBailAfter() { return &ionBailAfter_; }
+ public:
+  void* addressOfIonBailAfter() { return &ionBailAfter_; }
 
-    // Set after how many bailing places we should forcefully bail.
-    // Zero disables this feature.
-    void setIonBailAfter(uint32_t after) {
-        ionBailAfter_ = after;
-    }
+  // Set after how many bailing places we should forcefully bail.
+  // Zero disables this feature.
+  void setIonBailAfter(uint32_t after) { ionBailAfter_ = after; }
 #endif
 
-    ZoneGroupData<jit::JitZoneGroup*> jitZoneGroup;
+  ZoneGroupData<jit::JitZoneGroup*> jitZoneGroup;
 
-  private:
-    /* Linked list of all Debugger objects in the group. */
-    ZoneGroupData<mozilla::LinkedList<js::Debugger>> debuggerList_;
-  public:
-    mozilla::LinkedList<js::Debugger>& debuggerList() { return debuggerList_.ref(); }
+ private:
+  /* Linked list of all Debugger objects in the group. */
+  ZoneGroupData<mozilla::LinkedList<js::Debugger>> debuggerList_;
 
-    // Number of Ion compilations which were finished off thread and are
-    // waiting to be lazily linked. This is only set while holding the helper
-    // thread state lock, but may be read from at other times.
-    mozilla::Atomic<size_t> numFinishedBuilders;
+ public:
+  mozilla::LinkedList<js::Debugger>& debuggerList() {
+    return debuggerList_.ref();
+  }
 
-  private:
-    /* List of Ion compilation waiting to get linked. */
-    typedef mozilla::LinkedList<js::jit::IonBuilder> IonBuilderList;
+  // Number of Ion compilations which were finished off thread and are
+  // waiting to be lazily linked. This is only set while holding the helper
+  // thread state lock, but may be read from at other times.
+  mozilla::Atomic<size_t> numFinishedBuilders;
 
-    js::HelperThreadLockData<IonBuilderList> ionLazyLinkList_;
-    js::HelperThreadLockData<size_t> ionLazyLinkListSize_;
+ private:
+  /* List of Ion compilation waiting to get linked. */
+  typedef mozilla::LinkedList<js::jit::IonBuilder> IonBuilderList;
 
-  public:
-    IonBuilderList& ionLazyLinkList();
+  js::HelperThreadLockData<IonBuilderList> ionLazyLinkList_;
+  js::HelperThreadLockData<size_t> ionLazyLinkListSize_;
 
-    size_t ionLazyLinkListSize() {
-        return ionLazyLinkListSize_;
-    }
+ public:
+  IonBuilderList& ionLazyLinkList();
 
-    void ionLazyLinkListRemove(js::jit::IonBuilder* builder);
-    void ionLazyLinkListAdd(js::jit::IonBuilder* builder);
+  size_t ionLazyLinkListSize() { return ionLazyLinkListSize_; }
+
+  void ionLazyLinkListRemove(js::jit::IonBuilder* builder);
+  void ionLazyLinkListAdd(js::jit::IonBuilder* builder);
 };
 
-} // namespace js
+}  // namespace js
 
-#endif // gc_Zone_h
+#endif  // gc_Zone_h

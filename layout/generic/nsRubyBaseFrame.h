@@ -18,9 +18,8 @@
 nsContainerFrame* NS_NewRubyBaseFrame(nsIPresShell* aPresShell,
                                       nsStyleContext* aContext);
 
-class nsRubyBaseFrame final : public nsRubyContentFrame
-{
-public:
+class nsRubyBaseFrame final : public nsRubyContentFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsRubyBaseFrame)
   NS_DECL_QUERYFRAME
 
@@ -28,12 +27,11 @@ public:
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-protected:
+ protected:
   friend nsContainerFrame* NS_NewRubyBaseFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
   explicit nsRubyBaseFrame(nsStyleContext* aContext)
-    : nsRubyContentFrame(aContext, kClassID)
-  {}
+      : nsRubyContentFrame(aContext, kClassID) {}
 };
 
 #endif /* nsRubyBaseFrame_h___ */

@@ -23,13 +23,12 @@ namespace dom {
 
 class DOMParser final : public nsIDOMParser,
                         public nsSupportsWeakReference,
-                        public nsWrapperCache
-{
+                        public nsWrapperCache {
   typedef mozilla::dom::GlobalObject GlobalObject;
 
   virtual ~DOMParser();
 
-public:
+ public:
   DOMParser();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -40,53 +39,47 @@ public:
   NS_DECL_NSIDOMPARSER
 
   // WebIDL API
-  static already_AddRefed<DOMParser>
-  Constructor(const GlobalObject& aOwner,
-              mozilla::ErrorResult& rv);
+  static already_AddRefed<DOMParser> Constructor(const GlobalObject& aOwner,
+                                                 mozilla::ErrorResult& rv);
 
-  static already_AddRefed<DOMParser>
-  Constructor(const GlobalObject& aOwner,
-              nsIPrincipal* aPrincipal, nsIURI* aDocumentURI, nsIURI* aBaseURI,
-              mozilla::ErrorResult& rv);
+  static already_AddRefed<DOMParser> Constructor(const GlobalObject& aOwner,
+                                                 nsIPrincipal* aPrincipal,
+                                                 nsIURI* aDocumentURI,
+                                                 nsIURI* aBaseURI,
+                                                 mozilla::ErrorResult& rv);
 
-  already_AddRefed<nsIDocument>
-  ParseFromString(const nsAString& aStr, mozilla::dom::SupportedType aType,
-                  mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDocument> ParseFromString(
+      const nsAString& aStr, mozilla::dom::SupportedType aType,
+      mozilla::ErrorResult& rv);
 
-  already_AddRefed<nsIDocument>
-  ParseFromBuffer(const mozilla::dom::Sequence<uint8_t>& aBuf,
-                  uint32_t aBufLen, mozilla::dom::SupportedType aType,
-                  mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDocument> ParseFromBuffer(
+      const mozilla::dom::Sequence<uint8_t>& aBuf, uint32_t aBufLen,
+      mozilla::dom::SupportedType aType, mozilla::ErrorResult& rv);
 
-  already_AddRefed<nsIDocument>
-  ParseFromBuffer(const mozilla::dom::Uint8Array& aBuf, uint32_t aBufLen,
-                  mozilla::dom::SupportedType aType,
-                  mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDocument> ParseFromBuffer(
+      const mozilla::dom::Uint8Array& aBuf, uint32_t aBufLen,
+      mozilla::dom::SupportedType aType, mozilla::ErrorResult& rv);
 
-  already_AddRefed<nsIDocument>
-  ParseFromStream(nsIInputStream* aStream, const nsAString& aCharset,
-                  int32_t aContentLength, mozilla::dom::SupportedType aType,
-                  mozilla::ErrorResult& rv);
+  already_AddRefed<nsIDocument> ParseFromStream(
+      nsIInputStream* aStream, const nsAString& aCharset,
+      int32_t aContentLength, mozilla::dom::SupportedType aType,
+      mozilla::ErrorResult& rv);
 
-  void Init(nsIPrincipal* aPrincipal, nsIURI* aDocumentURI,
-            nsIURI* aBaseURI, mozilla::ErrorResult& rv);
+  void Init(nsIPrincipal* aPrincipal, nsIURI* aDocumentURI, nsIURI* aBaseURI,
+            mozilla::ErrorResult& rv);
 
-  nsISupports* GetParentObject() const
-  {
-    return mOwner;
-  }
+  nsISupports* GetParentObject() const { return mOwner; }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
-  {
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::DOMParserBinding::Wrap(aCx, this, aGivenProto);
   }
 
-private:
+ private:
   explicit DOMParser(nsISupports* aOwner)
-    : mOwner(aOwner)
-    , mAttemptedInit(false)
-    , mOriginalPrincipalWasSystem(false)
-  {
+      : mOwner(aOwner),
+        mAttemptedInit(false),
+        mOriginalPrincipalWasSystem(false) {
     MOZ_ASSERT(aOwner);
   }
 
@@ -96,20 +89,17 @@ private:
   nsresult SetUpDocument(DocumentFlavor aFlavor, nsIDOMDocument** aResult);
 
   // Helper for ParseFromString
-  nsresult ParseFromString(const nsAString& str, const char *contentType,
-                           nsIDOMDocument **aResult);
+  nsresult ParseFromString(const nsAString& str, const char* contentType,
+                           nsIDOMDocument** aResult);
 
   class AttemptedInitMarker {
-  public:
-    explicit AttemptedInitMarker(bool* aAttemptedInit) :
-      mAttemptedInit(aAttemptedInit)
-    {}
+   public:
+    explicit AttemptedInitMarker(bool* aAttemptedInit)
+        : mAttemptedInit(aAttemptedInit) {}
 
-    ~AttemptedInitMarker() {
-      *mAttemptedInit = true;
-    }
+    ~AttemptedInitMarker() { *mAttemptedInit = true; }
 
-  private:
+   private:
     bool* mAttemptedInit;
   };
 
@@ -123,7 +113,7 @@ private:
   bool mOriginalPrincipalWasSystem;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif

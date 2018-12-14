@@ -17,38 +17,28 @@
  */
 
 template <typename T>
-class PingPongRegion
-{
+class PingPongRegion {
   typedef typename T::RectType RectType;
-public:
-  PingPongRegion()
-  {
-    rgn = &rgn1;
-  }
 
-  void SubOut(const RectType& aOther)
-  {
+ public:
+  PingPongRegion() { rgn = &rgn1; }
+
+  void SubOut(const RectType& aOther) {
     T* nextRgn = nextRegion();
     nextRgn->Sub(*rgn, aOther);
     rgn = nextRgn;
   }
 
-  void OrWith(const RectType& aOther)
-  {
+  void OrWith(const RectType& aOther) {
     T* nextRgn = nextRegion();
     nextRgn->Or(*rgn, aOther);
     rgn = nextRgn;
   }
 
-  T& Region()
-  {
-    return *rgn;
-  }
+  T& Region() { return *rgn; }
 
-private:
-
-  T* nextRegion()
-  {
+ private:
+  T* nextRegion() {
     if (rgn == &rgn1) {
       return &rgn2;
     } else {

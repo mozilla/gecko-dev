@@ -14,16 +14,14 @@
 #include "nsTArray.h"
 #include "SVGTextFrame.h"
 
-static bool
-StyleContextContainsFont(nsStyleContext* aStyleContext,
-                         const gfxUserFontSet* aUserFontSet,
-                         const gfxUserFontEntry* aFont)
-{
+static bool StyleContextContainsFont(nsStyleContext* aStyleContext,
+                                     const gfxUserFontSet* aUserFontSet,
+                                     const gfxUserFontEntry* aFont) {
   // if the font is null, simply check to see whether fontlist includes
   // downloadable fonts
   if (!aFont) {
     const mozilla::FontFamilyList& fontlist =
-      aStyleContext->StyleFont()->mFont.fontlist;
+        aStyleContext->StyleFont()->mFont.fontlist;
     return aUserFontSet->ContainsUserFontSetFonts(fontlist);
   }
 
@@ -36,7 +34,7 @@ StyleContextContainsFont(nsStyleContext* aStyleContext,
   // family name is in the fontlist, check to see if the font group
   // associated with the frame includes the specific userfont
   RefPtr<nsFontMetrics> fm =
-    nsLayoutUtils::GetFontMetricsForStyleContext(aStyleContext, 1.0f);
+      nsLayoutUtils::GetFontMetricsForStyleContext(aStyleContext, 1.0f);
 
   if (fm->GetThebesFontGroup()->ContainsUserFont(aFont)) {
     return true;
@@ -45,9 +43,7 @@ StyleContextContainsFont(nsStyleContext* aStyleContext,
   return false;
 }
 
-static bool
-FrameUsesFont(nsIFrame* aFrame, const gfxUserFontEntry* aFont)
-{
+static bool FrameUsesFont(nsIFrame* aFrame, const gfxUserFontEntry* aFont) {
   // check the style context of the frame
   gfxUserFontSet* ufs = aFrame->PresContext()->GetUserFontSet();
   if (StyleContextContainsFont(aFrame->StyleContext(), ufs, aFont)) {
@@ -67,9 +63,7 @@ FrameUsesFont(nsIFrame* aFrame, const gfxUserFontEntry* aFont)
   return false;
 }
 
-static void
-ScheduleReflow(nsIPresShell* aShell, nsIFrame* aFrame)
-{
+static void ScheduleReflow(nsIPresShell* aShell, nsIFrame* aFrame) {
   nsIFrame* f = aFrame;
   if (f->IsFrameOfType(nsIFrame::eSVG) || nsSVGUtils::IsInSVGTextSubtree(f)) {
     // SVG frames (and the non-SVG descendants of an SVGTextFrame) need special
@@ -103,10 +97,8 @@ ScheduleReflow(nsIPresShell* aShell, nsIFrame* aFrame)
   aShell->FrameNeedsReflow(f, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
 }
 
-/* static */ void
-nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
-                                        const gfxUserFontEntry* aFont)
-{
+/* static */ void nsFontFaceUtils::MarkDirtyForFontChange(
+    nsIFrame* aSubtreeRoot, const gfxUserFontEntry* aFont) {
   AutoTArray<nsIFrame*, 4> subtrees;
   subtrees.AppendElement(aSubtreeRoot);
 

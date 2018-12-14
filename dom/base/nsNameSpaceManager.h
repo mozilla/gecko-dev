@@ -31,9 +31,8 @@
  *
  */
 
-class nsNameSpaceManager final : public nsIObserver
-{
-public:
+class nsNameSpaceManager final : public nsIObserver {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
   virtual nsresult RegisterNameSpace(const nsAString& aURI,
@@ -49,14 +48,12 @@ public:
   // GeckoElement::get_namespace().
   nsAtom* NameSpaceURIAtom(int32_t aNameSpaceID) {
     MOZ_ASSERT(aNameSpaceID > 0);
-    MOZ_ASSERT((int64_t) aNameSpaceID < (int64_t) mURIArray.Length());
+    MOZ_ASSERT((int64_t)aNameSpaceID < (int64_t)mURIArray.Length());
     return mURIArray.ElementAt(aNameSpaceID);
   }
 
-  int32_t GetNameSpaceID(const nsAString& aURI,
-                         bool aInChromeDoc);
-  int32_t GetNameSpaceID(nsAtom* aURI,
-                         bool aInChromeDoc);
+  int32_t GetNameSpaceID(const nsAString& aURI, bool aInChromeDoc);
+  int32_t GetNameSpaceID(nsAtom* aURI, bool aInChromeDoc);
 
   bool HasElementCreator(int32_t aNameSpaceID);
 
@@ -64,11 +61,13 @@ public:
   bool mMathMLDisabled;
   bool mSVGDisabled;
 
-private:
+ private:
   bool Init();
-  nsresult AddNameSpace(already_AddRefed<nsAtom> aURI, const int32_t aNameSpaceID);
-  nsresult AddDisabledNameSpace(already_AddRefed<nsAtom> aURI, const int32_t aNameSpaceID);
-  ~nsNameSpaceManager() {};
+  nsresult AddNameSpace(already_AddRefed<nsAtom> aURI,
+                        const int32_t aNameSpaceID);
+  nsresult AddDisabledNameSpace(already_AddRefed<nsAtom> aURI,
+                                const int32_t aNameSpaceID);
+  ~nsNameSpaceManager(){};
 
   nsDataHashtable<nsRefPtrHashKey<nsAtom>, int32_t> mURIToIDTable;
   nsDataHashtable<nsRefPtrHashKey<nsAtom>, int32_t> mDisabledURIToIDTable;
@@ -77,4 +76,4 @@ private:
   static mozilla::StaticRefPtr<nsNameSpaceManager> sInstance;
 };
 
-#endif // nsNameSpaceManager_h___
+#endif  // nsNameSpaceManager_h___

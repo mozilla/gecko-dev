@@ -17,11 +17,10 @@
 namespace mozilla {
 namespace net {
 
-class NamedPipeService final : public nsINamedPipeService
-                             , public nsIObserver
-                             , public nsIRunnable
-{
-public:
+class NamedPipeService final : public nsINamedPipeService,
+                               public nsIObserver,
+                               public nsIRunnable {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSINAMEDPIPESERVICE
   NS_DECL_NSIOBSERVER
@@ -31,14 +30,15 @@ public:
 
   nsresult Init();
 
-private:
+ private:
   virtual ~NamedPipeService() = default;
   void Shutdown();
   void RemoveRetiredObjects();
 
-  HANDLE mIocp; // native handle to the I/O completion port.
-  Atomic<bool> mIsShutdown; // set to true to stop the event loop running by mThread.
-  nsCOMPtr<nsIThread> mThread; // worker thread to get I/O events.
+  HANDLE mIocp;  // native handle to the I/O completion port.
+  Atomic<bool>
+      mIsShutdown;  // set to true to stop the event loop running by mThread.
+  nsCOMPtr<nsIThread> mThread;  // worker thread to get I/O events.
 
   /**
    * The observers is maintained in |mObservers| to ensure valid life-cycle.
@@ -48,12 +48,14 @@ private:
    * |CloseHandle()| and |GetQueuedCompletionStatus()|.
    */
   Mutex mLock;
-  nsTArray<nsCOMPtr<nsINamedPipeDataObserver>> mObservers; // protected by mLock
-  nsTArray<nsCOMPtr<nsINamedPipeDataObserver>> mRetiredObservers; // protected by mLock
-  nsTArray<HANDLE> mRetiredHandles; // protected by mLock
+  nsTArray<nsCOMPtr<nsINamedPipeDataObserver>>
+      mObservers;  // protected by mLock
+  nsTArray<nsCOMPtr<nsINamedPipeDataObserver>>
+      mRetiredObservers;             // protected by mLock
+  nsTArray<HANDLE> mRetiredHandles;  // protected by mLock
 };
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
-#endif // mozilla_netwerk_socket_nsNamedPipeService_h
+#endif  // mozilla_netwerk_socket_nsNamedPipeService_h

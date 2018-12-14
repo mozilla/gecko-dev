@@ -7,21 +7,21 @@
 #ifndef MOZILLA_GFX_SHAREDSURFACESCHILD_H
 #define MOZILLA_GFX_SHAREDSURFACESCHILD_H
 
-#include <stddef.h>                     // for size_t
-#include <stdint.h>                     // for uint32_t, uint64_t
-#include "mozilla/Attributes.h"         // for override
-#include "mozilla/RefPtr.h"             // for already_AddRefed
-#include "mozilla/StaticPtr.h"          // for StaticRefPtr
-#include "mozilla/webrender/WebRenderTypes.h" // for wr::ImageKey
+#include <stddef.h>                            // for size_t
+#include <stdint.h>                            // for uint32_t, uint64_t
+#include "mozilla/Attributes.h"                // for override
+#include "mozilla/RefPtr.h"                    // for already_AddRefed
+#include "mozilla/StaticPtr.h"                 // for StaticRefPtr
+#include "mozilla/webrender/WebRenderTypes.h"  // for wr::ImageKey
 
 namespace mozilla {
 namespace gfx {
 class SourceSurfaceSharedData;
-} // namespace gfx
+}  // namespace gfx
 
 namespace wr {
 class IpcResourceUpdateQueue;
-} // namespace wr
+}  // namespace wr
 
 namespace layers {
 
@@ -29,9 +29,8 @@ class CompositorManagerChild;
 class ImageContainer;
 class WebRenderLayerManager;
 
-class SharedSurfacesChild final
-{
-public:
+class SharedSurfacesChild final {
+ public:
   /**
    * Request that the surface be mapped into the compositor thread's memory
    * space. This is useful for when the caller itself has no present need for
@@ -63,7 +62,7 @@ public:
                         wr::IpcResourceUpdateQueue& aResources,
                         wr::ImageKey& aKey);
 
-private:
+ private:
   SharedSurfacesChild() = delete;
   ~SharedSurfacesChild() = delete;
 
@@ -73,11 +72,12 @@ private:
   static nsresult ShareInternal(gfx::SourceSurfaceSharedData* aSurface,
                                 SharedUserData** aUserData);
 
-  static void Unshare(const wr::ExternalImageId& aId, nsTArray<ImageKeyData>& aKeys);
+  static void Unshare(const wr::ExternalImageId& aId,
+                      nsTArray<ImageKeyData>& aKeys);
   static void DestroySharedUserData(void* aClosure);
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
 #endif

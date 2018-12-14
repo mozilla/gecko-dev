@@ -17,11 +17,9 @@
 
 class nsIIDNService;
 
-class nsEffectiveTLDService final
-  : public nsIEffectiveTLDService
-  , public nsIMemoryReporter
-{
-public:
+class nsEffectiveTLDService final : public nsIEffectiveTLDService,
+                                    public nsIMemoryReporter {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIEFFECTIVETLDSERVICE
   NS_DECL_NSIMEMORYREPORTER
@@ -31,18 +29,18 @@ public:
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-private:
-  nsresult GetBaseDomainInternal(nsCString &aHostname, int32_t aAdditionalParts, nsACString &aBaseDomain);
+ private:
+  nsresult GetBaseDomainInternal(nsCString &aHostname, int32_t aAdditionalParts,
+                                 nsACString &aBaseDomain);
   nsresult NormalizeHostname(nsCString &aHostname);
   ~nsEffectiveTLDService();
 
-  nsCOMPtr<nsIIDNService>     mIDNService;
+  nsCOMPtr<nsIIDNService> mIDNService;
 
   // The DAFSA provides a compact encoding of the rather large eTLD list.
   mozilla::Dafsa mGraph;
 
-  struct TLDCacheEntry
-  {
+  struct TLDCacheEntry {
     nsCString mHost;
     nsCString mBaseDomain;
   };
@@ -70,7 +68,7 @@ private:
    * @param aEntry Out param, the entry in the MRU table to use.
    * @return True if a match was found, false if there was a miss.
    */
-  inline bool LookupForAdd(const nsACString& aHost, TLDCacheEntry** aEntry);
+  inline bool LookupForAdd(const nsACString &aHost, TLDCacheEntry **aEntry);
 };
 
-#endif // EffectiveTLDService_h
+#endif  // EffectiveTLDService_h

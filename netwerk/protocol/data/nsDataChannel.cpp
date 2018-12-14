@@ -26,96 +26,86 @@ using namespace mozilla;
  * @return Reference to the string containing the unescaped data.
  */
 const nsACString& Unescape(const nsACString& aStr, nsACString& aBuffer,
-                           nsresult* rv)
-{
-    MOZ_ASSERT(rv);
+                           nsresult* rv) {
+  MOZ_ASSERT(rv);
 
-    bool appended = false;
-    *rv = NS_UnescapeURL(aStr.Data(), aStr.Length(), /* flags = */ 0,
-                         aBuffer, appended, mozilla::fallible);
-    if (NS_FAILED(*rv) || !appended) {
-        return aStr;
-    }
+  bool appended = false;
+  *rv = NS_UnescapeURL(aStr.Data(), aStr.Length(), /* flags = */ 0, aBuffer,
+                       appended, mozilla::fallible);
+  if (NS_FAILED(*rv) || !appended) {
+    return aStr;
+  }
 
-    return aBuffer;
+  return aBuffer;
 }
 
-nsresult
-nsDataChannel::OpenContentStream(bool async, nsIInputStream **result,
-                                 nsIChannel** channel)
-{
-    NS_ENSURE_TRUE(URI(), NS_ERROR_NOT_INITIALIZED);
+nsresult nsDataChannel::OpenContentStream(bool async, nsIInputStream** result,
+                                          nsIChannel** channel) {
+  NS_ENSURE_TRUE(URI(), NS_ERROR_NOT_INITIALIZED);
 
-    nsresult rv;
+  nsresult rv;
 
-    // In order to avoid potentially building up a new path including the
-    // ref portion of the URI, which we don't care about, we clone a version
-    // of the URI that does not have a ref and in most cases should share
-    // string buffers with the original URI.
-    nsCOMPtr<nsIURI> uri;
-    rv = URI()->CloneIgnoringRef(getter_AddRefs(uri));
-    if (NS_FAILED(rv))
-        return rv;
+  // In order to avoid potentially building up a new path including the
+  // ref portion of the URI, which we don't care about, we clone a version
+  // of the URI that does not have a ref and in most cases should share
+  // string buffers with the original URI.
+  nsCOMPtr<nsIURI> uri;
+  rv = URI()->CloneIgnoringRef(getter_AddRefs(uri));
+  if (NS_FAILED(rv)) return rv;
 
-    nsAutoCString path;
-    rv = uri->GetPathQueryRef(path);
-    if (NS_FAILED(rv))
-        return rv;
+  nsAutoCString path;
+  rv = uri->GetPathQueryRef(path);
+  if (NS_FAILED(rv)) return rv;
 
-    nsCString contentType, contentCharset;
-    nsDependentCSubstring dataRange;
-    bool lBase64;
-    rv = nsDataHandler::ParsePathWithoutRef(path, contentType, &contentCharset,
-                                            lBase64, &dataRange);
-    if (NS_FAILED(rv))
-        return rv;
+  nsCString contentType, contentCharset;
+  nsDependentCSubstring dataRange;
+  bool lBase64;
+  rv = nsDataHandler::ParsePathWithoutRef(path, contentType, &contentCharset,
+                                          lBase64, &dataRange);
+  if (NS_FAILED(rv)) return rv;
 
-    // This will avoid a copy if nothing needs to be unescaped.
-    nsAutoCString unescapedBuffer;
-    const nsACString& data = Unescape(dataRange, unescapedBuffer, &rv);
-    if (NS_FAILED(rv)) {
-        return rv;
-    }
+  // This will avoid a copy if nothing needs to be unescaped.
+  nsAutoCString unescapedBuffer;
+  const nsACString& data = Unescape(dataRange, unescapedBuffer, &rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-    if (lBase64 && &data == &unescapedBuffer) {
-        // Don't allow spaces in base64-encoded content. This is only
-        // relevant for escaped spaces; other spaces are stripped in
-        // NewURI. We know there were no escaped spaces if the data buffer
-        // wasn't used in |Unescape|.
-        unescapedBuffer.StripWhitespace();
-    }
+  if (lBase64 && &data == &unescapedBuffer) {
+    // Don't allow spaces in base64-encoded content. This is only
+    // relevant for escaped spaces; other spaces are stripped in
+    // NewURI. We know there were no escaped spaces if the data buffer
+    // wasn't used in |Unescape|.
+    unescapedBuffer.StripWhitespace();
+  }
 
-    nsCOMPtr<nsIInputStream> bufInStream;
-    nsCOMPtr<nsIOutputStream> bufOutStream;
+  nsCOMPtr<nsIInputStream> bufInStream;
+  nsCOMPtr<nsIOutputStream> bufOutStream;
 
-    // create an unbounded pipe.
-    rv = NS_NewPipe(getter_AddRefs(bufInStream),
-                    getter_AddRefs(bufOutStream),
-                    nsIOService::gDefaultSegmentSize,
-                    UINT32_MAX,
-                    async, true);
-    if (NS_FAILED(rv))
-        return rv;
+  // create an unbounded pipe.
+  rv = NS_NewPipe(getter_AddRefs(bufInStream), getter_AddRefs(bufOutStream),
+                  nsIOService::gDefaultSegmentSize, UINT32_MAX, async, true);
+  if (NS_FAILED(rv)) return rv;
 
-    uint32_t contentLen;
-    if (lBase64) {
-        nsAutoCString decodedData;
-        rv = Base64Decode(data, decodedData);
-        NS_ENSURE_SUCCESS(rv, rv);
+  uint32_t contentLen;
+  if (lBase64) {
+    nsAutoCString decodedData;
+    rv = Base64Decode(data, decodedData);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = bufOutStream->Write(decodedData.get(), decodedData.Length(), &contentLen);
-    } else {
-        rv = bufOutStream->Write(data.Data(), data.Length(), &contentLen);
-    }
+    rv = bufOutStream->Write(decodedData.get(), decodedData.Length(),
+                             &contentLen);
+  } else {
+    rv = bufOutStream->Write(data.Data(), data.Length(), &contentLen);
+  }
 
-    if (NS_FAILED(rv))
-        return rv;
+  if (NS_FAILED(rv)) return rv;
 
-    SetContentType(contentType);
-    SetContentCharset(contentCharset);
-    mContentLength = contentLen;
+  SetContentType(contentType);
+  SetContentCharset(contentCharset);
+  mContentLength = contentLen;
 
-    bufInStream.forget(result);
+  bufInStream.forget(result);
 
-    return NS_OK;
+  return NS_OK;
 }

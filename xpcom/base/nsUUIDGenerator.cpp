@@ -24,20 +24,13 @@ using namespace mozilla;
 
 NS_IMPL_ISUPPORTS(nsUUIDGenerator, nsIUUIDGenerator)
 
-nsUUIDGenerator::nsUUIDGenerator()
-  : mLock("nsUUIDGenerator.mLock")
-{
-}
+nsUUIDGenerator::nsUUIDGenerator() : mLock("nsUUIDGenerator.mLock") {}
 
-nsUUIDGenerator::~nsUUIDGenerator()
-{
-}
+nsUUIDGenerator::~nsUUIDGenerator() {}
 
-nsresult
-nsUUIDGenerator::Init()
-{
-  // We're a service, so we're guaranteed that Init() is not going
-  // to be reentered while we're inside Init().
+nsresult nsUUIDGenerator::Init() {
+// We're a service, so we're guaranteed that Init() is not going
+// to be reentered while we're inside Init().
 
 #if !defined(XP_WIN) && !defined(XP_MACOSX) && !defined(HAVE_ARC4RANDOM)
   /* initialize random number generator using NSPR random noise */
@@ -82,8 +75,7 @@ nsUUIDGenerator::Init()
 }
 
 NS_IMETHODIMP
-nsUUIDGenerator::GenerateUUID(nsID** aRet)
-{
+nsUUIDGenerator::GenerateUUID(nsID** aRet) {
   nsID* id = static_cast<nsID*>(moz_xmalloc(sizeof(nsID)));
   if (!id) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -100,8 +92,7 @@ nsUUIDGenerator::GenerateUUID(nsID** aRet)
 }
 
 NS_IMETHODIMP
-nsUUIDGenerator::GenerateUUIDInPlace(nsID* aId)
-{
+nsUUIDGenerator::GenerateUUIDInPlace(nsID* aId) {
   // The various code in this method is probably not threadsafe, so lock
   // across the whole method.
   MutexAutoLock lock(mLock);
@@ -141,7 +132,6 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* aId)
 #else
     long rval = random();
 #endif
-
 
     uint8_t* src = (uint8_t*)&rval;
     // We want to grab the mRBytes least significant bytes of rval, since

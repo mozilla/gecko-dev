@@ -26,12 +26,13 @@
 
 #include "pkixutil.h"
 
-namespace mozilla { namespace pkix { namespace der {
+namespace mozilla {
+namespace pkix {
+namespace der {
 
 // Too complicated to be inline
-Result
-ReadTagAndGetValue(Reader& input, /*out*/ uint8_t& tag, /*out*/ Input& value)
-{
+Result ReadTagAndGetValue(Reader& input, /*out*/ uint8_t& tag,
+                          /*out*/ Input& value) {
   Result rv;
 
   rv = input.Read(tag);
@@ -39,7 +40,7 @@ ReadTagAndGetValue(Reader& input, /*out*/ uint8_t& tag, /*out*/ Input& value)
     return rv;
   }
   if ((tag & 0x1F) == 0x1F) {
-    return Result::ERROR_BAD_DER; // high tag number form not allowed
+    return Result::ERROR_BAD_DER;  // high tag number form not allowed
   }
 
   uint16_t length;
@@ -83,9 +84,7 @@ ReadTagAndGetValue(Reader& input, /*out*/ uint8_t& tag, /*out*/ Input& value)
   return input.Skip(length, value);
 }
 
-static Result
-OptionalNull(Reader& input)
-{
+static Result OptionalNull(Reader& input) {
   if (input.Peek(NULLTag)) {
     return Null(input);
   }
@@ -94,9 +93,8 @@ OptionalNull(Reader& input)
 
 namespace {
 
-Result
-AlgorithmIdentifierValue(Reader& input, /*out*/ Reader& algorithmOIDValue)
-{
+Result AlgorithmIdentifierValue(Reader& input,
+                                /*out*/ Reader& algorithmOIDValue) {
   Result rv = ExpectTagAndGetValue(input, der::OIDTag, algorithmOIDValue);
   if (rv != Success) {
     return rv;
@@ -104,13 +102,12 @@ AlgorithmIdentifierValue(Reader& input, /*out*/ Reader& algorithmOIDValue)
   return OptionalNull(input);
 }
 
-} // namespace
+}  // namespace
 
-Result
-SignatureAlgorithmIdentifierValue(Reader& input,
-                                 /*out*/ PublicKeyAlgorithm& publicKeyAlgorithm,
-                                 /*out*/ DigestAlgorithm& digestAlgorithm)
-{
+Result SignatureAlgorithmIdentifierValue(
+    Reader& input,
+    /*out*/ PublicKeyAlgorithm& publicKeyAlgorithm,
+    /*out*/ DigestAlgorithm& digestAlgorithm) {
   // RFC 5758 Section 3.2 (ECDSA with SHA-2), and RFC 3279 Section 2.2.3
   // (ECDSA with SHA-1) say that parameters must be omitted.
   //
@@ -126,52 +123,42 @@ SignatureAlgorithmIdentifierValue(Reader& input,
 
   // RFC 5758 Section 3.2 (ecdsa-with-SHA224 is intentionally excluded)
   // python DottedOIDToCode.py ecdsa-with-SHA256 1.2.840.10045.4.3.2
-  static const uint8_t ecdsa_with_SHA256[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02
-  };
+  static const uint8_t ecdsa_with_SHA256[] = {0x2a, 0x86, 0x48, 0xce,
+                                              0x3d, 0x04, 0x03, 0x02};
   // python DottedOIDToCode.py ecdsa-with-SHA384 1.2.840.10045.4.3.3
-  static const uint8_t ecdsa_with_SHA384[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x03
-  };
+  static const uint8_t ecdsa_with_SHA384[] = {0x2a, 0x86, 0x48, 0xce,
+                                              0x3d, 0x04, 0x03, 0x03};
   // python DottedOIDToCode.py ecdsa-with-SHA512 1.2.840.10045.4.3.4
-  static const uint8_t ecdsa_with_SHA512[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x04
-  };
+  static const uint8_t ecdsa_with_SHA512[] = {0x2a, 0x86, 0x48, 0xce,
+                                              0x3d, 0x04, 0x03, 0x04};
 
   // RFC 4055 Section 5 (sha224WithRSAEncryption is intentionally excluded)
   // python DottedOIDToCode.py sha256WithRSAEncryption 1.2.840.113549.1.1.11
   static const uint8_t sha256WithRSAEncryption[] = {
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b
-  };
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b};
   // python DottedOIDToCode.py sha384WithRSAEncryption 1.2.840.113549.1.1.12
   static const uint8_t sha384WithRSAEncryption[] = {
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0c
-  };
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0c};
   // python DottedOIDToCode.py sha512WithRSAEncryption 1.2.840.113549.1.1.13
   static const uint8_t sha512WithRSAEncryption[] = {
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0d
-  };
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0d};
 
   // RFC 3279 Section 2.2.1
   // python DottedOIDToCode.py sha-1WithRSAEncryption 1.2.840.113549.1.1.5
-  static const uint8_t sha_1WithRSAEncryption[] = {
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x05
-  };
+  static const uint8_t sha_1WithRSAEncryption[] = {0x2a, 0x86, 0x48, 0x86, 0xf7,
+                                                   0x0d, 0x01, 0x01, 0x05};
 
   // NIST Open Systems Environment (OSE) Implementor's Workshop (OIW)
   // http://www.oiw.org/agreements/stable/12s-9412.txt (no longer works).
   // http://www.imc.org/ietf-pkix/old-archive-97/msg01166.html
   // We need to support this this non-PKIX OID for compatibility.
   // python DottedOIDToCode.py sha1WithRSASignature 1.3.14.3.2.29
-  static const uint8_t sha1WithRSASignature[] = {
-    0x2b, 0x0e, 0x03, 0x02, 0x1d
-  };
+  static const uint8_t sha1WithRSASignature[] = {0x2b, 0x0e, 0x03, 0x02, 0x1d};
 
   // RFC 3279 Section 2.2.3
   // python DottedOIDToCode.py ecdsa-with-SHA1 1.2.840.10045.4.1
-  static const uint8_t ecdsa_with_SHA1[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x01
-  };
+  static const uint8_t ecdsa_with_SHA1[] = {0x2a, 0x86, 0x48, 0xce,
+                                            0x3d, 0x04, 0x01};
 
   // Matching is attempted based on a rough estimate of the commonality of the
   // algorithm, to minimize the number of MatchRest calls.
@@ -210,9 +197,8 @@ SignatureAlgorithmIdentifierValue(Reader& input,
   return Success;
 }
 
-Result
-DigestAlgorithmIdentifier(Reader& input, /*out*/ DigestAlgorithm& algorithm)
-{
+Result DigestAlgorithmIdentifier(Reader& input,
+                                 /*out*/ DigestAlgorithm& algorithm) {
   Reader r;
   return der::Nested(input, SEQUENCE, [&algorithm](Reader& r) -> Result {
     Reader algorithmID;
@@ -223,21 +209,16 @@ DigestAlgorithmIdentifier(Reader& input, /*out*/ DigestAlgorithm& algorithm)
 
     // RFC 4055 Section 2.1
     // python DottedOIDToCode.py id-sha1 1.3.14.3.2.26
-    static const uint8_t id_sha1[] = {
-      0x2b, 0x0e, 0x03, 0x02, 0x1a
-    };
+    static const uint8_t id_sha1[] = {0x2b, 0x0e, 0x03, 0x02, 0x1a};
     // python DottedOIDToCode.py id-sha256 2.16.840.1.101.3.4.2.1
-    static const uint8_t id_sha256[] = {
-      0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01
-    };
+    static const uint8_t id_sha256[] = {0x60, 0x86, 0x48, 0x01, 0x65,
+                                        0x03, 0x04, 0x02, 0x01};
     // python DottedOIDToCode.py id-sha384 2.16.840.1.101.3.4.2.2
-    static const uint8_t id_sha384[] = {
-      0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02
-    };
+    static const uint8_t id_sha384[] = {0x60, 0x86, 0x48, 0x01, 0x65,
+                                        0x03, 0x04, 0x02, 0x02};
     // python DottedOIDToCode.py id-sha512 2.16.840.1.101.3.4.2.3
-    static const uint8_t id_sha512[] = {
-      0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03
-    };
+    static const uint8_t id_sha512[] = {0x60, 0x86, 0x48, 0x01, 0x65,
+                                        0x03, 0x04, 0x02, 0x03};
 
     // Matching is attempted based on a rough estimate of the commonality of the
     // algorithm, to minimize the number of MatchRest calls.
@@ -257,10 +238,8 @@ DigestAlgorithmIdentifier(Reader& input, /*out*/ DigestAlgorithm& algorithm)
   });
 }
 
-Result
-SignedData(Reader& input, /*out*/ Reader& tbs,
-           /*out*/ SignedDataWithSignature& signedData)
-{
+Result SignedData(Reader& input, /*out*/ Reader& tbs,
+                  /*out*/ SignedDataWithSignature& signedData) {
   Reader::Mark mark(input.GetMark());
 
   Result rv;
@@ -286,9 +265,7 @@ SignedData(Reader& input, /*out*/ Reader& tbs,
   return rv;
 }
 
-Result
-BitStringWithNoUnusedBits(Reader& input, /*out*/ Input& value)
-{
+Result BitStringWithNoUnusedBits(Reader& input, /*out*/ Input& value) {
   Reader valueWithUnusedBits;
   Result rv = ExpectTagAndGetValue(input, BIT_STRING, valueWithUnusedBits);
   if (rv != Success) {
@@ -311,9 +288,7 @@ BitStringWithNoUnusedBits(Reader& input, /*out*/ Input& value)
   return valueWithUnusedBits.SkipToEnd(value);
 }
 
-static inline Result
-ReadDigit(Reader& input, /*out*/ unsigned int& value)
-{
+static inline Result ReadDigit(Reader& input, /*out*/ unsigned int& value) {
   uint8_t b;
   if (input.Read(b) != Success) {
     return Result::ERROR_INVALID_DER_TIME;
@@ -325,10 +300,9 @@ ReadDigit(Reader& input, /*out*/ unsigned int& value)
   return Success;
 }
 
-static inline Result
-ReadTwoDigits(Reader& input, unsigned int minValue, unsigned int maxValue,
-              /*out*/ unsigned int& value)
-{
+static inline Result ReadTwoDigits(Reader& input, unsigned int minValue,
+                                   unsigned int maxValue,
+                                   /*out*/ unsigned int& value) {
   unsigned int hi;
   Result rv = ReadDigit(input, hi);
   if (rv != Success) {
@@ -353,9 +327,7 @@ namespace internal {
 // GeneralizedTime must always be in the format YYYYMMDDHHMMSSZ and UTCTime
 // must always be in the format YYMMDDHHMMSSZ. Timezone formats of the form
 // +HH:MM or -HH:MM or NOT accepted.
-Result
-TimeChoice(Reader& tagged, uint8_t expectedTag, /*out*/ Time& time)
-{
+Result TimeChoice(Reader& tagged, uint8_t expectedTag, /*out*/ Time& time) {
   unsigned int days;
 
   Reader input;
@@ -399,10 +371,9 @@ TimeChoice(Reader& tagged, uint8_t expectedTag, /*out*/ Time& time)
   }
   unsigned int daysInMonth;
   static const unsigned int jan = 31u;
-  const unsigned int feb = ((year % 4u == 0u) &&
-                           ((year % 100u != 0u) || (year % 400u == 0u)))
-                         ? 29u
-                         : 28u;
+  const unsigned int feb =
+      ((year % 4u == 0u) && ((year % 100u != 0u) || (year % 400u == 0u))) ? 29u
+                                                                          : 28u;
   static const unsigned int mar = 31u;
   static const unsigned int apr = 30u;
   static const unsigned int may = 31u;
@@ -414,29 +385,53 @@ TimeChoice(Reader& tagged, uint8_t expectedTag, /*out*/ Time& time)
   static const unsigned int nov = 30u;
   static const unsigned int dec = 31u;
   switch (month) {
-    case 1:  daysInMonth = jan; break;
-    case 2:  daysInMonth = feb; days += jan; break;
-    case 3:  daysInMonth = mar; days += jan + feb; break;
-    case 4:  daysInMonth = apr; days += jan + feb + mar; break;
-    case 5:  daysInMonth = may; days += jan + feb + mar + apr; break;
-    case 6:  daysInMonth = jun; days += jan + feb + mar + apr + may; break;
-    case 7:  daysInMonth = jul; days += jan + feb + mar + apr + may + jun;
-             break;
-    case 8:  daysInMonth = aug; days += jan + feb + mar + apr + may + jun +
-                                        jul;
-             break;
-    case 9:  daysInMonth = sep; days += jan + feb + mar + apr + may + jun +
-                                        jul + aug;
-             break;
-    case 10: daysInMonth = oct; days += jan + feb + mar + apr + may + jun +
-                                        jul + aug + sep;
-             break;
-    case 11: daysInMonth = nov; days += jan + feb + mar + apr + may + jun +
-                                        jul + aug + sep + oct;
-             break;
-    case 12: daysInMonth = dec; days += jan + feb + mar + apr + may + jun +
-                                        jul + aug + sep + oct + nov;
-             break;
+    case 1:
+      daysInMonth = jan;
+      break;
+    case 2:
+      daysInMonth = feb;
+      days += jan;
+      break;
+    case 3:
+      daysInMonth = mar;
+      days += jan + feb;
+      break;
+    case 4:
+      daysInMonth = apr;
+      days += jan + feb + mar;
+      break;
+    case 5:
+      daysInMonth = may;
+      days += jan + feb + mar + apr;
+      break;
+    case 6:
+      daysInMonth = jun;
+      days += jan + feb + mar + apr + may;
+      break;
+    case 7:
+      daysInMonth = jul;
+      days += jan + feb + mar + apr + may + jun;
+      break;
+    case 8:
+      daysInMonth = aug;
+      days += jan + feb + mar + apr + may + jun + jul;
+      break;
+    case 9:
+      daysInMonth = sep;
+      days += jan + feb + mar + apr + may + jun + jul + aug;
+      break;
+    case 10:
+      daysInMonth = oct;
+      days += jan + feb + mar + apr + may + jun + jul + aug + sep;
+      break;
+    case 11:
+      daysInMonth = nov;
+      days += jan + feb + mar + apr + may + jun + jul + aug + sep + oct;
+      break;
+    case 12:
+      daysInMonth = dec;
+      days += jan + feb + mar + apr + may + jun + jul + aug + sep + oct + nov;
+      break;
     default:
       return NotReached("month already bounds-checked by ReadTwoDigits",
                         Result::FATAL_ERROR_INVALID_STATE);
@@ -477,20 +472,17 @@ TimeChoice(Reader& tagged, uint8_t expectedTag, /*out*/ Time& time)
   }
 
   uint64_t totalSeconds = (static_cast<uint64_t>(days) * 24u * 60u * 60u) +
-                          (static_cast<uint64_t>(hours)      * 60u * 60u) +
-                          (static_cast<uint64_t>(minutes)          * 60u) +
-                          seconds;
+                          (static_cast<uint64_t>(hours) * 60u * 60u) +
+                          (static_cast<uint64_t>(minutes) * 60u) + seconds;
 
   time = TimeFromElapsedSecondsAD(totalSeconds);
   return Success;
 }
 
-Result
-IntegralBytes(Reader& input, uint8_t tag,
-              IntegralValueRestriction valueRestriction,
-              /*out*/ Input& value,
-              /*optional out*/ Input::size_type* significantBytes)
-{
+Result IntegralBytes(Reader& input, uint8_t tag,
+                     IntegralValueRestriction valueRestriction,
+                     /*out*/ Input& value,
+                     /*optional out*/ Input::size_type* significantBytes) {
   Result rv = ExpectTagAndGetValue(input, tag, value);
   if (rv != Success) {
     return rv;
@@ -557,9 +549,7 @@ IntegralBytes(Reader& input, uint8_t tag,
 
 // This parser will only parse values between 0..127. If this range is
 // increased then callers will need to be changed.
-Result
-IntegralValue(Reader& input, uint8_t tag, /*out*/ uint8_t& value)
-{
+Result IntegralValue(Reader& input, uint8_t tag, /*out*/ uint8_t& value) {
   // Conveniently, all the Integers that we actually have to be able to parse
   // are positive and very small. Consequently, this parser is *much* simpler
   // than a general Integer parser would need to be.
@@ -575,15 +565,13 @@ IntegralValue(Reader& input, uint8_t tag, /*out*/ uint8_t& value)
     return NotReached("IntegralBytes already validated the value.", rv);
   }
   rv = End(valueReader);
-  assert(rv == Success); // guaranteed by IntegralBytes's range checks.
+  assert(rv == Success);  // guaranteed by IntegralBytes's range checks.
   return rv;
 }
 
-} // namespace internal
+}  // namespace internal
 
-Result
-OptionalVersion(Reader& input, /*out*/ Version& version)
-{
+Result OptionalVersion(Reader& input, /*out*/ Version& version) {
   static const uint8_t TAG = CONTEXT_SPECIFIC | CONSTRUCTED | 0;
   if (!input.Peek(TAG)) {
     version = Version::v1;
@@ -598,10 +586,18 @@ OptionalVersion(Reader& input, /*out*/ Version& version)
     // XXX(bug 1031093): We shouldn't accept an explicit encoding of v1,
     // but we do here for compatibility reasons.
     switch (integerValue) {
-      case static_cast<uint8_t>(Version::v3): version = Version::v3; break;
-      case static_cast<uint8_t>(Version::v2): version = Version::v2; break;
-      case static_cast<uint8_t>(Version::v1): version = Version::v1; break;
-      case static_cast<uint8_t>(Version::v4): version = Version::v4; break;
+      case static_cast<uint8_t>(Version::v3):
+        version = Version::v3;
+        break;
+      case static_cast<uint8_t>(Version::v2):
+        version = Version::v2;
+        break;
+      case static_cast<uint8_t>(Version::v1):
+        version = Version::v1;
+        break;
+      case static_cast<uint8_t>(Version::v4):
+        version = Version::v4;
+        break;
       default:
         return Result::ERROR_BAD_DER;
     }
@@ -609,4 +605,6 @@ OptionalVersion(Reader& input, /*out*/ Version& version)
   });
 }
 
-} } } // namespace mozilla::pkix::der
+}  // namespace der
+}  // namespace pkix
+}  // namespace mozilla

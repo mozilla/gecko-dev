@@ -9,14 +9,13 @@
 
 #include "nsStaticAtom.h"
 
-class nsGkAtoms
-{
-public:
+class nsGkAtoms {
+ public:
   static void AddRefAtoms();
 
-  #define GK_ATOM(_name, _value) NS_STATIC_ATOM_DECL(_name)
-  #include "nsGkAtomList.h"
-  #undef GK_ATOM
+#define GK_ATOM(_name, _value) NS_STATIC_ATOM_DECL(_name)
+#include "nsGkAtomList.h"
+#undef GK_ATOM
 };
 
 #endif /* nsGkAtoms_h___ */

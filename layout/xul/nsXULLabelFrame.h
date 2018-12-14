@@ -12,38 +12,35 @@
 #include "mozilla/Attributes.h"
 #include "nsBlockFrame.h"
 
-class nsXULLabelFrame final : public nsBlockFrame
-{
-public:
+class nsXULLabelFrame final : public nsBlockFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsXULLabelFrame)
 
   friend nsIFrame* NS_NewXULLabelFrame(nsIPresShell* aPresShell,
-                                       nsStyleContext *aContext);
+                                       nsStyleContext* aContext);
 
   // nsIFrame
-  virtual void Init(nsIContent*       aContent,
-                    nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) override;
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* aPrevInFlow) override;
 
-  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot,
+                           PostDestroyData& aPostDestroyData) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsAtom* aAttribute,
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-protected:
+ protected:
   explicit nsXULLabelFrame(nsStyleContext* aContext)
-    : nsBlockFrame(aContext, kClassID)
-  {}
+      : nsBlockFrame(aContext, kClassID) {}
 
   nsresult RegUnregAccessKey(bool aDoReg);
 };
 
-nsIFrame*
-NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame* NS_NewXULLabelFrame(nsIPresShell* aPresShell,
+                              nsStyleContext* aContext);
 
 #endif /* !defined(nsXULLabelFrame_h_) */

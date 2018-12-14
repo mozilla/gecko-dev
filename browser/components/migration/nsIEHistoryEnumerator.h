@@ -12,15 +12,14 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIWritablePropertyBag2.h"
 
-class nsIEHistoryEnumerator final : public nsISimpleEnumerator
-{
-public:
+class nsIEHistoryEnumerator final : public nsISimpleEnumerator {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISIMPLEENUMERATOR
 
   nsIEHistoryEnumerator();
 
-private:
+ private:
   ~nsIEHistoryEnumerator();
 
   /**

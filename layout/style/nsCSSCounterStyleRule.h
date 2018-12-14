@@ -10,23 +10,21 @@
 #include "mozilla/css/Rule.h"
 #include "nsCSSValue.h"
 
-class nsCSSCounterStyleRule final : public mozilla::css::Rule
-{
-public:
-  explicit nsCSSCounterStyleRule(nsAtom* aName,
-                                 uint32_t aLineNumber, uint32_t aColumnNumber)
-    : mozilla::css::Rule(aLineNumber, aColumnNumber)
-    , mName(aName)
-    , mGeneration(0)
-  {
+class nsCSSCounterStyleRule final : public mozilla::css::Rule {
+ public:
+  explicit nsCSSCounterStyleRule(nsAtom* aName, uint32_t aLineNumber,
+                                 uint32_t aColumnNumber)
+      : mozilla::css::Rule(aLineNumber, aColumnNumber),
+        mName(aName),
+        mGeneration(0) {
     MOZ_ASSERT(aName, "Must have non-null name");
   }
 
-private:
+ private:
   nsCSSCounterStyleRule(const nsCSSCounterStyleRule& aCopy);
   ~nsCSSCounterStyleRule();
 
-public:
+ public:
   virtual bool IsCCLeaf() const override;
 
 #ifdef DEBUG
@@ -63,8 +61,7 @@ public:
 
   // This function is only used to check whether a non-empty value, which has
   // been accepted by parser, is valid for the given system and descriptor.
-  static bool CheckDescValue(int32_t aSystem,
-                             nsCSSCounterDesc aDescID,
+  static bool CheckDescValue(int32_t aSystem, nsCSSCounterDesc aDescID,
                              const nsCSSValue& aValue);
 
   nsAtom* Name() const { return mName; }
@@ -74,8 +71,7 @@ public:
   int32_t GetSystem() const;
   const nsCSSValue& GetSystemArgument() const;
 
-  const nsCSSValue& GetDesc(nsCSSCounterDesc aDescID) const
-  {
+  const nsCSSValue& GetDesc(nsCSSCounterDesc aDescID) const {
     MOZ_ASSERT(aDescID >= 0 && aDescID < eCSSCounterDesc_COUNT,
                "descriptor ID out of range");
     return mValues[aDescID];
@@ -83,12 +79,13 @@ public:
 
   void SetDesc(nsCSSCounterDesc aDescID, const nsCSSValue& aValue);
 
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  virtual size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-private:
+ private:
   typedef decltype(&nsCSSCounterStyleRule::GetSymbols) Getter;
   static const Getter kGetters[];
 
@@ -97,7 +94,7 @@ private:
 
   RefPtr<nsAtom> mName;
   nsCSSValue mValues[eCSSCounterDesc_COUNT];
-  uint32_t   mGeneration;
+  uint32_t mGeneration;
 };
 
-#endif // nsCSSCounterStyleRule_h
+#endif  // nsCSSCounterStyleRule_h

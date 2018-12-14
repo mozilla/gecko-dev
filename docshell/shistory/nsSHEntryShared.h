@@ -34,11 +34,9 @@ class nsIMutableArray;
 // back/forward cache.
 //
 // nsSHEntryShared is the vehicle for this sharing.
-class nsSHEntryShared final
-  : public nsIBFCacheEntry
-  , public nsIMutationObserver
-{
-public:
+class nsSHEntryShared final : public nsIBFCacheEntry,
+                              public nsIMutationObserver {
+ public:
   static void EnsureHistoryTracker();
   static void Shutdown();
 
@@ -48,9 +46,9 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER
   NS_DECL_NSIBFCACHEENTRY
 
-  nsExpirationState *GetExpirationState() { return &mExpirationState; }
+  nsExpirationState* GetExpirationState() { return &mExpirationState; }
 
-private:
+ private:
   ~nsSHEntryShared();
 
   friend class nsSHEntry;

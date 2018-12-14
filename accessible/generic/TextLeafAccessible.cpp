@@ -15,39 +15,29 @@ using namespace mozilla::a11y;
 // TextLeafAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-TextLeafAccessible::
-  TextLeafAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LinkableAccessible(aContent, aDoc)
-{
+TextLeafAccessible::TextLeafAccessible(nsIContent* aContent,
+                                       DocAccessible* aDoc)
+    : LinkableAccessible(aContent, aDoc) {
   mType = eTextLeafType;
   mGenericTypes |= eText;
   mStateFlags |= eNoKidsFromDOM;
 }
 
-TextLeafAccessible::~TextLeafAccessible()
-{
-}
+TextLeafAccessible::~TextLeafAccessible() {}
 
-role
-TextLeafAccessible::NativeRole()
-{
+role TextLeafAccessible::NativeRole() {
   nsIFrame* frame = GetFrame();
-  if (frame && frame->IsGeneratedContentFrame())
-    return roles::STATICTEXT;
+  if (frame && frame->IsGeneratedContentFrame()) return roles::STATICTEXT;
 
   return roles::TEXT_LEAF;
 }
 
-void
-TextLeafAccessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
-                                 uint32_t aLength)
-{
+void TextLeafAccessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
+                                      uint32_t aLength) {
   aText.Append(Substring(mText, aStartOffset, aLength));
 }
 
-ENameValueFlag
-TextLeafAccessible::Name(nsString& aName)
-{
+ENameValueFlag TextLeafAccessible::Name(nsString& aName) {
   // Text node, ARIA can't be used.
   aName = mText;
   return eNameOK;

@@ -14,11 +14,7 @@
 namespace mozilla {
 namespace layers {
 
-enum class AnimationProcessTypes {
-  eNone = 0x0,
-  eContent = 0x1,
-  eChrome = 0x2
-};
+enum class AnimationProcessTypes { eNone = 0x0, eContent = 0x1, eChrome = 0x2 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(AnimationProcessTypes)
 
@@ -26,7 +22,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(AnimationProcessTypes)
  * Tracks the start and end of compositor animations.
  */
 class AnimationMetricsTracker {
-public:
+ public:
   AnimationMetricsTracker();
   ~AnimationMetricsTracker();
 
@@ -36,16 +32,18 @@ public:
    * in progress, the sum of their areas should also be provided, along with
    * the vsync interval.
    */
-  void UpdateAnimationInProgress(AnimationProcessTypes aActive, uint64_t aLayerArea,
+  void UpdateAnimationInProgress(AnimationProcessTypes aActive,
+                                 uint64_t aLayerArea,
                                  TimeDuration aVsyncInterval);
 
   /**
-   * Similar to UpdateAnimationInProgress, but this is for APZ animations. Again,
-   * this should be called per composite.
+   * Similar to UpdateAnimationInProgress, but this is for APZ animations.
+   * Again, this should be called per composite.
    */
-  void UpdateApzAnimationInProgress(bool aInProgress, TimeDuration aVsyncInterval);
+  void UpdateApzAnimationInProgress(bool aInProgress,
+                                    TimeDuration aVsyncInterval);
 
-private:
+ private:
   // A struct to group data that we need for each type of compositor animation.
   struct AnimationData {
     // The start time of the current animation.
@@ -57,16 +55,12 @@ private:
     // The number of frames composited for the current animation.
     uint32_t mFrameCount;
 
-    AnimationData()
-      : mFrameCount(0)
-    {
-    }
+    AnimationData() : mFrameCount(0) {}
   };
 
   void AnimationStarted();
   void AnimationEnded();
-  void UpdateAnimationThroughput(const char* aLabel,
-                                 bool aInProgress,
+  void UpdateAnimationThroughput(const char* aLabel, bool aInProgress,
                                  AnimationData& aAnimationData,
                                  TimeDuration aVsyncInterval,
                                  Telemetry::HistogramID aThroughputHistogram,
@@ -86,7 +80,7 @@ private:
   AnimationData mApzAnimation;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_AnimationMetricsTracker_h
+#endif  // mozilla_layers_AnimationMetricsTracker_h

@@ -17,7 +17,7 @@
 #include "gfxPrefs.h"
 
 class APZCTreeManagerTester : public APZCTesterBase {
-protected:
+ protected:
   virtual void SetUp() {
     gfxPrefs::GetSingleton();
     gfxPlatform::GetPlatform();
@@ -28,7 +28,8 @@ protected:
   }
 
   virtual void TearDown() {
-    while (mcc->RunThroughDelayedTasks());
+    while (mcc->RunThroughDelayedTasks())
+      ;
     manager->ClearTree();
     manager->ClearContentController();
   }
@@ -55,15 +56,15 @@ protected:
 
   RefPtr<TestAPZCTreeManager> manager;
 
-protected:
-  static ScrollMetadata BuildScrollMetadata(FrameMetrics::ViewID aScrollId,
-                                            const CSSRect& aScrollableRect,
-                                            const ParentLayerRect& aCompositionBounds)
-  {
+ protected:
+  static ScrollMetadata BuildScrollMetadata(
+      FrameMetrics::ViewID aScrollId, const CSSRect& aScrollableRect,
+      const ParentLayerRect& aCompositionBounds) {
     ScrollMetadata metadata;
     FrameMetrics& metrics = metadata.GetMetrics();
     metrics.SetScrollId(aScrollId);
-    // By convention in this test file, START_SCROLL_ID is the root, so mark it as such.
+    // By convention in this test file, START_SCROLL_ID is the root, so mark it
+    // as such.
     if (aScrollId == FrameMetrics::START_SCROLL_ID) {
       metadata.SetIsLayersIdRoot(true);
     }
@@ -75,8 +76,7 @@ protected:
     return metadata;
   }
 
-  static void SetEventRegionsBasedOnBottommostMetrics(Layer* aLayer)
-  {
+  static void SetEventRegionsBasedOnBottommostMetrics(Layer* aLayer) {
     const FrameMetrics& metrics = aLayer->GetScrollMetadata(0).GetMetrics();
     CSSRect scrollableRect = metrics.GetScrollableRect();
     if (!scrollableRect.IsEqualEdges(CSSRect(-1, -1, -1, -1))) {
@@ -84,22 +84,25 @@ protected:
       // case of a scrollable frame with the event regions and clip. This lets
       // us exercise the hit-testing code in APZCTreeManager
       EventRegions er = aLayer->GetEventRegions();
-      IntRect scrollRect = RoundedToInt(
-          scrollableRect * metrics.LayersPixelsPerCSSPixel()).ToUnknownRect();
+      IntRect scrollRect =
+          RoundedToInt(scrollableRect * metrics.LayersPixelsPerCSSPixel())
+              .ToUnknownRect();
       er.mHitRegion = nsIntRegion(IntRect(
-          RoundedToInt(metrics.GetCompositionBounds().TopLeft().ToUnknownPoint()),
+          RoundedToInt(
+              metrics.GetCompositionBounds().TopLeft().ToUnknownPoint()),
           scrollRect.Size()));
       aLayer->SetEventRegions(er);
     }
   }
 
-  static void SetScrollableFrameMetrics(Layer* aLayer, FrameMetrics::ViewID aScrollId,
-                                        CSSRect aScrollableRect = CSSRect(-1, -1, -1, -1)) {
+  static void SetScrollableFrameMetrics(
+      Layer* aLayer, FrameMetrics::ViewID aScrollId,
+      CSSRect aScrollableRect = CSSRect(-1, -1, -1, -1)) {
     ParentLayerIntRect compositionBounds =
-        RoundedToInt(aLayer->GetLocalTransformTyped().
-            TransformBounds(LayerRect(aLayer->GetVisibleRegion().GetBounds())));
-    ScrollMetadata metadata = BuildScrollMetadata(aScrollId, aScrollableRect,
-        ParentLayerRect(compositionBounds));
+        RoundedToInt(aLayer->GetLocalTransformTyped().TransformBounds(
+            LayerRect(aLayer->GetVisibleRegion().GetBounds())));
+    ScrollMetadata metadata = BuildScrollMetadata(
+        aScrollId, aScrollableRect, ParentLayerRect(compositionBounds));
     aLayer->SetScrollMetadata(metadata);
     aLayer->SetClipRect(Some(compositionBounds));
     SetEventRegionsBasedOnBottommostMetrics(aLayer);
@@ -118,25 +121,30 @@ protected:
 
   static TestAsyncPanZoomController* ApzcOf(Layer* aLayer, uint32_t aIndex) {
     EXPECT_LT(aIndex, aLayer->GetScrollMetadataCount());
-    return (TestAsyncPanZoomController*)aLayer->GetAsyncPanZoomController(aIndex);
+    return (TestAsyncPanZoomController*)aLayer->GetAsyncPanZoomController(
+        aIndex);
   }
 
   void CreateSimpleScrollingLayer() {
     const char* layerTreeSyntax = "t";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(IntRect(0,0,200,200)),
+        nsIntRegion(IntRect(0, 0, 200, 200)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
-    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 500, 500));
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
+                           layers);
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID,
+                              CSSRect(0, 0, 500, 500));
   }
 
   void CreateSimpleDTCScrollingLayer() {
     const char* layerTreeSyntax = "t";
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(IntRect(0,0,200,200)),
+        nsIntRegion(IntRect(0, 0, 200, 200)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
-    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID, CSSRect(0, 0, 500, 500));
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
+                           layers);
+    SetScrollableFrameMetrics(root, FrameMetrics::START_SCROLL_ID,
+                              CSSRect(0, 0, 500, 500));
 
     EventRegions regions;
     regions.mHitRegion = nsIntRegion(IntRect(0, 0, 200, 200));
@@ -148,11 +156,12 @@ protected:
     const char* layerTreeSyntax = "c(tt)";
     // LayerID                     0 12
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(IntRect(0,0,100,100)),
-      nsIntRegion(IntRect(0,0,100,50)),
-      nsIntRegion(IntRect(0,50,100,50)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 50)),
+        nsIntRegion(IntRect(0, 50, 100, 50)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
+                           layers);
   }
 
   void CreatePotentiallyLeakingTree() {
@@ -170,10 +179,11 @@ protected:
     const char* layerTreeSyntax = "c(t)";
     // LayerID                     0 1
     nsIntRegion layerVisibleRegion[] = {
-      nsIntRegion(IntRect(0,0,100,100)),
-      nsIntRegion(IntRect(0,0,100,100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
+        nsIntRegion(IntRect(0, 0, 100, 100)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
+    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
+                           layers);
     SetScrollableFrameMetrics(layers[0], FrameMetrics::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID + 1);
     SetScrollHandoff(layers[1], layers[0]);
@@ -192,4 +202,4 @@ protected:
   }
 };
 
-#endif // mozilla_layers_APZCTreeManagerTester_h
+#endif  // mozilla_layers_APZCTreeManagerTester_h

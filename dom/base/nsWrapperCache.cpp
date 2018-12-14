@@ -17,26 +17,20 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 #ifdef DEBUG
-/* static */ bool
-nsWrapperCache::HasJSObjectMovedOp(JSObject* aWrapper)
-{
-    return js::HasObjectMovedOp(aWrapper);
+/* static */ bool nsWrapperCache::HasJSObjectMovedOp(JSObject* aWrapper) {
+  return js::HasObjectMovedOp(aWrapper);
 }
 #endif
 
-void
-nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
-                              nsScriptObjectTracer* aTracer)
-{
+void nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
+                                   nsScriptObjectTracer* aTracer) {
   cyclecollector::HoldJSObjectsImpl(aScriptObjectHolder, aTracer);
   if (mWrapper && !JS::ObjectIsTenured(mWrapper)) {
     CycleCollectedJSRuntime::Get()->NurseryWrapperPreserved(mWrapper);
   }
 }
 
-void
-nsWrapperCache::SetWrapperJSObject(JSObject* aWrapper)
-{
+void nsWrapperCache::SetWrapperJSObject(JSObject* aWrapper) {
   mWrapper = aWrapper;
   UnsetWrapperFlags(kWrapperFlagsMask & ~WRAPPER_IS_NOT_DOM_BINDING);
 
@@ -45,9 +39,7 @@ nsWrapperCache::SetWrapperJSObject(JSObject* aWrapper)
   }
 }
 
-void
-nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
-{
+void nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder) {
   if (PreservingWrapper()) {
     SetPreservingWrapper(false);
     cyclecollector::DropJSObjectsImpl(aScriptObjectHolder);
@@ -56,64 +48,49 @@ nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
 
 #ifdef DEBUG
 
-class DebugWrapperTraversalCallback : public nsCycleCollectionTraversalCallback
-{
-public:
+class DebugWrapperTraversalCallback
+    : public nsCycleCollectionTraversalCallback {
+ public:
   explicit DebugWrapperTraversalCallback(JSObject* aWrapper)
-    : mFound(false)
-    , mWrapper(JS::GCCellPtr(aWrapper))
-  {
+      : mFound(false), mWrapper(JS::GCCellPtr(aWrapper)) {
     mFlags = WANT_ALL_TRACES;
   }
 
-  NS_IMETHOD_(void) DescribeRefCountedNode(nsrefcnt aRefCount,
-                                           const char* aObjName) override
-  {
-  }
-  NS_IMETHOD_(void) DescribeGCedNode(bool aIsMarked,
-                                     const char* aObjName,
-                                     uint64_t aCompartmentAddress) override
-  {
-  }
+  NS_IMETHOD_(void)
+  DescribeRefCountedNode(nsrefcnt aRefCount, const char* aObjName) override {}
+  NS_IMETHOD_(void)
+  DescribeGCedNode(bool aIsMarked, const char* aObjName,
+                   uint64_t aCompartmentAddress) override {}
 
-  NS_IMETHOD_(void) NoteJSChild(const JS::GCCellPtr& aChild) override
-  {
+  NS_IMETHOD_(void) NoteJSChild(const JS::GCCellPtr& aChild) override {
     if (aChild == mWrapper) {
       mFound = true;
     }
   }
-  NS_IMETHOD_(void) NoteXPCOMChild(nsISupports* aChild) override
-  {
-  }
-  NS_IMETHOD_(void) NoteNativeChild(void* aChild,
-                                    nsCycleCollectionParticipant* aHelper) override
-  {
-  }
+  NS_IMETHOD_(void) NoteXPCOMChild(nsISupports* aChild) override {}
+  NS_IMETHOD_(void)
+  NoteNativeChild(void* aChild,
+                  nsCycleCollectionParticipant* aHelper) override {}
 
-  NS_IMETHOD_(void) NoteNextEdgeName(const char* aName) override
-  {
-  }
+  NS_IMETHOD_(void) NoteNextEdgeName(const char* aName) override {}
 
   bool mFound;
 
-private:
+ private:
   JS::GCCellPtr mWrapper;
 };
 
-static void
-DebugWrapperTraceCallback(JS::GCCellPtr aPtr, const char* aName, void* aClosure)
-{
+static void DebugWrapperTraceCallback(JS::GCCellPtr aPtr, const char* aName,
+                                      void* aClosure) {
   DebugWrapperTraversalCallback* callback =
-    static_cast<DebugWrapperTraversalCallback*>(aClosure);
+      static_cast<DebugWrapperTraversalCallback*>(aClosure);
   if (aPtr.is<JSObject>()) {
     callback->NoteJSChild(aPtr);
   }
 }
 
-void
-nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
-                                        nsScriptObjectTracer* aTracer)
-{
+void nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
+                                             nsScriptObjectTracer* aTracer) {
   JSObject* wrapper = GetWrapperPreserveColor();
   if (!wrapper) {
     return;
@@ -138,4 +115,4 @@ nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
              "This will probably crash.");
 }
 
-#endif // DEBUG
+#endif  // DEBUG

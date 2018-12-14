@@ -17,13 +17,11 @@ namespace mozilla {
 
 ServoMediaRule::ServoMediaRule(RefPtr<RawServoMediaRule> aRawRule,
                                uint32_t aLine, uint32_t aColumn)
-  : CSSMediaRule(Servo_MediaRule_GetRules(aRawRule).Consume(), aLine, aColumn)
-  , mRawRule(Move(aRawRule))
-{
-}
+    : CSSMediaRule(Servo_MediaRule_GetRules(aRawRule).Consume(), aLine,
+                   aColumn),
+      mRawRule(Move(aRawRule)) {}
 
-ServoMediaRule::~ServoMediaRule()
-{
+ServoMediaRule::~ServoMediaRule() {
   if (mMediaList) {
     mMediaList->SetStyleSheet(nullptr);
   }
@@ -49,9 +47,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(ServoMediaRule, CSSMediaRule)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaList)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-/* virtual */ already_AddRefed<css::Rule>
-ServoMediaRule::Clone() const
-{
+/* virtual */ already_AddRefed<css::Rule> ServoMediaRule::Clone() const {
   // Rule::Clone is only used when CSSStyleSheetInner is cloned in
   // preparation of being mutated. However, ServoStyleSheet never clones
   // anything, so this method should never be called.
@@ -60,10 +56,8 @@ ServoMediaRule::Clone() const
 }
 
 #ifdef MOZ_OLD_STYLE
-/* virtual */ bool
-ServoMediaRule::UseForPresentation(nsPresContext* aPresContext,
-                                   nsMediaQueryResultCacheKey& aKey)
-{
+/* virtual */ bool ServoMediaRule::UseForPresentation(
+    nsPresContext* aPresContext, nsMediaQueryResultCacheKey& aKey) {
   // GroupRule::UseForPresentation is only used in nsCSSRuleProcessor,
   // so this should never be called.
   MOZ_ASSERT_UNREACHABLE("Shouldn't be calling UseForPresentation");
@@ -71,9 +65,7 @@ ServoMediaRule::UseForPresentation(nsPresContext* aPresContext,
 }
 #endif
 
-/* virtual */ void
-ServoMediaRule::SetStyleSheet(StyleSheet* aSheet)
-{
+/* virtual */ void ServoMediaRule::SetStyleSheet(StyleSheet* aSheet) {
   if (mMediaList) {
     mMediaList->SetStyleSheet(aSheet);
   }
@@ -81,9 +73,7 @@ ServoMediaRule::SetStyleSheet(StyleSheet* aSheet)
 }
 
 #ifdef DEBUG
-/* virtual */ void
-ServoMediaRule::List(FILE* out, int32_t aIndent) const
-{
+/* virtual */ void ServoMediaRule::List(FILE* out, int32_t aIndent) const {
   nsAutoCString str;
   for (int32_t i = 0; i < aIndent; i++) {
     str.AppendLiteral("  ");
@@ -93,41 +83,32 @@ ServoMediaRule::List(FILE* out, int32_t aIndent) const
 }
 #endif
 
-void
-ServoMediaRule::GetConditionText(nsAString& aConditionText)
-{
+void ServoMediaRule::GetConditionText(nsAString& aConditionText) {
   Media()->GetMediaText(aConditionText);
 }
 
-void
-ServoMediaRule::SetConditionText(const nsAString& aConditionText,
-                                 ErrorResult& aRv)
-{
+void ServoMediaRule::SetConditionText(const nsAString& aConditionText,
+                                      ErrorResult& aRv) {
   Media()->SetMediaText(aConditionText);
 }
 
-/* virtual */ void
-ServoMediaRule::GetCssText(nsAString& aCssText) const
-{
+/* virtual */ void ServoMediaRule::GetCssText(nsAString& aCssText) const {
   Servo_MediaRule_GetCssText(mRawRule, &aCssText);
 }
 
-/* virtual */ dom::MediaList*
-ServoMediaRule::Media()
-{
+/* virtual */ dom::MediaList* ServoMediaRule::Media() {
   if (!mMediaList) {
     mMediaList =
-      new ServoMediaList(Servo_MediaRule_GetMedia(mRawRule).Consume());
+        new ServoMediaList(Servo_MediaRule_GetMedia(mRawRule).Consume());
     mMediaList->SetStyleSheet(GetStyleSheet());
   }
   return mMediaList;
 }
 
-/* virtual */ size_t
-ServoMediaRule::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+/* virtual */ size_t ServoMediaRule::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   // TODO Implement this!
   return aMallocSizeOf(this);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

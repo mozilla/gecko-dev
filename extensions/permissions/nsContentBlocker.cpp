@@ -24,75 +24,56 @@
 
 // From nsIContentPolicy
 static const char *kTypeString[] = {
-                                    "other",
-                                    "script",
-                                    "image",
-                                    "stylesheet",
-                                    "object",
-                                    "document",
-                                    "subdocument",
-                                    "refresh",
-                                    "xbl",
-                                    "ping",
-                                    "xmlhttprequest",
-                                    "objectsubrequest",
-                                    "dtd",
-                                    "font",
-                                    "media",
-                                    "websocket",
-                                    "csp_report",
-                                    "xslt",
-                                    "beacon",
-                                    "fetch",
-                                    "image",
-                                    "manifest",
-                                    "", // TYPE_INTERNAL_SCRIPT
-                                    "", // TYPE_INTERNAL_WORKER
-                                    "", // TYPE_INTERNAL_SHARED_WORKER
-                                    "", // TYPE_INTERNAL_EMBED
-                                    "", // TYPE_INTERNAL_OBJECT
-                                    "", // TYPE_INTERNAL_FRAME
-                                    "", // TYPE_INTERNAL_IFRAME
-                                    "", // TYPE_INTERNAL_AUDIO
-                                    "", // TYPE_INTERNAL_VIDEO
-                                    "", // TYPE_INTERNAL_TRACK
-                                    "", // TYPE_INTERNAL_XMLHTTPREQUEST
-                                    "", // TYPE_INTERNAL_EVENTSOURCE
-                                    "", // TYPE_INTERNAL_SERVICE_WORKER
-                                    "", // TYPE_INTERNAL_SCRIPT_PRELOAD
-                                    "", // TYPE_INTERNAL_IMAGE
-                                    "", // TYPE_INTERNAL_IMAGE_PRELOAD
-                                    "", // TYPE_INTERNAL_STYLESHEET
-                                    "", // TYPE_INTERNAL_STYLESHEET_PRELOAD
-                                    "", // TYPE_INTERNAL_IMAGE_FAVICON
-                                    "", // TYPE_INTERNAL_WORKERS_IMPORT_SCRIPTS
+    "other",      "script",   "image",          "stylesheet",
+    "object",     "document", "subdocument",    "refresh",
+    "xbl",        "ping",     "xmlhttprequest", "objectsubrequest",
+    "dtd",        "font",     "media",          "websocket",
+    "csp_report", "xslt",     "beacon",         "fetch",
+    "image",      "manifest",
+    "",  // TYPE_INTERNAL_SCRIPT
+    "",  // TYPE_INTERNAL_WORKER
+    "",  // TYPE_INTERNAL_SHARED_WORKER
+    "",  // TYPE_INTERNAL_EMBED
+    "",  // TYPE_INTERNAL_OBJECT
+    "",  // TYPE_INTERNAL_FRAME
+    "",  // TYPE_INTERNAL_IFRAME
+    "",  // TYPE_INTERNAL_AUDIO
+    "",  // TYPE_INTERNAL_VIDEO
+    "",  // TYPE_INTERNAL_TRACK
+    "",  // TYPE_INTERNAL_XMLHTTPREQUEST
+    "",  // TYPE_INTERNAL_EVENTSOURCE
+    "",  // TYPE_INTERNAL_SERVICE_WORKER
+    "",  // TYPE_INTERNAL_SCRIPT_PRELOAD
+    "",  // TYPE_INTERNAL_IMAGE
+    "",  // TYPE_INTERNAL_IMAGE_PRELOAD
+    "",  // TYPE_INTERNAL_STYLESHEET
+    "",  // TYPE_INTERNAL_STYLESHEET_PRELOAD
+    "",  // TYPE_INTERNAL_IMAGE_FAVICON
+    "",  // TYPE_INTERNAL_WORKERS_IMPORT_SCRIPTS
 };
 
 #define NUMBER_OF_TYPES MOZ_ARRAY_LENGTH(kTypeString)
 uint8_t nsContentBlocker::mBehaviorPref[NUMBER_OF_TYPES];
 
-NS_IMPL_ISUPPORTS(nsContentBlocker,
-                  nsIContentPolicy,
-                  nsIObserver,
+NS_IMPL_ISUPPORTS(nsContentBlocker, nsIContentPolicy, nsIObserver,
                   nsISupportsWeakReference)
 
-nsContentBlocker::nsContentBlocker()
-{
+nsContentBlocker::nsContentBlocker() {
   memset(mBehaviorPref, BEHAVIOR_ACCEPT, NUMBER_OF_TYPES);
 }
 
-nsresult
-nsContentBlocker::Init()
-{
+nsresult nsContentBlocker::Init() {
   nsresult rv;
   mPermissionManager = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+  nsCOMPtr<nsIPrefService> prefService =
+      do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIPrefBranch> prefBranch;
-  rv = prefService->GetBranch("permissions.default.", getter_AddRefs(prefBranch));
+  rv = prefService->GetBranch("permissions.default.",
+                              getter_AddRefs(prefBranch));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Migrate old image blocker pref
@@ -117,7 +98,6 @@ nsContentBlocker::Init()
     oldPrefBranch->ClearUserPref("network.image.imageBehavior");
   }
 
-
   // The branch is not a copy of the prefservice, but a new object, because
   // it is a non-default branch. Adding obeservers to it will only work if
   // we make sure that the object doesn't die. So, keep a reference to it.
@@ -130,56 +110,49 @@ nsContentBlocker::Init()
   return rv;
 }
 
-#undef  LIMIT
-#define LIMIT(x, low, high, default) ((x) >= (low) && (x) <= (high) ? (x) : (default))
+#undef LIMIT
+#define LIMIT(x, low, high, default) \
+  ((x) >= (low) && (x) <= (high) ? (x) : (default))
 
-void
-nsContentBlocker::PrefChanged(nsIPrefBranch *aPrefBranch,
-                              const char    *aPref)
-{
+void nsContentBlocker::PrefChanged(nsIPrefBranch *aPrefBranch,
+                                   const char *aPref) {
   int32_t val;
 
 #define PREF_CHANGED(_P) (!aPref || !strcmp(aPref, _P))
 
-  for(uint32_t i = 0; i < NUMBER_OF_TYPES; ++i) {
-    if (*kTypeString[i] &&
-        PREF_CHANGED(kTypeString[i]) &&
+  for (uint32_t i = 0; i < NUMBER_OF_TYPES; ++i) {
+    if (*kTypeString[i] && PREF_CHANGED(kTypeString[i]) &&
         NS_SUCCEEDED(aPrefBranch->GetIntPref(kTypeString[i], &val)))
       mBehaviorPref[i] = LIMIT(val, 1, 3, 1);
   }
-
 }
 
 // nsIContentPolicy Implementation
 NS_IMETHODIMP
-nsContentBlocker::ShouldLoad(uint32_t          aContentType,
-                             nsIURI           *aContentLocation,
-                             nsIURI           *aRequestingLocation,
-                             nsISupports      *aRequestingContext,
-                             const nsACString &aMimeGuess,
-                             nsISupports      *aExtra,
-                             nsIPrincipal     *aRequestPrincipal,
-                             int16_t          *aDecision)
-{
-  MOZ_ASSERT(aContentType == nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
-             "We should only see external content policy types here.");
+nsContentBlocker::ShouldLoad(uint32_t aContentType, nsIURI *aContentLocation,
+                             nsIURI *aRequestingLocation,
+                             nsISupports *aRequestingContext,
+                             const nsACString &aMimeGuess, nsISupports *aExtra,
+                             nsIPrincipal *aRequestPrincipal,
+                             int16_t *aDecision) {
+  MOZ_ASSERT(
+      aContentType ==
+          nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
+      "We should only see external content policy types here.");
 
   *aDecision = nsIContentPolicy::ACCEPT;
   nsresult rv;
 
   // Ony support NUMBER_OF_TYPES content types. that all there is at the
   // moment, but you never know...
-  if (aContentType > NUMBER_OF_TYPES)
-    return NS_OK;
+  if (aContentType > NUMBER_OF_TYPES) return NS_OK;
 
   // we can't do anything without this
-  if (!aContentLocation)
-    return NS_OK;
+  if (!aContentLocation) return NS_OK;
 
   // The final type of an object tag may mutate before it reaches
   // shouldProcess, so we cannot make any sane blocking decisions here
-  if (aContentType == nsIContentPolicy::TYPE_OBJECT)
-    return NS_OK;
+  if (aContentType == nsIContentPolicy::TYPE_OBJECT) return NS_OK;
 
   // we only want to check http, https, ftp
   // for chrome:// and resources and others, no need to check.
@@ -206,23 +179,23 @@ nsContentBlocker::ShouldLoad(uint32_t          aContentType,
 }
 
 NS_IMETHODIMP
-nsContentBlocker::ShouldProcess(uint32_t          aContentType,
-                                nsIURI           *aContentLocation,
-                                nsIURI           *aRequestingLocation,
-                                nsISupports      *aRequestingContext,
+nsContentBlocker::ShouldProcess(uint32_t aContentType, nsIURI *aContentLocation,
+                                nsIURI *aRequestingLocation,
+                                nsISupports *aRequestingContext,
                                 const nsACString &aMimeGuess,
-                                nsISupports      *aExtra,
-                                nsIPrincipal     *aRequestPrincipal,
-                                int16_t          *aDecision)
-{
-  MOZ_ASSERT(aContentType == nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
-             "We should only see external content policy types here.");
+                                nsISupports *aExtra,
+                                nsIPrincipal *aRequestPrincipal,
+                                int16_t *aDecision) {
+  MOZ_ASSERT(
+      aContentType ==
+          nsContentUtils::InternalContentPolicyTypeToExternal(aContentType),
+      "We should only see external content policy types here.");
 
   // For loads where aRequestingContext is chrome, we should just
   // accept.  Those are most likely toplevel loads in windows, and
   // chrome generally knows what it's doing anyway.
   nsCOMPtr<nsIDocShellTreeItem> item =
-    do_QueryInterface(NS_CP_GetDocShellFromContext(aRequestingContext));
+      do_QueryInterface(NS_CP_GetDocShellFromContext(aRequestingContext));
 
   if (item && item->ItemType() == nsIDocShellTreeItem::typeChrome) {
     *aDecision = nsIContentPolicy::ACCEPT;
@@ -259,13 +232,10 @@ nsContentBlocker::ShouldProcess(uint32_t          aContentType,
                     aDecision);
 }
 
-nsresult
-nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
-                                 nsIURI *aFirstURI,
-                                 int32_t aContentType,
-                                 bool *aPermission,
-                                 bool *aFromPrefs)
-{
+nsresult nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
+                                          nsIURI *aFirstURI,
+                                          int32_t aContentType,
+                                          bool *aPermission, bool *aFromPrefs) {
   *aFromPrefs = false;
   nsresult rv;
 
@@ -288,9 +258,8 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
   // preload permission.
   uint32_t permission = nsIPermissionManager::UNKNOWN_ACTION;
   if (mPermissionManager->GetHasPreloadPermissions()) {
-    rv = mPermissionManager->TestPermission(aCurrentURI,
-                                            kTypeString[aContentType - 1],
-                                            &permission);
+    rv = mPermissionManager->TestPermission(
+        aCurrentURI, kTypeString[aContentType - 1], &permission);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -303,84 +272,80 @@ nsContentBlocker::TestPermission(nsIURI *aCurrentURI,
   // Use the fact that the nsIPermissionManager values map to
   // the BEHAVIOR_* values above.
   switch (permission) {
-  case BEHAVIOR_ACCEPT:
-    *aPermission = true;
-    break;
-  case BEHAVIOR_REJECT:
-    *aPermission = false;
-    break;
-
-  case BEHAVIOR_NOFOREIGN:
-    // Third party checking
-
-    // Need a requesting uri for third party checks to work.
-    if (!aFirstURI)
-      return NS_OK;
-
-    bool trustedSource = false;
-    rv = aFirstURI->SchemeIs("chrome", &trustedSource);
-    NS_ENSURE_SUCCESS(rv,rv);
-    if (!trustedSource) {
-      rv = aFirstURI->SchemeIs("resource", &trustedSource);
-      NS_ENSURE_SUCCESS(rv,rv);
-    }
-    if (trustedSource)
-      return NS_OK;
-
-    // compare tails of names checking to see if they have a common domain
-    // we do this by comparing the tails of both names where each tail
-    // includes at least one dot
-
-    // A more generic method somewhere would be nice
-
-    nsAutoCString currentHost;
-    rv = aCurrentURI->GetAsciiHost(currentHost);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // Search for two dots, starting at the end.
-    // If there are no two dots found, ++dot will turn to zero,
-    // that will return the entire string.
-    int32_t dot = currentHost.RFindChar('.');
-    dot = currentHost.RFindChar('.', dot-1);
-    ++dot;
-
-    // Get the domain, ie the last part of the host (www.domain.com -> domain.com)
-    // This will break on co.uk
-    const nsACString& tail =
-      Substring(currentHost, dot, currentHost.Length() - dot);
-
-    nsAutoCString firstHost;
-    rv = aFirstURI->GetAsciiHost(firstHost);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // If the tail is longer then the whole firstHost, it will never match
-    if (firstHost.Length() < tail.Length()) {
+    case BEHAVIOR_ACCEPT:
+      *aPermission = true;
+      break;
+    case BEHAVIOR_REJECT:
       *aPermission = false;
-      return NS_OK;
-    }
+      break;
 
-    // Get the last part of the firstUri with the same length as |tail|
-    const nsACString& firstTail =
-      Substring(firstHost, firstHost.Length() - tail.Length(), tail.Length());
+    case BEHAVIOR_NOFOREIGN:
+      // Third party checking
 
-    // Check that both tails are the same, and that just before the tail in
-    // |firstUri| there is a dot. That means both url are in the same domain
-    if ((firstHost.Length() > tail.Length() &&
-         firstHost.CharAt(firstHost.Length() - tail.Length() - 1) != '.') ||
-        !tail.Equals(firstTail)) {
-      *aPermission = false;
-    }
-    break;
+      // Need a requesting uri for third party checks to work.
+      if (!aFirstURI) return NS_OK;
+
+      bool trustedSource = false;
+      rv = aFirstURI->SchemeIs("chrome", &trustedSource);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!trustedSource) {
+        rv = aFirstURI->SchemeIs("resource", &trustedSource);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      if (trustedSource) return NS_OK;
+
+      // compare tails of names checking to see if they have a common domain
+      // we do this by comparing the tails of both names where each tail
+      // includes at least one dot
+
+      // A more generic method somewhere would be nice
+
+      nsAutoCString currentHost;
+      rv = aCurrentURI->GetAsciiHost(currentHost);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      // Search for two dots, starting at the end.
+      // If there are no two dots found, ++dot will turn to zero,
+      // that will return the entire string.
+      int32_t dot = currentHost.RFindChar('.');
+      dot = currentHost.RFindChar('.', dot - 1);
+      ++dot;
+
+      // Get the domain, ie the last part of the host (www.domain.com ->
+      // domain.com) This will break on co.uk
+      const nsACString &tail =
+          Substring(currentHost, dot, currentHost.Length() - dot);
+
+      nsAutoCString firstHost;
+      rv = aFirstURI->GetAsciiHost(firstHost);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      // If the tail is longer then the whole firstHost, it will never match
+      if (firstHost.Length() < tail.Length()) {
+        *aPermission = false;
+        return NS_OK;
+      }
+
+      // Get the last part of the firstUri with the same length as |tail|
+      const nsACString &firstTail = Substring(
+          firstHost, firstHost.Length() - tail.Length(), tail.Length());
+
+      // Check that both tails are the same, and that just before the tail in
+      // |firstUri| there is a dot. That means both url are in the same domain
+      if ((firstHost.Length() > tail.Length() &&
+           firstHost.CharAt(firstHost.Length() - tail.Length() - 1) != '.') ||
+          !tail.Equals(firstTail)) {
+        *aPermission = false;
+      }
+      break;
   }
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsContentBlocker::Observe(nsISupports     *aSubject,
-                          const char      *aTopic,
-                          const char16_t *aData)
-{
+nsContentBlocker::Observe(nsISupports *aSubject, const char *aTopic,
+                          const char16_t *aData) {
   NS_ASSERTION(!strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic),
                "unexpected topic - we only deal with pref changes!");
 

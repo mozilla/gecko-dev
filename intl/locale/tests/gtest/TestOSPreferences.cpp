@@ -56,30 +56,18 @@ TEST(Intl_Locale_OSPreferences, GetDateTimePattern) {
     int timeStyle;
     const char* locale;
   };
-  Test tests[] = {
-    { 0, 0, "" },
-    { 1, 0, "pl" },
-    { 2, 0, "de-DE" },
-    { 3, 0, "fr" },
-    { 4, 0, "ar" },
+  Test tests[] = {{0, 0, ""},   {1, 0, "pl"}, {2, 0, "de-DE"}, {3, 0, "fr"},
+                  {4, 0, "ar"},
 
-    { 0, 1, "" },
-    { 0, 2, "it" },
-    { 0, 3, "" },
-    { 0, 4, "ru" },
+                  {0, 1, ""},   {0, 2, "it"}, {0, 3, ""},      {0, 4, "ru"},
 
-    { 4, 1, "" },
-    { 3, 2, "cs" },
-    { 2, 3, "" },
-    { 1, 4, "ja" }
-  };
+                  {4, 1, ""},   {3, 2, "cs"}, {2, 3, ""},      {1, 4, "ja"}};
 
   for (unsigned i = 0; i < mozilla::ArrayLength(tests); i++) {
     const Test& t = tests[i];
     nsAutoString pattern;
-    if (NS_SUCCEEDED(osprefs->GetDateTimePattern(t.dateStyle, t.timeStyle,
-                                                 nsDependentCString(t.locale),
-                                                 pattern))) {
+    if (NS_SUCCEEDED(osprefs->GetDateTimePattern(
+            t.dateStyle, t.timeStyle, nsDependentCString(t.locale), pattern))) {
       ASSERT_TRUE((t.dateStyle == 0 && t.timeStyle == 0) || !pattern.IsEmpty());
     }
   }

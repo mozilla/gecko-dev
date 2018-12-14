@@ -36,30 +36,25 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
   NS_DECL_ISUPPORTS
 
-  NS_IMETHOD Init(uint32_t flags,
-                  uint32_t aWrapColumn,
-                  const mozilla::Encoding* aEncoding,
-                  bool aIsCopying,
+  NS_IMETHOD Init(uint32_t flags, uint32_t aWrapColumn,
+                  const mozilla::Encoding* aEncoding, bool aIsCopying,
                   bool aRewriteEncodingDeclaration,
                   bool* aNeedsPreformatScanning) override;
 
   NS_IMETHOD AppendText(nsIContent* aText, int32_t aStartOffset,
                         int32_t aEndOffset, nsAString& aStr) override;
 
-  NS_IMETHOD AppendCDATASection(nsIContent* aCDATASection,
-                                int32_t aStartOffset, int32_t aEndOffset,
-                                nsAString& aStr) override;
+  NS_IMETHOD AppendCDATASection(nsIContent* aCDATASection, int32_t aStartOffset,
+                                int32_t aEndOffset, nsAString& aStr) override;
 
-  NS_IMETHOD AppendProcessingInstruction(nsIContent* aPI,
-                                         int32_t aStartOffset,
+  NS_IMETHOD AppendProcessingInstruction(nsIContent* aPI, int32_t aStartOffset,
                                          int32_t aEndOffset,
                                          nsAString& aStr) override;
 
   NS_IMETHOD AppendComment(nsIContent* aComment, int32_t aStartOffset,
                            int32_t aEndOffset, nsAString& aStr) override;
 
-  NS_IMETHOD AppendDoctype(nsIContent *aDoctype,
-                           nsAString& aStr) override;
+  NS_IMETHOD AppendDoctype(nsIContent* aDoctype, nsAString& aStr) override;
 
   NS_IMETHOD AppendElementStart(mozilla::dom::Element* aElement,
                                 mozilla::dom::Element* aOriginalElement,
@@ -70,15 +65,14 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
   NS_IMETHOD Flush(nsAString& aStr) override { return NS_OK; }
 
-  NS_IMETHOD AppendDocumentStart(nsIDocument *aDocument,
+  NS_IMETHOD AppendDocumentStart(nsIDocument* aDocument,
                                  nsAString& aStr) override;
 
-  NS_IMETHOD ScanElementForPreformat(mozilla::dom::Element* aElement) override
-  {
+  NS_IMETHOD ScanElementForPreformat(mozilla::dom::Element* aElement) override {
     return NS_OK;
   }
-  NS_IMETHOD ForgetElementForPreformat(mozilla::dom::Element* aElement) override
-  {
+  NS_IMETHOD ForgetElementForPreformat(
+      mozilla::dom::Element* aElement) override {
     return NS_OK;
   }
 
@@ -89,15 +83,13 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * Appends a char16_t character and increments the column position
    */
   MOZ_MUST_USE
-  bool AppendToString(const char16_t aChar,
-                      nsAString& aOutputStr);
+  bool AppendToString(const char16_t aChar, nsAString& aOutputStr);
 
   /**
    * Appends a nsAString string and increments the column position
    */
   MOZ_MUST_USE
-  bool AppendToString(const nsAString& aStr,
-                      nsAString& aOutputStr);
+  bool AppendToString(const nsAString& aStr, nsAString& aOutputStr);
 
   /**
    * Appends a string by replacing all line-endings
@@ -105,16 +97,14 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * It increments the column position.
    */
   MOZ_MUST_USE
-  bool AppendToStringConvertLF(const nsAString& aStr,
-                               nsAString& aOutputStr);
+  bool AppendToStringConvertLF(const nsAString& aStr, nsAString& aOutputStr);
 
   /**
    * Appends a string by wrapping it when necessary.
    * It updates the column position.
    */
   MOZ_MUST_USE
-  bool AppendToStringWrapped(const nsAString& aStr,
-                             nsAString& aOutputStr);
+  bool AppendToStringWrapped(const nsAString& aStr, nsAString& aOutputStr);
 
   /**
    * Appends a string by formating and wrapping it when necessary
@@ -127,29 +117,27 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   // used by AppendToStringWrapped
   MOZ_MUST_USE
   bool AppendWrapped_WhitespaceSequence(
-          nsAString::const_char_iterator &aPos,
-          const nsAString::const_char_iterator aEnd,
-          const nsAString::const_char_iterator aSequenceStart,
-          nsAString &aOutputStr);
+      nsAString::const_char_iterator& aPos,
+      const nsAString::const_char_iterator aEnd,
+      const nsAString::const_char_iterator aSequenceStart,
+      nsAString& aOutputStr);
 
   // used by AppendToStringFormatedWrapped
   MOZ_MUST_USE
   bool AppendFormatedWrapped_WhitespaceSequence(
-          nsAString::const_char_iterator &aPos,
-          const nsAString::const_char_iterator aEnd,
-          const nsAString::const_char_iterator aSequenceStart,
-          bool &aMayIgnoreStartOfLineWhitespaceSequence,
-          nsAString &aOutputStr);
+      nsAString::const_char_iterator& aPos,
+      const nsAString::const_char_iterator aEnd,
+      const nsAString::const_char_iterator aSequenceStart,
+      bool& aMayIgnoreStartOfLineWhitespaceSequence, nsAString& aOutputStr);
 
   // used by AppendToStringWrapped and AppendToStringFormatedWrapped
   MOZ_MUST_USE
   bool AppendWrapped_NonWhitespaceSequence(
-          nsAString::const_char_iterator &aPos,
-          const nsAString::const_char_iterator aEnd,
-          const nsAString::const_char_iterator aSequenceStart,
-          bool &aMayIgnoreStartOfLineWhitespaceSequence,
-          bool &aSequenceStartAfterAWhiteSpace,
-          nsAString &aOutputStr);
+      nsAString::const_char_iterator& aPos,
+      const nsAString::const_char_iterator aEnd,
+      const nsAString::const_char_iterator aSequenceStart,
+      bool& aMayIgnoreStartOfLineWhitespaceSequence,
+      bool& aSequenceStartAfterAWhiteSpace, nsAString& aOutputStr);
 
   /**
    * add mLineBreak to the string
@@ -157,7 +145,6 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    */
   MOZ_MUST_USE
   bool AppendNewLineToString(nsAString& aOutputStr);
-
 
   /**
    * Appends a string by translating entities
@@ -171,15 +158,12 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * retrieve the text content of the node and append it to the given string
    * It doesn't increment the column position
    */
-  nsresult AppendTextData(nsIContent* aNode,
-                          int32_t aStartOffset,
-                          int32_t aEndOffset,
-                          nsAString& aStr,
+  nsresult AppendTextData(nsIContent* aNode, int32_t aStartOffset,
+                          int32_t aEndOffset, nsAString& aStr,
                           bool aTranslateEntities);
 
   virtual nsresult PushNameSpaceDecl(const nsAString& aPrefix,
-                                     const nsAString& aURI,
-                                     nsIContent* aOwner);
+                                     const nsAString& aURI, nsIContent* aOwner);
   void PopNameSpaceDeclsFor(nsIContent* aOwner);
 
   /**
@@ -200,10 +184,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    *                 stack (note that this can happen even if the prefix is
    *                 empty).
    */
-  bool ConfirmPrefix(nsAString& aPrefix,
-                       const nsAString& aURI,
-                       nsIContent* aElement,
-                       bool aIsAttribute);
+  bool ConfirmPrefix(nsAString& aPrefix, const nsAString& aURI,
+                     nsIContent* aElement, bool aIsAttribute);
   /**
    * GenerateNewPrefix generates a new prefix and writes it to aPrefix
    */
@@ -218,22 +200,16 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                                    mozilla::dom::Element* aOriginalElement,
                                    nsAString& aTagPrefix,
                                    const nsAString& aTagNamespaceURI,
-                                   nsAtom* aTagName,
-                                   nsAString& aStr,
-                                   uint32_t aSkipAttr,
-                                   bool aAddNSAttr);
+                                   nsAtom* aTagName, nsAString& aStr,
+                                   uint32_t aSkipAttr, bool aAddNSAttr);
 
   MOZ_MUST_USE
-  bool SerializeAttr(const nsAString& aPrefix,
-                     const nsAString& aName,
-                     const nsAString& aValue,
-                     nsAString& aStr,
+  bool SerializeAttr(const nsAString& aPrefix, const nsAString& aName,
+                     const nsAString& aValue, nsAString& aStr,
                      bool aDoEscapeEntities);
 
-  bool IsJavaScript(nsIContent * aContent,
-                      nsAtom* aAttrNameAtom,
-                      int32_t aAttrNamespaceID,
-                      const nsAString& aValueString);
+  bool IsJavaScript(nsIContent* aContent, nsAtom* aAttrNameAtom,
+                    int32_t aAttrNamespaceID, const nsAString& aValueString);
 
   /**
    * This method can be redefined to check if the element can be serialized.
@@ -244,8 +220,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * @return boolean  true if the element can be output
    */
   virtual bool CheckElementStart(mozilla::dom::Element* aElement,
-                                 bool & aForceFormat,
-                                 nsAString& aStr,
+                                 bool& aForceFormat, nsAString& aStr,
                                  nsresult& aResult);
 
   /**
@@ -268,7 +243,9 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   MOZ_MUST_USE
   virtual bool AfterElementStart(nsIContent* aContent,
                                  nsIContent* aOriginalElement,
-                                 nsAString& aStr) { return true; };
+                                 nsAString& aStr) {
+    return true;
+  };
 
   /**
    * This method can be redefined to check if the element can be serialized.
@@ -279,16 +256,14 @@ class nsXMLContentSerializer : public nsIContentSerializer {
    * @return boolean  true if the element can be output
    */
   virtual bool CheckElementEnd(mozilla::dom::Element* aElement,
-                               bool& aForceFormat,
-                               nsAString& aStr);
+                               bool& aForceFormat, nsAString& aStr);
 
   /**
    * This method can be redefine to serialize additional things just after
    * after the serialization ot the end tag.
    * (called at the end of AppendElementStart)
    */
-  virtual void AfterElementEnd(nsIContent * aContent,
-                               nsAString& aStr) { };
+  virtual void AfterElementEnd(nsIContent* aContent, nsAString& aStr){};
 
   /**
    * Returns true if a line break should be inserted before an element open tag
@@ -352,16 +327,16 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   nsTArray<NameSpaceDecl> mNameSpaceStack;
 
   // nsIDocumentEncoder flags
-  MOZ_INIT_OUTSIDE_CTOR uint32_t  mFlags;
+  MOZ_INIT_OUTSIDE_CTOR uint32_t mFlags;
 
   // characters to use for line break
-  nsString  mLineBreak;
+  nsString mLineBreak;
 
   // The charset that was passed to Init()
   nsCString mCharset;
 
   // current column position on the current line
-  uint32_t   mColPos;
+  uint32_t mColPos;
 
   // true = pretty formating should be done (OutputFormated flag)
   MOZ_INIT_OUTSIDE_CTOR bool mDoFormat;
@@ -377,14 +352,14 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   MOZ_INIT_OUTSIDE_CTOR bool mAllowLineBreaking;
 
   // number of maximum column in a line, in the wrap mode
-  MOZ_INIT_OUTSIDE_CTOR uint32_t   mMaxColumn;
+  MOZ_INIT_OUTSIDE_CTOR uint32_t mMaxColumn;
 
   // current indent value
-  nsString   mIndent;
+  nsString mIndent;
 
   // this is the indentation level after the indentation reached
   // the maximum length of indentation
-  int32_t    mIndentOverflow;
+  int32_t mIndentOverflow;
 
   // says if the indentation has been already added on the current line
   bool mIsIndentationAddedOnCurrentLine;
@@ -401,22 +376,21 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   // continued on the same line while serializing source.  Otherwise,
   // the newline character acts as the whitespace and no space is needed.
   // used when mDoFormat = true
-  bool          mAddSpace;
+  bool mAddSpace;
 
   // says that if the next string to add contains a newline character at the
   // begining, then this newline character should be ignored, because a
   // such character has already been added into the output string
-  bool          mMayIgnoreLineBreakSequence;
+  bool mMayIgnoreLineBreakSequence;
 
-  bool          mBodyOnly;
-  int32_t       mInBody;
+  bool mBodyOnly;
+  int32_t mInBody;
 
-private:
+ private:
   // number of nested elements which have preformated content
   MOZ_INIT_OUTSIDE_CTOR int32_t mPreLevel;
 };
 
-nsresult
-NS_NewXMLContentSerializer(nsIContentSerializer** aSerializer);
+nsresult NS_NewXMLContentSerializer(nsIContentSerializer** aSerializer);
 
 #endif

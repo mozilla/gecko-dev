@@ -12,29 +12,25 @@
 
 namespace js {
 
-JSFunction*
-GetWrappedAsyncFunction(JSFunction* unwrapped);
+JSFunction* GetWrappedAsyncFunction(JSFunction* unwrapped);
 
-JSFunction*
-GetUnwrappedAsyncFunction(JSFunction* wrapped);
+JSFunction* GetUnwrappedAsyncFunction(JSFunction* wrapped);
 
-bool
-IsWrappedAsyncFunction(JSFunction* fun);
+bool IsWrappedAsyncFunction(JSFunction* fun);
 
-JSObject*
-WrapAsyncFunctionWithProto(JSContext* cx, HandleFunction unwrapped, HandleObject proto);
+JSObject* WrapAsyncFunctionWithProto(JSContext* cx, HandleFunction unwrapped,
+                                     HandleObject proto);
 
-JSObject*
-WrapAsyncFunction(JSContext* cx, HandleFunction unwrapped);
+JSObject* WrapAsyncFunction(JSContext* cx, HandleFunction unwrapped);
 
-MOZ_MUST_USE bool
-AsyncFunctionAwaitedFulfilled(JSContext* cx, Handle<PromiseObject*> resultPromise,
-                              HandleValue generatorVal, HandleValue value);
+MOZ_MUST_USE bool AsyncFunctionAwaitedFulfilled(
+    JSContext* cx, Handle<PromiseObject*> resultPromise,
+    HandleValue generatorVal, HandleValue value);
 
-MOZ_MUST_USE bool
-AsyncFunctionAwaitedRejected(JSContext* cx, Handle<PromiseObject*> resultPromise,
-                             HandleValue generatorVal, HandleValue reason);
+MOZ_MUST_USE bool AsyncFunctionAwaitedRejected(
+    JSContext* cx, Handle<PromiseObject*> resultPromise,
+    HandleValue generatorVal, HandleValue reason);
 
-} // namespace js
+}  // namespace js
 
 #endif /* vm_AsyncFunction_h */

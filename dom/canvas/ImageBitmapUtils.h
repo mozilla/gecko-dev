@@ -15,12 +15,13 @@ namespace mozilla {
 namespace layers {
 class Image;
 struct PlanarYCbCrData;
-}
+}  // namespace layers
 
 namespace dom {
 
 struct ChannelPixelLayout;
-template<typename> class Sequence;
+template <typename>
+class Sequence;
 
 typedef nsTArray<ChannelPixelLayout> ImagePixelLayout;
 
@@ -29,9 +30,10 @@ typedef nsTArray<ChannelPixelLayout> ImagePixelLayout;
  * default layout of the given ImageBitmapFormat with the given width, height
  * and stride.
  */
-UniquePtr<ImagePixelLayout>
-CreateDefaultPixelLayout(ImageBitmapFormat aFormat,
-                         uint32_t aWidth, uint32_t aHeight, uint32_t aStride);
+UniquePtr<ImagePixelLayout> CreateDefaultPixelLayout(ImageBitmapFormat aFormat,
+                                                     uint32_t aWidth,
+                                                     uint32_t aHeight,
+                                                     uint32_t aStride);
 
 /*
  * This function extracts information from the aImage parameter to customize
@@ -39,22 +41,20 @@ CreateDefaultPixelLayout(ImageBitmapFormat aFormat,
  * ImagePixelLayout object which exactly describes the pixel layout of the
  * given aImage.
  */
-UniquePtr<ImagePixelLayout>
-CreatePixelLayoutFromPlanarYCbCrData(const layers::PlanarYCbCrData* aData);
+UniquePtr<ImagePixelLayout> CreatePixelLayoutFromPlanarYCbCrData(
+    const layers::PlanarYCbCrData* aData);
 
 /*
  * Get the number of channels of the given ImageBitmapFormat.
  */
-uint8_t
-GetChannelCountOfImageFormat(ImageBitmapFormat aFormat);
+uint8_t GetChannelCountOfImageFormat(ImageBitmapFormat aFormat);
 
 /*
  * Get the needed buffer size to store the image data in the given
  * ImageBitmapFormat with the given width and height.
  */
-uint32_t
-CalculateImageBufferSize(ImageBitmapFormat aFormat,
-                         uint32_t aWidth, uint32_t aHeight);
+uint32_t CalculateImageBufferSize(ImageBitmapFormat aFormat, uint32_t aWidth,
+                                  uint32_t aHeight);
 
 /*
  * This function always copies the image data in _aSrcBuffer_ into _aDstBuffer_
@@ -71,12 +71,10 @@ CalculateImageBufferSize(ImageBitmapFormat aFormat,
  * The returned ImagePixelLayout object describes the pixel layout of the result
  * image and will be null if on failure.
  */
-UniquePtr<ImagePixelLayout>
-CopyAndConvertImageData(ImageBitmapFormat aSrcFormat,
-                        const uint8_t* aSrcBuffer,
-                        const ImagePixelLayout* aSrcLayout,
-                        ImageBitmapFormat aDstFormat,
-                        uint8_t* aDstBuffer);
+UniquePtr<ImagePixelLayout> CopyAndConvertImageData(
+    ImageBitmapFormat aSrcFormat, const uint8_t* aSrcBuffer,
+    const ImagePixelLayout* aSrcLayout, ImageBitmapFormat aDstFormat,
+    uint8_t* aDstBuffer);
 
 /*
  * This function tries to find the best ImageBitmapFormat, from the aCandiates,
@@ -88,12 +86,11 @@ CopyAndConvertImageData(ImageBitmapFormat aSrcFormat,
  *       different platforms (different kinds of layers::Image), considering
  *       that some conversion might be cheaper through hardware.
  */
-ImageBitmapFormat
-FindBestMatchingFromat(ImageBitmapFormat aSrcFormat,
-                       const Sequence<ImageBitmapFormat>& aCandidates);
+ImageBitmapFormat FindBestMatchingFromat(
+    ImageBitmapFormat aSrcFormat,
+    const Sequence<ImageBitmapFormat>& aCandidates);
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-
-#endif // mozilla_dom_ImageBitmapUtils_h
+#endif  // mozilla_dom_ImageBitmapUtils_h

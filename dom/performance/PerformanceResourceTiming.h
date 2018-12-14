@@ -17,159 +17,142 @@ namespace mozilla {
 namespace dom {
 
 // http://www.w3.org/TR/resource-timing/#performanceresourcetiming
-class PerformanceResourceTiming : public PerformanceEntry
-{
-public:
+class PerformanceResourceTiming : public PerformanceEntry {
+ public:
   typedef mozilla::TimeStamp TimeStamp;
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
-      PerformanceResourceTiming,
-      PerformanceEntry)
+      PerformanceResourceTiming, PerformanceEntry)
 
-  PerformanceResourceTiming(UniquePtr<PerformanceTimingData>&& aPerformanceTimingData,
-                            Performance* aPerformance,
-                            const nsAString& aName);
+  PerformanceResourceTiming(
+      UniquePtr<PerformanceTimingData>&& aPerformanceTimingData,
+      Performance* aPerformance, const nsAString& aName);
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
-
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   virtual DOMHighResTimeStamp StartTime() const override;
 
-  virtual DOMHighResTimeStamp Duration() const override
-  {
+  virtual DOMHighResTimeStamp Duration() const override {
     return ResponseEnd() - StartTime();
   }
 
-  void GetInitiatorType(nsAString& aInitiatorType) const
-  {
+  void GetInitiatorType(nsAString& aInitiatorType) const {
     aInitiatorType = mInitiatorType;
   }
 
-  void SetInitiatorType(const nsAString& aInitiatorType)
-  {
+  void SetInitiatorType(const nsAString& aInitiatorType) {
     mInitiatorType = aInitiatorType;
   }
 
-  void GetNextHopProtocol(nsAString& aNextHopProtocol) const
-  {
+  void GetNextHopProtocol(nsAString& aNextHopProtocol) const {
     if (mTimingData) {
       aNextHopProtocol = mTimingData->NextHopProtocol();
     }
   }
 
   DOMHighResTimeStamp WorkerStart() const {
-    return mTimingData
-        ? mTimingData->WorkerStartHighRes(mPerformance)
-        : 0;
+    return mTimingData ? mTimingData->WorkerStartHighRes(mPerformance) : 0;
   }
 
   DOMHighResTimeStamp FetchStart() const {
-    return mTimingData
-        ? mTimingData->FetchStartHighRes(mPerformance)
-        : 0;
+    return mTimingData ? mTimingData->FetchStartHighRes(mPerformance) : 0;
   }
 
   DOMHighResTimeStamp RedirectStart() const {
     // We have to check if all the redirect URIs had the same origin (since
     // there is no check in RedirectEndHighRes())
     return mTimingData && mTimingData->ShouldReportCrossOriginRedirect()
-        ? mTimingData->RedirectStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->RedirectStartHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp RedirectEnd() const {
     // We have to check if all the redirect URIs had the same origin (since
     // there is no check in RedirectEndHighRes())
     return mTimingData && mTimingData->ShouldReportCrossOriginRedirect()
-        ? mTimingData->RedirectEndHighRes(mPerformance)
-        : 0;
+               ? mTimingData->RedirectEndHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp DomainLookupStart() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->DomainLookupStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->DomainLookupStartHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp DomainLookupEnd() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->DomainLookupEndHighRes(mPerformance)
-        : 0;
+               ? mTimingData->DomainLookupEndHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp ConnectStart() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->ConnectStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->ConnectStartHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp ConnectEnd() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->ConnectEndHighRes(mPerformance)
-        : 0;
+               ? mTimingData->ConnectEndHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp RequestStart() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->RequestStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->RequestStartHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp ResponseStart() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ? mTimingData->ResponseStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->ResponseStartHighRes(mPerformance)
+               : 0;
   }
 
   DOMHighResTimeStamp ResponseEnd() const {
-    return mTimingData
-        ? mTimingData->ResponseEndHighRes(mPerformance)
-        : 0;
+    return mTimingData ? mTimingData->ResponseEndHighRes(mPerformance) : 0;
   }
 
-  DOMHighResTimeStamp SecureConnectionStart() const
-  {
+  DOMHighResTimeStamp SecureConnectionStart() const {
     return mTimingData && mTimingData->TimingAllowed()
-        ?  mTimingData->SecureConnectionStartHighRes(mPerformance)
-        : 0;
+               ? mTimingData->SecureConnectionStartHighRes(mPerformance)
+               : 0;
   }
 
-  virtual const PerformanceResourceTiming* ToResourceTiming() const override
-  {
+  virtual const PerformanceResourceTiming* ToResourceTiming() const override {
     return this;
   }
 
-  uint64_t TransferSize() const
-  {
+  uint64_t TransferSize() const {
     return mTimingData ? mTimingData->TransferSize() : 0;
   }
 
-  uint64_t EncodedBodySize() const
-  {
+  uint64_t EncodedBodySize() const {
     return mTimingData ? mTimingData->EncodedBodySize() : 0;
   }
 
-  uint64_t DecodedBodySize() const
-  {
+  uint64_t DecodedBodySize() const {
     return mTimingData ? mTimingData->DecodedBodySize() : 0;
   }
 
-  size_t
-  SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfIncludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
-protected:
+ protected:
   virtual ~PerformanceResourceTiming();
 
-  size_t
-  SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
+  size_t SizeOfExcludingThis(
+      mozilla::MallocSizeOf aMallocSizeOf) const override;
 
   nsString mInitiatorType;
   UniquePtr<PerformanceTimingData> mTimingData;
   RefPtr<Performance> mPerformance;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_PerformanceResourceTiming_h___ */

@@ -21,20 +21,18 @@
 
 namespace mozilla {
 
-template <int V> class FFmpegDecoderModule
-{
-public:
+template <int V>
+class FFmpegDecoderModule {
+ public:
   static already_AddRefed<PlatformDecoderModule> Create(FFmpegLibWrapper*);
 };
 
 static FFmpegLibWrapper sFFVPXLib;
 
 FFVPXRuntimeLinker::LinkStatus FFVPXRuntimeLinker::sLinkStatus =
-  LinkStatus_INIT;
+    LinkStatus_INIT;
 
-static PRLibrary*
-MozAVLink(nsIFile* aFile)
-{
+static PRLibrary* MozAVLink(nsIFile* aFile) {
   PRLibSpec lspec;
   PathString path = aFile->NativePath();
 #ifdef XP_WIN
@@ -55,9 +53,7 @@ MozAVLink(nsIFile* aFile)
   return lib;
 }
 
-/* static */ bool
-FFVPXRuntimeLinker::Init()
-{
+/* static */ bool FFVPXRuntimeLinker::Init() {
   if (sLinkStatus) {
     return sLinkStatus == LinkStatus_SUCCEEDED;
   }
@@ -70,9 +66,8 @@ FFVPXRuntimeLinker::Init()
   if (lgpllibsname.IsEmpty()) {
     return false;
   }
-  PathString path =
-    GetLibraryFilePathname(lgpllibsname.get(),
-                           (PRFuncPtr)&soundtouch::SoundTouch::getVersionId);
+  PathString path = GetLibraryFilePathname(
+      lgpllibsname.get(), (PRFuncPtr)&soundtouch::SoundTouch::getVersionId);
   if (path.IsEmpty()) {
     return false;
   }
@@ -112,12 +107,11 @@ FFVPXRuntimeLinker::Init()
 }
 
 /* static */ already_AddRefed<PlatformDecoderModule>
-FFVPXRuntimeLinker::CreateDecoderModule()
-{
+FFVPXRuntimeLinker::CreateDecoderModule() {
   if (!Init()) {
     return nullptr;
   }
   return FFmpegDecoderModule<FFVPX_VERSION>::Create(&sFFVPXLib);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

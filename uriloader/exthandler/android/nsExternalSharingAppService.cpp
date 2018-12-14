@@ -16,45 +16,39 @@ using namespace mozilla;
 
 NS_IMPL_ISUPPORTS(nsExternalSharingAppService, nsIExternalSharingAppService)
 
-nsExternalSharingAppService::nsExternalSharingAppService()
-{
-}
+nsExternalSharingAppService::nsExternalSharingAppService() {}
 
-nsExternalSharingAppService::~nsExternalSharingAppService()
-{
-}
+nsExternalSharingAppService::~nsExternalSharingAppService() {}
 
 NS_IMETHODIMP
-nsExternalSharingAppService::ShareWithDefault(const nsAString & data,
-                                              const nsAString & mime,
-                                              const nsAString & title)
-{
+nsExternalSharingAppService::ShareWithDefault(const nsAString &data,
+                                              const nsAString &mime,
+                                              const nsAString &title) {
   NS_NAMED_LITERAL_STRING(sendAction, "android.intent.action.SEND");
   const nsString emptyString = EmptyString();
-  return java::GeckoAppShell::OpenUriExternal(data,
-      mime, emptyString, emptyString, sendAction, title) ? NS_OK : NS_ERROR_FAILURE;
+  return java::GeckoAppShell::OpenUriExternal(data, mime, emptyString,
+                                              emptyString, sendAction, title)
+             ? NS_OK
+             : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-nsExternalSharingAppService::GetSharingApps(const nsAString & aMIMEType,
+nsExternalSharingAppService::GetSharingApps(const nsAString &aMIMEType,
                                             uint32_t *aLen,
-                                            nsISharingHandlerApp ***aHandlers)
-{
+                                            nsISharingHandlerApp ***aHandlers) {
   nsresult rv;
   NS_NAMED_LITERAL_STRING(sendAction, "android.intent.action.SEND");
   nsCOMPtr<nsIMutableArray> array = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!AndroidBridge::Bridge())
-    return NS_OK;
-  AndroidBridge::Bridge()->GetHandlersForMimeType(aMIMEType, array,
-                                                  nullptr, sendAction);
+  if (!AndroidBridge::Bridge()) return NS_OK;
+  AndroidBridge::Bridge()->GetHandlersForMimeType(aMIMEType, array, nullptr,
+                                                  sendAction);
   array->GetLength(aLen);
-  *aHandlers =
-    static_cast<nsISharingHandlerApp**>(moz_xmalloc(sizeof(nsISharingHandlerApp*)
-                                                    * *aLen));
+  *aHandlers = static_cast<nsISharingHandlerApp **>(
+      moz_xmalloc(sizeof(nsISharingHandlerApp *) * *aLen));
   for (uint32_t i = 0; i < *aLen; i++) {
     rv = array->QueryElementAt(i, NS_GET_IID(nsISharingHandlerApp),
-                               (void**)(*aHandlers + i));
+                               (void **)(*aHandlers + i));
     NS_ENSURE_SUCCESS(rv, rv);
   }
   return NS_OK;

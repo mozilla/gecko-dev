@@ -53,50 +53,38 @@ using namespace mozilla::widget;
 //
 //-------------------------------------------------------------------------
 nsDragService::nsDragService()
-  : mDataObject(nullptr), mSentLocalDropEvent(false)
-{
-}
+    : mDataObject(nullptr), mSentLocalDropEvent(false) {}
 
 //-------------------------------------------------------------------------
 //
 // DragService destructor
 //
 //-------------------------------------------------------------------------
-nsDragService::~nsDragService()
-{
-  NS_IF_RELEASE(mDataObject);
-}
+nsDragService::~nsDragService() { NS_IF_RELEASE(mDataObject); }
 
-bool
-nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
-                               nsIScriptableRegion *aRegion,
-                               SHDRAGIMAGE *psdi)
-{
-  if (!psdi)
-    return false;
+bool nsDragService::CreateDragImage(nsIDOMNode* aDOMNode,
+                                    nsIScriptableRegion* aRegion,
+                                    SHDRAGIMAGE* psdi) {
+  if (!psdi) return false;
 
   memset(psdi, 0, sizeof(SHDRAGIMAGE));
-  if (!aDOMNode)
-    return false;
+  if (!aDOMNode) return false;
 
   // Prepare the drag image
   LayoutDeviceIntRect dragRect;
   RefPtr<SourceSurface> surface;
   nsPresContext* pc;
   DrawDrag(aDOMNode, aRegion, mScreenPosition, &dragRect, &surface, &pc);
-  if (!surface)
-    return false;
+  if (!surface) return false;
 
   uint32_t bmWidth = dragRect.Width(), bmHeight = dragRect.Height();
 
-  if (bmWidth == 0 || bmHeight == 0)
-    return false;
+  if (bmWidth == 0 || bmHeight == 0) return false;
 
   psdi->crColorKey = CLR_NONE;
 
-  RefPtr<DataSourceSurface> dataSurface =
-    Factory::CreateDataSourceSurface(IntSize(bmWidth, bmHeight),
-                                     SurfaceFormat::B8G8R8A8);
+  RefPtr<DataSourceSurface> dataSurface = Factory::CreateDataSourceSurface(
+      IntSize(bmWidth, bmHeight), SurfaceFormat::B8G8R8A8);
   NS_ENSURE_TRUE(dataSurface, false);
 
   DataSourceSurface::MappedSurface map;
@@ -104,43 +92,40 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
     return false;
   }
 
-  RefPtr<DrawTarget> dt =
-    Factory::CreateDrawTargetForData(BackendType::CAIRO,
-                                     map.mData,
-                                     dataSurface->GetSize(),
-                                     map.mStride,
-                                     dataSurface->GetFormat());
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
+      BackendType::CAIRO, map.mData, dataSurface->GetSize(), map.mStride,
+      dataSurface->GetFormat());
   if (!dt) {
     dataSurface->Unmap();
     return false;
   }
 
-  dt->DrawSurface(surface,
-                  Rect(0, 0, dataSurface->GetSize().width, dataSurface->GetSize().height),
-                  Rect(0, 0, surface->GetSize().width, surface->GetSize().height),
-                  DrawSurfaceOptions(),
-                  DrawOptions(1.0f, CompositionOp::OP_SOURCE));
+  dt->DrawSurface(
+      surface,
+      Rect(0, 0, dataSurface->GetSize().width, dataSurface->GetSize().height),
+      Rect(0, 0, surface->GetSize().width, surface->GetSize().height),
+      DrawSurfaceOptions(), DrawOptions(1.0f, CompositionOp::OP_SOURCE));
   dt->Flush();
 
   BITMAPV5HEADER bmih;
   memset((void*)&bmih, 0, sizeof(BITMAPV5HEADER));
-  bmih.bV5Size        = sizeof(BITMAPV5HEADER);
-  bmih.bV5Width       = bmWidth;
-  bmih.bV5Height      = -(int32_t)bmHeight; // flip vertical
-  bmih.bV5Planes      = 1;
-  bmih.bV5BitCount    = 32;
+  bmih.bV5Size = sizeof(BITMAPV5HEADER);
+  bmih.bV5Width = bmWidth;
+  bmih.bV5Height = -(int32_t)bmHeight;  // flip vertical
+  bmih.bV5Planes = 1;
+  bmih.bV5BitCount = 32;
   bmih.bV5Compression = BI_BITFIELDS;
-  bmih.bV5RedMask     = 0x00FF0000;
-  bmih.bV5GreenMask   = 0x0000FF00;
-  bmih.bV5BlueMask    = 0x000000FF;
-  bmih.bV5AlphaMask   = 0xFF000000;
+  bmih.bV5RedMask = 0x00FF0000;
+  bmih.bV5GreenMask = 0x0000FF00;
+  bmih.bV5BlueMask = 0x000000FF;
+  bmih.bV5AlphaMask = 0xFF000000;
 
   HDC hdcSrc = CreateCompatibleDC(nullptr);
-  void *lpBits = nullptr;
+  void* lpBits = nullptr;
   if (hdcSrc) {
     psdi->hbmpDragImage =
-    ::CreateDIBSection(hdcSrc, (BITMAPINFO*)&bmih, DIB_RGB_COLORS,
-                       (void**)&lpBits, nullptr, 0);
+        ::CreateDIBSection(hdcSrc, (BITMAPINFO*)&bmih, DIB_RGB_COLORS,
+                           (void**)&lpBits, nullptr, 0);
     if (psdi->hbmpDragImage && lpBits) {
       CopySurfaceDataToPackedArray(map.mData, static_cast<uint8_t*>(lpBits),
                                    dataSurface->GetSize(), map.mStride,
@@ -151,7 +136,7 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
     psdi->sizeDragImage.cy = bmHeight;
 
     LayoutDeviceIntPoint screenPoint =
-      ConvertToUnscaledDevPixels(pc, mScreenPosition);
+        ConvertToUnscaledDevPixels(pc, mScreenPosition);
     psdi->ptOffset.x = screenPoint.x - dragRect.X();
     psdi->ptOffset.y = screenPoint.y - dragRect.Y();
 
@@ -164,13 +149,11 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
 }
 
 //-------------------------------------------------------------------------
-nsresult
-nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
-                                     nsIScriptableRegion* aRegion,
-                                     uint32_t aActionType)
-{
+nsresult nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
+                                              nsIScriptableRegion* aRegion,
+                                              uint32_t aActionType) {
   // Try and get source URI of the items that are being dragged
-  nsIURI *uri = nullptr;
+  nsIURI* uri = nullptr;
 
   nsCOMPtr<nsIDocument> doc(do_QueryInterface(mSourceDocument));
   if (doc) {
@@ -179,8 +162,7 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
 
   uint32_t numItemsToDrag = 0;
   nsresult rv = anArrayTransferables->GetLength(&numItemsToDrag);
-  if (!numItemsToDrag)
-    return NS_ERROR_FAILURE;
+  if (!numItemsToDrag) return NS_ERROR_FAILURE;
 
   // The clipboard class contains some static utility methods that we
   // can use to create an IDataObject from the transferable
@@ -191,11 +173,10 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
   // (most cases), only pass around the native |IDataObject|.
   RefPtr<IDataObject> itemToDrag;
   if (numItemsToDrag > 1) {
-    nsDataObjCollection * dataObjCollection = new nsDataObjCollection();
-    if (!dataObjCollection)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsDataObjCollection* dataObjCollection = new nsDataObjCollection();
+    if (!dataObjCollection) return NS_ERROR_OUT_OF_MEMORY;
     itemToDrag = dataObjCollection;
-    for (uint32_t i=0; i<numItemsToDrag; ++i) {
+    for (uint32_t i = 0; i < numItemsToDrag; ++i) {
       nsCOMPtr<nsITransferable> trans =
           do_QueryElementAt(anArrayTransferables, i);
       if (trans) {
@@ -204,8 +185,8 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
         trans->SetRequestingPrincipal(node->NodePrincipal());
         trans->SetContentPolicyType(mContentPolicyType);
         RefPtr<IDataObject> dataObj;
-        rv = nsClipboard::CreateNativeDataObject(trans,
-                                                 getter_AddRefs(dataObj), uri);
+        rv = nsClipboard::CreateNativeDataObject(trans, getter_AddRefs(dataObj),
+                                                 uri);
         NS_ENSURE_SUCCESS(rv, rv);
         // Add the flavors to the collection object too
         rv = nsClipboard::SetupNativeDataObject(trans, dataObjCollection);
@@ -214,7 +195,7 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
         dataObjCollection->AddDataObject(dataObj);
       }
     }
-  } // if dragging multiple items
+  }  // if dragging multiple items
   else {
     nsCOMPtr<nsITransferable> trans =
         do_QueryElementAt(anArrayTransferables, 0);
@@ -224,17 +205,16 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
       trans->SetRequestingPrincipal(node->NodePrincipal());
       trans->SetContentPolicyType(mContentPolicyType);
       rv = nsClipboard::CreateNativeDataObject(trans,
-                                               getter_AddRefs(itemToDrag),
-                                               uri);
+                                               getter_AddRefs(itemToDrag), uri);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-  } // else dragging a single object
+  }  // else dragging a single object
 
   // Create a drag image if support is available
-  IDragSourceHelper *pdsh;
+  IDragSourceHelper* pdsh;
   if (SUCCEEDED(CoCreateInstance(CLSID_DragDropHelper, nullptr,
-                                 CLSCTX_INPROC_SERVER,
-                                 IID_IDragSourceHelper, (void**)&pdsh))) {
+                                 CLSCTX_INPROC_SERVER, IID_IDragSourceHelper,
+                                 (void**)&pdsh))) {
     SHDRAGIMAGE sdi;
     if (CreateDragImage(mSourceNode, aRegion, &sdi)) {
       if (FAILED(pdsh->InitializeFromBitmap(&sdi, itemToDrag)))
@@ -247,31 +227,29 @@ nsDragService::InvokeDragSessionImpl(nsIArray* anArrayTransferables,
   return StartInvokingDragSession(itemToDrag, aActionType);
 }
 
-static bool
-LayoutDevicePointToCSSPoint(const LayoutDevicePoint& aDevPos,
-                            CSSPoint& aCSSPos)
-{
+static bool LayoutDevicePointToCSSPoint(const LayoutDevicePoint& aDevPos,
+                                        CSSPoint& aCSSPos) {
   nsCOMPtr<nsIScreenManager> screenMgr =
-    do_GetService("@mozilla.org/gfx/screenmanager;1");
+      do_GetService("@mozilla.org/gfx/screenmanager;1");
   if (!screenMgr) {
     return false;
   }
 
   nsCOMPtr<nsIScreen> screen;
-  screenMgr->ScreenForRect(NSToIntRound(aDevPos.x), NSToIntRound(aDevPos.y),
-                           1, 1, getter_AddRefs(screen));
+  screenMgr->ScreenForRect(NSToIntRound(aDevPos.x), NSToIntRound(aDevPos.y), 1,
+                           1, getter_AddRefs(screen));
   if (!screen) {
     return false;
   }
 
-  int32_t w,h; // unused
+  int32_t w, h;  // unused
   LayoutDeviceIntPoint screenOriginDev;
   screen->GetRect(&screenOriginDev.x, &screenOriginDev.y, &w, &h);
 
   double scale;
   screen->GetDefaultCSSScaleFactor(&scale);
   LayoutDeviceToCSSScale devToCSSScale =
-    CSSToLayoutDeviceScale(scale).Inverse();
+      CSSToLayoutDeviceScale(scale).Inverse();
 
   // Desktop pixels and CSS pixels share the same screen origin.
   CSSIntPoint screenOriginCSS;
@@ -283,13 +261,12 @@ LayoutDevicePointToCSSPoint(const LayoutDevicePoint& aDevPos,
 
 //-------------------------------------------------------------------------
 NS_IMETHODIMP
-nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
-                                        uint32_t aActionType)
-{
+nsDragService::StartInvokingDragSession(IDataObject* aDataObj,
+                                        uint32_t aActionType) {
   // To do the drag we need to create an object that
   // implements the IDataObject interface (for OLE)
   RefPtr<nsNativeDragSource> nativeDragSrc =
-    new nsNativeDragSource(mDataTransfer);
+      new nsNativeDragSource(mDataTransfer);
 
   // Now figure out what the native drag effect should be
   DWORD winDropRes;
@@ -325,22 +302,23 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   // Call the native D&D method
   HRESULT res = ::DoDragDrop(aDataObj, nativeDragSrc, effects, &winDropRes);
 
-  // In  cases where the drop operation completed outside the application, update
-  // the source node's nsIDOMDataTransfer dropEffect value so it is up to date.
+  // In  cases where the drop operation completed outside the application,
+  // update the source node's nsIDOMDataTransfer dropEffect value so it is up to
+  // date.
   if (!mSentLocalDropEvent) {
     uint32_t dropResult;
     // Order is important, since multiple flags can be returned.
     if (winDropRes & DROPEFFECT_COPY)
-        dropResult = DRAGDROP_ACTION_COPY;
+      dropResult = DRAGDROP_ACTION_COPY;
     else if (winDropRes & DROPEFFECT_LINK)
-        dropResult = DRAGDROP_ACTION_LINK;
+      dropResult = DRAGDROP_ACTION_LINK;
     else if (winDropRes & DROPEFFECT_MOVE)
-        dropResult = DRAGDROP_ACTION_MOVE;
+      dropResult = DRAGDROP_ACTION_MOVE;
     else
-        dropResult = DRAGDROP_ACTION_NONE;
+      dropResult = DRAGDROP_ACTION_NONE;
 
     if (mDataTransfer) {
-      if (res == DRAGDROP_S_DROP) // Success
+      if (res == DRAGDROP_S_DROP)  // Success
         mDataTransfer->SetDropEffectInt(dropResult);
       else
         mDataTransfer->SetDropEffectInt(DRAGDROP_ACTION_NONE);
@@ -356,11 +334,10 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   // pixels (bug 818927).
   DWORD pos = ::GetMessagePos();
   CSSPoint cssPos;
-  if (!LayoutDevicePointToCSSPoint(LayoutDevicePoint(GET_X_LPARAM(pos),
-                                                     GET_Y_LPARAM(pos)),
-                                   cssPos)) {
+  if (!LayoutDevicePointToCSSPoint(
+          LayoutDevicePoint(GET_X_LPARAM(pos), GET_Y_LPARAM(pos)), cssPos)) {
     // fallback to the simple scaling
-    POINT pt = { GET_X_LPARAM(pos), GET_Y_LPARAM(pos) };
+    POINT pt = {GET_X_LPARAM(pos), GET_Y_LPARAM(pos)};
     HMONITOR monitor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
     double dpiScale = widget::WinUtils::LogToPhysFactor(monitor);
     cssPos.x = GET_X_LPARAM(pos) / dpiScale;
@@ -369,8 +346,8 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   // We have to abuse SetDragEndPoint to pass CSS pixels because
   // Event::GetScreenCoords will not convert pixels for dragend events
   // until bug 1224754 is fixed.
-  SetDragEndPoint(LayoutDeviceIntPoint(NSToIntRound(cssPos.x),
-                                       NSToIntRound(cssPos.y)));
+  SetDragEndPoint(
+      LayoutDeviceIntPoint(NSToIntRound(cssPos.x), NSToIntRound(cssPos.y)));
   ModifierKeyState modifierKeyState;
   EndDragSession(true, modifierKeyState.GetModifiers());
 
@@ -381,14 +358,13 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
 
 //-------------------------------------------------------------------------
 // Make Sure we have the right kind of object
-nsDataObjCollection*
-nsDragService::GetDataObjCollection(IDataObject* aDataObj)
-{
-  nsDataObjCollection * dataObjCol = nullptr;
+nsDataObjCollection* nsDragService::GetDataObjCollection(
+    IDataObject* aDataObj) {
+  nsDataObjCollection* dataObjCol = nullptr;
   if (aDataObj) {
     nsIDataObjCollection* dataObj;
-    if (aDataObj->QueryInterface(IID_IDataObjCollection,
-                                 (void**)&dataObj) == S_OK) {
+    if (aDataObj->QueryInterface(IID_IDataObjCollection, (void**)&dataObj) ==
+        S_OK) {
       dataObjCol = static_cast<nsDataObjCollection*>(aDataObj);
       dataObj->Release();
     }
@@ -399,19 +375,17 @@ nsDragService::GetDataObjCollection(IDataObject* aDataObj)
 
 //-------------------------------------------------------------------------
 NS_IMETHODIMP
-nsDragService::GetNumDropItems(uint32_t * aNumItems)
-{
+nsDragService::GetNumDropItems(uint32_t* aNumItems) {
   if (!mDataObject) {
     *aNumItems = 0;
     return NS_OK;
   }
 
   if (IsCollectionObject(mDataObject)) {
-    nsDataObjCollection * dataObjCol = GetDataObjCollection(mDataObject);
+    nsDataObjCollection* dataObjCol = GetDataObjCollection(mDataObject);
     if (dataObjCol) {
       *aNumItems = dataObjCol->GetNumDataObjects();
-    }
-    else {
+    } else {
       // If the count cannot be determined just return 0.
       // This can happen if we have collection data of type
       // MULTI_MIME ("Mozilla/IDataObjectCollectionFormat") on the clipboard
@@ -419,8 +393,7 @@ nsDragService::GetNumDropItems(uint32_t * aNumItems)
       // from this process.
       *aNumItems = 0;
     }
-  }
-  else {
+  } else {
     // Next check if we have a file drop. Return the number of files in
     // the file drop as the number of items we have, pretending like we
     // actually have > 1 drag item.
@@ -434,13 +407,10 @@ nsDragService::GetNumDropItems(uint32_t * aNumItems)
         ::GlobalUnlock(stm.hGlobal);
         ::ReleaseStgMedium(&stm);
         // Data may be provided later, so assume we have 1 item
-        if (*aNumItems == 0)
-          *aNumItems = 1;
-      }
-      else
+        if (*aNumItems == 0) *aNumItems = 1;
+      } else
         *aNumItems = 1;
-    }
-    else
+    } else
       *aNumItems = 1;
   }
 
@@ -449,33 +419,29 @@ nsDragService::GetNumDropItems(uint32_t * aNumItems)
 
 //-------------------------------------------------------------------------
 NS_IMETHODIMP
-nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
-{
+nsDragService::GetData(nsITransferable* aTransferable, uint32_t anItem) {
   // This typcially happens on a drop, the target would be asking
   // for it's transferable to be filled in
   // Use a static clipboard utility method for this
-  if (!mDataObject)
-    return NS_ERROR_FAILURE;
+  if (!mDataObject) return NS_ERROR_FAILURE;
 
   nsresult dataFound = NS_ERROR_FAILURE;
 
   if (IsCollectionObject(mDataObject)) {
     // multiple items, use |anItem| as an index into our collection
-    nsDataObjCollection * dataObjCol = GetDataObjCollection(mDataObject);
+    nsDataObjCollection* dataObjCol = GetDataObjCollection(mDataObject);
     uint32_t cnt = dataObjCol->GetNumDataObjects();
     if (anItem < cnt) {
-      IDataObject * dataObj = dataObjCol->GetDataObjectAt(anItem);
+      IDataObject* dataObj = dataObjCol->GetDataObjectAt(anItem);
       dataFound = nsClipboard::GetDataFromDataObject(dataObj, 0, nullptr,
                                                      aTransferable);
-    }
-    else
+    } else
       NS_WARNING("Index out of range!");
-  }
-  else {
+  } else {
     // If they are asking for item "0", we can just get it...
     if (anItem == 0) {
-       dataFound = nsClipboard::GetDataFromDataObject(mDataObject, anItem,
-                                                      nullptr, aTransferable);
+      dataFound = nsClipboard::GetDataFromDataObject(mDataObject, anItem,
+                                                     nullptr, aTransferable);
     } else {
       // It better be a file drop, or else non-zero indexes are invalid!
       FORMATETC fe2;
@@ -484,7 +450,9 @@ nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
         dataFound = nsClipboard::GetDataFromDataObject(mDataObject, anItem,
                                                        nullptr, aTransferable);
       else
-        NS_WARNING("Reqesting non-zero index, but clipboard data is not a collection!");
+        NS_WARNING(
+            "Reqesting non-zero index, but clipboard data is not a "
+            "collection!");
     }
   }
   return dataFound;
@@ -492,8 +460,7 @@ nsDragService::GetData(nsITransferable * aTransferable, uint32_t anItem)
 
 //---------------------------------------------------------
 NS_IMETHODIMP
-nsDragService::SetIDataObject(IDataObject * aDataObj)
-{
+nsDragService::SetIDataObject(IDataObject* aDataObj) {
   // When the native drag starts the DragService gets
   // the IDataObject that is being dragged
   NS_IF_RELEASE(mDataObject);
@@ -504,9 +471,7 @@ nsDragService::SetIDataObject(IDataObject * aDataObj)
 }
 
 //---------------------------------------------------------
-void
-nsDragService::SetDroppedLocal()
-{
+void nsDragService::SetDroppedLocal() {
   // Sent from the native drag handler, letting us know
   // a drop occurred within the application vs. outside of it.
   mSentLocalDropEvent = true;
@@ -515,14 +480,14 @@ nsDragService::SetDroppedLocal()
 
 //-------------------------------------------------------------------------
 NS_IMETHODIMP
-nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
-{
-  if (!aDataFlavor || !mDataObject || !_retval)
-    return NS_ERROR_FAILURE;
+nsDragService::IsDataFlavorSupported(const char* aDataFlavor, bool* _retval) {
+  if (!aDataFlavor || !mDataObject || !_retval) return NS_ERROR_FAILURE;
 
 #ifdef DEBUG
   if (strcmp(aDataFlavor, kTextMime) == 0)
-    NS_WARNING("DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD");
+    NS_WARNING(
+        "DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode "
+        "INSTEAD");
 #endif
 
   *_retval = false;
@@ -541,13 +506,12 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
     nsDataObjCollection* dataObjCol = GetDataObjCollection(mDataObject);
     if (dataObjCol) {
       uint32_t cnt = dataObjCol->GetNumDataObjects();
-      for (uint32_t i=0;i<cnt;++i) {
-        IDataObject * dataObj = dataObjCol->GetDataObjectAt(i);
-        if (S_OK == dataObj->QueryGetData(&fe))
-          *_retval = true;             // found it!
+      for (uint32_t i = 0; i < cnt; ++i) {
+        IDataObject* dataObj = dataObjCol->GetDataObjectAt(i);
+        if (S_OK == dataObj->QueryGetData(&fe)) *_retval = true;  // found it!
       }
     }
-  } // if special collection object
+  }  // if special collection object
   else {
     // Ok, so we have a single object. Check to see if has the correct
     // data type. Since this can come from an outside app, we also
@@ -557,7 +521,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
     SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                   TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
     if (mDataObject->QueryGetData(&fe) == S_OK)
-      *_retval = true;                 // found it!
+      *_retval = true;  // found it!
     else {
       // We haven't found the exact flavor the client asked for, but
       // maybe we can still find it from something else that's on the
@@ -570,9 +534,8 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
         SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                       TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
         if (mDataObject->QueryGetData(&fe) == S_OK)
-          *_retval = true;                 // found it!
-      }
-      else if (strcmp(aDataFlavor, kURLMime) == 0) {
+          *_retval = true;  // found it!
+      } else if (strcmp(aDataFlavor, kURLMime) == 0) {
         // client asked for a url and it wasn't present, but if we
         // have a file, then we have a URL to give them (the path, or
         // the internal URL if an InternetShortcut).
@@ -580,14 +543,13 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
         SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                       TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
         if (mDataObject->QueryGetData(&fe) == S_OK)
-          *_retval = true;                 // found it!
+          *_retval = true;  // found it!
       }
-    } // else try again
+    }  // else try again
   }
 
   return NS_OK;
 }
-
 
 //
 // IsCollectionObject
@@ -596,9 +558,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
 // collection objects. We know the difference because our collection
 // object will respond to supporting the private |MULTI_MIME| format.
 //
-bool
-nsDragService::IsCollectionObject(IDataObject* inDataObj)
-{
+bool nsDragService::IsCollectionObject(IDataObject* inDataObj) {
   bool isCollection = false;
 
   // setup the format object to ask for the MULTI_MIME format. We only
@@ -612,13 +572,11 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 
   // ask the object if it supports it. If yes, we have a collection
   // object
-  if (inDataObj->QueryGetData(&sFE) == S_OK)
-    isCollection = true;
+  if (inDataObj->QueryGetData(&sFE) == S_OK) isCollection = true;
 
   return isCollection;
 
-} // IsCollectionObject
-
+}  // IsCollectionObject
 
 //
 // EndDragSession
@@ -628,8 +586,7 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 // w/out crashing when we're still holding onto their data
 //
 NS_IMETHODIMP
-nsDragService::EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers)
-{
+nsDragService::EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers) {
   // Bug 100180: If we've got mouse events captured, make sure we release it -
   // that way, if we happen to call EndDragSession before diving into a nested
   // event loop, we can still respond to mouse events.
@@ -644,18 +601,18 @@ nsDragService::EndDragSession(bool aDoneDrag, uint32_t aKeyModifiers)
 }
 
 NS_IMETHODIMP
-nsDragService::UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX, int32_t aImageY)
-{
+nsDragService::UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX,
+                               int32_t aImageY) {
   if (!mDataObject) {
     return NS_OK;
   }
 
   nsBaseDragService::UpdateDragImage(aImage, aImageX, aImageY);
 
-  IDragSourceHelper *pdsh;
+  IDragSourceHelper* pdsh;
   if (SUCCEEDED(CoCreateInstance(CLSID_DragDropHelper, nullptr,
-                                 CLSCTX_INPROC_SERVER,
-                                 IID_IDragSourceHelper, (void**)&pdsh))) {
+                                 CLSCTX_INPROC_SERVER, IID_IDragSourceHelper,
+                                 (void**)&pdsh))) {
     SHDRAGIMAGE sdi;
     if (CreateDragImage(mSourceNode, nullptr, &sdi)) {
       nsNativeDragTarget::DragImageChanged();
@@ -667,4 +624,3 @@ nsDragService::UpdateDragImage(nsIDOMNode* aImage, int32_t aImageX, int32_t aIma
 
   return NS_OK;
 }
-

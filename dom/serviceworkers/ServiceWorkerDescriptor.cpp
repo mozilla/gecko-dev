@@ -17,10 +17,9 @@ ServiceWorkerDescriptor::ServiceWorkerDescriptor(uint64_t aId,
                                                  const nsACString& aScope,
                                                  const nsACString& aScriptURL,
                                                  ServiceWorkerState aState)
-  : mData(MakeUnique<IPCServiceWorkerDescriptor>())
-{
+    : mData(MakeUnique<IPCServiceWorkerDescriptor>()) {
   MOZ_ALWAYS_SUCCEEDS(
-    PrincipalToPrincipalInfo(aPrincipal, &mData->principalInfo()));
+      PrincipalToPrincipalInfo(aPrincipal, &mData->principalInfo()));
 
   mData->id() = aId;
   mData->scope() = aScope;
@@ -28,30 +27,26 @@ ServiceWorkerDescriptor::ServiceWorkerDescriptor(uint64_t aId,
   mData->state() = aState;
 }
 
-ServiceWorkerDescriptor::ServiceWorkerDescriptor(uint64_t aId,
-                                                 const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-                                                 const nsACString& aScope,
-                                                 const nsACString& aScriptURL,
-                                                 ServiceWorkerState aState)
-  : mData(MakeUnique<IPCServiceWorkerDescriptor>(aId, aPrincipalInfo,
-                                                 nsCString(aScriptURL),
-                                                 nsCString(aScope), aState))
-{
+ServiceWorkerDescriptor::ServiceWorkerDescriptor(
+    uint64_t aId, const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+    const nsACString& aScope, const nsACString& aScriptURL,
+    ServiceWorkerState aState)
+    : mData(MakeUnique<IPCServiceWorkerDescriptor>(aId, aPrincipalInfo,
+                                                   nsCString(aScriptURL),
+                                                   nsCString(aScope), aState)) {
 }
 
-ServiceWorkerDescriptor::ServiceWorkerDescriptor(const IPCServiceWorkerDescriptor& aDescriptor)
-  : mData(MakeUnique<IPCServiceWorkerDescriptor>(aDescriptor))
-{
-}
+ServiceWorkerDescriptor::ServiceWorkerDescriptor(
+    const IPCServiceWorkerDescriptor& aDescriptor)
+    : mData(MakeUnique<IPCServiceWorkerDescriptor>(aDescriptor)) {}
 
-ServiceWorkerDescriptor::ServiceWorkerDescriptor(const ServiceWorkerDescriptor& aRight)
-{
+ServiceWorkerDescriptor::ServiceWorkerDescriptor(
+    const ServiceWorkerDescriptor& aRight) {
   operator=(aRight);
 }
 
-ServiceWorkerDescriptor&
-ServiceWorkerDescriptor::operator=(const ServiceWorkerDescriptor& aRight)
-{
+ServiceWorkerDescriptor& ServiceWorkerDescriptor::operator=(
+    const ServiceWorkerDescriptor& aRight) {
   if (this == &aRight) {
     return *this;
   }
@@ -60,79 +55,57 @@ ServiceWorkerDescriptor::operator=(const ServiceWorkerDescriptor& aRight)
   return *this;
 }
 
-ServiceWorkerDescriptor::ServiceWorkerDescriptor(ServiceWorkerDescriptor&& aRight)
-  : mData(Move(aRight.mData))
-{
-}
+ServiceWorkerDescriptor::ServiceWorkerDescriptor(
+    ServiceWorkerDescriptor&& aRight)
+    : mData(Move(aRight.mData)) {}
 
-ServiceWorkerDescriptor&
-ServiceWorkerDescriptor::operator=(ServiceWorkerDescriptor&& aRight)
-{
+ServiceWorkerDescriptor& ServiceWorkerDescriptor::operator=(
+    ServiceWorkerDescriptor&& aRight) {
   mData.reset();
   mData = Move(aRight.mData);
   return *this;
 }
 
-ServiceWorkerDescriptor::~ServiceWorkerDescriptor()
-{
-}
+ServiceWorkerDescriptor::~ServiceWorkerDescriptor() {}
 
-bool
-ServiceWorkerDescriptor::operator==(const ServiceWorkerDescriptor& aRight) const
-{
+bool ServiceWorkerDescriptor::operator==(
+    const ServiceWorkerDescriptor& aRight) const {
   return *mData == *aRight.mData;
 }
 
-uint64_t
-ServiceWorkerDescriptor::Id() const
-{
-  return mData->id();
-}
+uint64_t ServiceWorkerDescriptor::Id() const { return mData->id(); }
 
-const mozilla::ipc::PrincipalInfo&
-ServiceWorkerDescriptor::PrincipalInfo() const
-{
+const mozilla::ipc::PrincipalInfo& ServiceWorkerDescriptor::PrincipalInfo()
+    const {
   return mData->principalInfo();
 }
 
-const nsCString&
-ServiceWorkerDescriptor::Scope() const
-{
+const nsCString& ServiceWorkerDescriptor::Scope() const {
   return mData->scope();
 }
 
-const nsCString&
-ServiceWorkerDescriptor::ScriptURL() const
-{
+const nsCString& ServiceWorkerDescriptor::ScriptURL() const {
   return mData->scriptURL();
 }
 
-ServiceWorkerState
-ServiceWorkerDescriptor::State() const
-{
+ServiceWorkerState ServiceWorkerDescriptor::State() const {
   return mData->state();
 }
 
-void
-ServiceWorkerDescriptor::SetState(ServiceWorkerState aState)
-{
+void ServiceWorkerDescriptor::SetState(ServiceWorkerState aState) {
   mData->state() = aState;
 }
 
-bool
-ServiceWorkerDescriptor::Matches(const ServiceWorkerDescriptor& aDescriptor) const
-{
-  return Id() == aDescriptor.Id() &&
-         Scope() == aDescriptor.Scope() &&
+bool ServiceWorkerDescriptor::Matches(
+    const ServiceWorkerDescriptor& aDescriptor) const {
+  return Id() == aDescriptor.Id() && Scope() == aDescriptor.Scope() &&
          ScriptURL() == aDescriptor.ScriptURL() &&
          PrincipalInfo() == aDescriptor.PrincipalInfo();
 }
 
-const IPCServiceWorkerDescriptor&
-ServiceWorkerDescriptor::ToIPC() const
-{
+const IPCServiceWorkerDescriptor& ServiceWorkerDescriptor::ToIPC() const {
   return *mData;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

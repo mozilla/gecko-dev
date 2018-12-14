@@ -26,14 +26,12 @@ namespace safebrowsing {
 
 class VariableLengthPrefixSet;
 
-} // namespace safebrowsing
-} // namespace mozilla
+}  // namespace safebrowsing
+}  // namespace mozilla
 
-class nsUrlClassifierPrefixSet final
-  : public nsIUrlClassifierPrefixSet
-  , public nsIMemoryReporter
-{
-public:
+class nsUrlClassifierPrefixSet final : public nsIUrlClassifierPrefixSet,
+                                       public nsIMemoryReporter {
+ public:
   nsUrlClassifierPrefixSet();
 
   NS_IMETHOD Init(const nsACString& aName) override;
@@ -53,7 +51,7 @@ public:
 
   friend class mozilla::safebrowsing::VariableLengthPrefixSet;
 
-private:
+ private:
   virtual ~nsUrlClassifierPrefixSet();
 
   static const uint32_t MAX_BUFFER_SIZE = 64 * 1024;
@@ -69,7 +67,7 @@ private:
   nsresult WritePrefixes(nsIOutputStream* out);
   nsresult LoadPrefixes(nsIInputStream* in);
 
-  template<typename T>
+  template <typename T>
   void CalculateTArrayChecksum(nsTArray<T>& aArray, uint32_t* outChecksum);
 
   // Lock to prevent races between the url-classifier thread (which does most

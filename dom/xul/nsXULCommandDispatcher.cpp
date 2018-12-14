@@ -41,21 +41,16 @@ static LazyLogModule gCommandLog("nsXULCommandDispatcher");
 ////////////////////////////////////////////////////////////////////////
 
 nsXULCommandDispatcher::nsXULCommandDispatcher(nsIDocument* aDocument)
-    : mDocument(aDocument), mUpdaters(nullptr), mLocked(false)
-{
-}
+    : mDocument(aDocument), mUpdaters(nullptr), mLocked(false) {}
 
-nsXULCommandDispatcher::~nsXULCommandDispatcher()
-{
-  Disconnect();
-}
+nsXULCommandDispatcher::~nsXULCommandDispatcher() { Disconnect(); }
 
 // QueryInterface implementation for nsXULCommandDispatcher
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULCommandDispatcher)
-    NS_INTERFACE_MAP_ENTRY(nsIDOMXULCommandDispatcher)
-    NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMXULCommandDispatcher)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMXULCommandDispatcher)
+  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMXULCommandDispatcher)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXULCommandDispatcher)
@@ -76,9 +71,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULCommandDispatcher)
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-void
-nsXULCommandDispatcher::Disconnect()
-{
+void nsXULCommandDispatcher::Disconnect() {
   while (mUpdaters) {
     Updater* doomed = mUpdaters;
     mUpdaters = mUpdaters->mNext;
@@ -87,9 +80,7 @@ nsXULCommandDispatcher::Disconnect()
   mDocument = nullptr;
 }
 
-already_AddRefed<nsPIWindowRoot>
-nsXULCommandDispatcher::GetWindowRoot()
-{
+already_AddRefed<nsPIWindowRoot> nsXULCommandDispatcher::GetWindowRoot() {
   if (mDocument) {
     if (nsCOMPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow()) {
       return window->GetTopWindowRoot();
@@ -99,9 +90,8 @@ nsXULCommandDispatcher::GetWindowRoot()
   return nullptr;
 }
 
-nsIContent*
-nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindowOuter** aWindow)
-{
+nsIContent* nsXULCommandDispatcher::GetRootFocusedContentAndWindow(
+    nsPIDOMWindowOuter** aWindow) {
   *aWindow = nullptr;
 
   if (!mDocument) {
@@ -111,9 +101,7 @@ nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindowOuter** aWin
   if (nsCOMPtr<nsPIDOMWindowOuter> win = mDocument->GetWindow()) {
     if (nsCOMPtr<nsPIDOMWindowOuter> rootWindow = win->GetPrivateRoot()) {
       return nsFocusManager::GetFocusedDescendant(
-                               rootWindow,
-                               nsFocusManager::eIncludeAllDescendants,
-                               aWindow);
+          rootWindow, nsFocusManager::eIncludeAllDescendants, aWindow);
     }
   }
 
@@ -121,19 +109,20 @@ nsXULCommandDispatcher::GetRootFocusedContentAndWindow(nsPIDOMWindowOuter** aWin
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
-{
+nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement) {
   *aElement = nullptr;
 
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
   nsIContent* focusedContent =
-    GetRootFocusedContentAndWindow(getter_AddRefs(focusedWindow));
+      GetRootFocusedContentAndWindow(getter_AddRefs(focusedWindow));
   if (focusedContent) {
     CallQueryInterface(focusedContent, aElement);
 
     // Make sure the caller can access the focused element.
     nsCOMPtr<nsINode> node = do_QueryInterface(*aElement);
-    if (!node || !nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller()->Subsumes(node->NodePrincipal())) {
+    if (!node ||
+        !nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller()->Subsumes(
+            node->NodePrincipal())) {
       // XXX This might want to return null, but we use that return value
       // to mean "there is no focused element," so to be clear, throw an
       // exception.
@@ -146,14 +135,12 @@ nsXULCommandDispatcher::GetFocusedElement(nsIDOMElement** aElement)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetFocusedWindow(mozIDOMWindowProxy** aWindow)
-{
+nsXULCommandDispatcher::GetFocusedWindow(mozIDOMWindowProxy** aWindow) {
   *aWindow = nullptr;
 
   nsCOMPtr<nsPIDOMWindowOuter> window;
   GetRootFocusedContentAndWindow(getter_AddRefs(window));
-  if (!window)
-    return NS_OK;
+  if (!window) return NS_OK;
 
   // Make sure the caller can access this window. The caller can access this
   // window iff it can access the document.
@@ -169,13 +156,11 @@ nsXULCommandDispatcher::GetFocusedWindow(mozIDOMWindowProxy** aWindow)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::SetFocusedElement(nsIDOMElement* aElement)
-{
+nsXULCommandDispatcher::SetFocusedElement(nsIDOMElement* aElement) {
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   NS_ENSURE_TRUE(fm, NS_ERROR_FAILURE);
 
-  if (aElement)
-    return fm->SetFocus(aElement, 0);
+  if (aElement) return fm->SetFocus(aElement, 0);
 
   // if aElement is null, clear the focus in the currently focused child window
   nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
@@ -184,9 +169,8 @@ nsXULCommandDispatcher::SetFocusedElement(nsIDOMElement* aElement)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::SetFocusedWindow(mozIDOMWindowProxy* aWindow)
-{
-  NS_ENSURE_TRUE(aWindow, NS_OK); // do nothing if set to null
+nsXULCommandDispatcher::SetFocusedWindow(mozIDOMWindowProxy* aWindow) {
+  NS_ENSURE_TRUE(aWindow, NS_OK);  // do nothing if set to null
 
   nsCOMPtr<nsPIDOMWindowOuter> window = nsPIDOMWindowOuter::From(aWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
@@ -199,55 +183,49 @@ nsXULCommandDispatcher::SetFocusedWindow(mozIDOMWindowProxy* aWindow)
   // setting the command dispatcher's focused window doesn't raise the window,
   // setting it to a top-level window doesn't need to do anything.
   nsCOMPtr<nsIDOMElement> frameElement =
-    do_QueryInterface(window->GetFrameElementInternal());
-  if (frameElement)
-    return fm->SetFocus(frameElement, 0);
+      do_QueryInterface(window->GetFrameElementInternal());
+  if (frameElement) return fm->SetFocus(frameElement, 0);
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::AdvanceFocus()
-{
+nsXULCommandDispatcher::AdvanceFocus() {
   return AdvanceFocusIntoSubtree(nullptr);
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::RewindFocus()
-{
+nsXULCommandDispatcher::RewindFocus() {
   nsCOMPtr<nsPIDOMWindowOuter> win;
   GetRootFocusedContentAndWindow(getter_AddRefs(win));
 
   nsCOMPtr<nsIDOMElement> result;
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
-    return fm->MoveFocus(win, nullptr, nsIFocusManager::MOVEFOCUS_BACKWARD,
-                         0, getter_AddRefs(result));
+    return fm->MoveFocus(win, nullptr, nsIFocusManager::MOVEFOCUS_BACKWARD, 0,
+                         getter_AddRefs(result));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::AdvanceFocusIntoSubtree(nsIDOMElement* aElt)
-{
+nsXULCommandDispatcher::AdvanceFocusIntoSubtree(nsIDOMElement* aElt) {
   nsCOMPtr<nsPIDOMWindowOuter> win;
   GetRootFocusedContentAndWindow(getter_AddRefs(win));
 
   nsCOMPtr<nsIDOMElement> result;
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm)
-    return fm->MoveFocus(win, aElt, nsIFocusManager::MOVEFOCUS_FORWARD,
-                         0, getter_AddRefs(result));
+    return fm->MoveFocus(win, aElt, nsIFocusManager::MOVEFOCUS_FORWARD, 0,
+                         getter_AddRefs(result));
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
                                           const nsAString& aEvents,
-                                          const nsAString& aTargets)
-{
+                                          const nsAString& aTargets) {
   NS_PRECONDITION(aElement != nullptr, "null ptr");
-  if (! aElement)
-    return NS_ERROR_NULL_POINTER;
+  if (!aElement) return NS_ERROR_NULL_POINTER;
 
   NS_ENSURE_TRUE(mDocument, NS_ERROR_UNEXPECTED);
 
@@ -262,7 +240,6 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
 
   while (updater) {
     if (updater->mElement == aElement) {
-
 #ifdef DEBUG
       if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
         nsAutoCString eventsC, targetsC, aeventsC, atargetsC;
@@ -271,19 +248,17 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
         CopyUTF16toUTF8(aEvents, aeventsC);
         CopyUTF16toUTF8(aTargets, atargetsC);
         MOZ_LOG(gCommandLog, LogLevel::Debug,
-               ("xulcmd[%p] replace %p(events=%s targets=%s) with (events=%s targets=%s)",
-                this, aElement,
-                eventsC.get(),
-                targetsC.get(),
-                aeventsC.get(),
-                atargetsC.get()));
+                ("xulcmd[%p] replace %p(events=%s targets=%s) with (events=%s "
+                 "targets=%s)",
+                 this, aElement, eventsC.get(), targetsC.get(), aeventsC.get(),
+                 atargetsC.get()));
       }
 #endif
 
       // If the updater was already in the list, then replace
       // (?) the 'events' and 'targets' filters with the new
       // specification.
-      updater->mEvents  = aEvents;
+      updater->mEvents = aEvents;
       updater->mTargets = aTargets;
       return NS_OK;
     }
@@ -298,10 +273,8 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
     CopyUTF16toUTF8(aTargets, atargetsC);
 
     MOZ_LOG(gCommandLog, LogLevel::Debug,
-           ("xulcmd[%p] add     %p(events=%s targets=%s)",
-            this, aElement,
-            aeventsC.get(),
-            atargetsC.get()));
+            ("xulcmd[%p] add     %p(events=%s targets=%s)", this, aElement,
+             aeventsC.get(), atargetsC.get()));
   }
 #endif
 
@@ -311,11 +284,9 @@ nsXULCommandDispatcher::AddCommandUpdater(nsIDOMElement* aElement,
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
-{
+nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement) {
   NS_PRECONDITION(aElement != nullptr, "null ptr");
-  if (! aElement)
-    return NS_ERROR_NULL_POINTER;
+  if (!aElement) return NS_ERROR_NULL_POINTER;
 
   Updater* updater = mUpdaters;
   Updater** link = &mUpdaters;
@@ -328,10 +299,8 @@ nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
         LossyCopyUTF16toASCII(updater->mEvents, eventsC);
         LossyCopyUTF16toASCII(updater->mTargets, targetsC);
         MOZ_LOG(gCommandLog, LogLevel::Debug,
-               ("xulcmd[%p] remove  %p(events=%s targets=%s)",
-                this, aElement,
-                eventsC.get(),
-                targetsC.get()));
+                ("xulcmd[%p] remove  %p(events=%s targets=%s)", this, aElement,
+                 eventsC.get(), targetsC.get()));
       }
 #endif
 
@@ -349,8 +318,7 @@ nsXULCommandDispatcher::RemoveCommandUpdater(nsIDOMElement* aElement)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
-{
+nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName) {
   if (mLocked) {
     if (!mPendingUpdates.Contains(aEventName)) {
       mPendingUpdates.AppendElement(aEventName);
@@ -369,19 +337,17 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
 
   nsCOMArray<nsIContent> updaters;
 
-  for (Updater* updater = mUpdaters; updater != nullptr; updater = updater->mNext) {
+  for (Updater* updater = mUpdaters; updater != nullptr;
+       updater = updater->mNext) {
     // Skip any nodes that don't match our 'events' or 'targets'
     // filters.
-    if (! Matches(updater->mEvents, aEventName))
-      continue;
+    if (!Matches(updater->mEvents, aEventName)) continue;
 
-    if (! Matches(updater->mTargets, id))
-      continue;
+    if (!Matches(updater->mTargets, id)) continue;
 
     nsCOMPtr<nsIContent> content = do_QueryInterface(updater->mElement);
     NS_ASSERTION(content != nullptr, "not an nsIContent");
-    if (! content)
-      return NS_ERROR_UNEXPECTED;
+    if (!content) return NS_ERROR_UNEXPECTED;
 
     updaters.AppendObject(content);
   }
@@ -393,10 +359,9 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
     if (MOZ_LOG_TEST(gCommandLog, LogLevel::Debug)) {
       nsAutoCString aeventnameC;
       CopyUTF16toUTF8(aEventName, aeventnameC);
-      MOZ_LOG(gCommandLog, LogLevel::Debug,
-             ("xulcmd[%p] update %p event=%s",
-              this, content,
-              aeventnameC.get()));
+      MOZ_LOG(
+          gCommandLog, LogLevel::Debug,
+          ("xulcmd[%p] update %p event=%s", this, content, aeventnameC.get()));
     }
 #endif
 
@@ -406,37 +371,30 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
   return NS_OK;
 }
 
-bool
-nsXULCommandDispatcher::Matches(const nsString& aList,
-                                const nsAString& aElement)
-{
-  if (aList.EqualsLiteral("*"))
-    return true; // match _everything_!
+bool nsXULCommandDispatcher::Matches(const nsString& aList,
+                                     const nsAString& aElement) {
+  if (aList.EqualsLiteral("*")) return true;  // match _everything_!
 
   int32_t indx = aList.Find(PromiseFlatString(aElement));
-  if (indx == -1)
-    return false; // not in the list at all
+  if (indx == -1) return false;  // not in the list at all
 
   // okay, now make sure it's not a substring snafu; e.g., 'ur'
   // found inside of 'blur'.
   if (indx > 0) {
     char16_t ch = aList[indx - 1];
-    if (! nsCRT::IsAsciiSpace(ch) && ch != char16_t(','))
-      return false;
+    if (!nsCRT::IsAsciiSpace(ch) && ch != char16_t(',')) return false;
   }
 
   if (indx + aElement.Length() < aList.Length()) {
     char16_t ch = aList[indx + aElement.Length()];
-    if (! nsCRT::IsAsciiSpace(ch) && ch != char16_t(','))
-      return false;
+    if (!nsCRT::IsAsciiSpace(ch) && ch != char16_t(',')) return false;
   }
 
   return true;
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetControllers(nsIControllers** aResult)
-{
+nsXULCommandDispatcher::GetControllers(nsIControllers** aResult) {
   nsCOMPtr<nsPIWindowRoot> root = GetWindowRoot();
   NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
@@ -444,8 +402,8 @@ nsXULCommandDispatcher::GetControllers(nsIControllers** aResult)
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetControllerForCommand(const char *aCommand, nsIController** _retval)
-{
+nsXULCommandDispatcher::GetControllerForCommand(const char* aCommand,
+                                                nsIController** _retval) {
   nsCOMPtr<nsPIWindowRoot> root = GetWindowRoot();
   NS_ENSURE_TRUE(root, NS_ERROR_FAILURE);
 
@@ -454,21 +412,18 @@ nsXULCommandDispatcher::GetControllerForCommand(const char *aCommand, nsIControl
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::GetSuppressFocusScroll(bool* aSuppressFocusScroll)
-{
+nsXULCommandDispatcher::GetSuppressFocusScroll(bool* aSuppressFocusScroll) {
   *aSuppressFocusScroll = false;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::SetSuppressFocusScroll(bool aSuppressFocusScroll)
-{
+nsXULCommandDispatcher::SetSuppressFocusScroll(bool aSuppressFocusScroll) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::Lock()
-{
+nsXULCommandDispatcher::Lock() {
   // Since locking is used only as a performance optimization, we don't worry
   // about nested lock calls. If that does happen, it just means we will unlock
   // and process updates earlier.
@@ -477,8 +432,7 @@ nsXULCommandDispatcher::Lock()
 }
 
 NS_IMETHODIMP
-nsXULCommandDispatcher::Unlock()
-{
+nsXULCommandDispatcher::Unlock() {
   if (mLocked) {
     mLocked = false;
 

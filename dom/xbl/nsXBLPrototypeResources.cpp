@@ -29,53 +29,42 @@
 using namespace mozilla;
 using mozilla::dom::IsChromeURI;
 
-nsXBLPrototypeResources::nsXBLPrototypeResources(nsXBLPrototypeBinding* aBinding)
-{
+nsXBLPrototypeResources::nsXBLPrototypeResources(
+    nsXBLPrototypeBinding* aBinding) {
   MOZ_COUNT_CTOR(nsXBLPrototypeResources);
 
   mLoader = new nsXBLResourceLoader(aBinding, this);
 }
 
-nsXBLPrototypeResources::~nsXBLPrototypeResources()
-{
+nsXBLPrototypeResources::~nsXBLPrototypeResources() {
   MOZ_COUNT_DTOR(nsXBLPrototypeResources);
   if (mLoader) {
     mLoader->mResources = nullptr;
   }
 }
 
-void
-nsXBLPrototypeResources::AddResource(nsAtom* aResourceType, const nsAString& aSrc)
-{
-  if (mLoader)
-    mLoader->AddResource(aResourceType, aSrc);
+void nsXBLPrototypeResources::AddResource(nsAtom* aResourceType,
+                                          const nsAString& aSrc) {
+  if (mLoader) mLoader->AddResource(aResourceType, aSrc);
 }
 
-bool
-nsXBLPrototypeResources::LoadResources(nsIContent* aBoundElement)
-{
+bool nsXBLPrototypeResources::LoadResources(nsIContent* aBoundElement) {
   if (mLoader) {
     return mLoader->LoadResources(aBoundElement);
   }
 
-  return true; // All resources loaded.
+  return true;  // All resources loaded.
 }
 
-void
-nsXBLPrototypeResources::AddResourceListener(nsIContent* aBoundElement)
-{
-  if (mLoader)
-    mLoader->AddResourceListener(aBoundElement);
+void nsXBLPrototypeResources::AddResourceListener(nsIContent* aBoundElement) {
+  if (mLoader) mLoader->AddResourceListener(aBoundElement);
 }
 
-nsresult
-nsXBLPrototypeResources::FlushSkinSheets()
-{
-  if (mStyleSheetList.Length() == 0)
-    return NS_OK;
+nsresult nsXBLPrototypeResources::FlushSkinSheets() {
+  if (mStyleSheetList.Length() == 0) return NS_OK;
 
   nsCOMPtr<nsIDocument> doc =
-    mLoader->mBinding->XBLDocumentInfo()->GetDocument();
+      mLoader->mBinding->XBLDocumentInfo()->GetDocument();
 
   // If doc is null, we're in the process of tearing things down, so just
   // return without rebuilding anything.
@@ -102,10 +91,8 @@ nsXBLPrototypeResources::FlushSkinSheets()
 
     RefPtr<StyleSheet> newSheet;
     if (!oldSheet->IsInline() && IsChromeURI(uri)) {
-      if (NS_FAILED(cssLoader->LoadSheetSync(uri, &newSheet)))
-        continue;
-    }
-    else {
+      if (NS_FAILED(cssLoader->LoadSheetSync(uri, &newSheet))) continue;
+    } else {
       newSheet = oldSheet;
     }
 
@@ -132,17 +119,12 @@ nsXBLPrototypeResources::FlushSkinSheets()
   return NS_OK;
 }
 
-nsresult
-nsXBLPrototypeResources::Write(nsIObjectOutputStream* aStream)
-{
-  if (mLoader)
-    return mLoader->Write(aStream);
+nsresult nsXBLPrototypeResources::Write(nsIObjectOutputStream* aStream) {
+  if (mLoader) return mLoader->Write(aStream);
   return NS_OK;
 }
 
-void
-nsXBLPrototypeResources::Traverse(nsCycleCollectionTraversalCallback &cb)
-{
+void nsXBLPrototypeResources::Traverse(nsCycleCollectionTraversalCallback& cb) {
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "proto mResources mLoader");
   cb.NoteXPCOMChild(mLoader);
 
@@ -152,25 +134,17 @@ nsXBLPrototypeResources::Traverse(nsCycleCollectionTraversalCallback &cb)
   ImplCycleCollectionTraverse(cb, mStyleSheetList, "mStyleSheetList");
 }
 
-void
-nsXBLPrototypeResources::Unlink()
-{
+void nsXBLPrototypeResources::Unlink() {
   mStyleSheetList.Clear();
 #ifdef MOZ_OLD_STYLE
   mRuleProcessor = nullptr;
 #endif
 }
 
-void
-nsXBLPrototypeResources::ClearLoader()
-{
-  mLoader = nullptr;
-}
+void nsXBLPrototypeResources::ClearLoader() { mLoader = nullptr; }
 
 #ifdef MOZ_OLD_STYLE
-void
-nsXBLPrototypeResources::GatherRuleProcessor()
-{
+void nsXBLPrototypeResources::GatherRuleProcessor() {
   nsTArray<RefPtr<CSSStyleSheet>> sheets(mStyleSheetList.Length());
   for (StyleSheet* sheet : mStyleSheetList) {
     MOZ_ASSERT(sheet->IsGecko(),
@@ -179,16 +153,12 @@ nsXBLPrototypeResources::GatherRuleProcessor()
                "backends");
     sheets.AppendElement(sheet->AsGecko());
   }
-  mRuleProcessor = new nsCSSRuleProcessor(Move(sheets),
-                                          SheetType::Doc,
-                                          nullptr,
+  mRuleProcessor = new nsCSSRuleProcessor(Move(sheets), SheetType::Doc, nullptr,
                                           mRuleProcessor);
 }
 #endif
 
-void
-nsXBLPrototypeResources::SyncServoStyles()
-{
+void nsXBLPrototypeResources::SyncServoStyles() {
   mStyleRuleMap.reset(nullptr);
   mServoStyles.reset(Servo_AuthorStyles_Create());
   for (auto& sheet : mStyleSheetList) {
@@ -196,16 +166,13 @@ nsXBLPrototypeResources::SyncServoStyles()
   }
 }
 
-void
-nsXBLPrototypeResources::ComputeServoStyles(const ServoStyleSet& aMasterStyleSet)
-{
+void nsXBLPrototypeResources::ComputeServoStyles(
+    const ServoStyleSet& aMasterStyleSet) {
   SyncServoStyles();
   Servo_AuthorStyles_Flush(mServoStyles.get(), aMasterStyleSet.RawSet());
 }
 
-ServoStyleRuleMap*
-nsXBLPrototypeResources::GetServoStyleRuleMap()
-{
+ServoStyleRuleMap* nsXBLPrototypeResources::GetServoStyleRuleMap() {
   if (!HasStyleSheets() || !mServoStyles) {
     return nullptr;
   }
@@ -218,37 +185,29 @@ nsXBLPrototypeResources::GetServoStyleRuleMap()
   return mStyleRuleMap.get();
 }
 
-void
-nsXBLPrototypeResources::AppendStyleSheet(StyleSheet* aSheet)
-{
+void nsXBLPrototypeResources::AppendStyleSheet(StyleSheet* aSheet) {
   mStyleSheetList.AppendElement(aSheet);
 }
 
-void
-nsXBLPrototypeResources::RemoveStyleSheet(StyleSheet* aSheet)
-{
+void nsXBLPrototypeResources::RemoveStyleSheet(StyleSheet* aSheet) {
   mStyleSheetList.RemoveElement(aSheet);
 }
 
-void
-nsXBLPrototypeResources::InsertStyleSheetAt(size_t aIndex, StyleSheet* aSheet)
-{
+void nsXBLPrototypeResources::InsertStyleSheetAt(size_t aIndex,
+                                                 StyleSheet* aSheet) {
   mStyleSheetList.InsertElementAt(aIndex, aSheet);
 }
 
-void
-nsXBLPrototypeResources::AppendStyleSheetsTo(
-                                      nsTArray<StyleSheet*>& aResult) const
-{
+void nsXBLPrototypeResources::AppendStyleSheetsTo(
+    nsTArray<StyleSheet*>& aResult) const {
   aResult.AppendElements(mStyleSheetList);
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(ServoAuthorStylesMallocSizeOf)
 MOZ_DEFINE_MALLOC_ENCLOSING_SIZE_OF(ServoAuthorStylesMallocEnclosingSizeOf)
 
-size_t
-nsXBLPrototypeResources::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-{
+size_t nsXBLPrototypeResources::SizeOfIncludingThis(
+    MallocSizeOf aMallocSizeOf) const {
   size_t n = aMallocSizeOf(this);
   n += mStyleSheetList.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (const auto& sheet : mStyleSheetList) {
@@ -257,10 +216,11 @@ nsXBLPrototypeResources::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 #ifdef MOZ_OLD_STYLE
   n += mRuleProcessor ? mRuleProcessor->SizeOfIncludingThis(aMallocSizeOf) : 0;
 #endif
-  n += mServoStyles ? Servo_AuthorStyles_SizeOfIncludingThis(
-      ServoAuthorStylesMallocSizeOf,
-      ServoAuthorStylesMallocEnclosingSizeOf,
-      mServoStyles.get()) : 0;
+  n += mServoStyles
+           ? Servo_AuthorStyles_SizeOfIncludingThis(
+                 ServoAuthorStylesMallocSizeOf,
+                 ServoAuthorStylesMallocEnclosingSizeOf, mServoStyles.get())
+           : 0;
   n += mStyleRuleMap ? mStyleRuleMap->SizeOfIncludingThis(aMallocSizeOf) : 0;
 
   // Measurement of the following members may be added later if DMD finds it

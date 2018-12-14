@@ -21,18 +21,11 @@ namespace dom {
 class GlobalObject;
 struct DOMPointInit;
 
-class DOMPointReadOnly : public nsWrapperCache
-{
-public:
-  DOMPointReadOnly(nsISupports* aParent, double aX, double aY,
-                   double aZ, double aW)
-    : mParent(aParent)
-    , mX(aX)
-    , mY(aY)
-    , mZ(aZ)
-    , mW(aW)
-  {
-  }
+class DOMPointReadOnly : public nsWrapperCache {
+ public:
+  DOMPointReadOnly(nsISupports* aParent, double aX, double aY, double aZ,
+                   double aW)
+      : mParent(aParent), mX(aX), mY(aY), mZ(aZ), mW(aW) {}
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(DOMPointReadOnly)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(DOMPointReadOnly)
@@ -42,30 +35,29 @@ public:
   double Z() const { return mZ; }
   double W() const { return mW; }
 
-protected:
+ protected:
   virtual ~DOMPointReadOnly() {}
 
   nsCOMPtr<nsISupports> mParent;
   double mX, mY, mZ, mW;
 };
 
-class DOMPoint final : public DOMPointReadOnly
-{
-public:
+class DOMPoint final : public DOMPointReadOnly {
+ public:
   explicit DOMPoint(nsISupports* aParent, double aX = 0.0, double aY = 0.0,
                     double aZ = 0.0, double aW = 1.0)
-    : DOMPointReadOnly(aParent, aX, aY, aZ, aW)
-  {}
+      : DOMPointReadOnly(aParent, aX, aY, aZ, aW) {}
 
-  static already_AddRefed<DOMPoint>
-  Constructor(const GlobalObject& aGlobal, const DOMPointInit& aParams,
-              ErrorResult& aRV);
-  static already_AddRefed<DOMPoint>
-  Constructor(const GlobalObject& aGlobal, double aX, double aY,
-              double aZ, double aW, ErrorResult& aRV);
+  static already_AddRefed<DOMPoint> Constructor(const GlobalObject& aGlobal,
+                                                const DOMPointInit& aParams,
+                                                ErrorResult& aRV);
+  static already_AddRefed<DOMPoint> Constructor(const GlobalObject& aGlobal,
+                                                double aX, double aY, double aZ,
+                                                double aW, ErrorResult& aRV);
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   void SetX(double aX) { mX = aX; }
   void SetY(double aY) { mY = aY; }
@@ -73,7 +65,7 @@ public:
   void SetW(double aW) { mW = aW; }
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /*MOZILLA_DOMPOINT_H_*/

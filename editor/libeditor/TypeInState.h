@@ -27,10 +27,9 @@ namespace mozilla {
 class HTMLEditRules;
 namespace dom {
 class Selection;
-} // namespace dom
+}  // namespace dom
 
-struct PropItem
-{
+struct PropItem {
   nsAtom* tag;
   nsAtom* attr;
   nsString value;
@@ -40,9 +39,8 @@ struct PropItem
   ~PropItem();
 };
 
-class TypeInState final
-{
-public:
+class TypeInState final {
+ public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(TypeInState)
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(TypeInState)
 
@@ -79,11 +77,10 @@ public:
   void GetTypingState(bool& isSet, bool& theSetting, nsAtom* aProp,
                       nsAtom* aAttr = nullptr, nsString* outValue = nullptr);
 
-  static bool FindPropInList(nsAtom* aProp, nsAtom* aAttr,
-                             nsAString* outValue, nsTArray<PropItem*>& aList,
-                             int32_t& outIndex);
+  static bool FindPropInList(nsAtom* aProp, nsAtom* aAttr, nsAString* outValue,
+                             nsTArray<PropItem*>& aList, int32_t& outIndex);
 
-protected:
+ protected:
   virtual ~TypeInState();
 
   void RemovePropFromSetList(nsAtom* aProp, nsAtom* aAttr);
@@ -103,7 +100,6 @@ protected:
   friend class HTMLEditRules;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif  // #ifndef TypeInState_h
-

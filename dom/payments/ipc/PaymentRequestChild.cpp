@@ -10,14 +10,10 @@
 namespace mozilla {
 namespace dom {
 
-PaymentRequestChild::PaymentRequestChild()
-  : mActorAlive(true)
-{
-}
+PaymentRequestChild::PaymentRequestChild() : mActorAlive(true) {}
 
-nsresult
-PaymentRequestChild::RequestPayment(const IPCPaymentActionRequest& aAction)
-{
+nsresult PaymentRequestChild::RequestPayment(
+    const IPCPaymentActionRequest& aAction) {
   if (!mActorAlive) {
     return NS_ERROR_FAILURE;
   }
@@ -27,9 +23,8 @@ PaymentRequestChild::RequestPayment(const IPCPaymentActionRequest& aAction)
   return NS_OK;
 }
 
-mozilla::ipc::IPCResult
-PaymentRequestChild::RecvRespondPayment(const IPCPaymentActionResponse& aResponse)
-{
+mozilla::ipc::IPCResult PaymentRequestChild::RecvRespondPayment(
+    const IPCPaymentActionResponse& aResponse) {
   if (!mActorAlive) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -43,10 +38,8 @@ PaymentRequestChild::RecvRespondPayment(const IPCPaymentActionResponse& aRespons
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-PaymentRequestChild::RecvChangeShippingAddress(const nsString& aRequestId,
-                                               const IPCPaymentAddress& aAddress)
-{
+mozilla::ipc::IPCResult PaymentRequestChild::RecvChangeShippingAddress(
+    const nsString& aRequestId, const IPCPaymentAddress& aAddress) {
   if (!mActorAlive) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -59,10 +52,8 @@ PaymentRequestChild::RecvChangeShippingAddress(const nsString& aRequestId,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-PaymentRequestChild::RecvChangeShippingOption(const nsString& aRequestId,
-                                              const nsString& aOption)
-{
+mozilla::ipc::IPCResult PaymentRequestChild::RecvChangeShippingOption(
+    const nsString& aRequestId, const nsString& aOption) {
   if (!mActorAlive) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -75,9 +66,7 @@ PaymentRequestChild::RecvChangeShippingOption(const nsString& aRequestId,
   return IPC_OK();
 }
 
-void
-PaymentRequestChild::ActorDestroy(ActorDestroyReason aWhy)
-{
+void PaymentRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
   mActorAlive = false;
   RefPtr<PaymentRequestManager> manager = PaymentRequestManager::GetSingleton();
   MOZ_ASSERT(manager);
@@ -87,20 +76,17 @@ PaymentRequestChild::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-void
-PaymentRequestChild::MaybeDelete()
-{
+void PaymentRequestChild::MaybeDelete() {
   if (mActorAlive) {
     mActorAlive = false;
     Send__delete__(this);
   }
 }
 
-bool
-PaymentRequestChild::SendRequestPayment(const IPCPaymentActionRequest& aAction)
-{
+bool PaymentRequestChild::SendRequestPayment(
+    const IPCPaymentActionRequest& aAction) {
   return PPaymentRequestChild::SendRequestPayment(aAction);
 }
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla

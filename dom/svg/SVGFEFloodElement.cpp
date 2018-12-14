@@ -18,28 +18,23 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGFEFloodElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGFEFloodElement::WrapNode(JSContext* aCx,
+                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFloodElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::StringInfo SVGFEFloodElement::sStringInfo[1] =
-{
-  { &nsGkAtoms::result, kNameSpaceID_None, true }
-};
+nsSVGElement::StringInfo SVGFEFloodElement::sStringInfo[1] = {
+    {&nsGkAtoms::result, kNameSpaceID_None, true}};
 
 //----------------------------------------------------------------------
 // nsIDOMNode methods
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEFloodElement)
 
-FilterPrimitiveDescription
-SVGFEFloodElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
-                                           const IntRect& aFilterSubregion,
-                                           const nsTArray<bool>& aInputsAreTainted,
-                                           nsTArray<RefPtr<SourceSurface>>& aInputImages)
-{
+FilterPrimitiveDescription SVGFEFloodElement::GetPrimitiveDescription(
+    nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+    const nsTArray<bool>& aInputsAreTainted,
+    nsTArray<RefPtr<SourceSurface>>& aInputImages) {
   FilterPrimitiveDescription descr(PrimitiveType::Flood);
   nsIFrame* frame = GetPrimaryFrame();
   if (frame) {
@@ -57,25 +52,20 @@ SVGFEFloodElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGFEFloodElement::IsAttributeMapped(const nsAtom* name) const
-{
-  static const MappedAttributeEntry* const map[] = {
-    sFEFloodMap
-  };
+SVGFEFloodElement::IsAttributeMapped(const nsAtom* name) const {
+  static const MappedAttributeEntry* const map[] = {sFEFloodMap};
 
   return FindAttributeDependence(name, map) ||
-    SVGFEFloodElementBase::IsAttributeMapped(name);
+         SVGFEFloodElementBase::IsAttributeMapped(name);
 }
 
 //----------------------------------------------------------------------
 // nsSVGElement methods
 
-nsSVGElement::StringAttributesInfo
-SVGFEFloodElement::GetStringInfo()
-{
+nsSVGElement::StringAttributesInfo SVGFEFloodElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
                               ArrayLength(sStringInfo));
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

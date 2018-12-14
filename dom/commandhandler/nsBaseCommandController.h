@@ -7,8 +7,12 @@
 #ifndef nsBaseCommandController_h__
 #define nsBaseCommandController_h__
 
-#define NS_BASECOMMANDCONTROLLER_CID \
-  { 0xbf88b48c, 0xfd8e, 0x40b4, { 0xba, 0x36, 0xc7, 0xc3, 0xad, 0x6d, 0x8a, 0xc9 } }
+#define NS_BASECOMMANDCONTROLLER_CID                 \
+  {                                                  \
+    0xbf88b48c, 0xfd8e, 0x40b4, {                    \
+      0xba, 0x36, 0xc7, 0xc3, 0xad, 0x6d, 0x8a, 0xc9 \
+    }                                                \
+  }
 #define NS_BASECOMMANDCONTROLLER_CONTRACTID \
   "@mozilla.org/embedcomp/base-command-controller;1"
 
@@ -20,13 +24,11 @@
 
 // The base editor controller is used for both text widgets, and all other text
 // and html editing
-class nsBaseCommandController
-  : public nsIController
-  , public nsIControllerContext
-  , public nsIInterfaceRequestor
-  , public nsICommandController
-{
-public:
+class nsBaseCommandController : public nsIController,
+                                public nsIControllerContext,
+                                public nsIInterfaceRequestor,
+                                public nsICommandController {
+ public:
   nsBaseCommandController();
 
   NS_DECL_ISUPPORTS
@@ -35,10 +37,10 @@ public:
   NS_DECL_NSICONTROLLERCONTEXT
   NS_DECL_NSIINTERFACEREQUESTOR
 
-protected:
+ protected:
   virtual ~nsBaseCommandController();
 
-private:
+ private:
   nsWeakPtr mCommandContextWeakPtr;
   nsISupports* mCommandContextRawPtr;
 

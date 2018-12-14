@@ -8,14 +8,10 @@
 #include "SVGContentUtils.h"
 
 nsSVGDataParser::nsSVGDataParser(const nsAString& aValue)
-  : mIter(SVGContentUtils::GetStartRangedPtr(aValue)),
-    mEnd(SVGContentUtils::GetEndRangedPtr(aValue))
-{
-}
+    : mIter(SVGContentUtils::GetStartRangedPtr(aValue)),
+      mEnd(SVGContentUtils::GetEndRangedPtr(aValue)) {}
 
-bool
-nsSVGDataParser::SkipCommaWsp()
-{
+bool nsSVGDataParser::SkipCommaWsp() {
   if (!SkipWsp()) {
     // end of string
     return false;
@@ -27,9 +23,7 @@ nsSVGDataParser::SkipCommaWsp()
   return SkipWsp();
 }
 
-bool
-nsSVGDataParser::SkipWsp()
-{
+bool nsSVGDataParser::SkipWsp() {
   while (mIter != mEnd) {
     if (!IsSVGWhitespace(*mIter)) {
       return true;

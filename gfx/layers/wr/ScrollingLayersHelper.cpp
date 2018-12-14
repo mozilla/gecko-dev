@@ -16,21 +16,17 @@
 
 #define SLH_LOG(...)
 //#define SLH_LOG(...) printf_stderr("SLH: " __VA_ARGS__)
-//#define SLH_LOG(...) if (XRE_IsContentProcess()) printf_stderr("SLH: " __VA_ARGS__)
+//#define SLH_LOG(...) if (XRE_IsContentProcess()) printf_stderr("SLH: "
+//__VA_ARGS__)
 
 namespace mozilla {
 namespace layers {
 
 ScrollingLayersHelper::ScrollingLayersHelper()
-  : mManager(nullptr)
-  , mBuilder(nullptr)
-{
-}
+    : mManager(nullptr), mBuilder(nullptr) {}
 
-void
-ScrollingLayersHelper::BeginBuild(WebRenderLayerManager* aManager,
-                                  wr::DisplayListBuilder& aBuilder)
-{
+void ScrollingLayersHelper::BeginBuild(WebRenderLayerManager* aManager,
+                                       wr::DisplayListBuilder& aBuilder) {
   MOZ_ASSERT(!mManager);
   mManager = aManager;
   MOZ_ASSERT(!mBuilder);
@@ -40,9 +36,7 @@ ScrollingLayersHelper::BeginBuild(WebRenderLayerManager* aManager,
   MOZ_ASSERT(mItemClipStack.empty());
 }
 
-void
-ScrollingLayersHelper::EndBuild()
-{
+void ScrollingLayersHelper::EndBuild() {
   mBuilder = nullptr;
   mManager = nullptr;
   mCacheStack.pop_back();
@@ -50,18 +44,16 @@ ScrollingLayersHelper::EndBuild()
   MOZ_ASSERT(mItemClipStack.empty());
 }
 
-void
-ScrollingLayersHelper::BeginList(const StackingContextHelper& aStackingContext)
-{
+void ScrollingLayersHelper::BeginList(
+    const StackingContextHelper& aStackingContext) {
   if (aStackingContext.AffectsClipPositioning()) {
     mCacheStack.emplace_back();
   }
   mItemClipStack.emplace_back(nullptr, nullptr);
 }
 
-void
-ScrollingLayersHelper::EndList(const StackingContextHelper& aStackingContext)
-{
+void ScrollingLayersHelper::EndList(
+    const StackingContextHelper& aStackingContext) {
   MOZ_ASSERT(!mItemClipStack.empty());
   mItemClipStack.back().Unapply(mBuilder);
   mItemClipStack.pop_back();
@@ -70,10 +62,8 @@ ScrollingLayersHelper::EndList(const StackingContextHelper& aStackingContext)
   }
 }
 
-void
-ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
-                                 const StackingContextHelper& aStackingContext)
-{
+void ScrollingLayersHelper::BeginItem(
+    nsDisplayItem* aItem, const StackingContextHelper& aStackingContext) {
   SLH_LOG("processing item %p\n", aItem);
 
   const DisplayItemClipChain* clip = aItem->GetClipChain();
@@ -96,7 +86,8 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   // APDs.
   int32_t auPerDevPixel = aItem->Frame()->PresContext()->AppUnitsPerDevPixel();
   if (aItem->GetType() == DisplayItemType::TYPE_ZOOM) {
-    auPerDevPixel = static_cast<nsDisplayZoom*>(aItem)->GetParentAppUnitsPerDevPixel();
+    auPerDevPixel =
+        static_cast<nsDisplayZoom*>(aItem)->GetParentAppUnitsPerDevPixel();
   }
 
   // There are two ASR chains here that we need to be fully defined. One is the
@@ -111,8 +102,8 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   if (clip) {
     leafmostASR = ActiveScrolledRoot::PickDescendant(leafmostASR, clip->mASR);
   }
-  auto ids = DefineClipChain(aItem, leafmostASR, clip,
-      auPerDevPixel, aStackingContext);
+  auto ids = DefineClipChain(aItem, leafmostASR, clip, auPerDevPixel,
+                             aStackingContext);
 
   // Now that stuff is defined, we need to ensure the right items are on the
   // stack. We need this primarily for the WR display items that will be
@@ -124,12 +115,13 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   // nested ScrollingLayersHelper may rely on things like TopmostScrollId and
   // TopmostClipId, so now we need to push at most two things onto the stack.
 
-  wr::WrScrollId rootId = wr::WrScrollId { 0 };
+  wr::WrScrollId rootId = wr::WrScrollId{0};
   wr::WrScrollId leafmostId = ids.first.valueOr(rootId);
 
-  FrameMetrics::ViewID viewId = aItem->GetActiveScrolledRoot()
-      ? aItem->GetActiveScrolledRoot()->GetViewId()
-      : FrameMetrics::NULL_SCROLL_ID;
+  FrameMetrics::ViewID viewId =
+      aItem->GetActiveScrolledRoot()
+          ? aItem->GetActiveScrolledRoot()->GetViewId()
+          : FrameMetrics::NULL_SCROLL_ID;
   wr::WrScrollId scrollId =
       mBuilder->GetScrollIdForDefinedScrollLayer(viewId).valueOr(rootId);
 
@@ -143,8 +135,7 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   // and our clip chain extends from that item's clip chain. To check this we
   // want to make sure that (a) we are inside a ClipAndScroll, and (b) nothing
   // else was pushed onto mBuilder's stack since that ClipAndScroll.
-  if (!needClipAndScroll &&
-      mBuilder->TopmostScrollId() == scrollId &&
+  if (!needClipAndScroll && mBuilder->TopmostScrollId() == scrollId &&
       !mBuilder->TopmostIsClip()) {
     if (auto cs = EnclosingClipAndScroll()) {
       MOZ_ASSERT(cs->first == scrollId);
@@ -155,7 +146,7 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   // If we don't need a ClipAndScroll, ensure the item's ASR is at the top of
   // the scroll stack
   if (!needClipAndScroll && mBuilder->TopmostScrollId() != scrollId) {
-    MOZ_ASSERT(leafmostId == scrollId); // because !needClipAndScroll
+    MOZ_ASSERT(leafmostId == scrollId);  // because !needClipAndScroll
     clips.mScrollId = Some(scrollId);
   }
   // And ensure the leafmost clip, if scrolled by that ASR, is at the top of the
@@ -169,7 +160,8 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
   if (needClipAndScroll) {
     // If mClipId is set that means we want to push it such that it's going
     // to be the TopmostClipId(), but we haven't actually pushed it yet.
-    // But we still want to take that instead of the actual current TopmostClipId().
+    // But we still want to take that instead of the actual current
+    // TopmostClipId().
     Maybe<wr::WrClipId> clipId = clips.mClipId;
     if (!clipId) {
       clipId = mBuilder->TopmostClipId();
@@ -185,12 +177,10 @@ ScrollingLayersHelper::BeginItem(nsDisplayItem* aItem,
 }
 
 std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>>
-ScrollingLayersHelper::DefineClipChain(nsDisplayItem* aItem,
-                                       const ActiveScrolledRoot* aAsr,
-                                       const DisplayItemClipChain* aChain,
-                                       int32_t aAppUnitsPerDevPixel,
-                                       const StackingContextHelper& aStackingContext)
-{
+ScrollingLayersHelper::DefineClipChain(
+    nsDisplayItem* aItem, const ActiveScrolledRoot* aAsr,
+    const DisplayItemClipChain* aChain, int32_t aAppUnitsPerDevPixel,
+    const StackingContextHelper& aStackingContext) {
   // This is the main entry point for defining the clip chain for a display
   // item. This function recursively walks up the ASR chain and the display
   // item's clip chain to define all the ASRs and clips necessary. Each level
@@ -219,13 +209,16 @@ ScrollingLayersHelper::DefineClipChain(nsDisplayItem* aItem,
 
   // in all of these cases, this invariant should hold:
   //   PickDescendant(aChain->mASR, aAsr) == aAsr
-  MOZ_ASSERT(!aChain || ActiveScrolledRoot::PickDescendant(aChain->mASR, aAsr) == aAsr);
+  MOZ_ASSERT(!aChain ||
+             ActiveScrolledRoot::PickDescendant(aChain->mASR, aAsr) == aAsr);
 
   if (aChain && aChain->mASR == aAsr) {
-    return RecurseAndDefineClip(aItem, aAsr, aChain, aAppUnitsPerDevPixel, aStackingContext);
+    return RecurseAndDefineClip(aItem, aAsr, aChain, aAppUnitsPerDevPixel,
+                                aStackingContext);
   }
   if (aAsr) {
-    return RecurseAndDefineAsr(aItem, aAsr, aChain, aAppUnitsPerDevPixel, aStackingContext);
+    return RecurseAndDefineAsr(aItem, aAsr, aChain, aAppUnitsPerDevPixel,
+                               aStackingContext);
   }
 
   MOZ_ASSERT(!aChain && !aAsr);
@@ -238,18 +231,17 @@ ScrollingLayersHelper::RecurseAndDefineClip(nsDisplayItem* aItem,
                                             const ActiveScrolledRoot* aAsr,
                                             const DisplayItemClipChain* aChain,
                                             int32_t aAppUnitsPerDevPixel,
-                                            const StackingContextHelper& aSc)
-{
+                                            const StackingContextHelper& aSc) {
   MOZ_ASSERT(aChain);
 
   // This will hold our return value
   std::pair<Maybe<wr::WrScrollId>, Maybe<wr::WrClipId>> ids;
 
   if (mBuilder->HasExtraClip()) {
-    // We can't use the clip cache directly. However if there's an out-of-band clip that
-    // was pushed on top of aChain, we should return the id for that OOB clip,
-    // so that anything we want to define as a descendant of aChain we actually
-    // end up defining as a descendant of the OOB clip.
+    // We can't use the clip cache directly. However if there's an out-of-band
+    // clip that was pushed on top of aChain, we should return the id for that
+    // OOB clip, so that anything we want to define as a descendant of aChain we
+    // actually end up defining as a descendant of the OOB clip.
     ids.second = mBuilder->GetCacheOverride(aChain);
   } else {
     const ClipIdMap& cache = mCacheStack.back();
@@ -268,8 +260,8 @@ ScrollingLayersHelper::RecurseAndDefineClip(nsDisplayItem* aItem,
   }
 
   // If not, recurse to ensure all the ancestors are defined
-  auto ancestorIds = DefineClipChain(
-      aItem, aAsr, aChain->mParent, aAppUnitsPerDevPixel, aSc);
+  auto ancestorIds =
+      DefineClipChain(aItem, aAsr, aChain->mParent, aAppUnitsPerDevPixel, aSc);
   ids = ancestorIds;
 
   if (!aChain->mClip.HasClip()) {
@@ -299,25 +291,28 @@ ScrollingLayersHelper::RecurseAndDefineClip(nsDisplayItem* aItem,
     }
   } else {
     MOZ_ASSERT(!ancestorIds.second);
-    FrameMetrics::ViewID viewId = aChain->mASR ? aChain->mASR->GetViewId() : FrameMetrics::NULL_SCROLL_ID;
+    FrameMetrics::ViewID viewId =
+        aChain->mASR ? aChain->mASR->GetViewId() : FrameMetrics::NULL_SCROLL_ID;
 
-    wr::WrScrollId rootId = wr::WrScrollId { 0 };
-    auto scrollId = mBuilder->GetScrollIdForDefinedScrollLayer(viewId).valueOr(rootId);
+    wr::WrScrollId rootId = wr::WrScrollId{0};
+    auto scrollId =
+        mBuilder->GetScrollIdForDefinedScrollLayer(viewId).valueOr(rootId);
     if (mBuilder->TopmostScrollId() == scrollId) {
       if (mBuilder->TopmostIsClip()) {
         // If aChain->mASR is already the topmost scroll layer on the stack, but
-        // but there was another clip pushed *on top* of that ASR, then that clip
-        // shares the ASR, and we need to make our clip a child of that clip, which
-        // in turn will already be a descendant of the correct ASR.
-        // This covers the cases where e.g. the Gecko display list has nested items,
-        // and the clip chain on the nested item implicitly extends from the clip
-        // chain on the containing wrapper item. In this case the aChain->mParent
-        // pointer will be null for the nested item but the containing wrapper's
-        // clip will be on the stack already and we can pick it up from there.
-        // Another way of thinking about this is that if the clip chain were
-        // "fully completed" then aChain->mParent wouldn't be null but would point
-        // to the clip corresponding to mBuilder->TopmostClipId(), and we would
-        // have gone into the |aChain->mParent->mASR == aAsr| branch above.
+        // but there was another clip pushed *on top* of that ASR, then that
+        // clip shares the ASR, and we need to make our clip a child of that
+        // clip, which in turn will already be a descendant of the correct ASR.
+        // This covers the cases where e.g. the Gecko display list has nested
+        // items, and the clip chain on the nested item implicitly extends from
+        // the clip chain on the containing wrapper item. In this case the
+        // aChain->mParent pointer will be null for the nested item but the
+        // containing wrapper's clip will be on the stack already and we can
+        // pick it up from there. Another way of thinking about this is that if
+        // the clip chain were "fully completed" then aChain->mParent wouldn't
+        // be null but would point to the clip corresponding to
+        // mBuilder->TopmostClipId(), and we would have gone into the
+        // |aChain->mParent->mASR == aAsr| branch above.
         ancestorIds.first = Nothing();
         ancestorIds.second = mBuilder->TopmostClipId();
       } else if (auto cs = EnclosingClipAndScroll()) {
@@ -347,9 +342,9 @@ ScrollingLayersHelper::RecurseAndDefineClip(nsDisplayItem* aItem,
   aChain->mClip.ToComplexClipRegions(aAppUnitsPerDevPixel, aSc, wrRoundedRects);
 
   // Define the clip
-  wr::WrClipId clipId = mBuilder->DefineClip(
-      ancestorIds.first, ancestorIds.second,
-      aSc.ToRelativeLayoutRect(clip), &wrRoundedRects);
+  wr::WrClipId clipId =
+      mBuilder->DefineClip(ancestorIds.first, ancestorIds.second,
+                           aSc.ToRelativeLayoutRect(clip), &wrRoundedRects);
   if (!mBuilder->HasExtraClip()) {
     mCacheStack.back()[aChain] = clipId;
   }
@@ -363,8 +358,7 @@ ScrollingLayersHelper::RecurseAndDefineAsr(nsDisplayItem* aItem,
                                            const ActiveScrolledRoot* aAsr,
                                            const DisplayItemClipChain* aChain,
                                            int32_t aAppUnitsPerDevPixel,
-                                           const StackingContextHelper& aSc)
-{
+                                           const StackingContextHelper& aSc) {
   MOZ_ASSERT(aAsr);
 
   // This will hold our return value
@@ -399,14 +393,16 @@ ScrollingLayersHelper::RecurseAndDefineAsr(nsDisplayItem* aItem,
   }
 
   // If not, recurse to ensure all the ancestors are defined
-  auto ancestorIds = DefineClipChain(
-      aItem, aAsr->mParent, aChain, aAppUnitsPerDevPixel, aSc);
+  auto ancestorIds =
+      DefineClipChain(aItem, aAsr->mParent, aChain, aAppUnitsPerDevPixel, aSc);
   ids = ancestorIds;
 
   // Ok to pass nullptr for aLayer here (first arg) because aClip (last arg) is
   // also nullptr.
-  Maybe<ScrollMetadata> metadata = aAsr->mScrollableFrame->ComputeScrollMetadata(
-      nullptr, mManager, aItem->ReferenceFrame(), ContainerLayerParameters(), nullptr);
+  Maybe<ScrollMetadata> metadata =
+      aAsr->mScrollableFrame->ComputeScrollMetadata(
+          nullptr, mManager, aItem->ReferenceFrame(),
+          ContainerLayerParameters(), nullptr);
   MOZ_ASSERT(metadata);
   FrameMetrics& metrics = metadata->GetMetrics();
 
@@ -418,8 +414,8 @@ ScrollingLayersHelper::RecurseAndDefineAsr(nsDisplayItem* aItem,
   // Now we need to figure out whether the new clip we're defining should be
   // a child of aChain, or of aAsr->mParent, if we have both as a possibility.
   if (ancestorIds.first && ancestorIds.second) {
-    MOZ_ASSERT(aAsr->mParent); // because ancestorIds.first
-    MOZ_ASSERT(aChain); // because ancestorIds.second
+    MOZ_ASSERT(aAsr->mParent);  // because ancestorIds.first
+    MOZ_ASSERT(aChain);         // because ancestorIds.second
     if (aChain->mASR && aChain->mASR == aAsr->mParent) {
       // aChain is scrolled by aAsr's parent, so we should use aChain as the
       // ancestor when defining the aAsr scroll layer.
@@ -440,8 +436,8 @@ ScrollingLayersHelper::RecurseAndDefineAsr(nsDisplayItem* aItem,
   LayoutDeviceRect contentRect =
       metrics.GetExpandedScrollableRect() * metrics.GetDevPixelsPerCSSPixel();
   // TODO: check coordinate systems are sane here
-  LayoutDeviceRect clipBounds =
-      LayoutDeviceRect::FromUnknownRect(metrics.GetCompositionBounds().ToUnknownRect());
+  LayoutDeviceRect clipBounds = LayoutDeviceRect::FromUnknownRect(
+      metrics.GetCompositionBounds().ToUnknownRect());
   // The content rect that we hand to PushScrollLayer should be relative to
   // the same origin as the clipBounds that we hand to PushScrollLayer - that
   // is, both of them should be relative to the stacking context `aSc`.
@@ -453,19 +449,17 @@ ScrollingLayersHelper::RecurseAndDefineAsr(nsDisplayItem* aItem,
   // bounds.
   contentRect.MoveTo(clipBounds.TopLeft());
 
-  auto scrollId = mBuilder->DefineScrollLayer(viewId,
-      ancestorIds.first,
-      ancestorIds.second,
-      aSc.ToRelativeLayoutRect(contentRect),
-      aSc.ToRelativeLayoutRect(clipBounds));
+  auto scrollId =
+      mBuilder->DefineScrollLayer(viewId, ancestorIds.first, ancestorIds.second,
+                                  aSc.ToRelativeLayoutRect(contentRect),
+                                  aSc.ToRelativeLayoutRect(clipBounds));
 
   ids.first = Some(scrollId);
   return ids;
 }
 
-const DisplayItemClipChain*
-ScrollingLayersHelper::ExtendChain(const DisplayItemClipChain* aClip)
-{
+const DisplayItemClipChain* ScrollingLayersHelper::ExtendChain(
+    const DisplayItemClipChain* aClip) {
   // The intent of this function is to handle Gecko display list scenarios
   // like so:
   // nsDisplayFixedPosition with clip chain A -> B -> nullptr
@@ -493,7 +487,8 @@ ScrollingLayersHelper::ExtendChain(const DisplayItemClipChain* aClip)
   size_t clipDepth = mItemClipStack.size();
   MOZ_ASSERT(clipDepth > 0);
   while (--clipDepth > 0) {
-    const DisplayItemClipChain* enclosingClip = mItemClipStack[clipDepth - 1].mChain;
+    const DisplayItemClipChain* enclosingClip =
+        mItemClipStack[clipDepth - 1].mChain;
     if (!enclosingClip) {
       // This is a special case; if an item has a nullptr clipchain it basically
       // inherits the clipchain from its ancestor, so let's skip to that.
@@ -513,7 +508,8 @@ ScrollingLayersHelper::ExtendChain(const DisplayItemClipChain* aClip)
       // Therefore we cannot use the enclosing clip, so let's abort
       return aClip;
     }
-    for (const DisplayItemClipChain* i = enclosingClip->mParent; i; i = i->mParent) {
+    for (const DisplayItemClipChain* i = enclosingClip->mParent; i;
+         i = i->mParent) {
       if (i == aClip) {
         // aClip is contained inside the enclosingClip clipchain. Since the
         // enclosingClip also applies to the item we're currently processing,
@@ -529,8 +525,7 @@ ScrollingLayersHelper::ExtendChain(const DisplayItemClipChain* aClip)
 }
 
 Maybe<ScrollingLayersHelper::ClipAndScroll>
-ScrollingLayersHelper::EnclosingClipAndScroll() const
-{
+ScrollingLayersHelper::EnclosingClipAndScroll() const {
   for (auto it = mItemClipStack.rbegin(); it != mItemClipStack.rend(); it++) {
     if (it->mClipAndScroll) {
       return it->mClipAndScroll;
@@ -545,8 +540,7 @@ ScrollingLayersHelper::EnclosingClipAndScroll() const
   return Nothing();
 }
 
-ScrollingLayersHelper::~ScrollingLayersHelper()
-{
+ScrollingLayersHelper::~ScrollingLayersHelper() {
   MOZ_ASSERT(!mBuilder);
   MOZ_ASSERT(mCacheStack.empty());
   MOZ_ASSERT(mItemClipStack.empty());
@@ -554,14 +548,9 @@ ScrollingLayersHelper::~ScrollingLayersHelper()
 
 ScrollingLayersHelper::ItemClips::ItemClips(const ActiveScrolledRoot* aAsr,
                                             const DisplayItemClipChain* aChain)
-  : mAsr(aAsr)
-  , mChain(aChain)
-{
-}
+    : mAsr(aAsr), mChain(aChain) {}
 
-void
-ScrollingLayersHelper::ItemClips::Apply(wr::DisplayListBuilder* aBuilder)
-{
+void ScrollingLayersHelper::ItemClips::Apply(wr::DisplayListBuilder* aBuilder) {
   if (mScrollId) {
     aBuilder->PushScrollLayer(mScrollId.ref());
   }
@@ -574,9 +563,8 @@ ScrollingLayersHelper::ItemClips::Apply(wr::DisplayListBuilder* aBuilder)
   }
 }
 
-void
-ScrollingLayersHelper::ItemClips::Unapply(wr::DisplayListBuilder* aBuilder)
-{
+void ScrollingLayersHelper::ItemClips::Unapply(
+    wr::DisplayListBuilder* aBuilder) {
   if (mClipAndScroll) {
     aBuilder->PopClipAndScrollInfo();
   }
@@ -588,12 +576,9 @@ ScrollingLayersHelper::ItemClips::Unapply(wr::DisplayListBuilder* aBuilder)
   }
 }
 
-bool
-ScrollingLayersHelper::ItemClips::HasSameInputs(const ItemClips& aOther)
-{
-  return mAsr == aOther.mAsr &&
-         mChain == aOther.mChain;
+bool ScrollingLayersHelper::ItemClips::HasSameInputs(const ItemClips& aOther) {
+  return mAsr == aOther.mAsr && mChain == aOther.mChain;
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

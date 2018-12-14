@@ -21,15 +21,11 @@ extern mozilla::LazyLogModule gCertVerifierLog;
 
 namespace mozilla {
 
-void
-ReleaseHttpServerSession(nsNSSHttpServerSession* httpServerSession)
-{
+void ReleaseHttpServerSession(nsNSSHttpServerSession* httpServerSession) {
   delete httpServerSession;
 }
 
-void
-ReleaseHttpRequestSession(nsNSSHttpRequestSession* httpRequestSession)
-{
+void ReleaseHttpRequestSession(nsNSSHttpRequestSession* httpRequestSession) {
   httpRequestSession->Release();
 }
 
@@ -41,17 +37,17 @@ MOZ_TYPE_SPECIFIC_UNIQUE_PTR_TEMPLATE(UniqueHTTPRequestSession,
                                       nsNSSHttpRequestSession,
                                       ReleaseHttpRequestSession)
 
-} // namespace mozilla
+}  // namespace mozilla
 
-namespace mozilla { namespace psm {
+namespace mozilla {
+namespace psm {
 
-static nsresult
-AppendEscapedBase64Item(const SECItem* encodedRequest, nsACString& path)
-{
+static nsresult AppendEscapedBase64Item(const SECItem* encodedRequest,
+                                        nsACString& path) {
   nsresult rv;
   nsDependentCSubstring requestAsSubstring(
-    BitwiseCast<char*, unsigned char*>(encodedRequest->data),
-    encodedRequest->len);
+      BitwiseCast<char*, unsigned char*>(encodedRequest->data),
+      encodedRequest->len);
   nsCString base64Request;
   rv = Base64Encode(requestAsSubstring, base64Request);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -59,8 +55,8 @@ AppendEscapedBase64Item(const SECItem* encodedRequest, nsACString& path)
   }
 
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-         ("Setting up OCSP GET path, pre path =%s\n",
-          PromiseFlatCString(path).get()));
+          ("Setting up OCSP GET path, pre path =%s\n",
+           PromiseFlatCString(path).get()));
 
   // The path transformation is not a direct url encoding. Three characters
   // need change '+' -> "%2B", '/' -> "%2F", and '=' -> '%3D'.
@@ -72,13 +68,11 @@ AppendEscapedBase64Item(const SECItem* encodedRequest, nsACString& path)
   return NS_OK;
 }
 
-Result
-DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
-              const OriginAttributes& originAttributes,
-              const SECItem* encodedRequest, TimeDuration timeout,
-              bool useGET,
-      /*out*/ SECItem*& encodedResponse)
-{
+Result DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
+                     const OriginAttributes& originAttributes,
+                     const SECItem* encodedRequest, TimeDuration timeout,
+                     bool useGET,
+                     /*out*/ SECItem*& encodedResponse) {
   MOZ_ASSERT(arena.get());
   MOZ_ASSERT(url);
   MOZ_ASSERT(encodedRequest);
@@ -103,9 +97,8 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
   uint32_t pathPos;
   int32_t pathLen;
   nsresult nsrv = urlParser->ParseURL(url, static_cast<int32_t>(urlLen),
-                                      &schemePos, &schemeLen,
-                                      &authorityPos, &authorityLen,
-                                      &pathPos, &pathLen);
+                                      &schemePos, &schemeLen, &authorityPos,
+                                      &authorityLen, &pathPos, &pathLen);
   if (NS_FAILED(nsrv)) {
     return Result::ERROR_CERT_BAD_ACCESS_LOCATION;
   }
@@ -125,9 +118,9 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
   int32_t port;
   // We ignore user:password sections: if one is present, we send an OCSP
   // request to the URL as normal without sending the username or password.
-  nsrv = urlParser->ParseAuthority(url + authorityPos, authorityLen,
-                                   nullptr, nullptr, nullptr, nullptr,
-                                   &hostnamePos, &hostnameLen, &port);
+  nsrv = urlParser->ParseAuthority(url + authorityPos, authorityLen, nullptr,
+                                   nullptr, nullptr, nullptr, &hostnamePos,
+                                   &hostnameLen, &port);
   if (NS_FAILED(nsrv)) {
     return Result::ERROR_CERT_BAD_ACCESS_LOCATION;
   }
@@ -139,13 +132,12 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
   } else if (port < 0 || port > 0xffff) {
     return Result::ERROR_CERT_BAD_ACCESS_LOCATION;
   }
-  nsAutoCString
-    hostname(url + authorityPos + hostnamePos,
-             static_cast<nsACString::size_type>(hostnameLen));
+  nsAutoCString hostname(url + authorityPos + hostnamePos,
+                         static_cast<nsACString::size_type>(hostnameLen));
 
   nsNSSHttpServerSession* serverSessionPtr = nullptr;
   Result rv = nsNSSHttpInterface::createSessionFcn(
-    hostname.BeginReading(), static_cast<uint16_t>(port), &serverSessionPtr);
+      hostname.BeginReading(), static_cast<uint16_t>(port), &serverSessionPtr);
   if (rv != Success) {
     return rv;
   }
@@ -158,8 +150,8 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
     path.AssignLiteral("/");
   }
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-         ("Setting up OCSP request: pre all path =%s  pathlen=%d\n", path.get(),
-          pathLen));
+          ("Setting up OCSP request: pre all path =%s  pathlen=%d\n",
+           path.get(), pathLen));
   nsAutoCString method("POST");
   if (useGET) {
     method.AssignLiteral("GET");
@@ -184,9 +176,9 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
 
   if (!useGET) {
     rv = nsNSSHttpInterface::setPostDataFcn(
-      requestSession.get(),
-      BitwiseCast<char*, unsigned char*>(encodedRequest->data),
-      encodedRequest->len, "application/ocsp-request");
+        requestSession.get(),
+        BitwiseCast<char*, unsigned char*>(encodedRequest->data),
+        encodedRequest->len, "application/ocsp-request");
     if (rv != Success) {
       return rv;
     }
@@ -194,11 +186,10 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
 
   uint16_t httpResponseCode;
   const char* httpResponseData;
-  uint32_t httpResponseDataLen = 0; // 0 means any response size is acceptable
-  rv = nsNSSHttpInterface::trySendAndReceiveFcn(requestSession.get(), nullptr,
-                                                &httpResponseCode,
-                                                nullptr, &httpResponseData,
-                                                &httpResponseDataLen);
+  uint32_t httpResponseDataLen = 0;  // 0 means any response size is acceptable
+  rv = nsNSSHttpInterface::trySendAndReceiveFcn(
+      requestSession.get(), nullptr, &httpResponseCode, nullptr,
+      &httpResponseData, &httpResponseDataLen);
   if (rv != Success) {
     return rv;
   }
@@ -207,7 +198,8 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
     return Result::ERROR_OCSP_SERVER_ERROR;
   }
 
-  encodedResponse = SECITEM_AllocItem(arena.get(), nullptr, httpResponseDataLen);
+  encodedResponse =
+      SECITEM_AllocItem(arena.get(), nullptr, httpResponseDataLen);
   if (!encodedResponse) {
     return Result::FATAL_ERROR_NO_MEMORY;
   }
@@ -216,4 +208,5 @@ DoOCSPRequest(const UniquePLArenaPool& arena, const char* url,
   return Success;
 }
 
-} } // namespace mozilla::psm
+}  // namespace psm
+}  // namespace mozilla

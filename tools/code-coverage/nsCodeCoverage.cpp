@@ -11,19 +11,13 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-NS_IMPL_ISUPPORTS(nsCodeCoverage,
-                  nsICodeCoverage)
+NS_IMPL_ISUPPORTS(nsCodeCoverage, nsICodeCoverage)
 
-nsCodeCoverage::nsCodeCoverage()
-{
-}
+nsCodeCoverage::nsCodeCoverage() {}
 
-nsCodeCoverage::~nsCodeCoverage()
-{
-}
+nsCodeCoverage::~nsCodeCoverage() {}
 
-NS_IMETHODIMP nsCodeCoverage::DumpCounters()
-{
+NS_IMETHODIMP nsCodeCoverage::DumpCounters() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -35,8 +29,7 @@ NS_IMETHODIMP nsCodeCoverage::DumpCounters()
   return NS_OK;
 }
 
-NS_IMETHODIMP nsCodeCoverage::ResetCounters()
-{
+NS_IMETHODIMP nsCodeCoverage::ResetCounters() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 

@@ -22,53 +22,78 @@ class CompositorOptions;
  * these updates, it doesn't actually drive compositing itself. For that it
  * hands off work to the CompositorBridgeParent it's associated with.
  */
-class CrossProcessCompositorBridgeParent final : public CompositorBridgeParentBase
-{
+class CrossProcessCompositorBridgeParent final
+    : public CompositorBridgeParentBase {
   friend class CompositorBridgeParent;
 
-public:
+ public:
   explicit CrossProcessCompositorBridgeParent(CompositorManagerParent* aManager)
-    : CompositorBridgeParentBase(aManager)
-    , mNotifyAfterRemotePaint(false)
-    , mDestroyCalled(false)
-  {
-  }
+      : CompositorBridgeParentBase(aManager),
+        mNotifyAfterRemotePaint(false),
+        mDestroyCalled(false) {}
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   // FIXME/bug 774388: work out what shutdown protocol we need.
-  mozilla::ipc::IPCResult RecvInitialize(const uint64_t& aRootLayerTreeId) override { return IPC_FAIL_NO_REASON(this); }
+  mozilla::ipc::IPCResult RecvInitialize(
+      const uint64_t& aRootLayerTreeId) override {
+    return IPC_FAIL_NO_REASON(this);
+  }
   mozilla::ipc::IPCResult RecvWillClose() override { return IPC_OK(); }
   mozilla::ipc::IPCResult RecvPause() override { return IPC_OK(); }
   mozilla::ipc::IPCResult RecvResume() override { return IPC_OK(); }
   mozilla::ipc::IPCResult RecvForceIsFirstPaint() override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvNotifyChildCreated(const uint64_t& child, CompositorOptions* aOptions) override;
-  mozilla::ipc::IPCResult RecvMapAndNotifyChildCreated(const uint64_t& child, const base::ProcessId& pid, CompositorOptions* aOptions) override;
-  mozilla::ipc::IPCResult RecvNotifyChildRecreated(const uint64_t& child, CompositorOptions* aOptions) override { return IPC_FAIL_NO_REASON(this); }
-  mozilla::ipc::IPCResult RecvAdoptChild(const uint64_t& child) override { return IPC_FAIL_NO_REASON(this); }
+  mozilla::ipc::IPCResult RecvNotifyChildCreated(
+      const uint64_t& child, CompositorOptions* aOptions) override;
+  mozilla::ipc::IPCResult RecvMapAndNotifyChildCreated(
+      const uint64_t& child, const base::ProcessId& pid,
+      CompositorOptions* aOptions) override;
+  mozilla::ipc::IPCResult RecvNotifyChildRecreated(
+      const uint64_t& child, CompositorOptions* aOptions) override {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  mozilla::ipc::IPCResult RecvAdoptChild(const uint64_t& child) override {
+    return IPC_FAIL_NO_REASON(this);
+  }
   mozilla::ipc::IPCResult RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
-                                           const gfx::IntRect& aRect) override
-  { return IPC_OK(); }
+                                           const gfx::IntRect& aRect) override {
+    return IPC_OK();
+  }
   mozilla::ipc::IPCResult RecvFlushRendering() override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvFlushRenderingAsync() override { return IPC_OK(); }
+  mozilla::ipc::IPCResult RecvFlushRenderingAsync() override {
+    return IPC_OK();
+  }
   mozilla::ipc::IPCResult RecvForcePresent() override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvWaitOnTransactionProcessed() override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvNotifyRegionInvalidated(const nsIntRegion& aRegion) override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvStartFrameTimeRecording(const int32_t& aBufferSize, uint32_t* aOutStartIndex) override { return IPC_OK(); }
-  mozilla::ipc::IPCResult RecvStopFrameTimeRecording(const uint32_t& aStartIndex, InfallibleTArray<float>* intervals) override  { return IPC_OK(); }
+  mozilla::ipc::IPCResult RecvWaitOnTransactionProcessed() override {
+    return IPC_OK();
+  }
+  mozilla::ipc::IPCResult RecvNotifyRegionInvalidated(
+      const nsIntRegion& aRegion) override {
+    return IPC_OK();
+  }
+  mozilla::ipc::IPCResult RecvStartFrameTimeRecording(
+      const int32_t& aBufferSize, uint32_t* aOutStartIndex) override {
+    return IPC_OK();
+  }
+  mozilla::ipc::IPCResult RecvStopFrameTimeRecording(
+      const uint32_t& aStartIndex,
+      InfallibleTArray<float>* intervals) override {
+    return IPC_OK();
+  }
 
-  mozilla::ipc::IPCResult RecvCheckContentOnlyTDR(const uint32_t& sequenceNum, bool* isContentOnlyTDR) override;
+  mozilla::ipc::IPCResult RecvCheckContentOnlyTDR(
+      const uint32_t& sequenceNum, bool* isContentOnlyTDR) override;
 
-  mozilla::ipc::IPCResult RecvClearApproximatelyVisibleRegions(const uint64_t& aLayersId,
-                                                               const uint32_t& aPresShellId) override;
+  mozilla::ipc::IPCResult RecvClearApproximatelyVisibleRegions(
+      const uint64_t& aLayersId, const uint32_t& aPresShellId) override;
 
-  mozilla::ipc::IPCResult RecvNotifyApproximatelyVisibleRegion(const ScrollableLayerGuid& aGuid,
-                                                               const CSSIntRegion& aRegion) override;
+  mozilla::ipc::IPCResult RecvNotifyApproximatelyVisibleRegion(
+      const ScrollableLayerGuid& aGuid, const CSSIntRegion& aRegion) override;
 
   mozilla::ipc::IPCResult RecvAllPluginsCaptured() override { return IPC_OK(); }
 
-  mozilla::ipc::IPCResult RecvGetFrameUniformity(FrameUniformityData* aOutData) override
-  {
+  mozilla::ipc::IPCResult RecvGetFrameUniformity(
+      FrameUniformityData* aOutData) override {
     // Don't support calculating frame uniformity on the child process and
     // this is just a stub for now.
     MOZ_ASSERT(false);
@@ -76,7 +101,8 @@ public:
   }
 
   /**
-   * Tells this CompositorBridgeParent to send a message when the compositor has received the transaction.
+   * Tells this CompositorBridgeParent to send a message when the compositor has
+   * received the transaction.
    */
   mozilla::ipc::IPCResult RecvRequestNotifyAfterRemotePaint() override;
 
@@ -84,15 +110,15 @@ public:
       const nsTArray<LayersBackend>& aBackendHints,
       const uint64_t& aId) override;
 
-  bool DeallocPLayerTransactionParent(PLayerTransactionParent* aLayers) override;
+  bool DeallocPLayerTransactionParent(
+      PLayerTransactionParent* aLayers) override;
 
   void ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
                            const TransactionInfo& aInfo,
                            bool aHitTestUpdate) override;
   void ScheduleComposite(LayerTransactionParent* aLayerTree) override;
   void NotifyClearCachedResources(LayerTransactionParent* aLayerTree) override;
-  bool SetTestSampleTime(const uint64_t& aId,
-                         const TimeStamp& aTime) override;
+  bool SetTestSampleTime(const uint64_t& aId, const TimeStamp& aTime) override;
   void LeaveTestMode(const uint64_t& aId) override;
   void ApplyAsyncProperties(LayerTransactionParent* aLayerTree) override;
   void SetTestAsyncScrollOffset(const uint64_t& aLayersId,
@@ -104,65 +130,67 @@ public:
   void FlushApzRepaints(const uint64_t& aLayersId) override;
   void GetAPZTestData(const uint64_t& aLayersId,
                       APZTestData* aOutData) override;
-  void SetConfirmedTargetAPZC(const uint64_t& aLayersId,
-                              const uint64_t& aInputBlockId,
-                              const nsTArray<ScrollableLayerGuid>& aTargets) override;
+  void SetConfirmedTargetAPZC(
+      const uint64_t& aLayersId, const uint64_t& aInputBlockId,
+      const nsTArray<ScrollableLayerGuid>& aTargets) override;
 
-  AsyncCompositionManager* GetCompositionManager(LayerTransactionParent* aParent) override;
-  mozilla::ipc::IPCResult RecvRemotePluginsReady()  override { return IPC_FAIL_NO_REASON(this); }
+  AsyncCompositionManager* GetCompositionManager(
+      LayerTransactionParent* aParent) override;
+  mozilla::ipc::IPCResult RecvRemotePluginsReady() override {
+    return IPC_FAIL_NO_REASON(this);
+  }
 
   // Use DidCompositeLocked if you already hold a lock on
   // sIndirectLayerTreesLock; Otherwise use DidComposite, which would request
   // the lock automatically.
-  void DidCompositeLocked(uint64_t aId,
-                                  TimeStamp& aCompositeStart,
-                                  TimeStamp& aCompositeEnd);
-  void DidComposite(uint64_t aId,
-                    TimeStamp& aCompositeStart,
+  void DidCompositeLocked(uint64_t aId, TimeStamp& aCompositeStart,
+                          TimeStamp& aCompositeEnd);
+  void DidComposite(uint64_t aId, TimeStamp& aCompositeStart,
                     TimeStamp& aCompositeEnd) override;
 
-  PTextureParent* AllocPTextureParent(const SurfaceDescriptor& aSharedData,
-                                      const ReadLockDescriptor& aReadLock,
-                                      const LayersBackend& aLayersBackend,
-                                      const TextureFlags& aFlags,
-                                      const uint64_t& aId,
-                                      const uint64_t& aSerial,
-                                      const wr::MaybeExternalImageId& aExternalImageId) override;
+  PTextureParent* AllocPTextureParent(
+      const SurfaceDescriptor& aSharedData, const ReadLockDescriptor& aReadLock,
+      const LayersBackend& aLayersBackend, const TextureFlags& aFlags,
+      const uint64_t& aId, const uint64_t& aSerial,
+      const wr::MaybeExternalImageId& aExternalImageId) override;
 
   bool DeallocPTextureParent(PTextureParent* actor) override;
 
   bool IsSameProcess() const override;
 
-  PCompositorWidgetParent* AllocPCompositorWidgetParent(const CompositorWidgetInitData& aInitData) override {
+  PCompositorWidgetParent* AllocPCompositorWidgetParent(
+      const CompositorWidgetInitData& aInitData) override {
     // Not allowed.
     return nullptr;
   }
-  bool DeallocPCompositorWidgetParent(PCompositorWidgetParent* aActor) override {
+  bool DeallocPCompositorWidgetParent(
+      PCompositorWidgetParent* aActor) override {
     // Not allowed.
     return false;
   }
 
-  PAPZCTreeManagerParent* AllocPAPZCTreeManagerParent(const uint64_t& aLayersId) override;
+  PAPZCTreeManagerParent* AllocPAPZCTreeManagerParent(
+      const uint64_t& aLayersId) override;
   bool DeallocPAPZCTreeManagerParent(PAPZCTreeManagerParent* aActor) override;
 
   PAPZParent* AllocPAPZParent(const uint64_t& aLayersId) override;
   bool DeallocPAPZParent(PAPZParent* aActor) override;
 
-  void UpdatePaintTime(LayerTransactionParent* aLayerTree, const TimeDuration& aPaintTime) override;
+  void UpdatePaintTime(LayerTransactionParent* aLayerTree,
+                       const TimeDuration& aPaintTime) override;
 
-  PWebRenderBridgeParent* AllocPWebRenderBridgeParent(const wr::PipelineId& aPipelineId,
-                                                      const LayoutDeviceIntSize& aSize,
-                                                      TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                                                      wr::IdNamespace* aIdNamespace) override;
+  PWebRenderBridgeParent* AllocPWebRenderBridgeParent(
+      const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize& aSize,
+      TextureFactoryIdentifier* aTextureFactoryIdentifier,
+      wr::IdNamespace* aIdNamespace) override;
   bool DeallocPWebRenderBridgeParent(PWebRenderBridgeParent* aActor) override;
 
-  void ObserveLayerUpdate(uint64_t aLayersId, uint64_t aEpoch, bool aActive) override;
+  void ObserveLayerUpdate(uint64_t aLayersId, uint64_t aEpoch,
+                          bool aActive) override;
 
-  bool IsRemote() const override {
-    return true;
-  }
+  bool IsRemote() const override { return true; }
 
-private:
+ private:
   // Private destructor, to discourage deletion outside of Release():
   virtual ~CrossProcessCompositorBridgeParent();
 
@@ -173,13 +201,13 @@ private:
   // ourself.  This is released (deferred) in ActorDestroy().
   RefPtr<CrossProcessCompositorBridgeParent> mSelfRef;
 
-  // If true, we should send a RemotePaintIsReady message when the layer transaction
-  // is received
+  // If true, we should send a RemotePaintIsReady message when the layer
+  // transaction is received
   bool mNotifyAfterRemotePaint;
   bool mDestroyCalled;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_CrossProcessCompositorBridgeParent_h
+#endif  // mozilla_layers_CrossProcessCompositorBridgeParent_h

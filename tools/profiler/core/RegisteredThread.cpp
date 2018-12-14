@@ -8,14 +8,13 @@
 
 RegisteredThread::RegisteredThread(ThreadInfo* aInfo, nsIEventTarget* aThread,
                                    void* aStackTop)
-  : mRacyRegisteredThread(aInfo->ThreadId())
-  , mPlatformData(AllocPlatformData(aInfo->ThreadId()))
-  , mStackTop(aStackTop)
-  , mThreadInfo(aInfo)
-  , mThread(aThread)
-  , mContext(nullptr)
-  , mJSSampling(INACTIVE)
-{
+    : mRacyRegisteredThread(aInfo->ThreadId()),
+      mPlatformData(AllocPlatformData(aInfo->ThreadId())),
+      mStackTop(aStackTop),
+      mThreadInfo(aInfo),
+      mThread(aThread),
+      mContext(nullptr),
+      mJSSampling(INACTIVE) {
   MOZ_COUNT_CTOR(RegisteredThread);
 
   // We don't have to guess on mac
@@ -25,14 +24,10 @@ RegisteredThread::RegisteredThread(ThreadInfo* aInfo, nsIEventTarget* aThread,
 #endif
 }
 
-RegisteredThread::~RegisteredThread()
-{
-  MOZ_COUNT_DTOR(RegisteredThread);
-}
+RegisteredThread::~RegisteredThread() { MOZ_COUNT_DTOR(RegisteredThread); }
 
-size_t
-RegisteredThread::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
-{
+size_t RegisteredThread::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t n = aMallocSizeOf(this);
 
   // Measurement of the following members may be added later if DMD finds it

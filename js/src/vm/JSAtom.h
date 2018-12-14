@@ -21,30 +21,30 @@ namespace js {
  * Return a printable, lossless char[] representation of a string-type atom.
  * The lifetime of the result matches the lifetime of bytes.
  */
-extern const char*
-AtomToPrintableString(JSContext* cx, JSAtom* atom, JSAutoByteString* bytes);
+extern const char* AtomToPrintableString(JSContext* cx, JSAtom* atom,
+                                         JSAutoByteString* bytes);
 
 class PropertyName;
 
-}  /* namespace js */
+} /* namespace js */
 
-extern bool
-AtomIsPinned(JSContext* cx, JSAtom* atom);
+extern bool AtomIsPinned(JSContext* cx, JSAtom* atom);
 
 #ifdef DEBUG
 
 // This may be called either with or without the atoms lock held.
-extern bool
-AtomIsPinnedInRuntime(JSRuntime* rt, JSAtom* atom);
+extern bool AtomIsPinnedInRuntime(JSRuntime* rt, JSAtom* atom);
 
-#endif // DEBUG
+#endif  // DEBUG
 
 /* Well-known predefined C strings. */
-#define DECLARE_PROTO_STR(name,init,clasp) extern const char js_##name##_str[];
+#define DECLARE_PROTO_STR(name, init, clasp) \
+  extern const char js_##name##_str[];
 JS_FOR_EACH_PROTOTYPE(DECLARE_PROTO_STR)
 #undef DECLARE_PROTO_STR
 
-#define DECLARE_CONST_CHAR_STR(idpart, id, text)  extern const char js_##idpart##_str[];
+#define DECLARE_CONST_CHAR_STR(idpart, id, text) \
+  extern const char js_##idpart##_str[];
 FOR_EACH_COMMON_PROPERTYNAME(DECLARE_CONST_CHAR_STR)
 #undef DECLARE_CONST_CHAR_STR
 
@@ -60,60 +60,47 @@ class AutoLockForExclusiveAccess;
 /*
  * Atom tracing and garbage collection hooks.
  */
-void
-TraceAtoms(JSTracer* trc, AutoLockForExclusiveAccess& lock);
+void TraceAtoms(JSTracer* trc, AutoLockForExclusiveAccess& lock);
 
-void
-TracePermanentAtoms(JSTracer* trc);
+void TracePermanentAtoms(JSTracer* trc);
 
-void
-TraceWellKnownSymbols(JSTracer* trc);
+void TraceWellKnownSymbols(JSTracer* trc);
 
 /* N.B. must correspond to boolean tagging behavior. */
-enum PinningBehavior
-{
-    DoNotPinAtom = false,
-    PinAtom = true
-};
+enum PinningBehavior { DoNotPinAtom = false, PinAtom = true };
 
-extern JSAtom*
-Atomize(JSContext* cx, const char* bytes, size_t length,
-        js::PinningBehavior pin = js::DoNotPinAtom,
-        const mozilla::Maybe<uint32_t>& indexValue = mozilla::Nothing());
+extern JSAtom* Atomize(
+    JSContext* cx, const char* bytes, size_t length,
+    js::PinningBehavior pin = js::DoNotPinAtom,
+    const mozilla::Maybe<uint32_t>& indexValue = mozilla::Nothing());
 
 template <typename CharT>
-extern JSAtom*
-AtomizeChars(JSContext* cx, const CharT* chars, size_t length,
-             js::PinningBehavior pin = js::DoNotPinAtom);
+extern JSAtom* AtomizeChars(JSContext* cx, const CharT* chars, size_t length,
+                            js::PinningBehavior pin = js::DoNotPinAtom);
 
-extern JSAtom*
-AtomizeUTF8Chars(JSContext* cx, const char* utf8Chars, size_t utf8ByteLength);
+extern JSAtom* AtomizeUTF8Chars(JSContext* cx, const char* utf8Chars,
+                                size_t utf8ByteLength);
 
-extern JSAtom*
-AtomizeString(JSContext* cx, JSString* str, js::PinningBehavior pin = js::DoNotPinAtom);
+extern JSAtom* AtomizeString(JSContext* cx, JSString* str,
+                             js::PinningBehavior pin = js::DoNotPinAtom);
 
 template <AllowGC allowGC>
-extern JSAtom*
-ToAtom(JSContext* cx, typename MaybeRooted<JS::Value, allowGC>::HandleType v);
+extern JSAtom* ToAtom(JSContext* cx,
+                      typename MaybeRooted<JS::Value, allowGC>::HandleType v);
 
-enum XDRMode {
-    XDR_ENCODE,
-    XDR_DECODE
-};
+enum XDRMode { XDR_ENCODE, XDR_DECODE };
 
 template <XDRMode mode>
 class XDRState;
 
-template<XDRMode mode>
-bool
-XDRAtom(XDRState<mode>* xdr, js::MutableHandleAtom atomp);
+template <XDRMode mode>
+bool XDRAtom(XDRState<mode>* xdr, js::MutableHandleAtom atomp);
 
-extern JS::Handle<PropertyName*>
-ClassName(JSProtoKey key, JSContext* cx);
+extern JS::Handle<PropertyName*> ClassName(JSProtoKey key, JSContext* cx);
 
 namespace gc {
 void MergeAtomsAddedWhileSweeping(JSRuntime* rt);
-} // namespace gc
+}  // namespace gc
 
 #ifdef DEBUG
 
@@ -121,7 +108,7 @@ bool AtomIsMarked(JS::Zone* zone, JSAtom* atom);
 bool AtomIsMarked(JS::Zone* zone, jsid id);
 bool AtomIsMarked(JS::Zone* zone, const JS::Value& value);
 
-#endif // DEBUG
+#endif  // DEBUG
 
 } /* namespace js */
 

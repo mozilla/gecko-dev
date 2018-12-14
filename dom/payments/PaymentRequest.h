@@ -21,18 +21,18 @@ class EventHandlerNonNull;
 class PaymentAddress;
 class PaymentResponse;
 
-class PaymentRequest final : public DOMEventTargetHelper
-{
-public:
+class PaymentRequest final : public DOMEventTargetHelper {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(PaymentRequest, DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(PaymentRequest,
+                                                         DOMEventTargetHelper)
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  static already_AddRefed<PaymentRequest>
-  CreatePaymentRequest(nsPIDOMWindowInner* aWindow, nsresult& aRv);
+  static already_AddRefed<PaymentRequest> CreatePaymentRequest(
+      nsPIDOMWindowInner* aWindow, nsresult& aRv);
 
   static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
 
@@ -42,50 +42,41 @@ public:
   static nsresult IsValidPaymentMethodIdentifier(const nsAString& aIdentifier,
                                                  nsAString& aErrorMsg);
 
-  static nsresult IsValidMethodData(JSContext* aCx,
-                                    const Sequence<PaymentMethodData>& aMethodData,
-                                    nsAString& aErrorMsg);
+  static nsresult IsValidMethodData(
+      JSContext* aCx, const Sequence<PaymentMethodData>& aMethodData,
+      nsAString& aErrorMsg);
 
-  static nsresult
-  IsValidNumber(const nsAString& aItem,
-                const nsAString& aStr,
-                nsAString& aErrorMsg);
-  static nsresult
-  IsNonNegativeNumber(const nsAString& aItem,
-                      const nsAString& aStr,
-                      nsAString& aErrorMsg);
+  static nsresult IsValidNumber(const nsAString& aItem, const nsAString& aStr,
+                                nsAString& aErrorMsg);
+  static nsresult IsNonNegativeNumber(const nsAString& aItem,
+                                      const nsAString& aStr,
+                                      nsAString& aErrorMsg);
 
-  static nsresult
-  IsValidCurrencyAmount(const nsAString& aItem,
-                        const PaymentCurrencyAmount& aAmount,
-                        const bool aIsTotalItem,
-                        nsAString& aErrorMsg);
+  static nsresult IsValidCurrencyAmount(const nsAString& aItem,
+                                        const PaymentCurrencyAmount& aAmount,
+                                        const bool aIsTotalItem,
+                                        nsAString& aErrorMsg);
 
-  static nsresult
-  IsValidCurrency(const nsAString& aItem,
-                  const nsAString& aCurrency,
-                  nsAString& aErrorMsg);
+  static nsresult IsValidCurrency(const nsAString& aItem,
+                                  const nsAString& aCurrency,
+                                  nsAString& aErrorMsg);
 
-  static nsresult
-  IsValidDetailsInit(const PaymentDetailsInit& aDetails,
-                     const bool aRequestShipping,
-                     nsAString& aErrorMsg);
+  static nsresult IsValidDetailsInit(const PaymentDetailsInit& aDetails,
+                                     const bool aRequestShipping,
+                                     nsAString& aErrorMsg);
 
-  static nsresult
-  IsValidDetailsUpdate(const PaymentDetailsUpdate& aDetails,
-                       const bool aRequestShipping);
+  static nsresult IsValidDetailsUpdate(const PaymentDetailsUpdate& aDetails,
+                                       const bool aRequestShipping);
 
-  static nsresult
-  IsValidDetailsBase(const PaymentDetailsBase& aDetails,
-                     const bool aRequestShipping,
-                     nsAString& aErrorMsg);
+  static nsresult IsValidDetailsBase(const PaymentDetailsBase& aDetails,
+                                     const bool aRequestShipping,
+                                     nsAString& aErrorMsg);
 
-  static already_AddRefed<PaymentRequest>
-  Constructor(const GlobalObject& aGlobal,
-              const Sequence<PaymentMethodData>& aMethodData,
-              const PaymentDetailsInit& aDetails,
-              const PaymentOptions& aOptions,
-              ErrorResult& aRv);
+  static already_AddRefed<PaymentRequest> Constructor(
+      const GlobalObject& aGlobal,
+      const Sequence<PaymentMethodData>& aMethodData,
+      const PaymentDetailsInit& aDetails, const PaymentOptions& aOptions,
+      ErrorResult& aRv);
 
   already_AddRefed<Promise> CanMakePayment(ErrorResult& aRv);
   void RespondCanMakePayment(bool aResult);
@@ -95,8 +86,7 @@ public:
                           const nsAString& aDetails,
                           const nsAString& aPayerName,
                           const nsAString& aPayerEmail,
-                          const nsAString& aPayerPhone,
-                          nsresult aRv);
+                          const nsAString& aPayerPhone, nsresult aRv);
   void RejectShowPayment(nsresult aRejectReason);
   void RespondComplete();
 
@@ -114,18 +104,13 @@ public:
 
   already_AddRefed<PaymentAddress> GetShippingAddress() const;
   // Update mShippingAddress and fire shippingaddresschange event
-  nsresult UpdateShippingAddress(const nsAString& aCountry,
-                                 const nsTArray<nsString>& aAddressLine,
-                                 const nsAString& aRegion,
-                                 const nsAString& aCity,
-                                 const nsAString& aDependentLocality,
-                                 const nsAString& aPostalCode,
-                                 const nsAString& aSortingCode,
-                                 const nsAString& aLanguageCode,
-                                 const nsAString& aOrganization,
-                                 const nsAString& aRecipient,
-                                 const nsAString& aPhone);
-
+  nsresult UpdateShippingAddress(
+      const nsAString& aCountry, const nsTArray<nsString>& aAddressLine,
+      const nsAString& aRegion, const nsAString& aCity,
+      const nsAString& aDependentLocality, const nsAString& aPostalCode,
+      const nsAString& aSortingCode, const nsAString& aLanguageCode,
+      const nsAString& aOrganization, const nsAString& aRecipient,
+      const nsAString& aPhone);
 
   void SetShippingOption(const nsAString& aShippingOption);
   void GetShippingOption(nsAString& aRetVal) const;
@@ -140,7 +125,7 @@ public:
   IMPL_EVENT_HANDLER(shippingaddresschange);
   IMPL_EVENT_HANDLER(shippingoptionchange);
 
-protected:
+ protected:
   ~PaymentRequest();
 
   nsresult DispatchUpdateEvent(const nsAString& aType);
@@ -170,21 +155,16 @@ protected:
 
   Nullable<PaymentShippingType> mShippingType;
 
-  // "true" when there is a pending updateWith() call to update the payment request
-  // and "false" otherwise.
+  // "true" when there is a pending updateWith() call to update the payment
+  // request and "false" otherwise.
   bool mUpdating;
   // The error is set in AbortUpdate(). The value is NS_OK by default.
   nsresult mUpdateError;
 
-  enum {
-    eUnknown,
-    eCreated,
-    eInteractive,
-    eClosed
-  } mState;
+  enum { eUnknown, eCreated, eInteractive, eClosed } mState;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_PaymentRequest_h
+#endif  // mozilla_dom_PaymentRequest_h

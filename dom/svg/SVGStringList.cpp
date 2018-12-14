@@ -13,9 +13,7 @@
 
 namespace mozilla {
 
-nsresult
-SVGStringList::CopyFrom(const SVGStringList& rhs)
-{
+nsresult SVGStringList::CopyFrom(const SVGStringList& rhs) {
   if (!mStrings.Assign(rhs.mStrings, fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -23,9 +21,7 @@ SVGStringList::CopyFrom(const SVGStringList& rhs)
   return NS_OK;
 }
 
-void
-SVGStringList::GetValue(nsAString& aValue) const
-{
+void SVGStringList::GetValue(nsAString& aValue) const {
   aValue.Truncate();
   uint32_t last = mStrings.Length() - 1;
   for (uint32_t i = 0; i < mStrings.Length(); ++i) {
@@ -39,14 +35,11 @@ SVGStringList::GetValue(nsAString& aValue) const
   }
 }
 
-nsresult
-SVGStringList::SetValue(const nsAString& aValue)
-{
+nsresult SVGStringList::SetValue(const nsAString& aValue) {
   SVGStringList temp;
 
   if (mIsCommaSeparated) {
-    nsCharSeparatedTokenizerTemplate<IsSVGWhitespace>
-      tokenizer(aValue, ',');
+    nsCharSeparatedTokenizerTemplate<IsSVGWhitespace> tokenizer(aValue, ',');
 
     while (tokenizer.hasMoreTokens()) {
       if (!temp.AppendItem(tokenizer.nextToken())) {
@@ -54,7 +47,7 @@ SVGStringList::SetValue(const nsAString& aValue)
       }
     }
     if (tokenizer.separatorAfterCurrentToken()) {
-      return NS_ERROR_DOM_SYNTAX_ERR; // trailing comma
+      return NS_ERROR_DOM_SYNTAX_ERR;  // trailing comma
     }
   } else {
     nsWhitespaceTokenizerTemplate<IsSVGWhitespace> tokenizer(aValue);
@@ -69,4 +62,4 @@ SVGStringList::SetValue(const nsAString& aValue)
   return CopyFrom(temp);
 }
 
-} // namespace mozilla
+}  // namespace mozilla

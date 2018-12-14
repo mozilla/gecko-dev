@@ -32,14 +32,12 @@ using mozilla::Some;
 // nsIStringInputStream implementation
 //-----------------------------------------------------------------------------
 
-class nsStringInputStream final
-  : public nsIStringInputStream
-  , public nsISeekableStream
-  , public nsISupportsCString
-  , public nsIIPCSerializableInputStream
-  , public nsICloneableInputStream
-{
-public:
+class nsStringInputStream final : public nsIStringInputStream,
+                                  public nsISeekableStream,
+                                  public nsISupportsCString,
+                                  public nsIIPCSerializableInputStream,
+                                  public nsICloneableInputStream {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
   NS_DECL_NSISTRINGINPUTSTREAM
@@ -49,35 +47,18 @@ public:
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
   NS_DECL_NSICLONEABLEINPUTSTREAM
 
-  nsStringInputStream()
-  {
-    Clear();
-  }
+  nsStringInputStream() { Clear(); }
 
-private:
-  ~nsStringInputStream()
-  {
-  }
+ private:
+  ~nsStringInputStream() {}
 
-  uint32_t Length() const
-  {
-    return mData.Length();
-  }
+  uint32_t Length() const { return mData.Length(); }
 
-  uint32_t LengthRemaining() const
-  {
-    return Length() - mOffset;
-  }
+  uint32_t LengthRemaining() const { return Length() - mOffset; }
 
-  void Clear()
-  {
-    mData.SetIsVoid(true);
-  }
+  void Clear() { mData.SetIsVoid(true); }
 
-  bool Closed()
-  {
-    return mData.IsVoid();
-  }
+  bool Closed() { return mData.IsVoid(); }
 
   nsDependentCSubstring mData;
   uint32_t mOffset;
@@ -90,34 +71,26 @@ NS_IMPL_RELEASE(nsStringInputStream)
 
 NS_IMPL_CLASSINFO(nsStringInputStream, nullptr, nsIClassInfo::THREADSAFE,
                   NS_STRINGINPUTSTREAM_CID)
-NS_IMPL_QUERY_INTERFACE_CI(nsStringInputStream,
-                           nsIStringInputStream,
-                           nsIInputStream,
-                           nsISupportsCString,
-                           nsISeekableStream,
-                           nsIIPCSerializableInputStream,
+NS_IMPL_QUERY_INTERFACE_CI(nsStringInputStream, nsIStringInputStream,
+                           nsIInputStream, nsISupportsCString,
+                           nsISeekableStream, nsIIPCSerializableInputStream,
                            nsICloneableInputStream)
-NS_IMPL_CI_INTERFACE_GETTER(nsStringInputStream,
-                            nsIStringInputStream,
-                            nsIInputStream,
-                            nsISupportsCString,
-                            nsISeekableStream,
-                            nsICloneableInputStream)
+NS_IMPL_CI_INTERFACE_GETTER(nsStringInputStream, nsIStringInputStream,
+                            nsIInputStream, nsISupportsCString,
+                            nsISeekableStream, nsICloneableInputStream)
 
 /////////
 // nsISupportsCString implementation
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::GetType(uint16_t* aType)
-{
+nsStringInputStream::GetType(uint16_t* aType) {
   *aType = TYPE_CSTRING;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsStringInputStream::GetData(nsACString& data)
-{
+nsStringInputStream::GetData(nsACString& data) {
   // The stream doesn't have any data when it is closed.  We could fake it
   // and return an empty string here, but it seems better to keep this return
   // value consistent with the behavior of the other 'getter' methods.
@@ -130,8 +103,7 @@ nsStringInputStream::GetData(nsACString& data)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::SetData(const nsACString& aData)
-{
+nsStringInputStream::SetData(const nsACString& aData) {
   if (NS_WARN_IF(!mData.Assign(aData, fallible))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -141,8 +113,7 @@ nsStringInputStream::SetData(const nsACString& aData)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::ToString(char** aResult)
-{
+nsStringInputStream::ToString(char** aResult) {
   // NOTE: This method may result in data loss, so we do not implement it.
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -152,8 +123,7 @@ nsStringInputStream::ToString(char** aResult)
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::SetData(const char* aData, int32_t aDataLen)
-{
+nsStringInputStream::SetData(const char* aData, int32_t aDataLen) {
   if (NS_WARN_IF(!aData)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -167,8 +137,7 @@ nsStringInputStream::SetData(const char* aData, int32_t aDataLen)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::AdoptData(char* aData, int32_t aDataLen)
-{
+nsStringInputStream::AdoptData(char* aData, int32_t aDataLen) {
   if (NS_WARN_IF(!aData)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -178,8 +147,7 @@ nsStringInputStream::AdoptData(char* aData, int32_t aDataLen)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::ShareData(const char* aData, int32_t aDataLen)
-{
+nsStringInputStream::ShareData(const char* aData, int32_t aDataLen) {
   if (NS_WARN_IF(!aData)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -194,8 +162,7 @@ nsStringInputStream::ShareData(const char* aData, int32_t aDataLen)
 }
 
 NS_IMETHODIMP_(size_t)
-nsStringInputStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
-{
+nsStringInputStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) {
   size_t n = aMallocSizeOf(this);
   n += mData.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
   return n;
@@ -206,15 +173,13 @@ nsStringInputStream::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf)
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::Close()
-{
+nsStringInputStream::Close() {
   Clear();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsStringInputStream::Available(uint64_t* aLength)
-{
+nsStringInputStream::Available(uint64_t* aLength) {
   NS_ASSERTION(aLength, "null ptr");
 
   if (Closed()) {
@@ -226,16 +191,14 @@ nsStringInputStream::Available(uint64_t* aLength)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::Read(char* aBuf, uint32_t aCount, uint32_t* aReadCount)
-{
+nsStringInputStream::Read(char* aBuf, uint32_t aCount, uint32_t* aReadCount) {
   NS_ASSERTION(aBuf, "null ptr");
   return ReadSegments(NS_CopySegmentToBuffer, aBuf, aCount, aReadCount);
 }
 
 NS_IMETHODIMP
 nsStringInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
-                                  uint32_t aCount, uint32_t* aResult)
-{
+                                  uint32_t aCount, uint32_t* aResult) {
   NS_ASSERTION(aResult, "null ptr");
   NS_ASSERTION(Length() >= mOffset, "bad stream state");
 
@@ -266,8 +229,7 @@ nsStringInputStream::ReadSegments(nsWriteSegmentFun aWriter, void* aClosure,
 }
 
 NS_IMETHODIMP
-nsStringInputStream::IsNonBlocking(bool* aNonBlocking)
-{
+nsStringInputStream::IsNonBlocking(bool* aNonBlocking) {
   *aNonBlocking = true;
   return NS_OK;
 }
@@ -277,8 +239,7 @@ nsStringInputStream::IsNonBlocking(bool* aNonBlocking)
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::Seek(int32_t aWhence, int64_t aOffset)
-{
+nsStringInputStream::Seek(int32_t aWhence, int64_t aOffset) {
   if (Closed()) {
     return NS_BASE_STREAM_CLOSED;
   }
@@ -309,8 +270,7 @@ nsStringInputStream::Seek(int32_t aWhence, int64_t aOffset)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::Tell(int64_t* aOutWhere)
-{
+nsStringInputStream::Tell(int64_t* aOutWhere) {
   if (Closed()) {
     return NS_BASE_STREAM_CLOSED;
   }
@@ -320,8 +280,7 @@ nsStringInputStream::Tell(int64_t* aOutWhere)
 }
 
 NS_IMETHODIMP
-nsStringInputStream::SetEOF()
-{
+nsStringInputStream::SetEOF() {
   if (Closed()) {
     return NS_BASE_STREAM_CLOSED;
   }
@@ -334,26 +293,21 @@ nsStringInputStream::SetEOF()
 // nsIIPCSerializableInputStream implementation
 /////////
 
-void
-nsStringInputStream::Serialize(InputStreamParams& aParams,
-                               FileDescriptorArray& /* aFDs */)
-{
+void nsStringInputStream::Serialize(InputStreamParams& aParams,
+                                    FileDescriptorArray& /* aFDs */) {
   StringInputStreamParams params;
   params.data() = PromiseFlatCString(mData);
   aParams = params;
 }
 
-bool
-nsStringInputStream::Deserialize(const InputStreamParams& aParams,
-                                 const FileDescriptorArray& /* aFDs */)
-{
+bool nsStringInputStream::Deserialize(const InputStreamParams& aParams,
+                                      const FileDescriptorArray& /* aFDs */) {
   if (aParams.type() != InputStreamParams::TStringInputStreamParams) {
     NS_ERROR("Received unknown parameters from the other process!");
     return false;
   }
 
-  const StringInputStreamParams& params =
-    aParams.get_StringInputStreamParams();
+  const StringInputStreamParams& params = aParams.get_StringInputStreamParams();
 
   if (NS_FAILED(SetData(params.data()))) {
     NS_WARNING("SetData failed!");
@@ -363,9 +317,7 @@ nsStringInputStream::Deserialize(const InputStreamParams& aParams,
   return true;
 }
 
-Maybe<uint64_t>
-nsStringInputStream::ExpectedSerializedLength()
-{
+Maybe<uint64_t> nsStringInputStream::ExpectedSerializedLength() {
   return Some(static_cast<uint64_t>(Length()));
 }
 
@@ -374,15 +326,13 @@ nsStringInputStream::ExpectedSerializedLength()
 /////////
 
 NS_IMETHODIMP
-nsStringInputStream::GetCloneable(bool* aCloneableOut)
-{
+nsStringInputStream::GetCloneable(bool* aCloneableOut) {
   *aCloneableOut = true;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsStringInputStream::Clone(nsIInputStream** aCloneOut)
-{
+nsStringInputStream::Clone(nsIInputStream** aCloneOut) {
   RefPtr<nsStringInputStream> ref = new nsStringInputStream();
   nsresult rv = ref->SetData(mData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -396,11 +346,9 @@ nsStringInputStream::Clone(nsIInputStream** aCloneOut)
   return NS_OK;
 }
 
-nsresult
-NS_NewByteInputStream(nsIInputStream** aStreamResult,
-                      const char* aStringToRead, int32_t aLength,
-                      nsAssignmentType aAssignment)
-{
+nsresult NS_NewByteInputStream(nsIInputStream** aStreamResult,
+                               const char* aStringToRead, int32_t aLength,
+                               nsAssignmentType aAssignment) {
   NS_PRECONDITION(aStreamResult, "null out ptr");
 
   RefPtr<nsStringInputStream> stream = new nsStringInputStream();
@@ -429,10 +377,8 @@ NS_NewByteInputStream(nsIInputStream** aStreamResult,
   return NS_OK;
 }
 
-nsresult
-NS_NewCStringInputStream(nsIInputStream** aStreamResult,
-                         const nsACString& aStringToRead)
-{
+nsresult NS_NewCStringInputStream(nsIInputStream** aStreamResult,
+                                  const nsACString& aStringToRead) {
   NS_PRECONDITION(aStreamResult, "null out ptr");
 
   RefPtr<nsStringInputStream> stream = new nsStringInputStream();
@@ -447,10 +393,8 @@ NS_NewCStringInputStream(nsIInputStream** aStreamResult,
 }
 
 // factory method for constructing a nsStringInputStream object
-nsresult
-nsStringInputStreamConstructor(nsISupports* aOuter, REFNSIID aIID,
-                               void** aResult)
-{
+nsresult nsStringInputStreamConstructor(nsISupports* aOuter, REFNSIID aIID,
+                                        void** aResult) {
   *aResult = nullptr;
 
   if (NS_WARN_IF(aOuter)) {

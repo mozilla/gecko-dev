@@ -7,50 +7,43 @@
 #include "VRLayerChild.h"
 #include "GLScreenBuffer.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
-#include "SharedSurface.h"                // for SharedSurface
-#include "SharedSurfaceGL.h"              // for SharedSurface
-#include "mozilla/layers/LayersMessages.h" // for TimedTexture
+#include "SharedSurface.h"                  // for SharedSurface
+#include "SharedSurfaceGL.h"                // for SharedSurface
+#include "mozilla/layers/LayersMessages.h"  // for TimedTexture
 #include "nsICanvasRenderingContextInternal.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
-#include "mozilla/layers/SyncObject.h" // for SyncObjectClient
+#include "mozilla/layers/SyncObject.h"  // for SyncObjectClient
 
 namespace mozilla {
 namespace gfx {
 
 VRLayerChild::VRLayerChild()
-  : mCanvasElement(nullptr)
-  , mIPCOpen(false)
-  , mLastSubmittedFrameId(0)
-{
+    : mCanvasElement(nullptr), mIPCOpen(false), mLastSubmittedFrameId(0) {
   MOZ_COUNT_CTOR(VRLayerChild);
 }
 
-VRLayerChild::~VRLayerChild()
-{
+VRLayerChild::~VRLayerChild() {
   ClearSurfaces();
 
   MOZ_COUNT_DTOR(VRLayerChild);
 }
 
-void
-VRLayerChild::Initialize(dom::HTMLCanvasElement* aCanvasElement,
-                         const gfx::Rect& aLeftEyeRect, const gfx::Rect& aRightEyeRect)
-{
+void VRLayerChild::Initialize(dom::HTMLCanvasElement* aCanvasElement,
+                              const gfx::Rect& aLeftEyeRect,
+                              const gfx::Rect& aRightEyeRect) {
   MOZ_ASSERT(aCanvasElement);
   mLeftEyeRect = aLeftEyeRect;
   mRightEyeRect = aRightEyeRect;
   if (mCanvasElement == nullptr) {
     mCanvasElement = aCanvasElement;
-    VRManagerChild *vrmc = VRManagerChild::Get();
+    VRManagerChild* vrmc = VRManagerChild::Get();
     vrmc->RunFrameRequestCallbacks();
   } else {
     mCanvasElement = aCanvasElement;
   }
 }
 
-void
-VRLayerChild::SubmitFrame(uint64_t aFrameId)
-{
+void VRLayerChild::SubmitFrame(uint64_t aFrameId) {
   // aFrameId will not increment unless the previuosly submitted
   // frame was received by the VR thread and submitted to the VR
   // compositor.  We early-exit here in the event that SubmitFrame
@@ -85,60 +78,45 @@ VRLayerChild::SubmitFrame(uint64_t aFrameId)
 
   layers::SurfaceDescriptor desc;
   if (!surf->ToSurfaceDescriptor(&desc)) {
-    gfxCriticalError() << "SharedSurface::ToSurfaceDescriptor failed in VRLayerChild::SubmitFrame";
+    gfxCriticalError() << "SharedSurface::ToSurfaceDescriptor failed in "
+                          "VRLayerChild::SubmitFrame";
     return;
   }
 
   SendSubmitFrame(desc, aFrameId, mLeftEyeRect, mRightEyeRect);
 }
 
-bool
-VRLayerChild::IsIPCOpen()
-{
-  return mIPCOpen;
-}
+bool VRLayerChild::IsIPCOpen() { return mIPCOpen; }
 
-void
-VRLayerChild::ClearSurfaces()
-{
+void VRLayerChild::ClearSurfaces() {
   mThisFrameTexture = nullptr;
   mLastFrameTexture = nullptr;
 }
 
-void
-VRLayerChild::ActorDestroy(ActorDestroyReason aWhy)
-{
-  mIPCOpen = false;
-}
+void VRLayerChild::ActorDestroy(ActorDestroyReason aWhy) { mIPCOpen = false; }
 
 // static
-PVRLayerChild*
-VRLayerChild::CreateIPDLActor()
-{
+PVRLayerChild* VRLayerChild::CreateIPDLActor() {
   VRLayerChild* c = new VRLayerChild();
   c->AddIPDLReference();
   return c;
 }
 
 // static
-bool
-VRLayerChild::DestroyIPDLActor(PVRLayerChild* actor)
-{
+bool VRLayerChild::DestroyIPDLActor(PVRLayerChild* actor) {
   static_cast<VRLayerChild*>(actor)->ReleaseIPDLReference();
   return true;
 }
 
-void
-VRLayerChild::AddIPDLReference() {
+void VRLayerChild::AddIPDLReference() {
   MOZ_ASSERT(mIPCOpen == false);
   mIPCOpen = true;
   AddRef();
 }
-void
-VRLayerChild::ReleaseIPDLReference() {
+void VRLayerChild::ReleaseIPDLReference() {
   MOZ_ASSERT(mIPCOpen == false);
   Release();
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

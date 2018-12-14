@@ -14,23 +14,20 @@
 namespace mozilla {
 namespace dom {
 
-class FocusEvent : public UIEvent,
-                   public nsIDOMFocusEvent
-{
-public:
+class FocusEvent : public UIEvent, public nsIDOMFocusEvent {
+ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMFOCUSEVENT
 
   // Forward to base class
   NS_FORWARD_TO_UIEVENT
 
-  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
-  {
+  virtual JSObject* WrapObjectInternal(
+      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return FocusEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
-  FocusEvent(EventTarget* aOwner,
-             nsPresContext* aPresContext,
+  FocusEvent(EventTarget* aOwner, nsPresContext* aPresContext,
              InternalFocusEvent* aEvent);
 
   already_AddRefed<EventTarget> GetRelatedTarget();
@@ -39,23 +36,20 @@ public:
                                                   const nsAString& aType,
                                                   const FocusEventInit& aParam,
                                                   ErrorResult& aRv);
-protected:
+
+ protected:
   ~FocusEvent() {}
 
-  void InitFocusEvent(const nsAString& aType,
-                      bool aCanBubble,
-                      bool aCancelable,
-                      nsGlobalWindowInner* aView,
-                      int32_t aDetail,
+  void InitFocusEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
+                      nsGlobalWindowInner* aView, int32_t aDetail,
                       EventTarget* aRelatedTarget);
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-already_AddRefed<mozilla::dom::FocusEvent>
-NS_NewDOMFocusEvent(mozilla::dom::EventTarget* aOwner,
-                    nsPresContext* aPresContext,
-                    mozilla::InternalFocusEvent* aEvent);
+already_AddRefed<mozilla::dom::FocusEvent> NS_NewDOMFocusEvent(
+    mozilla::dom::EventTarget* aOwner, nsPresContext* aPresContext,
+    mozilla::InternalFocusEvent* aEvent);
 
-#endif // mozilla_dom_FocusEvent_h_
+#endif  // mozilla_dom_FocusEvent_h_

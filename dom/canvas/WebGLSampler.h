@@ -13,44 +13,44 @@
 
 namespace mozilla {
 
-class WebGLSampler final
-    : public nsWrapperCache
-    , public WebGLRefCountedObject<WebGLSampler>
-    , public LinkedListElement<WebGLSampler>
-{
-    friend class WebGLContext2;
-    friend class WebGLTexture;
+class WebGLSampler final : public nsWrapperCache,
+                           public WebGLRefCountedObject<WebGLSampler>,
+                           public LinkedListElement<WebGLSampler> {
+  friend class WebGLContext2;
+  friend class WebGLTexture;
 
-public:
-    WebGLSampler(WebGLContext* webgl, GLuint sampler);
+ public:
+  WebGLSampler(WebGLContext* webgl, GLuint sampler);
 
-    const GLuint mGLName;
+  const GLuint mGLName;
 
-    void Delete();
-    WebGLContext* GetParentObject() const;
+  void Delete();
+  WebGLContext* GetParentObject() const;
 
-    virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) override;
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> givenProto) override;
 
-    void SamplerParameter(const char* funcName, GLenum pname, const FloatOrInt& param);
+  void SamplerParameter(const char* funcName, GLenum pname,
+                        const FloatOrInt& param);
 
-private:
-    NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLSampler)
-    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLSampler)
+ private:
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLSampler)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLSampler)
 
-    TexMinFilter mMinFilter;
-    TexMagFilter mMagFilter;
-    TexWrap mWrapS;
-    TexWrap mWrapT;
-    TexWrap mWrapR;
-    GLfloat mMinLod;
-    GLfloat mMaxLod;
-    TexCompareMode mCompareMode;
-    TexCompareFunc mCompareFunc;
+  TexMinFilter mMinFilter;
+  TexMagFilter mMagFilter;
+  TexWrap mWrapS;
+  TexWrap mWrapT;
+  TexWrap mWrapR;
+  GLfloat mMinLod;
+  GLfloat mMaxLod;
+  TexCompareMode mCompareMode;
+  TexCompareFunc mCompareFunc;
 
-private:
-    ~WebGLSampler();
+ private:
+  ~WebGLSampler();
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // WEBGL_SAMPLER_H_
+#endif  // WEBGL_SAMPLER_H_

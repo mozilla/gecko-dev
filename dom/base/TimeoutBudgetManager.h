@@ -15,20 +15,18 @@ namespace dom {
 
 class Timeout;
 
-class TimeoutBudgetManager
-{
-public:
+class TimeoutBudgetManager {
+ public:
   static TimeoutBudgetManager& Get();
   void StartRecording(const TimeStamp& aNow);
   void StopRecording();
-  TimeDuration RecordExecution(const TimeStamp& aNow,
-                               const Timeout* aTimeout,
+  TimeDuration RecordExecution(const TimeStamp& aNow, const Timeout* aTimeout,
                                bool aIsBackground);
   void MaybeCollectTelemetry(const TimeStamp& aNow);
-private:
+
+ private:
   TimeoutBudgetManager() : mLastCollection(TimeStamp::Now()) {}
-  struct TelemetryData
-  {
+  struct TelemetryData {
     TimeDuration mForegroundTracking;
     TimeDuration mForegroundNonTracking;
     TimeDuration mBackgroundTracking;
@@ -42,7 +40,7 @@ private:
   TimeStamp mLastCollection;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_timeoutbudgetmanager_h
+#endif  // mozilla_dom_timeoutbudgetmanager_h

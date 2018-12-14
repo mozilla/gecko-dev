@@ -13,13 +13,11 @@ class nsIMemory;
 
 #define NS_MEMORY_CONTRACTID "@mozilla.org/xpcom/memory-service;1"
 #define NS_MEMORY_CID                                \
-{ /* 30a04e40-38e7-11d4-8cf5-0060b0fc14a3 */         \
-    0x30a04e40,                                      \
-    0x38e7,                                          \
-    0x11d4,                                          \
-    {0x8c, 0xf5, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3} \
-}
-
+  { /* 30a04e40-38e7-11d4-8cf5-0060b0fc14a3 */       \
+    0x30a04e40, 0x38e7, 0x11d4, {                    \
+      0x8c, 0xf5, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3 \
+    }                                                \
+  }
 
 /**
  * Static helper routines to manage memory. These routines allow easy access
@@ -30,12 +28,11 @@ class nsIMemory;
  * This class is not threadsafe and is intented for use only on the main
  * thread.
  */
-class nsMemory
-{
-public:
-  static nsresult   HeapMinimize(bool aImmediate);
-  static void*      Clone(const void* aPtr, size_t aSize);
-  static nsIMemory* GetGlobalMemoryService();       // AddRefs
+class nsMemory {
+ public:
+  static nsresult HeapMinimize(bool aImmediate);
+  static void* Clone(const void* aPtr, size_t aSize);
+  static nsIMemory* GetGlobalMemoryService();  // AddRefs
 };
 
 /**
@@ -65,13 +62,12 @@ public:
  *                  types (including XPCOM strings and wstrings),
  *                  free should be used.
  */
-#define NS_FREE_XPCOM_POINTER_ARRAY(size, array, freeFunc)                    \
-    do {                                                                      \
-        int32_t iter_ = int32_t(size);                                        \
-        while (--iter_ >= 0)                                                  \
-            freeFunc((array)[iter_]);                                         \
-        free((array));                                                     \
-    } while(0)
+#define NS_FREE_XPCOM_POINTER_ARRAY(size, array, freeFunc) \
+  do {                                                     \
+    int32_t iter_ = int32_t(size);                         \
+    while (--iter_ >= 0) freeFunc((array)[iter_]);         \
+    free((array));                                         \
+  } while (0)
 
 // convenience macros for commonly used calls.  mmmmm.  syntactic sugar.
 
@@ -85,8 +81,8 @@ public:
  *                  will not work if size >= 2^31.
  * @param array     The array to be freed.
  */
-#define NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(size, array)                    \
-    NS_FREE_XPCOM_POINTER_ARRAY((size), (array), free)
+#define NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(size, array) \
+  NS_FREE_XPCOM_POINTER_ARRAY((size), (array), free)
 
 /**
  * Macro to free an array of pointers to nsISupports (or classes
@@ -103,21 +99,20 @@ public:
  *                  will not work if size >= 2^31.
  * @param array     The array to be freed.
  */
-#define NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(size, array)                    \
-    NS_FREE_XPCOM_POINTER_ARRAY((size), (array), NS_IF_RELEASE)
+#define NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(size, array) \
+  NS_FREE_XPCOM_POINTER_ARRAY((size), (array), NS_IF_RELEASE)
 
 /**
  * A macro, NS_ALIGNMENT_OF(t_) that determines the alignment
  * requirements of a type.
  */
 namespace mozilla {
-template<class T>
-struct AlignmentTestStruct
-{
+template <class T>
+struct AlignmentTestStruct {
   char c;
   T t;
 };
-} // namespace mozilla
+}  // namespace mozilla
 
 #define NS_ALIGNMENT_OF(t_) \
   (sizeof(mozilla::AlignmentTestStruct<t_>) - sizeof(t_))
@@ -125,12 +120,10 @@ struct AlignmentTestStruct
 /**
  * An enumeration type used to represent a method of assignment.
  */
-enum nsAssignmentType
-{
-  NS_ASSIGNMENT_COPY,   // copy by value
-  NS_ASSIGNMENT_DEPEND, // copy by reference
-  NS_ASSIGNMENT_ADOPT   // copy by reference (take ownership of resource)
+enum nsAssignmentType {
+  NS_ASSIGNMENT_COPY,    // copy by value
+  NS_ASSIGNMENT_DEPEND,  // copy by reference
+  NS_ASSIGNMENT_ADOPT    // copy by reference (take ownership of resource)
 };
 
-#endif // nsMemory_h__
-
+#endif  // nsMemory_h__

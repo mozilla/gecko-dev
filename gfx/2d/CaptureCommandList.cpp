@@ -10,13 +10,12 @@
 namespace mozilla {
 namespace gfx {
 
-CaptureCommandList::~CaptureCommandList()
-{
+CaptureCommandList::~CaptureCommandList() {
   for (iterator iter(*this); !iter.Done(); iter.Next()) {
     DrawingCommand* cmd = iter.Get();
     cmd->~DrawingCommand();
   }
 }
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla

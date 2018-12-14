@@ -10,16 +10,15 @@
 
 namespace mozilla {
 namespace gfx {
-  class PrintTargetEMF;
+class PrintTargetEMF;
 }
-}
+}  // namespace mozilla
 
 namespace mozilla {
 namespace widget {
 
 class PDFiumParent final : public PPDFiumParent,
-                           public mozilla::ipc::IShmemAllocator
-{
+                           public mozilla::ipc::IShmemAllocator {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PDFiumParent)
 
   typedef mozilla::gfx::PrintTargetEMF PrintTargetEMF;
@@ -31,21 +30,21 @@ class PDFiumParent final : public PPDFiumParent,
   void EndConversion();
 
   FORWARD_SHMEM_ALLOCATOR_TO(PPDFiumParent)
-private:
+ private:
   ~PDFiumParent() {}
 
   // PPDFiumParent functions.
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  mozilla::ipc::IPCResult RecvConvertToEMFDone(const nsresult& aResult,
-                                               mozilla::ipc::Shmem&& aEMFContents) override;
+  mozilla::ipc::IPCResult RecvConvertToEMFDone(
+      const nsresult& aResult, mozilla::ipc::Shmem&& aEMFContents) override;
   void OnChannelConnected(int32_t pid) override;
   void DeallocPPDFiumParent() override;
 
   PrintTargetEMF* mTarget;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // PDFIUMPARENT_H_
+#endif  // PDFIUMPARENT_H_

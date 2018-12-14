@@ -35,15 +35,10 @@ namespace {
  * used.  ScopeStringPrefixMode allows the caller to specify the desired
  * behavior.
  */
-enum ScopeStringPrefixMode {
-  eUseDirectory,
-  eUsePath
-};
+enum ScopeStringPrefixMode { eUseDirectory, eUsePath };
 
-nsresult
-GetRequiredScopeStringPrefix(nsIURI* aScriptURI, nsACString& aPrefix,
-                             ScopeStringPrefixMode aPrefixMode)
-{
+nsresult GetRequiredScopeStringPrefix(nsIURI* aScriptURI, nsACString& aPrefix,
+                                      ScopeStringPrefixMode aPrefixMode) {
   nsresult rv = aScriptURI->GetPrePath(aPrefix);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -76,62 +71,46 @@ GetRequiredScopeStringPrefix(nsIURI* aScriptURI, nsACString& aPrefix,
   return NS_OK;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-class ServiceWorkerUpdateJob::CompareCallback final : public serviceWorkerScriptCache::CompareCallback
-{
+class ServiceWorkerUpdateJob::CompareCallback final
+    : public serviceWorkerScriptCache::CompareCallback {
   RefPtr<ServiceWorkerUpdateJob> mJob;
 
-  ~CompareCallback()
-  {
-  }
+  ~CompareCallback() {}
 
-public:
-  explicit CompareCallback(ServiceWorkerUpdateJob* aJob)
-    : mJob(aJob)
-  {
+ public:
+  explicit CompareCallback(ServiceWorkerUpdateJob* aJob) : mJob(aJob) {
     MOZ_ASSERT(mJob);
   }
 
-  virtual void
-  ComparisonResult(nsresult aStatus,
-                   bool aInCacheAndEqual,
-                   const nsAString& aNewCacheName,
-                   const nsACString& aMaxScope,
-                   nsLoadFlags aLoadFlags) override
-  {
-    mJob->ComparisonResult(aStatus,
-                           aInCacheAndEqual,
-                           aNewCacheName,
-                           aMaxScope,
+  virtual void ComparisonResult(nsresult aStatus, bool aInCacheAndEqual,
+                                const nsAString& aNewCacheName,
+                                const nsACString& aMaxScope,
+                                nsLoadFlags aLoadFlags) override {
+    mJob->ComparisonResult(aStatus, aInCacheAndEqual, aNewCacheName, aMaxScope,
                            aLoadFlags);
   }
 
   NS_INLINE_DECL_REFCOUNTING(ServiceWorkerUpdateJob::CompareCallback, override)
 };
 
-class ServiceWorkerUpdateJob::ContinueUpdateRunnable final : public LifeCycleEventCallback
-{
+class ServiceWorkerUpdateJob::ContinueUpdateRunnable final
+    : public LifeCycleEventCallback {
   nsMainThreadPtrHandle<ServiceWorkerUpdateJob> mJob;
   bool mSuccess;
 
-public:
-  explicit ContinueUpdateRunnable(const nsMainThreadPtrHandle<ServiceWorkerUpdateJob>& aJob)
-    : mJob(aJob)
-    , mSuccess(false)
-  {
+ public:
+  explicit ContinueUpdateRunnable(
+      const nsMainThreadPtrHandle<ServiceWorkerUpdateJob>& aJob)
+      : mJob(aJob), mSuccess(false) {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  void
-  SetResult(bool aResult) override
-  {
-    mSuccess = aResult;
-  }
+  void SetResult(bool aResult) override { mSuccess = aResult; }
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     MOZ_ASSERT(NS_IsMainThread());
     mJob->ContinueUpdateAfterScriptEval(mSuccess);
     mJob = nullptr;
@@ -139,28 +118,22 @@ public:
   }
 };
 
-class ServiceWorkerUpdateJob::ContinueInstallRunnable final : public LifeCycleEventCallback
-{
+class ServiceWorkerUpdateJob::ContinueInstallRunnable final
+    : public LifeCycleEventCallback {
   nsMainThreadPtrHandle<ServiceWorkerUpdateJob> mJob;
   bool mSuccess;
 
-public:
-  explicit ContinueInstallRunnable(const nsMainThreadPtrHandle<ServiceWorkerUpdateJob>& aJob)
-    : mJob(aJob)
-    , mSuccess(false)
-  {
+ public:
+  explicit ContinueInstallRunnable(
+      const nsMainThreadPtrHandle<ServiceWorkerUpdateJob>& aJob)
+      : mJob(aJob), mSuccess(false) {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  void
-  SetResult(bool aResult) override
-  {
-    mSuccess = aResult;
-  }
+  void SetResult(bool aResult) override { mSuccess = aResult; }
 
   NS_IMETHOD
-  Run() override
-  {
+  Run() override {
     MOZ_ASSERT(NS_IsMainThread());
     mJob->ContinueAfterInstallEvent(mSuccess);
     mJob = nullptr;
@@ -169,45 +142,31 @@ public:
 };
 
 ServiceWorkerUpdateJob::ServiceWorkerUpdateJob(
-    nsIPrincipal* aPrincipal,
-    const nsACString& aScope,
-    const nsACString& aScriptSpec,
-    nsILoadGroup* aLoadGroup,
+    nsIPrincipal* aPrincipal, const nsACString& aScope,
+    const nsACString& aScriptSpec, nsILoadGroup* aLoadGroup,
     ServiceWorkerUpdateViaCache aUpdateViaCache)
-  : ServiceWorkerJob(Type::Update, aPrincipal, aScope, aScriptSpec)
-  , mLoadGroup(aLoadGroup)
-  , mUpdateViaCache(aUpdateViaCache)
-{
-}
+    : ServiceWorkerJob(Type::Update, aPrincipal, aScope, aScriptSpec),
+      mLoadGroup(aLoadGroup),
+      mUpdateViaCache(aUpdateViaCache) {}
 
 already_AddRefed<ServiceWorkerRegistrationInfo>
-ServiceWorkerUpdateJob::GetRegistration() const
-{
+ServiceWorkerUpdateJob::GetRegistration() const {
   MOZ_ASSERT(NS_IsMainThread());
   RefPtr<ServiceWorkerRegistrationInfo> ref = mRegistration;
   return ref.forget();
 }
 
 ServiceWorkerUpdateJob::ServiceWorkerUpdateJob(
-    Type aType,
-    nsIPrincipal* aPrincipal,
-    const nsACString& aScope,
-    const nsACString& aScriptSpec,
-    nsILoadGroup* aLoadGroup,
+    Type aType, nsIPrincipal* aPrincipal, const nsACString& aScope,
+    const nsACString& aScriptSpec, nsILoadGroup* aLoadGroup,
     ServiceWorkerUpdateViaCache aUpdateViaCache)
-  : ServiceWorkerJob(aType, aPrincipal, aScope, aScriptSpec)
-  , mLoadGroup(aLoadGroup)
-  , mUpdateViaCache(aUpdateViaCache)
-{
-}
+    : ServiceWorkerJob(aType, aPrincipal, aScope, aScriptSpec),
+      mLoadGroup(aLoadGroup),
+      mUpdateViaCache(aUpdateViaCache) {}
 
-ServiceWorkerUpdateJob::~ServiceWorkerUpdateJob()
-{
-}
+ServiceWorkerUpdateJob::~ServiceWorkerUpdateJob() {}
 
-void
-ServiceWorkerUpdateJob::FailUpdateJob(ErrorResult& aRv)
-{
+void ServiceWorkerUpdateJob::FailUpdateJob(ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aRv.Failed());
 
@@ -234,16 +193,12 @@ ServiceWorkerUpdateJob::FailUpdateJob(ErrorResult& aRv)
   Finish(aRv);
 }
 
-void
-ServiceWorkerUpdateJob::FailUpdateJob(nsresult aRv)
-{
+void ServiceWorkerUpdateJob::FailUpdateJob(nsresult aRv) {
   ErrorResult rv(aRv);
   FailUpdateJob(rv);
 }
 
-void
-ServiceWorkerUpdateJob::AsyncExecute()
-{
+void ServiceWorkerUpdateJob::AsyncExecute() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(GetType() == Type::Update);
 
@@ -258,12 +213,12 @@ ServiceWorkerUpdateJob::AsyncExecute()
   //  https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#update-algorithm
 
   RefPtr<ServiceWorkerRegistrationInfo> registration =
-    swm->GetRegistration(mPrincipal, mScope);
+      swm->GetRegistration(mPrincipal, mScope);
 
   if (!registration || registration->IsPendingUninstall()) {
     ErrorResult rv;
-    rv.ThrowTypeError<MSG_SW_UPDATE_BAD_REGISTRATION>(NS_ConvertUTF8toUTF16(mScope),
-                                                      NS_LITERAL_STRING("uninstalled"));
+    rv.ThrowTypeError<MSG_SW_UPDATE_BAD_REGISTRATION>(
+        NS_ConvertUTF8toUTF16(mScope), NS_LITERAL_STRING("uninstalled"));
     FailUpdateJob(rv);
     return;
   }
@@ -274,8 +229,8 @@ ServiceWorkerUpdateJob::AsyncExecute()
   RefPtr<ServiceWorkerInfo> newest = registration->Newest();
   if (newest && !mScriptSpec.Equals(newest->ScriptSpec())) {
     ErrorResult rv;
-    rv.ThrowTypeError<MSG_SW_UPDATE_BAD_REGISTRATION>(NS_ConvertUTF8toUTF16(mScope),
-                                                      NS_LITERAL_STRING("changed"));
+    rv.ThrowTypeError<MSG_SW_UPDATE_BAD_REGISTRATION>(
+        NS_ConvertUTF8toUTF16(mScope), NS_LITERAL_STRING("changed"));
     FailUpdateJob(rv);
     return;
   }
@@ -284,9 +239,8 @@ ServiceWorkerUpdateJob::AsyncExecute()
   Update();
 }
 
-void
-ServiceWorkerUpdateJob::SetRegistration(ServiceWorkerRegistrationInfo* aRegistration)
-{
+void ServiceWorkerUpdateJob::SetRegistration(
+    ServiceWorkerRegistrationInfo* aRegistration) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MOZ_ASSERT(!mRegistration);
@@ -294,9 +248,7 @@ ServiceWorkerUpdateJob::SetRegistration(ServiceWorkerRegistrationInfo* aRegistra
   mRegistration = aRegistration;
 }
 
-void
-ServiceWorkerUpdateJob::Update()
-{
+void ServiceWorkerUpdateJob::Update() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!Canceled());
 
@@ -318,29 +270,24 @@ ServiceWorkerUpdateJob::Update()
 
   RefPtr<CompareCallback> callback = new CompareCallback(this);
 
-  nsresult rv =
-    serviceWorkerScriptCache::Compare(mRegistration, mPrincipal, cacheName,
-                                      NS_ConvertUTF8toUTF16(mScriptSpec),
-                                      callback, mLoadGroup);
+  nsresult rv = serviceWorkerScriptCache::Compare(
+      mRegistration, mPrincipal, cacheName, NS_ConvertUTF8toUTF16(mScriptSpec),
+      callback, mLoadGroup);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     FailUpdateJob(rv);
     return;
   }
 }
 
-ServiceWorkerUpdateViaCache
-ServiceWorkerUpdateJob::GetUpdateViaCache() const
-{
+ServiceWorkerUpdateViaCache ServiceWorkerUpdateJob::GetUpdateViaCache() const {
   return mUpdateViaCache;
 }
 
-void
-ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
-                                         bool aInCacheAndEqual,
-                                         const nsAString& aNewCacheName,
-                                         const nsACString& aMaxScope,
-                                         nsLoadFlags aLoadFlags)
-{
+void ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
+                                              bool aInCacheAndEqual,
+                                              const nsAString& aNewCacheName,
+                                              const nsACString& aMaxScope,
+                                              nsLoadFlags aLoadFlags) {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
@@ -374,8 +321,7 @@ ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
 
   nsCOMPtr<nsIURI> maxScopeURI;
   if (!aMaxScope.IsEmpty()) {
-    rv = NS_NewURI(getter_AddRefs(maxScopeURI), aMaxScope,
-                   nullptr, scriptURI);
+    rv = NS_NewURI(getter_AddRefs(maxScopeURI), aMaxScope, nullptr, scriptURI);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       FailUpdateJob(NS_ERROR_DOM_SECURITY_ERR);
       return;
@@ -403,16 +349,13 @@ ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
     nsAutoString message;
     NS_ConvertUTF8toUTF16 reportScope(mRegistration->Scope());
     NS_ConvertUTF8toUTF16 reportMaxPrefix(maxPrefix);
-    const char16_t* params[] = { reportScope.get(), reportMaxPrefix.get() };
+    const char16_t* params[] = {reportScope.get(), reportMaxPrefix.get()};
 
     rv = nsContentUtils::FormatLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                                "ServiceWorkerScopePathMismatch",
                                                params, message);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "Failed to format localized string");
-    swm->ReportToAllClients(mScope,
-                            message,
-                            EmptyString(),
-                            EmptyString(), 0, 0,
+    swm->ReportToAllClients(mScope, message, EmptyString(), EmptyString(), 0, 0,
                             nsIScriptError::errorFlag);
     FailUpdateJob(NS_ERROR_DOM_SECURITY_ERR);
     return;
@@ -434,17 +377,14 @@ ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
   }
 
   RefPtr<ServiceWorkerInfo> sw =
-    new ServiceWorkerInfo(mRegistration->Principal(),
-                          mRegistration->Scope(),
-                          mScriptSpec,
-                          aNewCacheName,
-                          flags);
+      new ServiceWorkerInfo(mRegistration->Principal(), mRegistration->Scope(),
+                            mScriptSpec, aNewCacheName, flags);
 
   mRegistration->SetEvaluating(sw);
 
   nsMainThreadPtrHandle<ServiceWorkerUpdateJob> handle(
       new nsMainThreadPtrHolder<ServiceWorkerUpdateJob>(
-        "ServiceWorkerUpdateJob", this));
+          "ServiceWorkerUpdateJob", this));
   RefPtr<LifeCycleEventCallback> callback = new ContinueUpdateRunnable(handle);
 
   ServiceWorkerPrivate* workerPrivate = sw->WorkerPrivate();
@@ -457,9 +397,8 @@ ServiceWorkerUpdateJob::ComparisonResult(nsresult aStatus,
   }
 }
 
-void
-ServiceWorkerUpdateJob::ContinueUpdateAfterScriptEval(bool aScriptEvaluationResult)
-{
+void ServiceWorkerUpdateJob::ContinueUpdateAfterScriptEval(
+    bool aScriptEvaluationResult) {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
@@ -484,9 +423,7 @@ ServiceWorkerUpdateJob::ContinueUpdateAfterScriptEval(bool aScriptEvaluationResu
   Install(swm);
 }
 
-void
-ServiceWorkerUpdateJob::Install(ServiceWorkerManager* aSWM)
-{
+void ServiceWorkerUpdateJob::Install(ServiceWorkerManager* aSWM) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!Canceled());
   MOZ_DIAGNOSTIC_ASSERT(aSWM);
@@ -507,30 +444,28 @@ ServiceWorkerUpdateJob::Install(ServiceWorkerManager* aSWM)
 
   // fire the updatefound event
   nsCOMPtr<nsIRunnable> upr =
-    NewRunnableMethod<RefPtr<ServiceWorkerRegistrationInfo>>(
-      "dom::ServiceWorkerManager::"
-      "FireUpdateFoundOnServiceWorkerRegistrations",
-      aSWM,
-      &ServiceWorkerManager::FireUpdateFoundOnServiceWorkerRegistrations,
-      mRegistration);
+      NewRunnableMethod<RefPtr<ServiceWorkerRegistrationInfo>>(
+          "dom::ServiceWorkerManager::"
+          "FireUpdateFoundOnServiceWorkerRegistrations",
+          aSWM,
+          &ServiceWorkerManager::FireUpdateFoundOnServiceWorkerRegistrations,
+          mRegistration);
   NS_DispatchToMainThread(upr);
 
   // Call ContinueAfterInstallEvent(false) on main thread if the SW
   // script fails to load.
   nsCOMPtr<nsIRunnable> failRunnable = NewRunnableMethod<bool>(
-    "dom::ServiceWorkerUpdateJob::ContinueAfterInstallEvent",
-    this,
-    &ServiceWorkerUpdateJob::ContinueAfterInstallEvent,
-    false);
+      "dom::ServiceWorkerUpdateJob::ContinueAfterInstallEvent", this,
+      &ServiceWorkerUpdateJob::ContinueAfterInstallEvent, false);
 
   nsMainThreadPtrHandle<ServiceWorkerUpdateJob> handle(
-    new nsMainThreadPtrHolder<ServiceWorkerUpdateJob>(
-      "ServiceWorkerUpdateJob", this));
+      new nsMainThreadPtrHolder<ServiceWorkerUpdateJob>(
+          "ServiceWorkerUpdateJob", this));
   RefPtr<LifeCycleEventCallback> callback = new ContinueInstallRunnable(handle);
 
   // Send the install event to the worker thread
   ServiceWorkerPrivate* workerPrivate =
-    mRegistration->GetInstalling()->WorkerPrivate();
+      mRegistration->GetInstalling()->WorkerPrivate();
   nsresult rv = workerPrivate->SendLifeCycleEvent(NS_LITERAL_STRING("install"),
                                                   callback, failRunnable);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -538,9 +473,8 @@ ServiceWorkerUpdateJob::Install(ServiceWorkerManager* aSWM)
   }
 }
 
-void
-ServiceWorkerUpdateJob::ContinueAfterInstallEvent(bool aInstallEventSuccess)
-{
+void ServiceWorkerUpdateJob::ContinueAfterInstallEvent(
+    bool aInstallEventSuccess) {
   if (Canceled()) {
     return FailUpdateJob(NS_ERROR_DOM_ABORT_ERR);
   }
@@ -567,15 +501,15 @@ ServiceWorkerUpdateJob::ContinueAfterInstallEvent(bool aInstallEventSuccess)
 
   Finish(NS_OK);
 
-  // Step 20 calls for explicitly waiting for queued event tasks to fire.  Instead,
-  // we simply queue a runnable to execute Activate.  This ensures the events are
-  // flushed from the queue before proceeding.
+  // Step 20 calls for explicitly waiting for queued event tasks to fire.
+  // Instead, we simply queue a runnable to execute Activate.  This ensures the
+  // events are flushed from the queue before proceeding.
 
-  // Step 22 of the Install algorithm.  Activate is executed after the completion
-  // of this job.  The controlling client and skipWaiting checks are performed
-  // in TryToActivate().
+  // Step 22 of the Install algorithm.  Activate is executed after the
+  // completion of this job.  The controlling client and skipWaiting checks are
+  // performed in TryToActivate().
   mRegistration->TryToActivateAsync();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

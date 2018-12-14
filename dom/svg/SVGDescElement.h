@@ -10,30 +10,30 @@
 #include "mozilla/Attributes.h"
 #include "nsSVGElement.h"
 
-nsresult NS_NewSVGDescElement(nsIContent **aResult,
-                              already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGDescElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 typedef nsSVGElement SVGDescElementBase;
 
 namespace mozilla {
 namespace dom {
 
-class SVGDescElement final : public SVGDescElementBase
-{
-protected:
-  friend nsresult (::NS_NewSVGDescElement(nsIContent **aResult,
-                                          already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+class SVGDescElement final : public SVGDescElementBase {
+ protected:
+  friend nsresult(::NS_NewSVGDescElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGDescElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-public:
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+ public:
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGDescElement_h
-
+#endif  // mozilla_dom_SVGDescElement_h

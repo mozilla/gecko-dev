@@ -18,12 +18,11 @@
 class nsIContent;
 class nsSVGUseFrame;
 
-nsresult
-NS_NewSVGSVGElement(nsIContent **aResult,
-                    already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
-                    mozilla::dom::FromParser aFromParser);
-nsresult NS_NewSVGUseElement(nsIContent **aResult,
-                             already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGSVGElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
+    mozilla::dom::FromParser aFromParser);
+nsresult NS_NewSVGUseElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 struct URLExtraData;
@@ -33,17 +32,19 @@ namespace dom {
 typedef SVGGraphicsElement SVGUseElementBase;
 
 class SVGUseElement final : public SVGUseElementBase,
-                            public nsStubMutationObserver
-{
+                            public nsStubMutationObserver {
   friend class ::nsSVGUseFrame;
-protected:
-  friend nsresult (::NS_NewSVGUseElement(nsIContent **aResult,
-                                         already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+
+ protected:
+  friend nsresult(::NS_NewSVGUseElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGUseElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~SVGUseElement();
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-public:
+ public:
   // interfaces:
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -61,12 +62,12 @@ public:
 
   // nsSVGElement specializations:
   virtual gfxMatrix PrependLocalTransformsTo(
-    const gfxMatrix &aMatrix,
-    SVGTransformTypes aWhich = eAllTransforms) const override;
+      const gfxMatrix& aMatrix,
+      SVGTransformTypes aWhich = eAllTransforms) const override;
   virtual bool HasValidDimensions() const override;
 
   // nsIContent interface
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
@@ -80,7 +81,7 @@ public:
   nsIURI* GetSourceDocURI();
   URLExtraData* GetContentURLData() const { return mContentURLData; }
 
-protected:
+ protected:
   /**
    * Helper that provides a reference to the element with the ID that is
    * referenced by the 'use' element's 'href' attribute, and that will update
@@ -88,11 +89,11 @@ protected:
    * different element (or none).
    */
   class ElementTracker final : public IDTracker {
-  public:
+   public:
     explicit ElementTracker(SVGUseElement* aOwningUseElement)
-      : mOwningUseElement(aOwningUseElement)
-    {}
-  protected:
+        : mOwningUseElement(aOwningUseElement) {}
+
+   protected:
     virtual void ElementChanged(Element* aFrom, Element* aTo) override {
       IDTracker::ElementChanged(aFrom, aTo);
       if (aFrom) {
@@ -100,7 +101,8 @@ protected:
       }
       mOwningUseElement->TriggerReclone();
     }
-  private:
+
+   private:
     SVGUseElement* mOwningUseElement;
   };
 
@@ -115,7 +117,7 @@ protected:
    * element that we're referencing.
    */
   bool OurWidthAndHeightAreUsed() const;
-  void SyncWidthOrHeight(nsAtom *aName);
+  void SyncWidthOrHeight(nsAtom* aName);
   void LookupHref();
   void TriggerReclone();
   void UnlinkSource();
@@ -128,12 +130,12 @@ protected:
   nsSVGString mStringAttributes[2];
   static StringInfo sStringInfo[2];
 
-  nsCOMPtr<nsIContent> mOriginal; // if we've been cloned, our "real" copy
-  ElementTracker       mReferencedElementTracker;
-  RefPtr<URLExtraData> mContentURLData; // URL data for its anonymous content
+  nsCOMPtr<nsIContent> mOriginal;  // if we've been cloned, our "real" copy
+  ElementTracker mReferencedElementTracker;
+  RefPtr<URLExtraData> mContentURLData;  // URL data for its anonymous content
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGUseElement_h
+#endif  // mozilla_dom_SVGUseElement_h

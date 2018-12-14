@@ -20,8 +20,7 @@ namespace mozilla {
 class TaskQueue;
 class Benchmark;
 
-class BenchmarkPlayback : public QueueObject
-{
+class BenchmarkPlayback : public QueueObject {
   friend class Benchmark;
   BenchmarkPlayback(Benchmark* aMainThreadState, MediaDataDemuxer* aDemuxer);
   void DemuxSamples();
@@ -50,30 +49,22 @@ class BenchmarkPlayback : public QueueObject
 
 // Init() must have been called at least once prior on the
 // main thread.
-class Benchmark : public QueueObject
-{
-public:
+class Benchmark : public QueueObject {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Benchmark)
 
-  struct Parameters
-  {
+  struct Parameters {
     Parameters()
-      : mFramesToMeasure(-1)
-      , mStartupFrame(1)
-      , mTimeout(TimeDuration::Forever())
-    {
-    }
+        : mFramesToMeasure(-1),
+          mStartupFrame(1),
+          mTimeout(TimeDuration::Forever()) {}
 
-    Parameters(int32_t aFramesToMeasure,
-               uint32_t aStartupFrame,
-               int32_t aStopAtFrame,
-               const TimeDuration& aTimeout)
-      : mFramesToMeasure(aFramesToMeasure)
-      , mStartupFrame(aStartupFrame)
-      , mStopAtFrame(Some(aStopAtFrame))
-      , mTimeout(aTimeout)
-    {
-    }
+    Parameters(int32_t aFramesToMeasure, uint32_t aStartupFrame,
+               int32_t aStopAtFrame, const TimeDuration& aTimeout)
+        : mFramesToMeasure(aFramesToMeasure),
+          mStartupFrame(aStartupFrame),
+          mStopAtFrame(Some(aStopAtFrame)),
+          mTimeout(aTimeout) {}
 
     const int32_t mFramesToMeasure;
     const uint32_t mStartupFrame;
@@ -89,7 +80,7 @@ public:
 
   static void Init();
 
-private:
+ private:
   friend class BenchmarkPlayback;
   virtual ~Benchmark();
   void ReturnResult(uint32_t aDecodeFps);
@@ -100,15 +91,14 @@ private:
   MozPromiseHolder<BenchmarkPromise> mPromise;
 };
 
-class VP9Benchmark
-{
-public:
+class VP9Benchmark {
+ public:
   static bool IsVP9DecodeFast();
   static const char* sBenchmarkFpsPref;
   static const char* sBenchmarkFpsVersionCheck;
   static const uint32_t sBenchmarkVersionID;
   static bool sHasRunTest;
 };
-}
+}  // namespace mozilla
 
 #endif

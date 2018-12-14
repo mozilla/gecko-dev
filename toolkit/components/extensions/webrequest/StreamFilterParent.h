@@ -20,32 +20,30 @@
 #include "nsThreadUtils.h"
 
 #if defined(_MSC_VER)
-#  define FUNC __FUNCSIG__
+#define FUNC __FUNCSIG__
 #else
-#  define FUNC __PRETTY_FUNCTION__
+#define FUNC __PRETTY_FUNCTION__
 #endif
 
 namespace mozilla {
 namespace dom {
-  class ContentParent;
+class ContentParent;
 }
 namespace net {
-  class ChannelEventQueue;
-  class nsHttpChannel;
-}
+class ChannelEventQueue;
+class nsHttpChannel;
+}  // namespace net
 
 namespace extensions {
 
 using namespace mozilla::dom;
 using mozilla::ipc::IPCResult;
 
-class StreamFilterParent final
-  : public PStreamFilterParent
-  , public nsIStreamListener
-  , public nsIThreadRetargetableStreamListener
-  , public StreamFilterBase
-{
-public:
+class StreamFilterParent final : public PStreamFilterParent,
+                                 public nsIStreamListener,
+                                 public nsIThreadRetargetableStreamListener,
+                                 public StreamFilterBase {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSIREQUESTOBSERVER
@@ -55,14 +53,13 @@ public:
 
   using ParentEndpoint = mozilla::ipc::Endpoint<PStreamFilterParent>;
 
-  static bool Create(ContentParent* aContentParent,
-                     uint64_t aChannelId, const nsAString& aAddonId,
+  static bool Create(ContentParent* aContentParent, uint64_t aChannelId,
+                     const nsAString& aAddonId,
                      mozilla::ipc::Endpoint<PStreamFilterChild>* aEndpoint);
 
   static void Attach(nsIChannel* aChannel, ParentEndpoint&& aEndpoint);
 
-  enum class State
-  {
+  enum class State {
     // The parent has been created, but not yet constructed by the child.
     Uninitialized,
     // The parent has been successfully constructed.
@@ -84,7 +81,7 @@ public:
     Disconnected,
   };
 
-protected:
+ protected:
   virtual ~StreamFilterParent();
 
   virtual IPCResult RecvWrite(Data&& aData) override;
@@ -97,11 +94,9 @@ protected:
 
   virtual void DeallocPStreamFilterParent() override;
 
-private:
-  bool IPCActive()
-  {
-    return (mState != State::Closed &&
-            mState != State::Disconnecting &&
+ private:
+  bool IPCActive() {
+    return (mState != State::Closed && mState != State::Disconnecting &&
             mState != State::Disconnected);
   }
 
@@ -125,9 +120,7 @@ private:
 
   void Broken();
 
-  void
-  CheckResult(bool aResult)
-  {
+  void CheckResult(bool aResult) {
     if (NS_WARN_IF(!aResult)) {
       Broken();
     }
@@ -145,21 +138,17 @@ private:
 
   inline void AssertIsIOThread();
 
-  static void
-  AssertIsMainThread()
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-  }
+  static void AssertIsMainThread() { MOZ_ASSERT(NS_IsMainThread()); }
 
-  template<typename Function>
+  template <typename Function>
   void RunOnMainThread(const char* aName, Function&& aFunc);
 
   void RunOnMainThread(already_AddRefed<Runnable> aRunnable);
 
-  template<typename Function>
+  template <typename Function>
   void RunOnActorThread(const char* aName, Function&& aFunc);
 
-  template<typename Function>
+  template <typename Function>
   void RunOnIOThread(const char* aName, Function&& aFunc);
 
   void RunOnIOThread(already_AddRefed<Runnable>);
@@ -184,7 +173,7 @@ private:
   volatile State mState;
 };
 
-} // namespace extensions
-} // namespace mozilla
+}  // namespace extensions
+}  // namespace mozilla
 
-#endif // mozilla_extensions_StreamFilterParent_h
+#endif  // mozilla_extensions_StreamFilterParent_h

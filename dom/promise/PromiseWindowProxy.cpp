@@ -14,10 +14,9 @@
 using namespace mozilla;
 using namespace dom;
 
-
-PromiseWindowProxy::PromiseWindowProxy(nsPIDOMWindowInner* aWindow, Promise* aPromise)
-  : mPromise(aPromise)
-{
+PromiseWindowProxy::PromiseWindowProxy(nsPIDOMWindowInner* aWindow,
+                                       Promise* aPromise)
+    : mPromise(aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(aWindow && aPromise);
   auto* window = nsGlobalWindowInner::Cast(aWindow);
@@ -25,8 +24,7 @@ PromiseWindowProxy::PromiseWindowProxy(nsPIDOMWindowInner* aWindow, Promise* aPr
   window->AddPendingPromise(aPromise);
 }
 
-PromiseWindowProxy::~PromiseWindowProxy()
-{
+PromiseWindowProxy::~PromiseWindowProxy() {
   MOZ_ASSERT(NS_IsMainThread());
   nsCOMPtr<nsPIDOMWindowInner> window = GetWindow();
   if (window && mPromise) {
@@ -34,9 +32,7 @@ PromiseWindowProxy::~PromiseWindowProxy()
   }
 }
 
-RefPtr<Promise>
-PromiseWindowProxy::Get() const
-{
+RefPtr<Promise> PromiseWindowProxy::Get() const {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mPromise) {
     return nullptr;
@@ -45,9 +41,7 @@ PromiseWindowProxy::Get() const
   return promise;
 }
 
-nsCOMPtr<nsPIDOMWindowInner>
-PromiseWindowProxy::GetWindow() const
-{
+nsCOMPtr<nsPIDOMWindowInner> PromiseWindowProxy::GetWindow() const {
   MOZ_ASSERT(NS_IsMainThread());
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(mWindow);
   return window;

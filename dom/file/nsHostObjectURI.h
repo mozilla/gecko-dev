@@ -19,25 +19,20 @@
 #include "nsIIPCSerializableURI.h"
 #include "nsWeakReference.h"
 
-
 /**
  * These URIs refer to host objects: Blobs, with scheme "blob",
  * MediaStreams, with scheme "mediastream", and MediaSources, with scheme
  * "mediasource".
  */
-class nsHostObjectURI final
-  : public mozilla::net::nsSimpleURI
-  , public nsIURIWithPrincipal
-  , public nsIURIWithBlobImpl
-  , public nsSupportsWeakReference
-{
-public:
-  nsHostObjectURI(nsIPrincipal* aPrincipal,
-                  mozilla::dom::BlobImpl* aBlobImpl)
-    : mozilla::net::nsSimpleURI()
-    , mPrincipal(aPrincipal)
-    , mBlobImpl(aBlobImpl)
-  {}
+class nsHostObjectURI final : public mozilla::net::nsSimpleURI,
+                              public nsIURIWithPrincipal,
+                              public nsIURIWithBlobImpl,
+                              public nsSupportsWeakReference {
+ public:
+  nsHostObjectURI(nsIPrincipal* aPrincipal, mozilla::dom::BlobImpl* aBlobImpl)
+      : mozilla::net::nsSimpleURI(),
+        mPrincipal(aPrincipal),
+        mBlobImpl(aBlobImpl) {}
 
   // For use only from deserialization
   nsHostObjectURI() : mozilla::net::nsSimpleURI() {}
@@ -58,61 +53,56 @@ public:
                                   bool* aResult) override;
 
   // Override StartClone to hand back a nsHostObjectURI
-  virtual mozilla::net::nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode,
-                                                const nsACString& newRef) override
-  {
+  virtual mozilla::net::nsSimpleURI* StartClone(
+      RefHandlingEnum refHandlingMode, const nsACString& newRef) override {
     nsHostObjectURI* url = new nsHostObjectURI();
     SetRefOnClone(url, refHandlingMode, newRef);
     return url;
   }
 
-  NS_IMETHOD Mutate(nsIURIMutator * *_retval) override;
+  NS_IMETHOD Mutate(nsIURIMutator** _retval) override;
 
   void ForgetBlobImpl();
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
   RefPtr<mozilla::dom::BlobImpl> mBlobImpl;
 
-protected:
+ protected:
   virtual ~nsHostObjectURI() {}
 
-  nsresult SetScheme(const nsACString &aProtocol) override;
+  nsresult SetScheme(const nsACString& aProtocol) override;
   bool Deserialize(const mozilla::ipc::URIParams&);
 
-public:
-  class Mutator final
-    : public nsIURIMutator
-    , public BaseURIMutator<nsHostObjectURI>
-    , public nsIBlobURIMutator
-    , public nsIPrincipalURIMutator
-  {
+ public:
+  class Mutator final : public nsIURIMutator,
+                        public BaseURIMutator<nsHostObjectURI>,
+                        public nsIBlobURIMutator,
+                        public nsIPrincipalURIMutator {
     NS_DECL_ISUPPORTS
     NS_FORWARD_SAFE_NSIURISETTERS_RET(mURI)
     NS_DEFINE_NSIMUTATOR_COMMON
 
     MOZ_MUST_USE NS_IMETHOD
-    SetBlobImpl(mozilla::dom::BlobImpl *aBlobImpl) override
-    {
-        if (!mURI) {
-            return NS_ERROR_NULL_POINTER;
-        }
-        mURI->mBlobImpl = aBlobImpl;
-        return NS_OK;
+    SetBlobImpl(mozilla::dom::BlobImpl* aBlobImpl) override {
+      if (!mURI) {
+        return NS_ERROR_NULL_POINTER;
+      }
+      mURI->mBlobImpl = aBlobImpl;
+      return NS_OK;
     }
 
-    MOZ_MUST_USE NS_IMETHOD
-    SetPrincipal(nsIPrincipal *aPrincipal) override
-    {
-        if (!mURI) {
-            return NS_ERROR_NULL_POINTER;
-        }
-        mURI->mPrincipal = aPrincipal;
-        return NS_OK;
+    MOZ_MUST_USE NS_IMETHOD SetPrincipal(nsIPrincipal* aPrincipal) override {
+      if (!mURI) {
+        return NS_ERROR_NULL_POINTER;
+      }
+      mURI->mPrincipal = aPrincipal;
+      return NS_OK;
     }
 
-    explicit Mutator() { }
-  private:
-    virtual ~Mutator() { }
+    explicit Mutator() {}
+
+   private:
+    virtual ~Mutator() {}
 
     friend class nsHostObjectURI;
   };
@@ -120,8 +110,11 @@ public:
   friend BaseURIMutator<nsHostObjectURI>;
 };
 
-#define NS_HOSTOBJECTURI_CID \
-{ 0xf5475c51, 0x59a7, 0x4757, \
-  { 0xb3, 0xd9, 0xe2, 0x11, 0xa9, 0x41, 0x08, 0x72 } }
+#define NS_HOSTOBJECTURI_CID                         \
+  {                                                  \
+    0xf5475c51, 0x59a7, 0x4757, {                    \
+      0xb3, 0xd9, 0xe2, 0x11, 0xa9, 0x41, 0x08, 0x72 \
+    }                                                \
+  }
 
 #endif /* nsHostObjectURI_h */

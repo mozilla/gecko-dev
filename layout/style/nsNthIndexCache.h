@@ -13,8 +13,8 @@ class nsIContent;
 namespace mozilla {
 namespace dom {
 class Element;
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 /*
  * A class that computes and caches the indices used for :nth-* pseudo-class
@@ -22,10 +22,10 @@ class Element;
  */
 
 class nsNthIndexCache {
-private:
+ private:
   typedef mozilla::dom::Element Element;
 
-public:
+ public:
   /**
    * Constructor and destructor out of line so that we don't try to
    * instantiate the hashtable template all over the place.
@@ -45,7 +45,7 @@ public:
 
   void Reset();
 
-private:
+ private:
   /**
    * Returns true if aSibling and aElement should be considered in the same
    * list for nth-index purposes, taking aIsOfType into account.
@@ -60,27 +60,28 @@ private:
   typedef int32_t CacheEntry;
 
   class SystemAllocPolicy {
-  public:
-    void *malloc_(size_t bytes) { return ::malloc(bytes); }
+   public:
+    void* malloc_(size_t bytes) { return ::malloc(bytes); }
 
     template <typename T>
-    T *maybe_pod_calloc(size_t numElems) {
-      return static_cast<T *>(::calloc(numElems, sizeof(T)));
+    T* maybe_pod_calloc(size_t numElems) {
+      return static_cast<T*>(::calloc(numElems, sizeof(T)));
     }
 
     template <typename T>
-    T *pod_calloc(size_t numElems) {
+    T* pod_calloc(size_t numElems) {
       return maybe_pod_calloc<T>(numElems);
     }
 
-    void *realloc_(void *p, size_t bytes) { return ::realloc(p, bytes); }
-    void free_(void *p) { ::free(p); }
+    void* realloc_(void* p, size_t bytes) { return ::realloc(p, bytes); }
+    void free_(void* p) { ::free(p); }
     void reportAllocOverflow() const {}
     bool checkSimulatedOOM() const { return true; }
   };
 
   typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,
-                      SystemAllocPolicy> Cache;
+                      SystemAllocPolicy>
+      Cache;
 
   /**
    * Returns true if aResult has been set to the correct value for aChild and
@@ -93,12 +94,9 @@ private:
    * elements in the closed range [aSibling, aChild] that match aChild
    * otherwise.
    */
-  inline bool IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
-                                                 Element* aChild,
-                                                 bool aIsOfType,
-                                                 bool aIsFromEnd,
-                                                 const Cache& aCache,
-                                                 int32_t& aResult);
+  inline bool IndexDeterminedFromPreviousSibling(
+      nsIContent* aSibling, Element* aChild, bool aIsOfType, bool aIsFromEnd,
+      const Cache& aCache, int32_t& aResult);
 
   // Caches of indices for :nth-child(), :nth-last-child(),
   // :nth-of-type(), :nth-last-of-type(), keyed by Element*.

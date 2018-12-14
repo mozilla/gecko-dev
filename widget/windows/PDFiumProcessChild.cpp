@@ -19,15 +19,15 @@ namespace mozilla {
 namespace widget {
 
 PDFiumProcessChild::PDFiumProcessChild(ProcessId aParentPid)
-  : ProcessChild(aParentPid)
+    : ProcessChild(aParentPid)
 #if defined(MOZ_SANDBOX)
-  , mPDFium(nullptr)
+      ,
+      mPDFium(nullptr)
 #endif
 {
 }
 
-PDFiumProcessChild::~PDFiumProcessChild()
-{
+PDFiumProcessChild::~PDFiumProcessChild() {
 #if defined(MOZ_SANDBOX)
   if (mPDFium) {
     PR_UnloadLibrary(mPDFium);
@@ -35,9 +35,7 @@ PDFiumProcessChild::~PDFiumProcessChild()
 #endif
 }
 
-bool
-PDFiumProcessChild::Init(int aArgc, char* aArgv[])
-{
+bool PDFiumProcessChild::Init(int aArgc, char* aArgv[]) {
   BackgroundHangMonitor::Startup();
 
 #if defined(MOZ_SANDBOX)
@@ -53,17 +51,13 @@ PDFiumProcessChild::Init(int aArgc, char* aArgv[])
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #endif
 
-  mPDFiumActor.Init(ParentPid(),IOThreadChild::message_loop(),
+  mPDFiumActor.Init(ParentPid(), IOThreadChild::message_loop(),
                     IOThreadChild::channel());
 
   return true;
 }
 
-void
-PDFiumProcessChild::CleanUp()
-{
-  BackgroundHangMonitor::Shutdown();
-}
+void PDFiumProcessChild::CleanUp() { BackgroundHangMonitor::Shutdown(); }
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla

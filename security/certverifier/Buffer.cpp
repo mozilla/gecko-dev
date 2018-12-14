@@ -8,17 +8,12 @@
 
 namespace mozilla {
 
-bool
-operator==(const ct::Buffer& a, const ct::Buffer& b)
-{
+bool operator==(const ct::Buffer& a, const ct::Buffer& b) {
   return (a.empty() && b.empty()) ||
-    (a.length() == b.length() && memcmp(a.begin(), b.begin(), a.length()) == 0);
+         (a.length() == b.length() &&
+          memcmp(a.begin(), b.begin(), a.length()) == 0);
 }
 
-bool
-operator!=(const ct::Buffer& a, const ct::Buffer& b)
-{
-  return !(a == b);
-}
+bool operator!=(const ct::Buffer& a, const ct::Buffer& b) { return !(a == b); }
 
-} // namespace mozilla
+}  // namespace mozilla

@@ -19,9 +19,8 @@ namespace dom {
 
 class HTMLLinkElement final : public nsGenericHTMLElement,
                               public nsStyleLinkElement,
-                              public Link
-{
-public:
+                              public Link {
+ public:
   explicit HTMLLinkElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   // nsISupports
@@ -39,14 +38,14 @@ public:
 
   // nsIDOMEventTarget
   virtual nsresult GetEventTargetParent(
-                     EventChainPreVisitor& aVisitor) override;
-  virtual nsresult PostHandleEvent(
-                     EventChainPostVisitor& aVisitor) override;
+      EventChainPreVisitor& aVisitor) override;
+  virtual nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) override;
 
   // nsINode
   virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIContent
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -66,8 +65,7 @@ public:
   virtual already_AddRefed<nsIURI> GetHrefURI() const override;
 
   // Element
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                              nsAtom* aAttribute,
+  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                               const nsAString& aValue,
                               nsIPrincipal* aMaybeScriptedPrincipal,
                               nsAttrValue& aResult) override;
@@ -84,140 +82,102 @@ public:
   bool Disabled();
   void SetDisabled(bool aDisabled);
 
-  void GetHref(nsAString& aValue)
-  {
+  void GetHref(nsAString& aValue) {
     GetURIAttr(nsGkAtoms::href, nullptr, aValue);
   }
-  void SetHref(const nsAString& aHref, nsIPrincipal* aTriggeringPrincipal, ErrorResult& aRv)
-  {
+  void SetHref(const nsAString& aHref, nsIPrincipal* aTriggeringPrincipal,
+               ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::href, aHref, aTriggeringPrincipal, aRv);
   }
-  void SetHref(const nsAString& aHref, ErrorResult& aRv)
-  {
+  void SetHref(const nsAString& aHref, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::href, aHref, aRv);
   }
-  void GetCrossOrigin(nsAString& aResult)
-  {
+  void GetCrossOrigin(nsAString& aResult) {
     // Null for both missing and invalid defaults is ok, since we
     // always parse to an enum value, so we don't need an invalid
     // default, and we _want_ the missing default to be null.
     GetEnumAttr(nsGkAtoms::crossorigin, nullptr, aResult);
   }
-  void SetCrossOrigin(const nsAString& aCrossOrigin, ErrorResult& aError)
-  {
+  void SetCrossOrigin(const nsAString& aCrossOrigin, ErrorResult& aError) {
     SetOrRemoveNullableStringAttr(nsGkAtoms::crossorigin, aCrossOrigin, aError);
   }
   // nsAString for WebBrowserPersistLocalDocument
-  void GetRel(nsAString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::rel, aValue);
-  }
-  void SetRel(const nsAString& aRel, ErrorResult& aRv)
-  {
+  void GetRel(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::rel, aValue); }
+  void SetRel(const nsAString& aRel, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::rel, aRel, aRv);
   }
   nsDOMTokenList* RelList();
-  void GetMedia(DOMString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::media, aValue);
-  }
-  void SetMedia(const nsAString& aMedia, ErrorResult& aRv)
-  {
+  void GetMedia(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::media, aValue); }
+  void SetMedia(const nsAString& aMedia, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::media, aMedia, aRv);
   }
-  void GetHreflang(DOMString& aValue)
-  {
+  void GetHreflang(DOMString& aValue) {
     GetHTMLAttr(nsGkAtoms::hreflang, aValue);
   }
-  void SetHreflang(const nsAString& aHreflang, ErrorResult& aRv)
-  {
+  void SetHreflang(const nsAString& aHreflang, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::hreflang, aHreflang, aRv);
   }
   void GetAs(nsAString& aResult);
-  void SetAs(const nsAString& aAs, ErrorResult& aRv)
-  {
-    SetAttr(nsGkAtoms::as ,aAs, aRv);
+  void SetAs(const nsAString& aAs, ErrorResult& aRv) {
+    SetAttr(nsGkAtoms::as, aAs, aRv);
   }
-  nsDOMTokenList* Sizes()
-  {
-    return GetTokenList(nsGkAtoms::sizes);
-  }
-  void GetType(DOMString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::type, aValue);
-  }
-  void SetType(const nsAString& aType, ErrorResult& aRv)
-  {
+  nsDOMTokenList* Sizes() { return GetTokenList(nsGkAtoms::sizes); }
+  void GetType(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::type, aValue); }
+  void SetType(const nsAString& aType, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::type, aType, aRv);
   }
-  void GetCharset(nsAString& aValue) override
-  {
+  void GetCharset(nsAString& aValue) override {
     GetHTMLAttr(nsGkAtoms::charset, aValue);
   }
-  void SetCharset(const nsAString& aCharset, ErrorResult& aRv)
-  {
+  void SetCharset(const nsAString& aCharset, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::charset, aCharset, aRv);
   }
-  void GetRev(DOMString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::rev, aValue);
-  }
-  void SetRev(const nsAString& aRev, ErrorResult& aRv)
-  {
+  void GetRev(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::rev, aValue); }
+  void SetRev(const nsAString& aRev, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::rev, aRev, aRv);
   }
-  void GetTarget(DOMString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::target, aValue);
-  }
-  void SetTarget(const nsAString& aTarget, ErrorResult& aRv)
-  {
+  void GetTarget(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::target, aValue); }
+  void SetTarget(const nsAString& aTarget, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::target, aTarget, aRv);
   }
-  void GetIntegrity(nsAString& aIntegrity) const
-  {
+  void GetIntegrity(nsAString& aIntegrity) const {
     GetHTMLAttr(nsGkAtoms::integrity, aIntegrity);
   }
-  void SetIntegrity(const nsAString& aIntegrity, ErrorResult& aRv)
-  {
+  void SetIntegrity(const nsAString& aIntegrity, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::integrity, aIntegrity, aRv);
   }
-  void SetReferrerPolicy(const nsAString& aReferrer, ErrorResult& aError)
-  {
+  void SetReferrerPolicy(const nsAString& aReferrer, ErrorResult& aError) {
     SetHTMLAttr(nsGkAtoms::referrerpolicy, aReferrer, aError);
   }
-  void GetReferrerPolicy(nsAString& aReferrer)
-  {
+  void GetReferrerPolicy(nsAString& aReferrer) {
     GetEnumAttr(nsGkAtoms::referrerpolicy, EmptyCString().get(), aReferrer);
   }
-  mozilla::net::ReferrerPolicy GetLinkReferrerPolicy() override
-  {
+  mozilla::net::ReferrerPolicy GetLinkReferrerPolicy() override {
     return GetReferrerPolicyAsEnum();
   }
 
   virtual CORSMode GetCORSMode() const override;
 
-  void NodeInfoChanged(nsIDocument* aOldDoc) final
-  {
+  void NodeInfoChanged(nsIDocument* aOldDoc) final {
     ClearHasPendingLinkUpdate();
     nsGenericHTMLElement::NodeInfoChanged(aOldDoc);
   }
 
-protected:
+ protected:
   virtual ~HTMLLinkElement();
 
   // nsStyleLinkElement
-  virtual already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline, nsIPrincipal** aTriggeringPrincipal) override;
-  virtual void GetStyleSheetInfo(nsAString& aTitle,
-                                 nsAString& aType,
-                                 nsAString& aMedia,
-                                 bool* aIsScoped,
+  virtual already_AddRefed<nsIURI> GetStyleSheetURL(
+      bool* aIsInline, nsIPrincipal** aTriggeringPrincipal) override;
+  virtual void GetStyleSheetInfo(nsAString& aTitle, nsAString& aType,
+                                 nsAString& aMedia, bool* aIsScoped,
                                  bool* aIsAlternate) override;
-protected:
+
+ protected:
   RefPtr<nsDOMTokenList> mRelList;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_HTMLLinkElement_h
+#endif  // mozilla_dom_HTMLLinkElement_h

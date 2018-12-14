@@ -10,19 +10,22 @@
 #include "nsIDownloadHistory.h"
 #include "mozilla/Attributes.h"
 
-#define NS_DOWNLOADHISTORY_CID \
-  {0x2ee83680, 0x2af0, 0x4bcb, {0xbf, 0xa0, 0xc9, 0x70, 0x5f, 0x65, 0x54, 0xf1}}
+#define NS_DOWNLOADHISTORY_CID                       \
+  {                                                  \
+    0x2ee83680, 0x2af0, 0x4bcb, {                    \
+      0xbf, 0xa0, 0xc9, 0x70, 0x5f, 0x65, 0x54, 0xf1 \
+    }                                                \
+  }
 
-class nsDownloadHistory final : public nsIDownloadHistory
-{
-public:
+class nsDownloadHistory final : public nsIDownloadHistory {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOWNLOADHISTORY
 
   NS_DEFINE_STATIC_CID_ACCESSOR(NS_DOWNLOADHISTORY_CID)
 
-private:
+ private:
   ~nsDownloadHistory() {}
 };
 
-#endif // __nsDownloadHistory_h__
+#endif  // __nsDownloadHistory_h__

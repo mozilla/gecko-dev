@@ -12,21 +12,17 @@ namespace mozilla {
 namespace layers {
 namespace apz {
 
-/*static*/ void
-InitializeGlobalState()
-{
+/*static*/ void InitializeGlobalState() {
   MOZ_ASSERT(NS_IsMainThread());
   AsyncPanZoomController::InitializeGlobalState();
 }
 
-/*static*/ const ScreenMargin
-CalculatePendingDisplayPort(const FrameMetrics& aFrameMetrics,
-                            const ParentLayerPoint& aVelocity)
-{
-  return AsyncPanZoomController::CalculatePendingDisplayPort(
-      aFrameMetrics, aVelocity);
+/*static*/ const ScreenMargin CalculatePendingDisplayPort(
+    const FrameMetrics& aFrameMetrics, const ParentLayerPoint& aVelocity) {
+  return AsyncPanZoomController::CalculatePendingDisplayPort(aFrameMetrics,
+                                                             aVelocity);
 }
 
-} // namespace apz
-} // namespace layers
-} // namespace mozilla
+}  // namespace apz
+}  // namespace layers
+}  // namespace mozilla

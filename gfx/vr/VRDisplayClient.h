@@ -19,9 +19,8 @@ namespace gfx {
 class VRDisplayPresentation;
 class VRManagerChild;
 
-class VRDisplayClient
-{
-public:
+class VRDisplayClient {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRDisplayClient)
 
   explicit VRDisplayClient(const VRDisplayInfo& aDisplayInfo);
@@ -35,8 +34,8 @@ public:
 
   virtual void ZeroSensor();
 
-  already_AddRefed<VRDisplayPresentation> BeginPresentation(const nsTArray<dom::VRLayer>& aLayers,
-                                                            uint32_t aGroup);
+  already_AddRefed<VRDisplayPresentation> BeginPresentation(
+      const nsTArray<dom::VRLayer>& aLayers, uint32_t aGroup);
   void PresentationDestroyed();
 
   bool GetIsConnected() const;
@@ -47,7 +46,7 @@ public:
   bool IsPresentationGenerationCurrent() const;
   void MakePresentationGenerationCurrent();
 
-protected:
+ protected:
   virtual ~VRDisplayClient();
 
   void FireEvents();
@@ -60,11 +59,12 @@ protected:
   int mPresentationCount;
   uint64_t mLastEventFrameId;
   uint32_t mLastPresentingGeneration;
-private:
+
+ private:
   VRSubmitFrameResultInfo mSubmitFrameResult;
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* GFX_VR_DISPLAY_CLIENT_H */

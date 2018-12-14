@@ -10,7 +10,7 @@
 #include "nsIContentPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsIPrincipal.h"
-#include "nsIWeakReferenceUtils.h" // for nsWeakPtr
+#include "nsIWeakReferenceUtils.h"  // for nsWeakPtr
 #include "nsIURI.h"
 #include "nsTArray.h"
 
@@ -26,18 +26,18 @@ namespace mozilla {
 namespace dom {
 class PerformanceStorage;
 class XMLHttpRequestMainThread;
-}
+}  // namespace dom
 
 namespace net {
 class OptionalLoadInfoArgs;
-} // namespace net
+}  // namespace net
 
 namespace ipc {
 // we have to forward declare that function so we can use it as a friend.
-nsresult
-LoadInfoArgsToLoadInfo(const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
-                       nsILoadInfo** outLoadInfo);
-} // namespace ipc
+nsresult LoadInfoArgsToLoadInfo(
+    const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
+    nsILoadInfo** outLoadInfo);
+}  // namespace ipc
 
 namespace net {
 
@@ -46,28 +46,24 @@ typedef nsTArray<nsCOMPtr<nsIRedirectHistoryEntry>> RedirectHistoryArray;
 /**
  * Class that provides an nsILoadInfo implementation.
  */
-class LoadInfo final : public nsILoadInfo
-{
-public:
+class LoadInfo final : public nsILoadInfo {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOADINFO
 
   // aLoadingPrincipal MUST NOT BE NULL.
-  LoadInfo(nsIPrincipal* aLoadingPrincipal,
-           nsIPrincipal* aTriggeringPrincipal,
-           nsINode* aLoadingContext,
-           nsSecurityFlags aSecurityFlags,
+  LoadInfo(nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
+           nsINode* aLoadingContext, nsSecurityFlags aSecurityFlags,
            nsContentPolicyType aContentPolicyType,
-           const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo
-              = Maybe<mozilla::dom::ClientInfo>(),
-           const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController
-              = Maybe<mozilla::dom::ServiceWorkerDescriptor>());
+           const Maybe<mozilla::dom::ClientInfo>& aLoadingClientInfo =
+               Maybe<mozilla::dom::ClientInfo>(),
+           const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController =
+               Maybe<mozilla::dom::ServiceWorkerDescriptor>());
 
   // Constructor used for TYPE_DOCUMENT loads which have a different
   // loadingContext than other loads. This ContextForTopLevelLoad is
   // only used for content policy checks.
-  LoadInfo(nsPIDOMWindowOuter* aOuterWindow,
-           nsIPrincipal* aTriggeringPrincipal,
+  LoadInfo(nsPIDOMWindowOuter* aOuterWindow, nsIPrincipal* aTriggeringPrincipal,
            nsISupports* aContextForTopLevelLoad,
            nsSecurityFlags aSecurityFlags);
 
@@ -76,8 +72,8 @@ public:
   // hands off!!! don't use CloneWithNewSecFlags unless you know
   // exactly what you are doing - it should only be used within
   // nsBaseChannel::Redirect()
-  already_AddRefed<nsILoadInfo>
-  CloneWithNewSecFlags(nsSecurityFlags aSecurityFlags) const;
+  already_AddRefed<nsILoadInfo> CloneWithNewSecFlags(
+      nsSecurityFlags aSecurityFlags) const;
   // creates a copy of the loadinfo which is appropriate to use for a
   // separate request. I.e. not for a redirect or an inner channel, but
   // when a separate request is made with the same security properties.
@@ -96,13 +92,12 @@ public:
   void SetBrowserUpgradeInsecureRequests();
   void SetIsFromProcessingFrameAttributes();
 
-private:
+ private:
   // private constructor that is only allowed to be called from within
   // HttpChannelParent and FTPChannelParent declared as friends undeneath.
   // In e10s we can not serialize nsINode, hence we store the innerWindowID.
   // Please note that aRedirectChain uses swapElements.
-  LoadInfo(nsIPrincipal* aLoadingPrincipal,
-           nsIPrincipal* aTriggeringPrincipal,
+  LoadInfo(nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
            nsIPrincipal* aPrincipalToInherit,
            nsIPrincipal* aSandboxedLoadingPrincipal,
            nsIURI* aResultPrincipalURI,
@@ -111,44 +106,33 @@ private:
            const Maybe<mozilla::dom::ClientInfo>& aInitialClientInfo,
            const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController,
            nsSecurityFlags aSecurityFlags,
-           nsContentPolicyType aContentPolicyType,
-           LoadTainting aTainting,
-           bool aUpgradeInsecureRequests,
-           bool aBrowserUpgradeInsecureRequests,
-           bool aVerifySignedContent,
-           bool aEnforceSRI,
-           bool aAllowDocumentToBeAgnosticToCSP,
-           bool aForceAllowDataURI,
+           nsContentPolicyType aContentPolicyType, LoadTainting aTainting,
+           bool aUpgradeInsecureRequests, bool aBrowserUpgradeInsecureRequests,
+           bool aVerifySignedContent, bool aEnforceSRI,
+           bool aAllowDocumentToBeAgnosticToCSP, bool aForceAllowDataURI,
            bool aAllowInsecureRedirectToDataURI,
-           bool aForceInheritPrincipalDropped,
-           uint64_t aInnerWindowID,
-           uint64_t aOuterWindowID,
-           uint64_t aParentOuterWindowID,
-           uint64_t aTopOuterWindowID,
-           uint64_t aFrameOuterWindowID,
-           bool aEnforceSecurity,
-           bool aInitialSecurityCheckDone,
-           bool aIsThirdPartyRequest,
-           bool aIsDocshellReload,
+           bool aForceInheritPrincipalDropped, uint64_t aInnerWindowID,
+           uint64_t aOuterWindowID, uint64_t aParentOuterWindowID,
+           uint64_t aTopOuterWindowID, uint64_t aFrameOuterWindowID,
+           bool aEnforceSecurity, bool aInitialSecurityCheckDone,
+           bool aIsThirdPartyRequest, bool aIsDocshellReload,
            const OriginAttributes& aOriginAttributes,
            RedirectHistoryArray& aRedirectChainIncludingInternalRedirects,
            RedirectHistoryArray& aRedirectChain,
            nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals,
            const nsTArray<uint64_t>& aAncestorOuterWindowIDs,
-           const nsTArray<nsCString>& aUnsafeHeaders,
-           bool aForcePreflight,
-           bool aIsPreflight,
-           bool aLoadTriggeredFromExternal,
+           const nsTArray<nsCString>& aUnsafeHeaders, bool aForcePreflight,
+           bool aIsPreflight, bool aLoadTriggeredFromExternal,
            bool aServiceWorkerTaintingSynthesized);
   LoadInfo(const LoadInfo& rhs);
 
-  NS_IMETHOD GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
+  NS_IMETHOD GetRedirects(JSContext* aCx,
+                          JS::MutableHandle<JS::Value> aRedirects,
                           const RedirectHistoryArray& aArra);
 
-  friend nsresult
-  mozilla::ipc::LoadInfoArgsToLoadInfo(
-    const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
-    nsILoadInfo** outLoadInfo);
+  friend nsresult mozilla::ipc::LoadInfoArgsToLoadInfo(
+      const mozilla::net::OptionalLoadInfoArgs& aLoadInfoArgs,
+      nsILoadInfo** outLoadInfo);
 
   ~LoadInfo();
 
@@ -160,63 +144,63 @@ private:
   void SetIncludeCookiesSecFlag();
   friend class mozilla::dom::XMLHttpRequestMainThread;
 
-  // if you add a member, please also update the copy constructor and consider if
-  // it should be merged from parent channel through ParentLoadInfoForwarderArgs.
-  nsCOMPtr<nsIPrincipal>           mLoadingPrincipal;
-  nsCOMPtr<nsIPrincipal>           mTriggeringPrincipal;
-  nsCOMPtr<nsIPrincipal>           mPrincipalToInherit;
-  nsCOMPtr<nsIPrincipal>           mSandboxedLoadingPrincipal;
-  nsCOMPtr<nsIURI>                 mResultPrincipalURI;
+  // if you add a member, please also update the copy constructor and consider
+  // if it should be merged from parent channel through
+  // ParentLoadInfoForwarderArgs.
+  nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
+  nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
+  nsCOMPtr<nsIPrincipal> mPrincipalToInherit;
+  nsCOMPtr<nsIPrincipal> mSandboxedLoadingPrincipal;
+  nsCOMPtr<nsIURI> mResultPrincipalURI;
 
-  Maybe<mozilla::dom::ClientInfo>               mClientInfo;
-  UniquePtr<mozilla::dom::ClientSource>         mReservedClientSource;
-  Maybe<mozilla::dom::ClientInfo>               mReservedClientInfo;
-  Maybe<mozilla::dom::ClientInfo>               mInitialClientInfo;
-  Maybe<mozilla::dom::ServiceWorkerDescriptor>  mController;
-  RefPtr<mozilla::dom::PerformanceStorage>      mPerformanceStorage;
+  Maybe<mozilla::dom::ClientInfo> mClientInfo;
+  UniquePtr<mozilla::dom::ClientSource> mReservedClientSource;
+  Maybe<mozilla::dom::ClientInfo> mReservedClientInfo;
+  Maybe<mozilla::dom::ClientInfo> mInitialClientInfo;
+  Maybe<mozilla::dom::ServiceWorkerDescriptor> mController;
+  RefPtr<mozilla::dom::PerformanceStorage> mPerformanceStorage;
 
-  nsWeakPtr                        mLoadingContext;
-  nsWeakPtr                        mContextForTopLevelLoad;
-  nsSecurityFlags                  mSecurityFlags;
-  nsContentPolicyType              mInternalContentPolicyType;
-  LoadTainting                     mTainting;
-  bool                             mUpgradeInsecureRequests;
-  bool                             mBrowserUpgradeInsecureRequests;
-  bool                             mVerifySignedContent;
-  bool                             mEnforceSRI;
-  bool                             mAllowDocumentToBeAgnosticToCSP;
-  bool                             mForceAllowDataURI;
-  bool                             mAllowInsecureRedirectToDataURI;
-  bool                             mOriginalFrameSrcLoad;
-  bool                             mForceInheritPrincipalDropped;
-  uint64_t                         mInnerWindowID;
-  uint64_t                         mOuterWindowID;
-  uint64_t                         mParentOuterWindowID;
-  uint64_t                         mTopOuterWindowID;
-  uint64_t                         mFrameOuterWindowID;
-  bool                             mEnforceSecurity;
-  bool                             mInitialSecurityCheckDone;
-  bool                             mIsThirdPartyContext;
-  bool                             mIsDocshellReload;
-  OriginAttributes                 mOriginAttributes;
-  RedirectHistoryArray             mRedirectChainIncludingInternalRedirects;
-  RedirectHistoryArray             mRedirectChain;
+  nsWeakPtr mLoadingContext;
+  nsWeakPtr mContextForTopLevelLoad;
+  nsSecurityFlags mSecurityFlags;
+  nsContentPolicyType mInternalContentPolicyType;
+  LoadTainting mTainting;
+  bool mUpgradeInsecureRequests;
+  bool mBrowserUpgradeInsecureRequests;
+  bool mVerifySignedContent;
+  bool mEnforceSRI;
+  bool mAllowDocumentToBeAgnosticToCSP;
+  bool mForceAllowDataURI;
+  bool mAllowInsecureRedirectToDataURI;
+  bool mOriginalFrameSrcLoad;
+  bool mForceInheritPrincipalDropped;
+  uint64_t mInnerWindowID;
+  uint64_t mOuterWindowID;
+  uint64_t mParentOuterWindowID;
+  uint64_t mTopOuterWindowID;
+  uint64_t mFrameOuterWindowID;
+  bool mEnforceSecurity;
+  bool mInitialSecurityCheckDone;
+  bool mIsThirdPartyContext;
+  bool mIsDocshellReload;
+  OriginAttributes mOriginAttributes;
+  RedirectHistoryArray mRedirectChainIncludingInternalRedirects;
+  RedirectHistoryArray mRedirectChain;
   nsTArray<nsCOMPtr<nsIPrincipal>> mAncestorPrincipals;
-  nsTArray<uint64_t>               mAncestorOuterWindowIDs;
-  nsTArray<nsCString>              mCorsUnsafeHeaders;
-  bool                             mForcePreflight;
-  bool                             mIsPreflight;
-  bool                             mLoadTriggeredFromExternal;
-  bool                             mServiceWorkerTaintingSynthesized;
+  nsTArray<uint64_t> mAncestorOuterWindowIDs;
+  nsTArray<nsCString> mCorsUnsafeHeaders;
+  bool mForcePreflight;
+  bool mIsPreflight;
+  bool mLoadTriggeredFromExternal;
+  bool mServiceWorkerTaintingSynthesized;
 
   // Is true if this load was triggered by processing the attributes of the
   // browsing context container.
   // See nsILoadInfo.isFromProcessingFrameAttributes
-  bool                             mIsFromProcessingFrameAttributes;
+  bool mIsFromProcessingFrameAttributes;
 };
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
-#endif // mozilla_LoadInfo_h
-
+#endif  // mozilla_LoadInfo_h

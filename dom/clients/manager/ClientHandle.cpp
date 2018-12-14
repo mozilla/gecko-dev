@@ -19,14 +19,9 @@ namespace dom {
 
 using mozilla::dom::ipc::StructuredCloneData;
 
-ClientHandle::~ClientHandle()
-{
-  Shutdown();
-}
+ClientHandle::~ClientHandle() { Shutdown(); }
 
-void
-ClientHandle::Shutdown()
-{
+void ClientHandle::Shutdown() {
   NS_ASSERT_OWNINGTHREAD(ClientSource);
   if (IsShutdown()) {
     return;
@@ -37,37 +32,34 @@ ClientHandle::Shutdown()
   mManager = nullptr;
 }
 
-already_AddRefed<ClientOpPromise>
-ClientHandle::StartOp(const ClientOpConstructorArgs& aArgs)
-{
+already_AddRefed<ClientOpPromise> ClientHandle::StartOp(
+    const ClientOpConstructorArgs& aArgs) {
   RefPtr<ClientOpPromise::Private> promise =
-    new ClientOpPromise::Private(__func__);
+      new ClientOpPromise::Private(__func__);
 
   // Hold a ref to the client until the remote operation completes.  Otherwise
   // the ClientHandle might get de-refed and teardown the actor before we
   // get an answer.
   RefPtr<ClientHandle> kungFuGrip = this;
   promise->Then(mSerialEventTarget, __func__,
-                [kungFuGrip] (const ClientOpResult &) { },
-                [kungFuGrip] (nsresult) { });
+                [kungFuGrip](const ClientOpResult&) {},
+                [kungFuGrip](nsresult) {});
 
-  MaybeExecute([aArgs, promise] (ClientHandleChild* aActor) {
-    ClientHandleOpChild* actor = new ClientHandleOpChild(aArgs, promise);
-    if (!aActor->SendPClientHandleOpConstructor(actor, aArgs)) {
-      // Constructor failure will reject promise via ActorDestroy()
-      return;
-    }
-  }, [promise] {
-    promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
-  });
+  MaybeExecute(
+      [aArgs, promise](ClientHandleChild* aActor) {
+        ClientHandleOpChild* actor = new ClientHandleOpChild(aArgs, promise);
+        if (!aActor->SendPClientHandleOpConstructor(actor, aArgs)) {
+          // Constructor failure will reject promise via ActorDestroy()
+          return;
+        }
+      },
+      [promise] { promise->Reject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__); });
 
   RefPtr<ClientOpPromise> ref = promise.get();
   return ref.forget();
 }
 
-void
-ClientHandle::OnShutdownThing()
-{
+void ClientHandle::OnShutdownThing() {
   NS_ASSERT_OWNINGTHREAD(ClientHandle);
   if (!mDetachPromise) {
     return;
@@ -78,18 +70,15 @@ ClientHandle::OnShutdownThing()
 ClientHandle::ClientHandle(ClientManager* aManager,
                            nsISerialEventTarget* aSerialEventTarget,
                            const ClientInfo& aClientInfo)
-  : mManager(aManager)
-  , mSerialEventTarget(aSerialEventTarget)
-  , mClientInfo(aClientInfo)
-{
+    : mManager(aManager),
+      mSerialEventTarget(aSerialEventTarget),
+      mClientInfo(aClientInfo) {
   MOZ_DIAGNOSTIC_ASSERT(mManager);
   MOZ_DIAGNOSTIC_ASSERT(mSerialEventTarget);
   MOZ_ASSERT(mSerialEventTarget->IsOnCurrentThread());
 }
 
-void
-ClientHandle::Activate(PClientManagerChild* aActor)
-{
+void ClientHandle::Activate(PClientManagerChild* aActor) {
   NS_ASSERT_OWNINGTHREAD(ClientHandle);
 
   if (IsShutdown()) {
@@ -97,7 +86,7 @@ ClientHandle::Activate(PClientManagerChild* aActor)
   }
 
   PClientHandleChild* actor =
-    aActor->SendPClientHandleConstructor(mClientInfo.ToIPC());
+      aActor->SendPClientHandleConstructor(mClientInfo.ToIPC());
   if (!actor) {
     Shutdown();
     return;
@@ -106,95 +95,88 @@ ClientHandle::Activate(PClientManagerChild* aActor)
   ActivateThing(static_cast<ClientHandleChild*>(actor));
 }
 
-void
-ClientHandle::ExecutionReady(const ClientInfo& aClientInfo)
-{
+void ClientHandle::ExecutionReady(const ClientInfo& aClientInfo) {
   mClientInfo = aClientInfo;
 }
 
-const ClientInfo&
-ClientHandle::Info() const
-{
-  return mClientInfo;
-}
+const ClientInfo& ClientHandle::Info() const { return mClientInfo; }
 
-RefPtr<GenericPromise>
-ClientHandle::Control(const ServiceWorkerDescriptor& aServiceWorker)
-{
+RefPtr<GenericPromise> ClientHandle::Control(
+    const ServiceWorkerDescriptor& aServiceWorker) {
   RefPtr<GenericPromise::Private> outerPromise =
-    new GenericPromise::Private(__func__);
+      new GenericPromise::Private(__func__);
 
   RefPtr<ClientOpPromise> innerPromise =
-    StartOp(ClientControlledArgs(aServiceWorker.ToIPC()));
+      StartOp(ClientControlledArgs(aServiceWorker.ToIPC()));
 
   innerPromise->Then(mSerialEventTarget, __func__,
-    [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Resolve(true, __func__);
-    },
-    [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Reject(aResult.get_nsresult(), __func__);
-    });
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Resolve(true, __func__);
+                     },
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Reject(aResult.get_nsresult(), __func__);
+                     });
 
   return outerPromise.forget();
 }
 
-RefPtr<ClientStatePromise>
-ClientHandle::Focus()
-{
+RefPtr<ClientStatePromise> ClientHandle::Focus() {
   RefPtr<ClientStatePromise::Private> outerPromise =
-    new ClientStatePromise::Private(__func__);
+      new ClientStatePromise::Private(__func__);
 
   RefPtr<ClientOpPromise> innerPromise = StartOp(ClientFocusArgs());
 
   innerPromise->Then(mSerialEventTarget, __func__,
-    [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Resolve(ClientState::FromIPC(aResult.get_IPCClientState()), __func__);
-    }, [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Reject(aResult.get_nsresult(), __func__);
-    });
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Resolve(
+                           ClientState::FromIPC(aResult.get_IPCClientState()),
+                           __func__);
+                     },
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Reject(aResult.get_nsresult(), __func__);
+                     });
 
   RefPtr<ClientStatePromise> ref = outerPromise.get();
   return ref.forget();
 }
 
-RefPtr<GenericPromise>
-ClientHandle::PostMessage(StructuredCloneData& aData,
-                          const ServiceWorkerDescriptor& aSource)
-{
+RefPtr<GenericPromise> ClientHandle::PostMessage(
+    StructuredCloneData& aData, const ServiceWorkerDescriptor& aSource) {
   RefPtr<GenericPromise> ref;
 
   if (IsShutdown()) {
-    ref = GenericPromise::CreateAndReject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
+    ref = GenericPromise::CreateAndReject(NS_ERROR_DOM_INVALID_STATE_ERR,
+                                          __func__);
     return ref.forget();
   }
 
   ClientPostMessageArgs args;
   args.serviceWorker() = aSource.ToIPC();
 
-  if (!aData.BuildClonedMessageDataForBackgroundChild(GetActor()->Manager()->Manager(),
-                                                      args.clonedData())) {
-    ref = GenericPromise::CreateAndReject(NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
+  if (!aData.BuildClonedMessageDataForBackgroundChild(
+          GetActor()->Manager()->Manager(), args.clonedData())) {
+    ref = GenericPromise::CreateAndReject(NS_ERROR_DOM_INVALID_STATE_ERR,
+                                          __func__);
     return ref.forget();
   }
 
   RefPtr<GenericPromise::Private> outerPromise =
-    new GenericPromise::Private(__func__);
+      new GenericPromise::Private(__func__);
 
   RefPtr<ClientOpPromise> innerPromise = StartOp(args);
   innerPromise->Then(mSerialEventTarget, __func__,
-    [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Resolve(true, __func__);
-    }, [outerPromise](const ClientOpResult& aResult) {
-      outerPromise->Reject(aResult.get_nsresult(), __func__);
-    });
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Resolve(true, __func__);
+                     },
+                     [outerPromise](const ClientOpResult& aResult) {
+                       outerPromise->Reject(aResult.get_nsresult(), __func__);
+                     });
 
   ref = outerPromise.get();
   return ref.forget();
 }
 
-RefPtr<GenericPromise>
-ClientHandle::OnDetach()
-{
+RefPtr<GenericPromise> ClientHandle::OnDetach() {
   NS_ASSERT_OWNINGTHREAD(ClientSource);
 
   if (!mDetachPromise) {
@@ -208,5 +190,5 @@ ClientHandle::OnDetach()
   return Move(ref);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

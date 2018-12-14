@@ -17,9 +17,7 @@
 
 using namespace mozilla;
 
-bool
-RuleNodeCacheConditions::Matches(nsStyleContext* aStyleContext) const
-{
+bool RuleNodeCacheConditions::Matches(nsStyleContext* aStyleContext) const {
   MOZ_ASSERT(Cacheable());
   if ((mBits & eHaveFontSize) &&
       mFontSize != aStyleContext->StyleFont()->mFont.size) {
@@ -33,9 +31,7 @@ RuleNodeCacheConditions::Matches(nsStyleContext* aStyleContext) const
 }
 
 #ifdef DEBUG
-void
-RuleNodeCacheConditions::List() const
-{
+void RuleNodeCacheConditions::List() const {
   printf("{ ");
   bool first = true;
   if (mBits & eHaveFontSize) {

@@ -27,11 +27,10 @@
 namespace js {
 namespace wasm {
 
-bool
-BinaryToAst(JSContext* cx, const uint8_t* bytes, uint32_t length, LifoAlloc& lifo,
-            AstModule** module);
+bool BinaryToAst(JSContext* cx, const uint8_t* bytes, uint32_t length,
+                 LifoAlloc& lifo, AstModule** module);
 
-} // end wasm namespace
-} // end js namespace
+}  // namespace wasm
+}  // namespace js
 
-#endif // namespace wasmbinarytoast_h
+#endif  // namespace wasmbinarytoast_h

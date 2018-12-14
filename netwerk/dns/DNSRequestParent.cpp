@@ -19,33 +19,22 @@ using namespace mozilla::ipc;
 namespace mozilla {
 namespace net {
 
-DNSRequestParent::DNSRequestParent()
-  : mFlags(0)
-  , mIPCClosed(false)
-{
+DNSRequestParent::DNSRequestParent() : mFlags(0), mIPCClosed(false) {}
 
-}
+DNSRequestParent::~DNSRequestParent() {}
 
-DNSRequestParent::~DNSRequestParent()
-{
-
-}
-
-void
-DNSRequestParent::DoAsyncResolve(const nsACString &hostname,
-                                 const OriginAttributes &originAttributes,
-                                 uint32_t flags,
-                                 const nsACString &networkInterface)
-{
+void DNSRequestParent::DoAsyncResolve(const nsACString& hostname,
+                                      const OriginAttributes& originAttributes,
+                                      uint32_t flags,
+                                      const nsACString& networkInterface) {
   nsresult rv;
   mFlags = flags;
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIEventTarget> main = GetMainThreadEventTarget();
     nsCOMPtr<nsICancelable> unused;
-    rv = dns->AsyncResolveExtendedNative(hostname, flags,
-                                         networkInterface, this,
-                                         main, originAttributes,
+    rv = dns->AsyncResolveExtendedNative(hostname, flags, networkInterface,
+                                         this, main, originAttributes,
                                          getter_AddRefs(unused));
   }
 
@@ -55,34 +44,25 @@ DNSRequestParent::DoAsyncResolve(const nsACString &hostname,
   }
 }
 
-mozilla::ipc::IPCResult
-DNSRequestParent::RecvCancelDNSRequest(const nsCString& hostName,
-                                       const OriginAttributes& originAttributes,
-                                       const uint32_t& flags,
-                                       const nsCString& networkInterface,
-                                       const nsresult& reason)
-{
+mozilla::ipc::IPCResult DNSRequestParent::RecvCancelDNSRequest(
+    const nsCString& hostName, const OriginAttributes& originAttributes,
+    const uint32_t& flags, const nsCString& networkInterface,
+    const nsresult& reason) {
   nsresult rv;
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID, &rv);
   if (NS_SUCCEEDED(rv)) {
-    rv = dns->CancelAsyncResolveExtendedNative(hostName, flags,
-                                               networkInterface,
-                                               this, reason,
-                                               originAttributes);
+    rv = dns->CancelAsyncResolveExtendedNative(
+        hostName, flags, networkInterface, this, reason, originAttributes);
   }
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-DNSRequestParent::Recv__delete__()
-{
+mozilla::ipc::IPCResult DNSRequestParent::Recv__delete__() {
   mIPCClosed = true;
   return IPC_OK();
 }
 
-void
-DNSRequestParent::ActorDestroy(ActorDestroyReason why)
-{
+void DNSRequestParent::ActorDestroy(ActorDestroyReason why) {
   // We may still have refcount>0 if DNS hasn't called our OnLookupComplete
   // yet, but child process has crashed.  We must not send any more msgs
   // to child, or IPDL will kill chrome process, too.
@@ -92,18 +72,15 @@ DNSRequestParent::ActorDestroy(ActorDestroyReason why)
 // DNSRequestParent::nsISupports
 //-----------------------------------------------------------------------------
 
-NS_IMPL_ISUPPORTS(DNSRequestParent,
-                  nsIDNSListener)
+NS_IMPL_ISUPPORTS(DNSRequestParent, nsIDNSListener)
 
 //-----------------------------------------------------------------------------
 // nsIDNSListener functions
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
-DNSRequestParent::OnLookupComplete(nsICancelable *request,
-                                   nsIDNSRecord  *rec,
-                                   nsresult       status)
-{
+DNSRequestParent::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
+                                   nsresult status) {
   if (mIPCClosed) {
     // nothing to do: child probably crashed
     return NS_OK;
@@ -133,7 +110,5 @@ DNSRequestParent::OnLookupComplete(nsICancelable *request,
   return NS_OK;
 }
 
-
-
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

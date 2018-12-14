@@ -8,9 +8,8 @@
 
 #include "nsBaseDragService.h"
 
-class nsDragServiceProxy : public nsBaseDragService
-{
-public:
+class nsDragServiceProxy : public nsBaseDragService {
+ public:
   nsDragServiceProxy();
 
   NS_INLINE_DECL_REFCOUNTING_INHERITED(nsDragServiceProxy, nsBaseDragService)
@@ -19,8 +18,9 @@ public:
   virtual nsresult InvokeDragSessionImpl(nsIArray* anArrayTransferables,
                                          nsIScriptableRegion* aRegion,
                                          uint32_t aActionType) override;
-private:
+
+ private:
   virtual ~nsDragServiceProxy();
 };
 
-#endif // NSDRAGSERVICEPROXY_H
+#endif  // NSDRAGSERVICEPROXY_H

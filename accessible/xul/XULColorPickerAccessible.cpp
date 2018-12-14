@@ -20,32 +20,22 @@ using namespace mozilla::a11y;
 // XULColorPickerTileAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULColorPickerTileAccessible::
-  XULColorPickerTileAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
-{
-}
+XULColorPickerTileAccessible::XULColorPickerTileAccessible(nsIContent* aContent,
+                                                           DocAccessible* aDoc)
+    : AccessibleWrap(aContent, aDoc) {}
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULColorPickerTileAccessible: Accessible
 
-void
-XULColorPickerTileAccessible::Value(nsString& aValue)
-{
+void XULColorPickerTileAccessible::Value(nsString& aValue) {
   aValue.Truncate();
 
   mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::color, aValue);
 }
 
-role
-XULColorPickerTileAccessible::NativeRole()
-{
-  return roles::PUSHBUTTON;
-}
+role XULColorPickerTileAccessible::NativeRole() { return roles::PUSHBUTTON; }
 
-uint64_t
-XULColorPickerTileAccessible::NativeState()
-{
+uint64_t XULColorPickerTileAccessible::NativeState() {
   uint64_t state = AccessibleWrap::NativeState();
   if (mContent->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::selected))
     state |= states::SELECTED;
@@ -53,24 +43,19 @@ XULColorPickerTileAccessible::NativeState()
   return state;
 }
 
-uint64_t
-XULColorPickerTileAccessible::NativeInteractiveState() const
-{
-  return NativelyUnavailable() ?
-    states::UNAVAILABLE : states::FOCUSABLE | states::SELECTABLE;
+uint64_t XULColorPickerTileAccessible::NativeInteractiveState() const {
+  return NativelyUnavailable() ? states::UNAVAILABLE
+                               : states::FOCUSABLE | states::SELECTABLE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULColorPickerTileAccessible: Widgets
 
-Accessible*
-XULColorPickerTileAccessible::ContainerWidget() const
-{
+Accessible* XULColorPickerTileAccessible::ContainerWidget() const {
   Accessible* parent = Parent();
   if (parent) {
     Accessible* grandParent = parent->Parent();
-    if (grandParent && grandParent->IsMenuButton())
-      return grandParent;
+    if (grandParent && grandParent->IsMenuButton()) return grandParent;
   }
   return nullptr;
 }
@@ -79,47 +64,34 @@ XULColorPickerTileAccessible::ContainerWidget() const
 // XULColorPickerAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-XULColorPickerAccessible::
-  XULColorPickerAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  XULColorPickerTileAccessible(aContent, aDoc)
-{
+XULColorPickerAccessible::XULColorPickerAccessible(nsIContent* aContent,
+                                                   DocAccessible* aDoc)
+    : XULColorPickerTileAccessible(aContent, aDoc) {
   mGenericTypes |= eMenuButton;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULColorPickerAccessible: Accessible
 
-uint64_t
-XULColorPickerAccessible::NativeState()
-{
+uint64_t XULColorPickerAccessible::NativeState() {
   uint64_t state = AccessibleWrap::NativeState();
   return state | states::HASPOPUP;
 }
 
-role
-XULColorPickerAccessible::NativeRole()
-{
+role XULColorPickerAccessible::NativeRole() {
   return roles::BUTTONDROPDOWNGRID;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // XULColorPickerAccessible: Widgets
 
-bool
-XULColorPickerAccessible::IsWidget() const
-{
-  return true;
-}
+bool XULColorPickerAccessible::IsWidget() const { return true; }
 
-bool
-XULColorPickerAccessible::IsActiveWidget() const
-{
+bool XULColorPickerAccessible::IsActiveWidget() const {
   return FocusMgr()->HasDOMFocus(mContent);
 }
 
-bool
-XULColorPickerAccessible::AreItemsOperable() const
-{
+bool XULColorPickerAccessible::AreItemsOperable() const {
   Accessible* menuPopup = mChildren.SafeElementAt(0, nullptr);
   if (menuPopup) {
     nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(menuPopup->GetFrame());
@@ -131,10 +103,9 @@ XULColorPickerAccessible::AreItemsOperable() const
 ////////////////////////////////////////////////////////////////////////////////
 // XULColorPickerAccessible: Accessible
 
-bool
-XULColorPickerAccessible::IsAcceptableChild(nsIContent* aEl) const
-{
+bool XULColorPickerAccessible::IsAcceptableChild(nsIContent* aEl) const {
   return aEl->IsXULElement(nsGkAtoms::panel) &&
-    aEl->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautofocus,
-                                  nsGkAtoms::_true, eCaseMatters);
+         aEl->AsElement()->AttrValueIs(kNameSpaceID_None,
+                                       nsGkAtoms::noautofocus, nsGkAtoms::_true,
+                                       eCaseMatters);
 }

@@ -23,9 +23,8 @@
 #include "nsContentUtils.h"
 #include "mozilla/Attributes.h"
 
-class nsReflowFrameRunnable : public mozilla::Runnable
-{
-public:
+class nsReflowFrameRunnable : public mozilla::Runnable {
+ public:
   nsReflowFrameRunnable(nsIFrame* aFrame,
                         nsIPresShell::IntrinsicDirty aIntrinsicDirty,
                         nsFrameState aBitToAdd);
@@ -38,22 +37,18 @@ public:
 };
 
 nsReflowFrameRunnable::nsReflowFrameRunnable(
-  nsIFrame* aFrame,
-  nsIPresShell::IntrinsicDirty aIntrinsicDirty,
-  nsFrameState aBitToAdd)
-  : mozilla::Runnable("nsReflowFrameRunnable")
-  , mWeakFrame(aFrame)
-  , mIntrinsicDirty(aIntrinsicDirty)
-  , mBitToAdd(aBitToAdd)
-{
-}
+    nsIFrame* aFrame, nsIPresShell::IntrinsicDirty aIntrinsicDirty,
+    nsFrameState aBitToAdd)
+    : mozilla::Runnable("nsReflowFrameRunnable"),
+      mWeakFrame(aFrame),
+      mIntrinsicDirty(aIntrinsicDirty),
+      mBitToAdd(aBitToAdd) {}
 
 NS_IMETHODIMP
-nsReflowFrameRunnable::Run()
-{
+nsReflowFrameRunnable::Run() {
   if (mWeakFrame.IsAlive()) {
-    mWeakFrame->PresShell()->
-      FrameNeedsReflow(mWeakFrame, mIntrinsicDirty, mBitToAdd);
+    mWeakFrame->PresShell()->FrameNeedsReflow(mWeakFrame, mIntrinsicDirty,
+                                              mBitToAdd);
   }
   return NS_OK;
 }
@@ -63,9 +58,8 @@ nsReflowFrameRunnable::Run()
 //
 // Creates a new Toolbar frame and returns it
 //
-nsIFrame*
-NS_NewProgressMeterFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewProgressMeterFrame(nsIPresShell* aPresShell,
+                                   nsStyleContext* aContext) {
   return new (aPresShell) nsProgressMeterFrame(aContext);
 }
 
@@ -76,17 +70,13 @@ NS_IMPL_FRAMEARENA_HELPERS(nsProgressMeterFrame)
 //
 // Cleanup, if necessary
 //
-nsProgressMeterFrame :: ~nsProgressMeterFrame ( )
-{
-}
+nsProgressMeterFrame ::~nsProgressMeterFrame() {}
 
-class nsAsyncProgressMeterInit final : public nsIReflowCallback
-{
-public:
+class nsAsyncProgressMeterInit final : public nsIReflowCallback {
+ public:
   explicit nsAsyncProgressMeterInit(nsIFrame* aFrame) : mWeakFrame(aFrame) {}
 
-  virtual bool ReflowFinished() override
-  {
+  virtual bool ReflowFinished() override {
     bool shouldFlush = false;
     nsIFrame* frame = mWeakFrame.GetFrame();
     if (frame) {
@@ -98,17 +88,13 @@ public:
     return shouldFlush;
   }
 
-  virtual void ReflowCallbackCanceled() override
-  {
-    delete this;
-  }
+  virtual void ReflowCallbackCanceled() override { delete this; }
 
   WeakFrame mWeakFrame;
 };
 
 NS_IMETHODIMP
-nsProgressMeterFrame::DoXULLayout(nsBoxLayoutState& aState)
-{
+nsProgressMeterFrame::DoXULLayout(nsBoxLayoutState& aState) {
   if (mNeedsReflowCallback) {
     nsIReflowCallback* cb = new nsAsyncProgressMeterInit(this);
     if (cb) {
@@ -119,23 +105,22 @@ nsProgressMeterFrame::DoXULLayout(nsBoxLayoutState& aState)
   return nsBoxFrame::DoXULLayout(aState);
 }
 
-nsresult
-nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
-                                       nsAtom* aAttribute,
-                                       int32_t aModType)
-{
-  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+nsresult nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
+                                                nsAtom* aAttribute,
+                                                int32_t aModType) {
+  NS_ASSERTION(
+      !nsContentUtils::IsSafeToRunScript(),
       "Scripts not blocked in nsProgressMeterFrame::AttributeChanged!");
-  nsresult rv = nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute,
-                                             aModType);
+  nsresult rv =
+      nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
   if (NS_OK != rv) {
     return rv;
   }
 
   // did the progress change?
   bool undetermined =
-    mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mode,
-                                       nsGkAtoms::undetermined, eCaseMatters);
+      mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mode,
+                                         nsGkAtoms::undetermined, eCaseMatters);
   if (nsGkAtoms::mode == aAttribute ||
       (!undetermined &&
        (nsGkAtoms::value == aAttribute || nsGkAtoms::max == aAttribute))) {
@@ -149,8 +134,10 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
     int32_t flex = 1, maxFlex = 1;
     if (!undetermined) {
       nsAutoString value, maxValue;
-      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
-      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxValue);
+      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::value,
+                                     value);
+      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::max,
+                                     maxValue);
 
       nsresult error;
       flex = value.ToInteger(&error);
@@ -170,19 +157,17 @@ nsProgressMeterFrame::AttributeChanged(int32_t aNameSpaceID,
     }
 
     nsContentUtils::AddScriptRunner(new nsSetAttrRunnable(
-      barChild->GetContent()->AsElement(), nsGkAtoms::flex, flex));
+        barChild->GetContent()->AsElement(), nsGkAtoms::flex, flex));
     nsContentUtils::AddScriptRunner(new nsSetAttrRunnable(
-      remainderContent->AsElement(), nsGkAtoms::flex, maxFlex - flex));
+        remainderContent->AsElement(), nsGkAtoms::flex, maxFlex - flex));
     nsContentUtils::AddScriptRunner(new nsReflowFrameRunnable(
-      this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY));
+        this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY));
   }
   return NS_OK;
 }
 
 #ifdef DEBUG_FRAME_DUMP
-nsresult
-nsProgressMeterFrame::GetFrameName(nsAString& aResult) const
-{
+nsresult nsProgressMeterFrame::GetFrameName(nsAString& aResult) const {
   return MakeFrameName(NS_LITERAL_STRING("ProgressMeter"), aResult);
 }
 #endif

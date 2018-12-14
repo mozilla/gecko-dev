@@ -26,30 +26,25 @@ void* nsFloatManager::sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
 /////////////////////////////////////////////////////////////////////////////
 // nsFloatManager
 
-nsFloatManager::nsFloatManager(nsIPresShell* aPresShell,
-                               WritingMode aWM)
-  :
+nsFloatManager::nsFloatManager(nsIPresShell* aPresShell, WritingMode aWM)
+    :
 #ifdef DEBUG
-    mWritingMode(aWM),
+      mWritingMode(aWM),
 #endif
-    mLineLeft(0), mBlockStart(0),
-    mFloatDamage(aPresShell),
-    mPushedLeftFloatPastBreak(false),
-    mPushedRightFloatPastBreak(false),
-    mSplitLeftFloatAcrossBreak(false),
-    mSplitRightFloatAcrossBreak(false)
-{
+      mLineLeft(0),
+      mBlockStart(0),
+      mFloatDamage(aPresShell),
+      mPushedLeftFloatPastBreak(false),
+      mPushedRightFloatPastBreak(false),
+      mSplitLeftFloatAcrossBreak(false),
+      mSplitRightFloatAcrossBreak(false) {
   MOZ_COUNT_CTOR(nsFloatManager);
 }
 
-nsFloatManager::~nsFloatManager()
-{
-  MOZ_COUNT_DTOR(nsFloatManager);
-}
+nsFloatManager::~nsFloatManager() { MOZ_COUNT_DTOR(nsFloatManager); }
 
 // static
-void* nsFloatManager::operator new(size_t aSize) CPP_THROW_NEW
-{
+void* nsFloatManager::operator new(size_t aSize) CPP_THROW_NEW {
   if (sCachedFloatManagerCount > 0) {
     // We have cached unused instances of this class, return a cached
     // instance in stead of always creating a new one.
@@ -61,11 +56,8 @@ void* nsFloatManager::operator new(size_t aSize) CPP_THROW_NEW
   return moz_xmalloc(aSize);
 }
 
-void
-nsFloatManager::operator delete(void* aPtr, size_t aSize)
-{
-  if (!aPtr)
-    return;
+void nsFloatManager::operator delete(void* aPtr, size_t aSize) {
+  if (!aPtr) return;
   // This float manager is no longer used, if there's still room in
   // the cache we'll cache this float manager, unless the layout
   // module was already shut down.
@@ -84,10 +76,8 @@ nsFloatManager::operator delete(void* aPtr, size_t aSize)
   free(aPtr);
 }
 
-
 /* static */
-void nsFloatManager::Shutdown()
-{
+void nsFloatManager::Shutdown() {
   // The layout module is being shut down, clean up the cache and
   // disable further caching.
 
@@ -95,25 +85,22 @@ void nsFloatManager::Shutdown()
 
   for (i = 0; i < sCachedFloatManagerCount; i++) {
     void* floatManager = sCachedFloatManagers[i];
-    if (floatManager)
-      free(floatManager);
+    if (floatManager) free(floatManager);
   }
 
   // Disable further caching.
   sCachedFloatManagerCount = -1;
 }
 
-#define CHECK_BLOCK_AND_LINE_DIR(aWM) \
-  NS_ASSERTION((aWM).GetBlockDir() == mWritingMode.GetBlockDir() &&     \
-               (aWM).IsLineInverted() == mWritingMode.IsLineInverted(), \
+#define CHECK_BLOCK_AND_LINE_DIR(aWM)                                       \
+  NS_ASSERTION((aWM).GetBlockDir() == mWritingMode.GetBlockDir() &&         \
+                   (aWM).IsLineInverted() == mWritingMode.IsLineInverted(), \
                "incompatible writing modes")
 
-nsFlowAreaRect
-nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
-                            BandInfoType aBandInfoType, ShapeType aShapeType,
-                            LogicalRect aContentArea, SavedState* aState,
-                            const nsSize& aContainerSize) const
-{
+nsFlowAreaRect nsFloatManager::GetFlowArea(
+    WritingMode aWM, nscoord aBCoord, nscoord aBSize,
+    BandInfoType aBandInfoType, ShapeType aShapeType, LogicalRect aContentArea,
+    SavedState* aState, const nsSize& aContainerSize) const {
   CHECK_BLOCK_AND_LINE_DIR(aWM);
   NS_ASSERTION(aBSize >= 0, "unexpected max block size");
   NS_ASSERTION(aContentArea.ISize(aWM) >= 0,
@@ -138,9 +125,8 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
 
   // If there are no floats at all, or we're below the last one, return
   // quickly.
-  if (floatCount == 0 ||
-      (mFloats[floatCount-1].mLeftBEnd <= blockStart &&
-       mFloats[floatCount-1].mRightBEnd <= blockStart)) {
+  if (floatCount == 0 || (mFloats[floatCount - 1].mLeftBEnd <= blockStart &&
+                          mFloats[floatCount - 1].mRightBEnd <= blockStart)) {
     return nsFlowAreaRect(aWM, aContentArea.IStart(aWM), aBCoord,
                           aContentArea.ISize(aWM), aBSize, false);
   }
@@ -149,7 +135,8 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
   if (aBSize == nscoord_MAX) {
     // This warning (and the two below) are possible to hit on pages
     // with really large objects.
-    NS_WARNING_ASSERTION(aBandInfoType == BandInfoType::BandFromPoint, "bad height");
+    NS_WARNING_ASSERTION(aBandInfoType == BandInfoType::BandFromPoint,
+                         "bad height");
     blockEnd = nscoord_MAX;
   } else {
     blockEnd = blockStart + aBSize;
@@ -169,7 +156,7 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
   // the list or we're above |blockStart|.
   bool haveFloats = false;
   for (uint32_t i = floatCount; i > 0; --i) {
-    const FloatInfo &fi = mFloats[i-1];
+    const FloatInfo& fi = mFloats[i - 1];
     if (fi.mLeftBEnd <= blockStart && fi.mRightBEnd <= blockStart) {
       // There aren't any more floats that could intersect this band.
       break;
@@ -183,7 +170,8 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
 
     nscoord floatBStart = fi.BStart(aShapeType);
     nscoord floatBEnd = fi.BEnd(aShapeType);
-    if (blockStart < floatBStart && aBandInfoType == BandInfoType::BandFromPoint) {
+    if (blockStart < floatBStart &&
+        aBandInfoType == BandInfoType::BandFromPoint) {
       // This float is below our band.  Shrink our band's height if needed.
       if (floatBStart < blockEnd) {
         blockEnd = floatBStart;
@@ -205,11 +193,11 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
       // When aBandInfoType is BandFromPoint, we're only intended to
       // consider a point along the y axis rather than a band.
       const nscoord bandBlockEnd =
-        aBandInfoType == BandInfoType::BandFromPoint ? blockStart : blockEnd;
+          aBandInfoType == BandInfoType::BandFromPoint ? blockStart : blockEnd;
       if (floatStyle == StyleFloat::Left) {
         // A left float
         nscoord lineRightEdge =
-          fi.LineRight(aShapeType, blockStart, bandBlockEnd);
+            fi.LineRight(aShapeType, blockStart, bandBlockEnd);
         if (lineRightEdge > lineLeft) {
           lineLeft = lineRightEdge;
           // Only set haveFloats to true if the float is inside our
@@ -221,7 +209,7 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
       } else {
         // A right float
         nscoord lineLeftEdge =
-          fi.LineLeft(aShapeType, blockStart, bandBlockEnd);
+            fi.LineLeft(aShapeType, blockStart, bandBlockEnd);
         if (lineLeftEdge < lineRight) {
           lineRight = lineLeftEdge;
           // See above.
@@ -230,28 +218,28 @@ nsFloatManager::GetFlowArea(WritingMode aWM, nscoord aBCoord, nscoord aBSize,
       }
 
       // Shrink our band's height if needed.
-      if (floatBEnd < blockEnd && aBandInfoType == BandInfoType::BandFromPoint) {
+      if (floatBEnd < blockEnd &&
+          aBandInfoType == BandInfoType::BandFromPoint) {
         blockEnd = floatBEnd;
       }
     }
   }
 
-  nscoord blockSize = (blockEnd == nscoord_MAX) ?
-                       nscoord_MAX : (blockEnd - blockStart);
+  nscoord blockSize =
+      (blockEnd == nscoord_MAX) ? nscoord_MAX : (blockEnd - blockStart);
   // convert back from LineLeft/Right to IStart
-  nscoord inlineStart = aWM.IsBidiLTR()
-                        ? lineLeft - mLineLeft
-                        : mLineLeft - lineRight +
-                          LogicalSize(aWM, aContainerSize).ISize(aWM);
+  nscoord inlineStart =
+      aWM.IsBidiLTR()
+          ? lineLeft - mLineLeft
+          : mLineLeft - lineRight + LogicalSize(aWM, aContainerSize).ISize(aWM);
 
   return nsFlowAreaRect(aWM, inlineStart, blockStart - mBlockStart,
                         lineRight - lineLeft, blockSize, haveFloats);
 }
 
-void
-nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const LogicalRect& aMarginRect,
-                         WritingMode aWM, const nsSize& aContainerSize)
-{
+void nsFloatManager::AddFloat(nsIFrame* aFloatFrame,
+                              const LogicalRect& aMarginRect, WritingMode aWM,
+                              const nsSize& aContainerSize) {
   CHECK_BLOCK_AND_LINE_DIR(aWM);
   NS_ASSERTION(aMarginRect.ISize(aWM) >= 0, "negative inline size!");
   NS_ASSERTION(aMarginRect.BSize(aWM) >= 0, "negative block size!");
@@ -261,7 +249,7 @@ nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const LogicalRect& aMarginRect,
 
   // Set mLeftBEnd and mRightBEnd.
   if (HasAnyFloats()) {
-    FloatInfo &tail = mFloats[mFloats.Length() - 1];
+    FloatInfo& tail = mFloats[mFloats.Length() - 1];
     info.mLeftBEnd = tail.mLeftBEnd;
     info.mRightBEnd = tail.mRightBEnd;
   } else {
@@ -272,24 +260,21 @@ nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const LogicalRect& aMarginRect,
   MOZ_ASSERT(floatStyle == StyleFloat::Left || floatStyle == StyleFloat::Right,
              "Unexpected float style!");
   nscoord& sideBEnd =
-    floatStyle == StyleFloat::Left ? info.mLeftBEnd : info.mRightBEnd;
+      floatStyle == StyleFloat::Left ? info.mLeftBEnd : info.mRightBEnd;
   nscoord thisBEnd = info.BEnd();
-  if (thisBEnd > sideBEnd)
-    sideBEnd = thisBEnd;
+  if (thisBEnd > sideBEnd) sideBEnd = thisBEnd;
 
   mFloats.AppendElement(Move(info));
 }
 
 // static
-LogicalRect
-nsFloatManager::CalculateRegionFor(WritingMode          aWM,
-                                   nsIFrame*            aFloat,
-                                   const LogicalMargin& aMargin,
-                                   const nsSize&        aContainerSize)
-{
+LogicalRect nsFloatManager::CalculateRegionFor(WritingMode aWM,
+                                               nsIFrame* aFloat,
+                                               const LogicalMargin& aMargin,
+                                               const nsSize& aContainerSize) {
   // We consider relatively positioned frames at their original position.
-  LogicalRect region(aWM, nsRect(aFloat->GetNormalPosition(),
-                                 aFloat->GetSize()),
+  LogicalRect region(aWM,
+                     nsRect(aFloat->GetNormalPosition(), aFloat->GetSize()),
                      aContainerSize);
 
   // Float region includes its margin
@@ -315,10 +300,8 @@ nsFloatManager::CalculateRegionFor(WritingMode          aWM,
 
 NS_DECLARE_FRAME_PROPERTY_DELETABLE(FloatRegionProperty, nsMargin)
 
-LogicalRect
-nsFloatManager::GetRegionFor(WritingMode aWM, nsIFrame* aFloat,
-                             const nsSize& aContainerSize)
-{
+LogicalRect nsFloatManager::GetRegionFor(WritingMode aWM, nsIFrame* aFloat,
+                                         const nsSize& aContainerSize) {
   LogicalRect region = aFloat->GetLogicalRect(aWM, aContainerSize);
   void* storedRegion = aFloat->GetProperty(FloatRegionProperty());
   if (storedRegion) {
@@ -328,17 +311,14 @@ nsFloatManager::GetRegionFor(WritingMode aWM, nsIFrame* aFloat,
   return region;
 }
 
-void
-nsFloatManager::StoreRegionFor(WritingMode aWM, nsIFrame* aFloat,
-                               const LogicalRect& aRegion,
-                               const nsSize& aContainerSize)
-{
+void nsFloatManager::StoreRegionFor(WritingMode aWM, nsIFrame* aFloat,
+                                    const LogicalRect& aRegion,
+                                    const nsSize& aContainerSize) {
   nsRect region = aRegion.GetPhysicalRect(aWM, aContainerSize);
   nsRect rect = aFloat->GetRect();
   if (region.IsEqualEdges(rect)) {
     aFloat->DeleteProperty(FloatRegionProperty());
-  }
-  else {
+  } else {
     nsMargin* storedMargin = aFloat->GetProperty(FloatRegionProperty());
     if (!storedMargin) {
       storedMargin = new nsMargin();
@@ -348,9 +328,7 @@ nsFloatManager::StoreRegionFor(WritingMode aWM, nsIFrame* aFloat,
   }
 }
 
-nsresult
-nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList)
-{
+nsresult nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList) {
   if (!aFrameList) {
     return NS_OK;
   }
@@ -375,17 +353,16 @@ nsFloatManager::RemoveTrailingRegions(nsIFrame* aFrameList)
 
 #ifdef DEBUG
   for (uint32_t i = 0; i < mFloats.Length(); ++i) {
-    NS_ASSERTION(!frameSet.Contains(mFloats[i].mFrame),
-                 "Frame region deletion was requested but we couldn't delete it");
+    NS_ASSERTION(
+        !frameSet.Contains(mFloats[i].mFrame),
+        "Frame region deletion was requested but we couldn't delete it");
   }
 #endif
 
   return NS_OK;
 }
 
-void
-nsFloatManager::PushState(SavedState* aState)
-{
+void nsFloatManager::PushState(SavedState* aState) {
   NS_PRECONDITION(aState, "Need a place to save state");
 
   // This is a cheap push implementation, which
@@ -414,9 +391,7 @@ nsFloatManager::PushState(SavedState* aState)
   aState->mFloatInfoCount = mFloats.Length();
 }
 
-void
-nsFloatManager::PopState(SavedState* aState)
-{
+void nsFloatManager::PopState(SavedState* aState) {
   NS_PRECONDITION(aState, "No state to restore?");
 
   mLineLeft = aState->mLineLeft;
@@ -431,46 +406,37 @@ nsFloatManager::PopState(SavedState* aState)
   mFloats.TruncateLength(aState->mFloatInfoCount);
 }
 
-nscoord
-nsFloatManager::GetLowestFloatTop() const
-{
+nscoord nsFloatManager::GetLowestFloatTop() const {
   if (mPushedLeftFloatPastBreak || mPushedRightFloatPastBreak) {
     return nscoord_MAX;
   }
   if (!HasAnyFloats()) {
     return nscoord_MIN;
   }
-  return mFloats[mFloats.Length() -1].BStart() - mBlockStart;
+  return mFloats[mFloats.Length() - 1].BStart() - mBlockStart;
 }
 
 #ifdef DEBUG_FRAME_DUMP
-void
-DebugListFloatManager(const nsFloatManager *aFloatManager)
-{
+void DebugListFloatManager(const nsFloatManager* aFloatManager) {
   aFloatManager->List(stdout);
 }
 
-nsresult
-nsFloatManager::List(FILE* out) const
-{
-  if (!HasAnyFloats())
-    return NS_OK;
+nsresult nsFloatManager::List(FILE* out) const {
+  if (!HasAnyFloats()) return NS_OK;
 
   for (uint32_t i = 0; i < mFloats.Length(); ++i) {
-    const FloatInfo &fi = mFloats[i];
-    fprintf_stderr(out, "Float %u: frame=%p rect={%d,%d,%d,%d} BEnd={l:%d, r:%d}\n",
-                   i, static_cast<void*>(fi.mFrame),
-                   fi.LineLeft(), fi.BStart(), fi.ISize(), fi.BSize(),
-                   fi.mLeftBEnd, fi.mRightBEnd);
+    const FloatInfo& fi = mFloats[i];
+    fprintf_stderr(out,
+                   "Float %u: frame=%p rect={%d,%d,%d,%d} BEnd={l:%d, r:%d}\n",
+                   i, static_cast<void*>(fi.mFrame), fi.LineLeft(), fi.BStart(),
+                   fi.ISize(), fi.BSize(), fi.mLeftBEnd, fi.mRightBEnd);
   }
   return NS_OK;
 }
 #endif
 
-nscoord
-nsFloatManager::ClearFloats(nscoord aBCoord, StyleClear aBreakType,
-                            uint32_t aFlags) const
-{
+nscoord nsFloatManager::ClearFloats(nscoord aBCoord, StyleClear aBreakType,
+                                    uint32_t aFlags) const {
   if (!(aFlags & DONT_CLEAR_PUSHED_FLOATS) && ClearContinues(aBreakType)) {
     return nscoord_MAX;
   }
@@ -480,7 +446,7 @@ nsFloatManager::ClearFloats(nscoord aBCoord, StyleClear aBreakType,
 
   nscoord blockEnd = aBCoord + mBlockStart;
 
-  const FloatInfo &tail = mFloats[mFloats.Length() - 1];
+  const FloatInfo& tail = mFloats[mFloats.Length() - 1];
   switch (aBreakType) {
     case StyleClear::Both:
       blockEnd = std::max(blockEnd, tail.mLeftBEnd);
@@ -502,15 +468,11 @@ nsFloatManager::ClearFloats(nscoord aBCoord, StyleClear aBreakType,
   return blockEnd;
 }
 
-bool
-nsFloatManager::ClearContinues(StyleClear aBreakType) const
-{
+bool nsFloatManager::ClearContinues(StyleClear aBreakType) const {
   return ((mPushedLeftFloatPastBreak || mSplitLeftFloatAcrossBreak) &&
-          (aBreakType == StyleClear::Both ||
-           aBreakType == StyleClear::Left)) ||
+          (aBreakType == StyleClear::Both || aBreakType == StyleClear::Left)) ||
          ((mPushedRightFloatPastBreak || mSplitRightFloatAcrossBreak) &&
-          (aBreakType == StyleClear::Both ||
-           aBreakType == StyleClear::Right));
+          (aBreakType == StyleClear::Both || aBreakType == StyleClear::Right));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -518,9 +480,8 @@ nsFloatManager::ClearContinues(StyleClear aBreakType) const
 // Shapes Module. A subclass needs to override all the methods to adjust
 // the flow area with respect to its shape.
 //
-class nsFloatManager::ShapeInfo
-{
-public:
+class nsFloatManager::ShapeInfo {
+ public:
   virtual ~ShapeInfo() {}
 
   virtual nscoord LineLeft(const nscoord aBStart,
@@ -534,53 +495,45 @@ public:
   // Translate the current origin by the specified offsets.
   virtual void Translate(nscoord aLineLeft, nscoord aBlockStart) = 0;
 
-  static LogicalRect ComputeShapeBoxRect(
-    const StyleShapeSource& aShapeOutside,
-    nsIFrame* const aFrame,
-    const LogicalRect& aMarginRect,
-    WritingMode aWM);
+  static LogicalRect ComputeShapeBoxRect(const StyleShapeSource& aShapeOutside,
+                                         nsIFrame* const aFrame,
+                                         const LogicalRect& aMarginRect,
+                                         WritingMode aWM);
 
   // Convert the LogicalRect to the special logical coordinate space used
   // in float manager.
-  static nsRect ConvertToFloatLogical(const LogicalRect& aRect,
-                                      WritingMode aWM,
-                                      const nsSize& aContainerSize)
-  {
+  static nsRect ConvertToFloatLogical(const LogicalRect& aRect, WritingMode aWM,
+                                      const nsSize& aContainerSize) {
     return nsRect(aRect.LineLeft(aWM, aContainerSize), aRect.BStart(aWM),
                   aRect.ISize(aWM), aRect.BSize(aWM));
   }
 
-  static UniquePtr<ShapeInfo> CreateShapeBox(
-    nsIFrame* const aFrame,
-    const LogicalRect& aShapeBoxRect,
-    WritingMode aWM,
-    const nsSize& aContainerSize);
+  static UniquePtr<ShapeInfo> CreateShapeBox(nsIFrame* const aFrame,
+                                             const LogicalRect& aShapeBoxRect,
+                                             WritingMode aWM,
+                                             const nsSize& aContainerSize);
 
   static UniquePtr<ShapeInfo> CreateBasicShape(
-    const UniquePtr<StyleBasicShape>& aBasicShape,
-    const LogicalRect& aShapeBoxRect,
-    WritingMode aWM,
-    const nsSize& aContainerSize);
+      const UniquePtr<StyleBasicShape>& aBasicShape,
+      const LogicalRect& aShapeBoxRect, WritingMode aWM,
+      const nsSize& aContainerSize);
 
   static UniquePtr<ShapeInfo> CreateInset(
-    const UniquePtr<StyleBasicShape>& aBasicShape,
-    const LogicalRect& aShapeBoxRect,
-    WritingMode aWM,
-    const nsSize& aContainerSize);
+      const UniquePtr<StyleBasicShape>& aBasicShape,
+      const LogicalRect& aShapeBoxRect, WritingMode aWM,
+      const nsSize& aContainerSize);
 
   static UniquePtr<ShapeInfo> CreateCircleOrEllipse(
-    const UniquePtr<StyleBasicShape>& aBasicShape,
-    const LogicalRect& aShapeBoxRect,
-    WritingMode aWM,
-    const nsSize& aContainerSize);
+      const UniquePtr<StyleBasicShape>& aBasicShape,
+      const LogicalRect& aShapeBoxRect, WritingMode aWM,
+      const nsSize& aContainerSize);
 
   static UniquePtr<ShapeInfo> CreatePolygon(
-    const UniquePtr<StyleBasicShape>& aBasicShape,
-    const LogicalRect& aShapeBoxRect,
-    WritingMode aWM,
-    const nsSize& aContainerSize);
+      const UniquePtr<StyleBasicShape>& aBasicShape,
+      const LogicalRect& aShapeBoxRect, WritingMode aWM,
+      const nsSize& aContainerSize);
 
-protected:
+ protected:
   // Compute the minimum line-axis difference between the bounding shape
   // box and its rounded corner within the given band (block-axis region).
   // This is used as a helper function to compute the LineRight() and
@@ -590,54 +543,46 @@ protected:
   // Returns radius-x diff on the line-axis, or 0 if there's no rounded
   // corner within the given band.
   static nscoord ComputeEllipseLineInterceptDiff(
-    const nscoord aShapeBoxBStart, const nscoord aShapeBoxBEnd,
-    const nscoord aBStartCornerRadiusL, const nscoord aBStartCornerRadiusB,
-    const nscoord aBEndCornerRadiusL, const nscoord aBEndCornerRadiusB,
-    const nscoord aBandBStart, const nscoord aBandBEnd);
+      const nscoord aShapeBoxBStart, const nscoord aShapeBoxBEnd,
+      const nscoord aBStartCornerRadiusL, const nscoord aBStartCornerRadiusB,
+      const nscoord aBEndCornerRadiusL, const nscoord aBEndCornerRadiusB,
+      const nscoord aBandBStart, const nscoord aBandBEnd);
 
   static nscoord XInterceptAtY(const nscoord aY, const nscoord aRadiusX,
                                const nscoord aRadiusY);
 
   // Convert the physical point to the special logical coordinate space
   // used in float manager.
-  static nsPoint ConvertToFloatLogical(const nsPoint& aPoint,
-                                       WritingMode aWM,
+  static nsPoint ConvertToFloatLogical(const nsPoint& aPoint, WritingMode aWM,
                                        const nsSize& aContainerSize);
 
   // Convert the half corner radii (nscoord[8]) to the special logical
   // coordinate space used in float manager.
-  static UniquePtr<nscoord[]> ConvertToFloatLogical(
-    const nscoord aRadii[8],
-    WritingMode aWM);
+  static UniquePtr<nscoord[]> ConvertToFloatLogical(const nscoord aRadii[8],
+                                                    WritingMode aWM);
 };
 
 /////////////////////////////////////////////////////////////////////////////
 // RoundedBoxShapeInfo
 //
 // Implements shape-outside: <shape-box> and shape-outside: inset().
-class nsFloatManager::RoundedBoxShapeInfo final : public nsFloatManager::ShapeInfo
-{
-public:
-  RoundedBoxShapeInfo(const nsRect& aRect,
-                      UniquePtr<nscoord[]> aRadii)
-    : mRect(aRect)
-    , mRadii(Move(aRadii))
-  {}
+class nsFloatManager::RoundedBoxShapeInfo final
+    : public nsFloatManager::ShapeInfo {
+ public:
+  RoundedBoxShapeInfo(const nsRect& aRect, UniquePtr<nscoord[]> aRadii)
+      : mRect(aRect), mRadii(Move(aRadii)) {}
 
-  nscoord LineLeft(const nscoord aBStart,
-                   const nscoord aBEnd) const override;
-  nscoord LineRight(const nscoord aBStart,
-                    const nscoord aBEnd) const override;
+  nscoord LineLeft(const nscoord aBStart, const nscoord aBEnd) const override;
+  nscoord LineRight(const nscoord aBStart, const nscoord aBEnd) const override;
   nscoord BStart() const override { return mRect.y; }
   nscoord BEnd() const override { return mRect.YMost(); }
   bool IsEmpty() const override { return mRect.IsEmpty(); };
 
-  void Translate(nscoord aLineLeft, nscoord aBlockStart) override
-  {
+  void Translate(nscoord aLineLeft, nscoord aBlockStart) override {
     mRect.MoveBy(aLineLeft, aBlockStart);
   }
 
-private:
+ private:
   // The rect of the rounded box shape in the float manager's coordinate
   // space.
   nsRect mRect;
@@ -647,37 +592,28 @@ private:
   UniquePtr<nscoord[]> mRadii;
 };
 
-nscoord
-nsFloatManager::RoundedBoxShapeInfo::LineLeft(const nscoord aBStart,
-                                              const nscoord aBEnd) const
-{
+nscoord nsFloatManager::RoundedBoxShapeInfo::LineLeft(
+    const nscoord aBStart, const nscoord aBEnd) const {
   if (!mRadii) {
     return mRect.x;
   }
 
-  nscoord lineLeftDiff =
-    ComputeEllipseLineInterceptDiff(
-      mRect.y, mRect.YMost(),
-      mRadii[eCornerTopLeftX], mRadii[eCornerTopLeftY],
-      mRadii[eCornerBottomLeftX], mRadii[eCornerBottomLeftY],
-      aBStart, aBEnd);
+  nscoord lineLeftDiff = ComputeEllipseLineInterceptDiff(
+      mRect.y, mRect.YMost(), mRadii[eCornerTopLeftX], mRadii[eCornerTopLeftY],
+      mRadii[eCornerBottomLeftX], mRadii[eCornerBottomLeftY], aBStart, aBEnd);
   return mRect.x + lineLeftDiff;
 }
 
-nscoord
-nsFloatManager::RoundedBoxShapeInfo::LineRight(const nscoord aBStart,
-                                               const nscoord aBEnd) const
-{
+nscoord nsFloatManager::RoundedBoxShapeInfo::LineRight(
+    const nscoord aBStart, const nscoord aBEnd) const {
   if (!mRadii) {
     return mRect.XMost();
   }
 
-  nscoord lineRightDiff =
-    ComputeEllipseLineInterceptDiff(
-      mRect.y, mRect.YMost(),
-      mRadii[eCornerTopRightX], mRadii[eCornerTopRightY],
-      mRadii[eCornerBottomRightX], mRadii[eCornerBottomRightY],
-      aBStart, aBEnd);
+  nscoord lineRightDiff = ComputeEllipseLineInterceptDiff(
+      mRect.y, mRect.YMost(), mRadii[eCornerTopRightX],
+      mRadii[eCornerTopRightY], mRadii[eCornerBottomRightX],
+      mRadii[eCornerBottomRightY], aBStart, aBEnd);
   return mRect.XMost() - lineRightDiff;
 }
 
@@ -686,29 +622,23 @@ nsFloatManager::RoundedBoxShapeInfo::LineRight(const nscoord aBStart,
 //
 // Implements shape-outside: circle() and shape-outside: ellipse().
 //
-class nsFloatManager::EllipseShapeInfo final : public nsFloatManager::ShapeInfo
-{
-public:
-  EllipseShapeInfo(const nsPoint& aCenter,
-                   const nsSize& aRadii)
-    : mCenter(aCenter)
-    , mRadii(aRadii)
-  {}
+class nsFloatManager::EllipseShapeInfo final
+    : public nsFloatManager::ShapeInfo {
+ public:
+  EllipseShapeInfo(const nsPoint& aCenter, const nsSize& aRadii)
+      : mCenter(aCenter), mRadii(aRadii) {}
 
-  nscoord LineLeft(const nscoord aBStart,
-                   const nscoord aBEnd) const override;
-  nscoord LineRight(const nscoord aBStart,
-                    const nscoord aBEnd) const override;
+  nscoord LineLeft(const nscoord aBStart, const nscoord aBEnd) const override;
+  nscoord LineRight(const nscoord aBStart, const nscoord aBEnd) const override;
   nscoord BStart() const override { return mCenter.y - mRadii.height; }
   nscoord BEnd() const override { return mCenter.y + mRadii.height; }
   bool IsEmpty() const override { return mRadii.IsEmpty(); };
 
-  void Translate(nscoord aLineLeft, nscoord aBlockStart) override
-  {
+  void Translate(nscoord aLineLeft, nscoord aBlockStart) override {
     mCenter.MoveBy(aLineLeft, aBlockStart);
   }
 
-private:
+ private:
   // The position of the center of the ellipse. The coordinate space is the
   // same as FloatInfo::mRect.
   nsPoint mCenter;
@@ -717,27 +647,19 @@ private:
   nsSize mRadii;
 };
 
-nscoord
-nsFloatManager::EllipseShapeInfo::LineLeft(const nscoord aBStart,
-                                           const nscoord aBEnd) const
-{
-  nscoord lineLeftDiff =
-    ComputeEllipseLineInterceptDiff(BStart(), BEnd(),
-                                    mRadii.width, mRadii.height,
-                                    mRadii.width, mRadii.height,
-                                    aBStart, aBEnd);
+nscoord nsFloatManager::EllipseShapeInfo::LineLeft(const nscoord aBStart,
+                                                   const nscoord aBEnd) const {
+  nscoord lineLeftDiff = ComputeEllipseLineInterceptDiff(
+      BStart(), BEnd(), mRadii.width, mRadii.height, mRadii.width,
+      mRadii.height, aBStart, aBEnd);
   return mCenter.x - mRadii.width + lineLeftDiff;
 }
 
-nscoord
-nsFloatManager::EllipseShapeInfo::LineRight(const nscoord aBStart,
-                                            const nscoord aBEnd) const
-{
-  nscoord lineRightDiff =
-    ComputeEllipseLineInterceptDiff(BStart(), BEnd(),
-                                    mRadii.width, mRadii.height,
-                                    mRadii.width, mRadii.height,
-                                    aBStart, aBEnd);
+nscoord nsFloatManager::EllipseShapeInfo::LineRight(const nscoord aBStart,
+                                                    const nscoord aBEnd) const {
+  nscoord lineRightDiff = ComputeEllipseLineInterceptDiff(
+      BStart(), BEnd(), mRadii.width, mRadii.height, mRadii.width,
+      mRadii.height, aBStart, aBEnd);
   return mCenter.x + mRadii.width - lineRightDiff;
 }
 
@@ -746,34 +668,30 @@ nsFloatManager::EllipseShapeInfo::LineRight(const nscoord aBStart,
 //
 // Implements shape-outside: polygon().
 //
-class nsFloatManager::PolygonShapeInfo final : public nsFloatManager::ShapeInfo
-{
-public:
+class nsFloatManager::PolygonShapeInfo final
+    : public nsFloatManager::ShapeInfo {
+ public:
   explicit PolygonShapeInfo(nsTArray<nsPoint>&& aVertices);
 
-  nscoord LineLeft(const nscoord aBStart,
-                   const nscoord aBEnd) const override;
-  nscoord LineRight(const nscoord aBStart,
-                    const nscoord aBEnd) const override;
+  nscoord LineLeft(const nscoord aBStart, const nscoord aBEnd) const override;
+  nscoord LineRight(const nscoord aBStart, const nscoord aBEnd) const override;
   nscoord BStart() const override { return mBStart; }
   nscoord BEnd() const override { return mBEnd; }
   bool IsEmpty() const override { return mEmpty; }
 
   void Translate(nscoord aLineLeft, nscoord aBlockStart) override;
 
-private:
+ private:
   // Helper method for implementing LineLeft() and LineRight().
   nscoord ComputeLineIntercept(
-    const nscoord aBStart,
-    const nscoord aBEnd,
-    nscoord (*aCompareOp) (std::initializer_list<nscoord>),
-    const nscoord aLineInterceptInitialValue) const;
+      const nscoord aBStart, const nscoord aBEnd,
+      nscoord (*aCompareOp)(std::initializer_list<nscoord>),
+      const nscoord aLineInterceptInitialValue) const;
 
   // Given a horizontal line y, and two points p1 and p2 forming a line
   // segment L. Solve x for the intersection of y and L. This method
   // assumes y and L do intersect, and L is *not* horizontal.
-  static nscoord XInterceptAtY(const nscoord aY,
-                               const nsPoint& aP1,
+  static nscoord XInterceptAtY(const nscoord aY, const nsPoint& aP1,
                                const nsPoint& aP2);
 
   // The vertices of the polygon in the float manager's coordinate space.
@@ -792,9 +710,9 @@ private:
   nscoord mBEnd = nscoord_MIN;
 };
 
-nsFloatManager::PolygonShapeInfo::PolygonShapeInfo(nsTArray<nsPoint>&& aVertices)
-  : mVertices(aVertices)
-{
+nsFloatManager::PolygonShapeInfo::PolygonShapeInfo(
+    nsTArray<nsPoint>&& aVertices)
+    : mVertices(aVertices) {
   // Polygons with fewer than three vertices result in an empty area.
   // https://drafts.csswg.org/css-shapes/#funcdef-polygon
   if (mVertices.Length() < 3) {
@@ -802,7 +720,7 @@ nsFloatManager::PolygonShapeInfo::PolygonShapeInfo(nsTArray<nsPoint>&& aVertices
     return;
   }
 
-  auto Determinant = [] (const nsPoint& aP0, const nsPoint& aP1) {
+  auto Determinant = [](const nsPoint& aP0, const nsPoint& aP1) {
     // Returns the determinant of the 2x2 matrix [aP0 aP1].
     // https://en.wikipedia.org/wiki/Determinant#2_.C3.97_2_matrices
     return aP0.x * aP1.y - aP0.y * aP1.x;
@@ -840,10 +758,8 @@ nsFloatManager::PolygonShapeInfo::PolygonShapeInfo(nsTArray<nsPoint>&& aVertices
   }
 }
 
-nscoord
-nsFloatManager::PolygonShapeInfo::LineLeft(const nscoord aBStart,
-                                           const nscoord aBEnd) const
-{
+nscoord nsFloatManager::PolygonShapeInfo::LineLeft(const nscoord aBStart,
+                                                   const nscoord aBEnd) const {
   MOZ_ASSERT(!mEmpty, "Shouldn't be called if the polygon encloses no area.");
 
   // We want the line-left-most inline-axis coordinate where the
@@ -858,10 +774,8 @@ nsFloatManager::PolygonShapeInfo::LineLeft(const nscoord aBStart,
   return ComputeLineIntercept(aBStart, aBEnd, std::min<nscoord>, nscoord_MAX);
 }
 
-nscoord
-nsFloatManager::PolygonShapeInfo::LineRight(const nscoord aBStart,
-                                            const nscoord aBEnd) const
-{
+nscoord nsFloatManager::PolygonShapeInfo::LineRight(const nscoord aBStart,
+                                                    const nscoord aBEnd) const {
   MOZ_ASSERT(!mEmpty, "Shouldn't be called if the polygon encloses no area.");
 
   // Similar to LineLeft(). Though here, we want the line-right-most
@@ -871,13 +785,10 @@ nsFloatManager::PolygonShapeInfo::LineRight(const nscoord aBStart,
   return ComputeLineIntercept(aBStart, aBEnd, std::max<nscoord>, nscoord_MIN);
 }
 
-nscoord
-nsFloatManager::PolygonShapeInfo::ComputeLineIntercept(
-  const nscoord aBStart,
-  const nscoord aBEnd,
-  nscoord (*aCompareOp) (std::initializer_list<nscoord>),
-  const nscoord aLineInterceptInitialValue) const
-{
+nscoord nsFloatManager::PolygonShapeInfo::ComputeLineIntercept(
+    const nscoord aBStart, const nscoord aBEnd,
+    nscoord (*aCompareOp)(std::initializer_list<nscoord>),
+    const nscoord aLineInterceptInitialValue) const {
   MOZ_ASSERT(aBStart <= aBEnd,
              "The band's block start is greater than its block end?");
 
@@ -906,27 +817,25 @@ nsFloatManager::PolygonShapeInfo::ComputeLineIntercept(
     }
 
     nscoord bStartLineIntercept =
-      aBStart <= smallYVertex->y
-        ? smallYVertex->x
-        : XInterceptAtY(aBStart, *smallYVertex, *bigYVertex);
+        aBStart <= smallYVertex->y
+            ? smallYVertex->x
+            : XInterceptAtY(aBStart, *smallYVertex, *bigYVertex);
     nscoord bEndLineIntercept =
-      aBEnd >= bigYVertex->y
-        ? bigYVertex->x
-        : XInterceptAtY(aBEnd, *smallYVertex, *bigYVertex);
+        aBEnd >= bigYVertex->y
+            ? bigYVertex->x
+            : XInterceptAtY(aBEnd, *smallYVertex, *bigYVertex);
 
     // If either new intercept is more extreme than lineIntercept (per
     // aCompareOp), then update lineIntercept to that value.
     lineIntercept =
-      aCompareOp({lineIntercept, bStartLineIntercept, bEndLineIntercept});
+        aCompareOp({lineIntercept, bStartLineIntercept, bEndLineIntercept});
   }
 
   return lineIntercept;
 }
 
-void
-nsFloatManager::PolygonShapeInfo::Translate(nscoord aLineLeft,
-                                            nscoord aBlockStart)
-{
+void nsFloatManager::PolygonShapeInfo::Translate(nscoord aLineLeft,
+                                                 nscoord aBlockStart) {
   for (nsPoint& vertex : mVertices) {
     vertex.MoveBy(aLineLeft, aBlockStart);
   }
@@ -934,11 +843,8 @@ nsFloatManager::PolygonShapeInfo::Translate(nscoord aLineLeft,
   mBEnd += aBlockStart;
 }
 
-/* static */ nscoord
-nsFloatManager::PolygonShapeInfo::XInterceptAtY(const nscoord aY,
-                                                const nsPoint& aP1,
-                                                const nsPoint& aP2)
-{
+/* static */ nscoord nsFloatManager::PolygonShapeInfo::XInterceptAtY(
+    const nscoord aY, const nsPoint& aP1, const nsPoint& aP2) {
   // Solve for x in the linear equation: x = x1 + (y-y1) * (x2-x1) / (y2-y1),
   // where aP1 = (x1, y1) and aP2 = (x2, y2).
 
@@ -955,15 +861,14 @@ nsFloatManager::PolygonShapeInfo::XInterceptAtY(const nscoord aY,
 /////////////////////////////////////////////////////////////////////////////
 // FloatInfo
 
-nsFloatManager::FloatInfo::FloatInfo(nsIFrame* aFrame,
-                                     nscoord aLineLeft, nscoord aBlockStart,
+nsFloatManager::FloatInfo::FloatInfo(nsIFrame* aFrame, nscoord aLineLeft,
+                                     nscoord aBlockStart,
                                      const LogicalRect& aMarginRect,
                                      WritingMode aWM,
                                      const nsSize& aContainerSize)
-  : mFrame(aFrame)
-  , mRect(ShapeInfo::ConvertToFloatLogical(aMarginRect, aWM, aContainerSize) +
-          nsPoint(aLineLeft, aBlockStart))
-{
+    : mFrame(aFrame),
+      mRect(ShapeInfo::ConvertToFloatLogical(aMarginRect, aWM, aContainerSize) +
+            nsPoint(aLineLeft, aBlockStart)) {
   MOZ_COUNT_CTOR(nsFloatManager::FloatInfo);
 
   const StyleShapeSource& shapeOutside = mFrame->StyleDisplay()->mShapeOutside;
@@ -984,18 +889,19 @@ nsFloatManager::FloatInfo::FloatInfo(nsIFrame* aFrame,
 
     case StyleShapeSourceType::Box: {
       // Initialize <shape-box>'s reference rect.
-      LogicalRect shapeBoxRect =
-        ShapeInfo::ComputeShapeBoxRect(shapeOutside, mFrame, aMarginRect, aWM);
-      mShapeInfo = ShapeInfo::CreateShapeBox(mFrame, shapeBoxRect, aWM,
-                                             aContainerSize);
+      LogicalRect shapeBoxRect = ShapeInfo::ComputeShapeBoxRect(
+          shapeOutside, mFrame, aMarginRect, aWM);
+      mShapeInfo =
+          ShapeInfo::CreateShapeBox(mFrame, shapeBoxRect, aWM, aContainerSize);
       break;
     }
 
     case StyleShapeSourceType::Shape: {
-      const UniquePtr<StyleBasicShape>& basicShape = shapeOutside.GetBasicShape();
+      const UniquePtr<StyleBasicShape>& basicShape =
+          shapeOutside.GetBasicShape();
       // Initialize <shape-box>'s reference rect.
-      LogicalRect shapeBoxRect =
-        ShapeInfo::ComputeShapeBoxRect(shapeOutside, mFrame, aMarginRect, aWM);
+      LogicalRect shapeBoxRect = ShapeInfo::ComputeShapeBoxRect(
+          shapeOutside, mFrame, aMarginRect, aWM);
       mShapeInfo = ShapeInfo::CreateBasicShape(basicShape, shapeBoxRect, aWM,
                                                aContainerSize);
       break;
@@ -1011,26 +917,22 @@ nsFloatManager::FloatInfo::FloatInfo(nsIFrame* aFrame,
 
 #ifdef NS_BUILD_REFCNT_LOGGING
 nsFloatManager::FloatInfo::FloatInfo(FloatInfo&& aOther)
-  : mFrame(Move(aOther.mFrame))
-  , mLeftBEnd(Move(aOther.mLeftBEnd))
-  , mRightBEnd(Move(aOther.mRightBEnd))
-  , mRect(Move(aOther.mRect))
-  , mShapeInfo(Move(aOther.mShapeInfo))
-{
+    : mFrame(Move(aOther.mFrame)),
+      mLeftBEnd(Move(aOther.mLeftBEnd)),
+      mRightBEnd(Move(aOther.mRightBEnd)),
+      mRect(Move(aOther.mRect)),
+      mShapeInfo(Move(aOther.mShapeInfo)) {
   MOZ_COUNT_CTOR(nsFloatManager::FloatInfo);
 }
 
-nsFloatManager::FloatInfo::~FloatInfo()
-{
+nsFloatManager::FloatInfo::~FloatInfo() {
   MOZ_COUNT_DTOR(nsFloatManager::FloatInfo);
 }
 #endif
 
-nscoord
-nsFloatManager::FloatInfo::LineLeft(ShapeType aShapeType,
-                                    const nscoord aBStart,
-                                    const nscoord aBEnd) const
-{
+nscoord nsFloatManager::FloatInfo::LineLeft(ShapeType aShapeType,
+                                            const nscoord aBStart,
+                                            const nscoord aBEnd) const {
   if (aShapeType == ShapeType::Margin) {
     return LineLeft();
   }
@@ -1046,11 +948,9 @@ nsFloatManager::FloatInfo::LineLeft(ShapeType aShapeType,
   return std::max(LineLeft(), mShapeInfo->LineLeft(aBStart, aBEnd));
 }
 
-nscoord
-nsFloatManager::FloatInfo::LineRight(ShapeType aShapeType,
-                                     const nscoord aBStart,
-                                     const nscoord aBEnd) const
-{
+nscoord nsFloatManager::FloatInfo::LineRight(ShapeType aShapeType,
+                                             const nscoord aBStart,
+                                             const nscoord aBEnd) const {
   if (aShapeType == ShapeType::Margin) {
     return LineRight();
   }
@@ -1063,9 +963,7 @@ nsFloatManager::FloatInfo::LineRight(ShapeType aShapeType,
   return std::min(LineRight(), mShapeInfo->LineRight(aBStart, aBEnd));
 }
 
-nscoord
-nsFloatManager::FloatInfo::BStart(ShapeType aShapeType) const
-{
+nscoord nsFloatManager::FloatInfo::BStart(ShapeType aShapeType) const {
   if (aShapeType == ShapeType::Margin) {
     return BStart();
   }
@@ -1078,9 +976,7 @@ nsFloatManager::FloatInfo::BStart(ShapeType aShapeType) const
   return std::max(BStart(), mShapeInfo->BStart());
 }
 
-nscoord
-nsFloatManager::FloatInfo::BEnd(ShapeType aShapeType) const
-{
+nscoord nsFloatManager::FloatInfo::BEnd(ShapeType aShapeType) const {
   if (aShapeType == ShapeType::Margin) {
     return BEnd();
   }
@@ -1093,9 +989,7 @@ nsFloatManager::FloatInfo::BEnd(ShapeType aShapeType) const
   return std::min(BEnd(), mShapeInfo->BEnd());
 }
 
-bool
-nsFloatManager::FloatInfo::IsEmpty(ShapeType aShapeType) const
-{
+bool nsFloatManager::FloatInfo::IsEmpty(ShapeType aShapeType) const {
   if (aShapeType == ShapeType::Margin) {
     return IsEmpty();
   }
@@ -1110,13 +1004,9 @@ nsFloatManager::FloatInfo::IsEmpty(ShapeType aShapeType) const
 /////////////////////////////////////////////////////////////////////////////
 // ShapeInfo
 
-/* static */ LogicalRect
-nsFloatManager::ShapeInfo::ComputeShapeBoxRect(
-  const StyleShapeSource& aShapeOutside,
-  nsIFrame* const aFrame,
-  const LogicalRect& aMarginRect,
-  WritingMode aWM)
-{
+/* static */ LogicalRect nsFloatManager::ShapeInfo::ComputeShapeBoxRect(
+    const StyleShapeSource& aShapeOutside, nsIFrame* const aFrame,
+    const LogicalRect& aMarginRect, WritingMode aWM) {
   LogicalRect rect = aMarginRect;
 
   switch (aShapeOutside.GetReferenceBox()) {
@@ -1143,14 +1033,12 @@ nsFloatManager::ShapeInfo::ComputeShapeBoxRect(
 }
 
 /* static */ UniquePtr<nsFloatManager::ShapeInfo>
-nsFloatManager::ShapeInfo::CreateShapeBox(
-  nsIFrame* const aFrame,
-  const LogicalRect& aShapeBoxRect,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
-  nsRect logicalShapeBoxRect
-    = ConvertToFloatLogical(aShapeBoxRect, aWM, aContainerSize);
+nsFloatManager::ShapeInfo::CreateShapeBox(nsIFrame* const aFrame,
+                                          const LogicalRect& aShapeBoxRect,
+                                          WritingMode aWM,
+                                          const nsSize& aContainerSize) {
+  nsRect logicalShapeBoxRect =
+      ConvertToFloatLogical(aShapeBoxRect, aWM, aContainerSize);
 
   nscoord physicalRadii[8];
   bool hasRadii = aFrame->GetShapeBoxBorderRadii(physicalRadii);
@@ -1159,18 +1047,15 @@ nsFloatManager::ShapeInfo::CreateShapeBox(
                                            UniquePtr<nscoord[]>());
   }
 
-  return MakeUnique<RoundedBoxShapeInfo>(logicalShapeBoxRect,
-                                         ConvertToFloatLogical(physicalRadii,
-                                                               aWM));
+  return MakeUnique<RoundedBoxShapeInfo>(
+      logicalShapeBoxRect, ConvertToFloatLogical(physicalRadii, aWM));
 }
 
 /* static */ UniquePtr<nsFloatManager::ShapeInfo>
 nsFloatManager::ShapeInfo::CreateBasicShape(
-  const UniquePtr<StyleBasicShape>& aBasicShape,
-  const LogicalRect& aShapeBoxRect,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
+    const UniquePtr<StyleBasicShape>& aBasicShape,
+    const LogicalRect& aShapeBoxRect, WritingMode aWM,
+    const nsSize& aContainerSize) {
   switch (aBasicShape->GetShapeType()) {
     case StyleBasicShapeType::Polygon:
       return CreatePolygon(aBasicShape, aShapeBoxRect, aWM, aContainerSize);
@@ -1186,65 +1071,57 @@ nsFloatManager::ShapeInfo::CreateBasicShape(
 
 /* static */ UniquePtr<nsFloatManager::ShapeInfo>
 nsFloatManager::ShapeInfo::CreateInset(
-  const UniquePtr<StyleBasicShape>& aBasicShape,
-  const LogicalRect& aShapeBoxRect,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
+    const UniquePtr<StyleBasicShape>& aBasicShape,
+    const LogicalRect& aShapeBoxRect, WritingMode aWM,
+    const nsSize& aContainerSize) {
   // Use physical coordinates to compute inset() because the top, right,
   // bottom and left offsets are physical.
   // https://drafts.csswg.org/css-shapes-1/#funcdef-inset
   nsRect physicalShapeBoxRect =
-    aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
+      aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
   nsRect insetRect =
-    ShapeUtils::ComputeInsetRect(aBasicShape, physicalShapeBoxRect);
+      ShapeUtils::ComputeInsetRect(aBasicShape, physicalShapeBoxRect);
 
-  nsRect logicalInsetRect =
-    ConvertToFloatLogical(LogicalRect(aWM, insetRect, aContainerSize),
-                          aWM, aContainerSize);
+  nsRect logicalInsetRect = ConvertToFloatLogical(
+      LogicalRect(aWM, insetRect, aContainerSize), aWM, aContainerSize);
   nscoord physicalRadii[8];
-  bool hasRadii =
-    ShapeUtils::ComputeInsetRadii(aBasicShape, insetRect, physicalShapeBoxRect,
-                                  physicalRadii);
+  bool hasRadii = ShapeUtils::ComputeInsetRadii(
+      aBasicShape, insetRect, physicalShapeBoxRect, physicalRadii);
   if (!hasRadii) {
     return MakeUnique<RoundedBoxShapeInfo>(logicalInsetRect,
                                            UniquePtr<nscoord[]>());
   }
 
-  return MakeUnique<RoundedBoxShapeInfo>(logicalInsetRect,
-                                         ConvertToFloatLogical(physicalRadii,
-                                                               aWM));
+  return MakeUnique<RoundedBoxShapeInfo>(
+      logicalInsetRect, ConvertToFloatLogical(physicalRadii, aWM));
 }
 
 /* static */ UniquePtr<nsFloatManager::ShapeInfo>
 nsFloatManager::ShapeInfo::CreateCircleOrEllipse(
-  const UniquePtr<StyleBasicShape>& aBasicShape,
-  const LogicalRect& aShapeBoxRect,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
+    const UniquePtr<StyleBasicShape>& aBasicShape,
+    const LogicalRect& aShapeBoxRect, WritingMode aWM,
+    const nsSize& aContainerSize) {
   // Use physical coordinates to compute the center of circle() or ellipse()
   // since the <position> keywords such as 'left', 'top', etc. are physical.
   // https://drafts.csswg.org/css-shapes-1/#funcdef-ellipse
   nsRect physicalShapeBoxRect =
-    aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
-  nsPoint physicalCenter =
-    ShapeUtils::ComputeCircleOrEllipseCenter(aBasicShape, physicalShapeBoxRect);
+      aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
+  nsPoint physicalCenter = ShapeUtils::ComputeCircleOrEllipseCenter(
+      aBasicShape, physicalShapeBoxRect);
   nsPoint logicalCenter =
-    ConvertToFloatLogical(physicalCenter, aWM, aContainerSize);
+      ConvertToFloatLogical(physicalCenter, aWM, aContainerSize);
 
   // Compute the circle or ellipse radii.
   nsSize radii;
   StyleBasicShapeType type = aBasicShape->GetShapeType();
   if (type == StyleBasicShapeType::Circle) {
-    nscoord radius = ShapeUtils::ComputeCircleRadius(aBasicShape, physicalCenter,
-                                                     physicalShapeBoxRect);
+    nscoord radius = ShapeUtils::ComputeCircleRadius(
+        aBasicShape, physicalCenter, physicalShapeBoxRect);
     radii = nsSize(radius, radius);
   } else {
     MOZ_ASSERT(type == StyleBasicShapeType::Ellipse);
-    nsSize physicalRadii =
-      ShapeUtils::ComputeEllipseRadii(aBasicShape, physicalCenter,
-                                      physicalShapeBoxRect);
+    nsSize physicalRadii = ShapeUtils::ComputeEllipseRadii(
+        aBasicShape, physicalCenter, physicalShapeBoxRect);
     LogicalSize logicalRadii(aWM, physicalRadii);
     radii = nsSize(logicalRadii.ISize(aWM), logicalRadii.BSize(aWM));
   }
@@ -1254,20 +1131,18 @@ nsFloatManager::ShapeInfo::CreateCircleOrEllipse(
 
 /* static */ UniquePtr<nsFloatManager::ShapeInfo>
 nsFloatManager::ShapeInfo::CreatePolygon(
-  const UniquePtr<StyleBasicShape>& aBasicShape,
-  const LogicalRect& aShapeBoxRect,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
+    const UniquePtr<StyleBasicShape>& aBasicShape,
+    const LogicalRect& aShapeBoxRect, WritingMode aWM,
+    const nsSize& aContainerSize) {
   // Use physical coordinates to compute each (xi, yi) vertex because CSS
   // represents them using physical coordinates.
   // https://drafts.csswg.org/css-shapes-1/#funcdef-polygon
   nsRect physicalShapeBoxRect =
-    aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
+      aShapeBoxRect.GetPhysicalRect(aWM, aContainerSize);
 
   // Get physical vertices.
   nsTArray<nsPoint> vertices =
-    ShapeUtils::ComputePolygonVertices(aBasicShape, physicalShapeBoxRect);
+      ShapeUtils::ComputePolygonVertices(aBasicShape, physicalShapeBoxRect);
 
   // Convert all the physical vertices to logical.
   for (nsPoint& vertex : vertices) {
@@ -1277,13 +1152,11 @@ nsFloatManager::ShapeInfo::CreatePolygon(
   return MakeUnique<PolygonShapeInfo>(Move(vertices));
 }
 
-/* static */ nscoord
-nsFloatManager::ShapeInfo::ComputeEllipseLineInterceptDiff(
-  const nscoord aShapeBoxBStart, const nscoord aShapeBoxBEnd,
-  const nscoord aBStartCornerRadiusL, const nscoord aBStartCornerRadiusB,
-  const nscoord aBEndCornerRadiusL, const nscoord aBEndCornerRadiusB,
-  const nscoord aBandBStart, const nscoord aBandBEnd)
-{
+/* static */ nscoord nsFloatManager::ShapeInfo::ComputeEllipseLineInterceptDiff(
+    const nscoord aShapeBoxBStart, const nscoord aShapeBoxBEnd,
+    const nscoord aBStartCornerRadiusL, const nscoord aBStartCornerRadiusB,
+    const nscoord aBEndCornerRadiusL, const nscoord aBEndCornerRadiusB,
+    const nscoord aBandBStart, const nscoord aBandBEnd) {
   // An example for the band intersecting with the top right corner of an
   // ellipse with writing-mode horizontal-tb.
   //
@@ -1326,13 +1199,12 @@ nsFloatManager::ShapeInfo::ComputeEllipseLineInterceptDiff(
 
   // If the band intersects both the block-start and block-end corners, we
   // don't need to enter either branch because the correct lineDiff is 0.
-  if (aBStartCornerRadiusB > 0 &&
-      aBandBEnd >= aShapeBoxBStart &&
+  if (aBStartCornerRadiusB > 0 && aBandBEnd >= aShapeBoxBStart &&
       aBandBEnd <= aShapeBoxBStart + aBStartCornerRadiusB) {
     // The band intersects only the block-start corner.
     nscoord b = aBStartCornerRadiusB - (aBandBEnd - aShapeBoxBStart);
     nscoord lineIntercept =
-      XInterceptAtY(b, aBStartCornerRadiusL, aBStartCornerRadiusB);
+        XInterceptAtY(b, aBStartCornerRadiusL, aBStartCornerRadiusB);
     lineDiff = aBStartCornerRadiusL - lineIntercept;
   } else if (aBEndCornerRadiusB > 0 &&
              aBandBStart >= aShapeBoxBEnd - aBEndCornerRadiusB &&
@@ -1340,29 +1212,22 @@ nsFloatManager::ShapeInfo::ComputeEllipseLineInterceptDiff(
     // The band intersects only the block-end corner.
     nscoord b = aBEndCornerRadiusB - (aShapeBoxBEnd - aBandBStart);
     nscoord lineIntercept =
-      XInterceptAtY(b, aBEndCornerRadiusL, aBEndCornerRadiusB);
+        XInterceptAtY(b, aBEndCornerRadiusL, aBEndCornerRadiusB);
     lineDiff = aBEndCornerRadiusL - lineIntercept;
   }
 
   return lineDiff;
 }
 
-/* static */ nscoord
-nsFloatManager::ShapeInfo::XInterceptAtY(const nscoord aY,
-                                         const nscoord aRadiusX,
-                                         const nscoord aRadiusY)
-{
+/* static */ nscoord nsFloatManager::ShapeInfo::XInterceptAtY(
+    const nscoord aY, const nscoord aRadiusX, const nscoord aRadiusY) {
   // Solve for x in the ellipse equation (x/radiusX)^2 + (y/radiusY)^2 = 1.
   MOZ_ASSERT(aRadiusY > 0);
   return aRadiusX * std::sqrt(1 - (aY * aY) / double(aRadiusY * aRadiusY));
 }
 
-/* static */ nsPoint
-nsFloatManager::ShapeInfo::ConvertToFloatLogical(
-  const nsPoint& aPoint,
-  WritingMode aWM,
-  const nsSize& aContainerSize)
-{
+/* static */ nsPoint nsFloatManager::ShapeInfo::ConvertToFloatLogical(
+    const nsPoint& aPoint, WritingMode aWM, const nsSize& aContainerSize) {
   LogicalPoint logicalPoint(aWM, aPoint, aContainerSize);
   return nsPoint(logicalPoint.LineRelative(aWM, aContainerSize),
                  logicalPoint.B(aWM));
@@ -1370,33 +1235,32 @@ nsFloatManager::ShapeInfo::ConvertToFloatLogical(
 
 /* static */ UniquePtr<nscoord[]>
 nsFloatManager::ShapeInfo::ConvertToFloatLogical(const nscoord aRadii[8],
-                                                 WritingMode aWM)
-{
+                                                 WritingMode aWM) {
   UniquePtr<nscoord[]> logicalRadii(new nscoord[8]);
 
   // Get the physical side for line-left and line-right since border radii
   // are on the physical axis.
   Side lineLeftSide =
-    aWM.PhysicalSide(aWM.LogicalSideForLineRelativeDir(eLineRelativeDirLeft));
+      aWM.PhysicalSide(aWM.LogicalSideForLineRelativeDir(eLineRelativeDirLeft));
   logicalRadii[eCornerTopLeftX] =
-    aRadii[SideToHalfCorner(lineLeftSide, true, false)];
+      aRadii[SideToHalfCorner(lineLeftSide, true, false)];
   logicalRadii[eCornerTopLeftY] =
-    aRadii[SideToHalfCorner(lineLeftSide, true, true)];
+      aRadii[SideToHalfCorner(lineLeftSide, true, true)];
   logicalRadii[eCornerBottomLeftX] =
-    aRadii[SideToHalfCorner(lineLeftSide, false, false)];
+      aRadii[SideToHalfCorner(lineLeftSide, false, false)];
   logicalRadii[eCornerBottomLeftY] =
-    aRadii[SideToHalfCorner(lineLeftSide, false, true)];
+      aRadii[SideToHalfCorner(lineLeftSide, false, true)];
 
-  Side lineRightSide =
-    aWM.PhysicalSide(aWM.LogicalSideForLineRelativeDir(eLineRelativeDirRight));
+  Side lineRightSide = aWM.PhysicalSide(
+      aWM.LogicalSideForLineRelativeDir(eLineRelativeDirRight));
   logicalRadii[eCornerTopRightX] =
-    aRadii[SideToHalfCorner(lineRightSide, false, false)];
+      aRadii[SideToHalfCorner(lineRightSide, false, false)];
   logicalRadii[eCornerTopRightY] =
-    aRadii[SideToHalfCorner(lineRightSide, false, true)];
+      aRadii[SideToHalfCorner(lineRightSide, false, true)];
   logicalRadii[eCornerBottomRightX] =
-    aRadii[SideToHalfCorner(lineRightSide, true, false)];
+      aRadii[SideToHalfCorner(lineRightSide, true, false)];
   logicalRadii[eCornerBottomRightY] =
-    aRadii[SideToHalfCorner(lineRightSide, true, true)];
+      aRadii[SideToHalfCorner(lineRightSide, true, true)];
 
   if (aWM.IsLineInverted()) {
     // When IsLineInverted() is true, i.e. aWM is vertical-lr,
@@ -1406,8 +1270,10 @@ nsFloatManager::ShapeInfo::ConvertToFloatLogical(const nscoord aRadii[8],
     // to swap the values stored in top and bottom corners.
     std::swap(logicalRadii[eCornerTopLeftX], logicalRadii[eCornerBottomLeftX]);
     std::swap(logicalRadii[eCornerTopLeftY], logicalRadii[eCornerBottomLeftY]);
-    std::swap(logicalRadii[eCornerTopRightX], logicalRadii[eCornerBottomRightX]);
-    std::swap(logicalRadii[eCornerTopRightY], logicalRadii[eCornerBottomRightY]);
+    std::swap(logicalRadii[eCornerTopRightX],
+              logicalRadii[eCornerBottomRightX]);
+    std::swap(logicalRadii[eCornerTopRightY],
+              logicalRadii[eCornerBottomRightY]);
   }
 
   return logicalRadii;
@@ -1415,8 +1281,7 @@ nsFloatManager::ShapeInfo::ConvertToFloatLogical(const nscoord aRadii[8],
 
 //----------------------------------------------------------------------
 
-nsAutoFloatManager::~nsAutoFloatManager()
-{
+nsAutoFloatManager::~nsAutoFloatManager() {
   // Restore the old float manager in the reflow input if necessary.
   if (mNew) {
 #ifdef DEBUG
@@ -1439,9 +1304,7 @@ nsAutoFloatManager::~nsAutoFloatManager()
   }
 }
 
-void
-nsAutoFloatManager::CreateFloatManager(nsPresContext *aPresContext)
-{
+void nsAutoFloatManager::CreateFloatManager(nsPresContext* aPresContext) {
   MOZ_ASSERT(!mNew, "Redundant call to CreateFloatManager!");
 
   // Create a new float manager and install it in the reflow
@@ -1452,8 +1315,8 @@ nsAutoFloatManager::CreateFloatManager(nsPresContext *aPresContext)
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyFloatManager) {
-    printf("constructed new float manager %p (replacing %p)\n",
-           mNew.get(), mReflowInput.mFloatManager);
+    printf("constructed new float manager %p (replacing %p)\n", mNew.get(),
+           mReflowInput.mFloatManager);
   }
 #endif
 

@@ -10,7 +10,8 @@
 #include "pkix/Input.h"
 #include "pkix/Result.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 // Reads a TLS-encoded variable length unsigned integer from |in|.
 // The integer is expected to be in big-endian order, which is used by TLS.
@@ -25,6 +26,7 @@ pkix::Result ReadUint(Reader& in, T& out);
 template <size_t prefixLength>
 pkix::Result ReadVariableBytes(Reader& in, Input& out);
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla
 
-#endif //CTUtils_h
+#endif  // CTUtils_h

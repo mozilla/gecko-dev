@@ -37,14 +37,13 @@ namespace net {
 class nsHttpRequestHead;
 class nsHttpResponseHead;
 
-class Predictor : public nsINetworkPredictor
-                , public nsIObserver
-                , public nsISpeculativeConnectionOverrider
-                , public nsIInterfaceRequestor
-                , public nsICacheEntryMetaDataVisitor
-                , public nsINetworkPredictorVerifier
-{
-public:
+class Predictor : public nsINetworkPredictor,
+                  public nsIObserver,
+                  public nsISpeculativeConnectionOverrider,
+                  public nsIInterfaceRequestor,
+                  public nsICacheEntryMetaDataVisitor,
+                  public nsINetworkPredictorVerifier {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSINETWORKPREDICTOR
   NS_DECL_NSIOBSERVER
@@ -57,7 +56,7 @@ public:
 
   nsresult Init();
   void Shutdown();
-  static nsresult Create(nsISupports *outer, const nsIID& iid, void **result);
+  static nsresult Create(nsISupports *outer, const nsIID &iid, void **result);
 
   // Used to update whether a particular URI was cacheable or not.
   // sourceURI and targetURI are the same as the arguments to Learn
@@ -68,7 +67,7 @@ public:
                                  nsHttpResponseHead *reqponseHead,
                                  nsILoadContextInfo *lci, bool isTracking);
 
-private:
+ private:
   virtual ~Predictor();
 
   // Stores callbacks for a child process predictor (for test purposes)
@@ -79,33 +78,28 @@ private:
     PredictorPredictReason mPredict;
   };
 
-  class DNSListener : public nsIDNSListener
-  {
-  public:
+  class DNSListener : public nsIDNSListener {
+   public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIDNSLISTENER
 
-    DNSListener()
-    { }
+    DNSListener() {}
 
-  private:
-    virtual ~DNSListener()
-    { }
+   private:
+    virtual ~DNSListener() {}
   };
 
-  class Action : public nsICacheEntryOpenCallback
-  {
-  public:
+  class Action : public nsICacheEntryOpenCallback {
+   public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSICACHEENTRYOPENCALLBACK
 
-    Action(bool fullUri, bool predict, Reason reason,
-           nsIURI *targetURI, nsIURI *sourceURI,
-           nsINetworkPredictorVerifier *verifier, Predictor *predictor);
-    Action(bool fullUri, bool predict, Reason reason,
-           nsIURI *targetURI, nsIURI *sourceURI,
-           nsINetworkPredictorVerifier *verifier, Predictor *predictor,
-           uint8_t stackCount);
+    Action(bool fullUri, bool predict, Reason reason, nsIURI *targetURI,
+           nsIURI *sourceURI, nsINetworkPredictorVerifier *verifier,
+           Predictor *predictor);
+    Action(bool fullUri, bool predict, Reason reason, nsIURI *targetURI,
+           nsIURI *sourceURI, nsINetworkPredictorVerifier *verifier,
+           Predictor *predictor, uint8_t stackCount);
 
     static const bool IS_FULL_URI = true;
     static const bool IS_ORIGIN = false;
@@ -113,7 +107,7 @@ private:
     static const bool DO_PREDICT = true;
     static const bool DO_LEARN = false;
 
-  private:
+   private:
     virtual ~Action();
 
     bool mFullUri : 1;
@@ -130,10 +124,9 @@ private:
     RefPtr<Predictor> mPredictor;
   };
 
-  class CacheabilityAction : public nsICacheEntryOpenCallback
-                           , public nsICacheEntryMetaDataVisitor
-  {
-  public:
+  class CacheabilityAction : public nsICacheEntryOpenCallback,
+                             public nsICacheEntryMetaDataVisitor {
+   public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSICACHEENTRYOPENCALLBACK
     NS_DECL_NSICACHEENTRYMETADATAVISITOR
@@ -141,17 +134,16 @@ private:
     CacheabilityAction(nsIURI *targetURI, uint32_t httpStatus,
                        const nsCString &method, bool isTracking, bool couldVary,
                        bool isNoStore, Predictor *predictor)
-      :mTargetURI(targetURI)
-      ,mHttpStatus(httpStatus)
-      ,mMethod(method)
-      ,mIsTracking(isTracking)
-      ,mCouldVary(couldVary)
-      ,mIsNoStore(isNoStore)
-      ,mPredictor(predictor)
-    { }
+        : mTargetURI(targetURI),
+          mHttpStatus(httpStatus),
+          mMethod(method),
+          mIsTracking(isTracking),
+          mCouldVary(couldVary),
+          mIsNoStore(isNoStore),
+          mPredictor(predictor) {}
 
-  private:
-    virtual ~CacheabilityAction() { }
+   private:
+    virtual ~CacheabilityAction() {}
 
     nsCOMPtr<nsIURI> mTargetURI;
     uint32_t mHttpStatus;
@@ -166,9 +158,8 @@ private:
 
   class Resetter : public nsICacheEntryOpenCallback,
                    public nsICacheEntryMetaDataVisitor,
-                   public nsICacheStorageVisitor
-  {
-  public:
+                   public nsICacheStorageVisitor {
+   public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSICACHEENTRYOPENCALLBACK
     NS_DECL_NSICACHEENTRYMETADATAVISITOR
@@ -176,8 +167,8 @@ private:
 
     explicit Resetter(Predictor *predictor);
 
-  private:
-    virtual ~Resetter() { }
+   private:
+    virtual ~Resetter() {}
 
     void Complete();
 
@@ -188,44 +179,36 @@ private:
     nsTArray<nsCOMPtr<nsILoadContextInfo>> mInfosToVisit;
   };
 
-  class SpaceCleaner : public nsICacheEntryMetaDataVisitor
-  {
-  public:
+  class SpaceCleaner : public nsICacheEntryMetaDataVisitor {
+   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHEENTRYMETADATAVISITOR
 
     explicit SpaceCleaner(Predictor *predictor)
-      :mLRUStamp(0)
-      ,mLRUKeyToDelete(nullptr)
-      ,mPredictor(predictor)
-    { }
+        : mLRUStamp(0), mLRUKeyToDelete(nullptr), mPredictor(predictor) {}
 
     void Finalize(nsICacheEntry *entry);
 
-  private:
-    virtual ~SpaceCleaner() { }
+   private:
+    virtual ~SpaceCleaner() {}
     uint32_t mLRUStamp;
     const char *mLRUKeyToDelete;
     nsTArray<nsCString> mLongKeysToDelete;
     RefPtr<Predictor> mPredictor;
   };
 
-  class PrefetchListener : public nsIStreamListener
-  {
-  public:
+  class PrefetchListener : public nsIStreamListener {
+   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSISTREAMLISTENER
 
     PrefetchListener(nsINetworkPredictorVerifier *verifier, nsIURI *uri,
                      Predictor *predictor)
-      :mVerifier(verifier)
-      ,mURI(uri)
-      ,mPredictor(predictor)
-    { }
+        : mVerifier(verifier), mURI(uri), mPredictor(predictor) {}
 
-  private:
-    virtual ~PrefetchListener() { }
+   private:
+    virtual ~PrefetchListener() {}
 
     nsCOMPtr<nsINetworkPredictorVerifier> mVerifier;
     nsCOMPtr<nsIURI> mURI;
@@ -265,25 +248,21 @@ private:
   //   * sourceURI - the URI of the page on which the link appears
   //   * originAttributes - the originAttributes for this prediction
   //   * verifier - used for testing to verify the expected predictions happen
-  void PredictForLink(nsIURI *targetURI,
-                      nsIURI *sourceURI,
-                      const OriginAttributes& originAttributes,
+  void PredictForLink(nsIURI *targetURI, nsIURI *sourceURI,
+                      const OriginAttributes &originAttributes,
                       nsINetworkPredictorVerifier *verifier);
 
   // Used when predicting because a page is being loaded (which may include
   // being the target of a redirect). All arguments are the same as for
   // PredictInternal. Returns true if any predictions were queued up.
-  bool PredictForPageload(nsICacheEntry *entry,
-                          nsIURI *targetURI,
-                          uint8_t stackCount,
-                          bool fullUri,
+  bool PredictForPageload(nsICacheEntry *entry, nsIURI *targetURI,
+                          uint8_t stackCount, bool fullUri,
                           nsINetworkPredictorVerifier *verifier);
 
   // Used when predicting pages that will be used near browser startup. All
   // arguments are the same as for PredictInternal. Returns true if any
   // predictions were queued up.
-  bool PredictForStartup(nsICacheEntry *entry,
-                         bool fullUri,
+  bool PredictForStartup(nsICacheEntry *entry, bool fullUri,
                          nsINetworkPredictorVerifier *verifier);
 
   // Utilities related to prediction
@@ -357,7 +336,7 @@ private:
   //   * originAttributes - the originAttributes of this prefetch
   //   * verifier - used for testing to ensure the expected prefetch happens
   nsresult Prefetch(nsIURI *uri, nsIURI *referrer,
-                    const OriginAttributes& originAttributes,
+                    const OriginAttributes &originAttributes,
                     nsINetworkPredictorVerifier *verifier);
 
   // Used to actually perform any predictions set up via SetupPrediction.
@@ -366,7 +345,7 @@ private:
   //   * originAttributs - the originAttributes we are predicting from
   //   * verifier - used for testing to ensure the expected predictions happen
   bool RunPredictions(nsIURI *referrer,
-                      const OriginAttributes& originAttributes,
+                      const OriginAttributes &originAttributes,
                       nsINetworkPredictorVerifier *verifier);
 
   // Used to guess whether a page will redirect to another page or not. Returns
@@ -416,7 +395,7 @@ private:
   //   * fullUri - true if this is a full page uri, false if it's an origin
   //   * originAttributes - the originAttributes for this learning.
   void MaybeLearnForStartup(nsIURI *uri, bool fullUri,
-                            const OriginAttributes& originAttributes);
+                            const OriginAttributes &originAttributes);
 
   // Used in conjunction with MaybeLearnForStartup to learn about pages loaded
   // close to browser startup
@@ -440,7 +419,7 @@ private:
   // and httpStatus is the status code we got while loading targetURI.
   void UpdateCacheabilityInternal(nsIURI *sourceURI, nsIURI *targetURI,
                                   uint32_t httpStatus, const nsCString &method,
-                                  const OriginAttributes& originAttributes,
+                                  const OriginAttributes &originAttributes,
                                   bool isTracking, bool couldVary,
                                   bool isNoStore);
 
@@ -507,7 +486,7 @@ private:
   static Predictor *sSelf;
 };
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
-#endif // mozilla_net_Predictor_h
+#endif  // mozilla_net_Predictor_h

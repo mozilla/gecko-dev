@@ -9,16 +9,14 @@
 
 #include "PlatformDecoderModule.h"
 
-namespace mozilla
-{
+namespace mozilla {
 
-class FFVPXRuntimeLinker
-{
-public:
+class FFVPXRuntimeLinker {
+ public:
   static bool Init();
   static already_AddRefed<PlatformDecoderModule> CreateDecoderModule();
 
-private:
+ private:
   static enum LinkStatus {
     LinkStatus_INIT = 0,
     LinkStatus_FAILED,
@@ -26,6 +24,6 @@ private:
   } sLinkStatus;
 };
 
-}
+}  // namespace mozilla
 
 #endif /* __FFVPXRuntimeLinker_h__ */

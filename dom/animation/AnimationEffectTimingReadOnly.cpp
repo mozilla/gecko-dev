@@ -20,16 +20,13 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(AnimationEffectTimingReadOnly, mDocument)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(AnimationEffectTimingReadOnly, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AnimationEffectTimingReadOnly, Release)
 
-JSObject*
-AnimationEffectTimingReadOnly::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* AnimationEffectTimingReadOnly::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return AnimationEffectTimingReadOnlyBinding::Wrap(aCx, this, aGivenProto);
 }
 
-void
-AnimationEffectTimingReadOnly::GetDuration(
-    OwningUnrestrictedDoubleOrString& aRetVal) const
-{
+void AnimationEffectTimingReadOnly::GetDuration(
+    OwningUnrestrictedDoubleOrString& aRetVal) const {
   if (mTiming.Duration()) {
     aRetVal.SetAsUnrestrictedDouble() = mTiming.Duration()->ToMilliseconds();
   } else {
@@ -37,9 +34,7 @@ AnimationEffectTimingReadOnly::GetDuration(
   }
 }
 
-void
-AnimationEffectTimingReadOnly::GetEasing(nsString& aRetVal) const
-{
+void AnimationEffectTimingReadOnly::GetEasing(nsString& aRetVal) const {
   if (mTiming.TimingFunction()) {
     mTiming.TimingFunction()->AppendToString(aRetVal);
   } else {
@@ -47,5 +42,5 @@ AnimationEffectTimingReadOnly::GetEasing(nsString& aRetVal) const
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

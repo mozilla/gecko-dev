@@ -19,11 +19,9 @@ class OpusParser;
 
 DDLoggedTypeDeclNameAndBase(OpusDataDecoder, MediaDataDecoder);
 
-class OpusDataDecoder
-  : public MediaDataDecoder
-  , public DecoderDoctorLifeLogger<OpusDataDecoder>
-{
-public:
+class OpusDataDecoder : public MediaDataDecoder,
+                        public DecoderDoctorLifeLogger<OpusDataDecoder> {
+ public:
   explicit OpusDataDecoder(const CreateDecoderParams& aParams);
   ~OpusDataDecoder();
 
@@ -32,8 +30,7 @@ public:
   RefPtr<DecodePromise> Drain() override;
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
-  nsCString GetDescriptionName() const override
-  {
+  nsCString GetDescriptionName() const override {
     return NS_LITERAL_CSTRING("opus audio decoder");
   }
 
@@ -47,7 +44,7 @@ public:
   // values match.
   static void AppendCodecDelay(MediaByteBuffer* config, uint64_t codecDelayUS);
 
-private:
+ private:
   nsresult DecodeHeader(const unsigned char* aData, size_t aLength);
 
   RefPtr<DecodePromise> ProcessDecode(MediaRawData* aSample);
@@ -59,7 +56,7 @@ private:
   nsAutoPtr<OpusParser> mOpusParser;
   OpusMSDecoder* mOpusDecoder;
 
-  uint16_t mSkip;        // Samples left to trim before playback.
+  uint16_t mSkip;  // Samples left to trim before playback.
   bool mDecodedHeader;
 
   // Opus padding should only be discarded on the final packet.  Once this
@@ -68,8 +65,8 @@ private:
   bool mPaddingDiscarded;
   int64_t mFrames;
   Maybe<int64_t> mLastFrameTime;
-  uint8_t mMappingTable[MAX_AUDIO_CHANNELS]; // Channel mapping table.
+  uint8_t mMappingTable[MAX_AUDIO_CHANNELS];  // Channel mapping table.
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 #endif

@@ -34,7 +34,7 @@ struct URLExtraData;
 namespace dom {
 class Element;
 class StyleChildrenIterator;
-} // namespace dom
+}  // namespace dom
 struct AnimationPropertySegment;
 struct ComputedTiming;
 struct Keyframe;
@@ -42,9 +42,9 @@ struct PropertyValuePair;
 struct PropertyStyleAnimationValuePair;
 enum class OriginFlags : uint8_t;
 using ComputedKeyframeValues = nsTArray<PropertyStyleAnimationValuePair>;
-} // namespace mozilla
+}  // namespace mozilla
 namespace nsStyleTransformMatrix {
-enum class MatrixTransformOperator: uint8_t;
+enum class MatrixTransformOperator : uint8_t;
 }
 
 class nsCSSPropertyIDSet;
@@ -57,8 +57,8 @@ class nsSimpleContentList;
 struct nsTimingFunction;
 class nsXBLBinding;
 
-using mozilla::dom::StyleChildrenIterator;
 using mozilla::ServoElementSnapshot;
+using mozilla::dom::StyleChildrenIterator;
 
 typedef void* RawServoAnimationValueTableBorrowed;
 
@@ -68,10 +68,12 @@ typedef nsIDocument RawGeckoDocument;
 typedef nsPresContext RawGeckoPresContext;
 typedef nsXBLBinding RawGeckoXBLBinding;
 typedef mozilla::URLExtraData RawGeckoURLExtraData;
-typedef nsTArray<RefPtr<RawServoAnimationValue>> RawGeckoServoAnimationValueList;
+typedef nsTArray<RefPtr<RawServoAnimationValue>>
+    RawGeckoServoAnimationValueList;
 typedef nsTArray<mozilla::Keyframe> RawGeckoKeyframeList;
 typedef nsTArray<mozilla::PropertyValuePair> RawGeckoPropertyValuePairList;
-typedef nsTArray<mozilla::ComputedKeyframeValues> RawGeckoComputedKeyframeValuesList;
+typedef nsTArray<mozilla::ComputedKeyframeValues>
+    RawGeckoComputedKeyframeValuesList;
 typedef nsStyleAutoArray<mozilla::StyleAnimation> RawGeckoStyleAnimationList;
 typedef nsTArray<nsFontFaceRuleContainer> RawGeckoFontFaceRuleList;
 typedef mozilla::AnimationPropertySegment RawGeckoAnimationPropertySegment;
@@ -97,16 +99,17 @@ typedef mozilla::dom::StyleChildrenIterator RawGeckoStyleChildrenIterator;
 // over FFI as Strong<T> (which is nullable).
 // Note that T != ServoType, rather T is ArcInner<ServoType>
 #define DECL_BORROWED_REF_TYPE_FOR(type_) typedef type_ const* type_##Borrowed;
-#define DECL_NULLABLE_BORROWED_REF_TYPE_FOR(type_) typedef type_ const* type_##BorrowedOrNull;
+#define DECL_NULLABLE_BORROWED_REF_TYPE_FOR(type_) \
+  typedef type_ const* type_##BorrowedOrNull;
 #define DECL_BORROWED_MUT_REF_TYPE_FOR(type_) typedef type_* type_##BorrowedMut;
-#define DECL_NULLABLE_BORROWED_MUT_REF_TYPE_FOR(type_) typedef type_* type_##BorrowedMutOrNull;
+#define DECL_NULLABLE_BORROWED_MUT_REF_TYPE_FOR(type_) \
+  typedef type_* type_##BorrowedMutOrNull;
 
 #define SERVO_ARC_TYPE(name_, type_)         \
   DECL_NULLABLE_BORROWED_REF_TYPE_FOR(type_) \
   DECL_BORROWED_REF_TYPE_FOR(type_)          \
   DECL_BORROWED_MUT_REF_TYPE_FOR(type_)      \
-  struct MOZ_MUST_USE_TYPE type_##Strong     \
-  {                                          \
+  struct MOZ_MUST_USE_TYPE type_##Strong {   \
     type_* mPtr;                             \
     already_AddRefed<type_> Consume();       \
   };
@@ -117,20 +120,19 @@ typedef mozilla::ServoStyleContext const* ServoStyleContextBorrowed;
 typedef mozilla::ServoStyleContext const* ServoStyleContextBorrowedOrNull;
 typedef ServoComputedData const* ServoComputedDataBorrowed;
 
-struct MOZ_MUST_USE_TYPE ServoStyleContextStrong
-{
+struct MOZ_MUST_USE_TYPE ServoStyleContextStrong {
   mozilla::ServoStyleContext* mPtr;
   already_AddRefed<mozilla::ServoStyleContext> Consume();
 };
 
-#define DECL_OWNED_REF_TYPE_FOR(type_)    \
-  typedef type_* type_##Owned;            \
-  DECL_BORROWED_REF_TYPE_FOR(type_)       \
+#define DECL_OWNED_REF_TYPE_FOR(type_) \
+  typedef type_* type_##Owned;         \
+  DECL_BORROWED_REF_TYPE_FOR(type_)    \
   DECL_BORROWED_MUT_REF_TYPE_FOR(type_)
 
-#define DECL_NULLABLE_OWNED_REF_TYPE_FOR(type_)    \
-  typedef type_* type_##OwnedOrNull;               \
-  DECL_NULLABLE_BORROWED_REF_TYPE_FOR(type_)       \
+#define DECL_NULLABLE_OWNED_REF_TYPE_FOR(type_) \
+  typedef type_* type_##OwnedOrNull;            \
+  DECL_NULLABLE_BORROWED_REF_TYPE_FOR(type_)    \
   DECL_NULLABLE_BORROWED_MUT_REF_TYPE_FOR(type_)
 
 // This is a reference to a reference of RawServoDeclarationBlock, which
@@ -197,36 +199,29 @@ DECL_NULLABLE_BORROWED_REF_TYPE_FOR(RawServoSourceSizeList)
 #undef DECL_BORROWED_MUT_REF_TYPE_FOR
 #undef DECL_NULLABLE_BORROWED_MUT_REF_TYPE_FOR
 
-#define SERVO_ARC_TYPE(name_, type_)                 \
-  extern "C" {                                       \
-  void Servo_##name_##_AddRef(type_##Borrowed ptr);  \
-  void Servo_##name_##_Release(type_##Borrowed ptr); \
-  }                                                  \
-  namespace mozilla {                                \
-  template<> struct RefPtrTraits<type_> {            \
-    static void AddRef(type_* aPtr) {                \
-      Servo_##name_##_AddRef(aPtr);                  \
-    }                                                \
-    static void Release(type_* aPtr) {               \
-      Servo_##name_##_Release(aPtr);                 \
-    }                                                \
-  };                                                 \
+#define SERVO_ARC_TYPE(name_, type_)                                    \
+  extern "C" {                                                          \
+  void Servo_##name_##_AddRef(type_##Borrowed ptr);                     \
+  void Servo_##name_##_Release(type_##Borrowed ptr);                    \
+  }                                                                     \
+  namespace mozilla {                                                   \
+  template <>                                                           \
+  struct RefPtrTraits<type_> {                                          \
+    static void AddRef(type_* aPtr) { Servo_##name_##_AddRef(aPtr); }   \
+    static void Release(type_* aPtr) { Servo_##name_##_Release(aPtr); } \
+  };                                                                    \
   }
 #include "mozilla/ServoArcTypeList.h"
 #undef SERVO_ARC_TYPE
 
-#define DEFINE_BOXED_TYPE(name_, type_)                     \
-  extern "C" void Servo_##name_##_Drop(type_##Owned ptr);   \
-  namespace mozilla {                                       \
-  template<>                                                \
-  class DefaultDelete<type_>                                \
-  {                                                         \
-  public:                                                   \
-    void operator()(type_* aPtr) const                      \
-    {                                                       \
-      Servo_##name_##_Drop(aPtr);                           \
-    }                                                       \
-  };                                                        \
+#define DEFINE_BOXED_TYPE(name_, type_)                                \
+  extern "C" void Servo_##name_##_Drop(type_##Owned ptr);              \
+  namespace mozilla {                                                  \
+  template <>                                                          \
+  class DefaultDelete<type_> {                                         \
+   public:                                                             \
+    void operator()(type_* aPtr) const { Servo_##name_##_Drop(aPtr); } \
+  };                                                                   \
   }
 
 DEFINE_BOXED_TYPE(StyleSet, RawServoStyleSet);
@@ -236,4 +231,4 @@ DEFINE_BOXED_TYPE(SourceSizeList, RawServoSourceSizeList);
 
 #undef DEFINE_BOXED_TYPE
 
-#endif // mozilla_ServoBindingTypes_h
+#endif  // mozilla_ServoBindingTypes_h

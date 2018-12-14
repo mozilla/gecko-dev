@@ -19,7 +19,7 @@
 //#define DO_NEW_REFLOW
 #endif
 
-//Mark used to indicate when onchange has been fired for current combobox item
+// Mark used to indicate when onchange has been fired for current combobox item
 #define NS_SKIP_NOTIFY_INDEX -2
 
 #include "mozilla/Attributes.h"
@@ -41,8 +41,8 @@ class nsIScrollableFrame;
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 class nsComboboxControlFrame final : public nsBlockFrame,
                                      public nsIFormControlFrame,
@@ -50,14 +50,12 @@ class nsComboboxControlFrame final : public nsBlockFrame,
                                      public nsIAnonymousContentCreator,
                                      public nsISelectControlFrame,
                                      public nsIRollupListener,
-                                     public nsIStatefulFrame
-{
+                                     public nsIStatefulFrame {
   typedef mozilla::gfx::DrawTarget DrawTarget;
 
-public:
-  friend nsComboboxControlFrame* NS_NewComboboxControlFrame(nsIPresShell* aPresShell,
-                                                            nsStyleContext* aContext,
-                                                            nsFrameState aFlags);
+ public:
+  friend nsComboboxControlFrame* NS_NewComboboxControlFrame(
+      nsIPresShell* aPresShell, nsStyleContext* aContext, nsFrameState aFlags);
   friend class nsComboboxDisplayFrame;
 
   explicit nsComboboxControlFrame(nsStyleContext* aContext);
@@ -67,7 +65,8 @@ public:
   NS_DECL_FRAMEARENA_HELPERS(nsComboboxControlFrame)
 
   // nsIAnonymousContentCreator
-  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
+  virtual nsresult CreateAnonymousContent(
+      nsTArray<ContentInfo>& aElements) override;
   virtual void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
                                         uint32_t aFilter) override;
 
@@ -78,28 +77,26 @@ public:
   virtual mozilla::a11y::AccType AccessibleType() override;
 #endif
 
-  virtual nscoord GetMinISize(gfxContext *aRenderingContext) override;
+  virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
 
-  virtual nscoord GetPrefISize(gfxContext *aRenderingContext) override;
+  virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
 
-  virtual void Reflow(nsPresContext*           aCX,
-                      ReflowOutput&     aDesiredSize,
+  virtual void Reflow(nsPresContext* aCX, ReflowOutput& aDesiredSize,
                       const ReflowInput& aReflowInput,
-                      nsReflowStatus&          aStatus) override;
+                      nsReflowStatus& aStatus) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
                                nsEventStatus* aEventStatus) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
   void PaintFocus(DrawTarget& aDrawTarget, nsPoint aPt);
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const override
-  {
-    return nsBlockFrame::IsFrameOfType(aFlags &
-      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
+  virtual bool IsFrameOfType(uint32_t aFlags) const override {
+    return nsBlockFrame::IsFrameOfType(
+        aFlags & ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
   }
 
   virtual nsIScrollableFrame* GetScrollTargetFrame() override {
@@ -109,9 +106,10 @@ public:
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
-  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
-  virtual void SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot,
+                           PostDestroyData& aPostDestroyData) override;
+  virtual void SetInitialChildList(ChildListID aListID,
+                                   nsFrameList& aChildList) override;
   virtual const nsFrameList& GetChildList(ChildListID aListID) const override;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const override;
 
@@ -121,18 +119,20 @@ public:
   void AppendDirectlyOwnedAnonBoxes(nsTArray<OwnedAnonBox>& aResult) override;
 
   // nsIFormControlFrame
-  virtual nsresult SetFormProperty(nsAtom* aName, const nsAString& aValue) override;
+  virtual nsresult SetFormProperty(nsAtom* aName,
+                                   const nsAString& aValue) override;
   /**
    * Inform the control that it got (or lost) focus.
    * If it lost focus, the dropdown menu will be rolled up if needed,
    * and FireOnChange() will be called.
    * @param aOn true if got focus, false if lost focus.
-   * @param aRepaint if true then force repaint (NOTE: we always force repaint currently)
+   * @param aRepaint if true then force repaint (NOTE: we always force repaint
+   * currently)
    * @note This method might destroy |this|.
    */
   virtual void SetFocus(bool aOn, bool aRepaint) override;
 
-  //nsIComboboxControlFrame
+  // nsIComboboxControlFrame
   virtual bool IsDroppedDown() override { return mDroppedDown; }
   /**
    * @note This method might destroy |this|.
@@ -151,8 +151,7 @@ public:
    * Note that either or both can be less than or equal to zero,
    * if both are then the drop-down should be closed.
    */
-  void GetAvailableDropdownSpace(mozilla::WritingMode aWM,
-                                 nscoord* aBefore,
+  void GetAvailableDropdownSpace(mozilla::WritingMode aWM, nscoord* aBefore,
                                  nscoord* aAfter,
                                  mozilla::LogicalPoint* aTranslation);
   virtual int32_t GetIndexOfDisplayArea() override;
@@ -163,14 +162,9 @@ public:
   virtual int32_t UpdateRecentIndex(int32_t aIndex) override;
   virtual void OnContentReset() override;
 
+  bool IsOpenInParentProcess() override { return mIsOpenInParentProcess; }
 
-  bool IsOpenInParentProcess() override
-  {
-    return mIsOpenInParentProcess;
-  }
-
-  void SetOpenInParentProcess(bool aVal) override
-  {
+  void SetOpenInParentProcess(bool aVal) override {
     mIsOpenInParentProcess = aVal;
   }
 
@@ -181,53 +175,51 @@ public:
   NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected) override;
   NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex) override;
 
-  //nsIRollupListener
+  // nsIRollupListener
   /**
    * Hide the dropdown menu and stop capturing mouse events.
    * @note This method might destroy |this|.
    */
-  virtual bool Rollup(uint32_t aCount, bool aFlush,
-                      const nsIntPoint* pos, nsIContent** aLastRolledUp) override;
+  virtual bool Rollup(uint32_t aCount, bool aFlush, const nsIntPoint* pos,
+                      nsIContent** aLastRolledUp) override;
   virtual void NotifyGeometryChange() override;
 
   /**
    * A combobox should roll up if a mousewheel event happens outside of
    * the popup area.
    */
-  virtual bool ShouldRollupOnMouseWheelEvent() override
-    { return true; }
+  virtual bool ShouldRollupOnMouseWheelEvent() override { return true; }
 
-  virtual bool ShouldConsumeOnMouseWheelEvent() override
-    { return false; }
+  virtual bool ShouldConsumeOnMouseWheelEvent() override { return false; }
 
   /**
    * A combobox should not roll up if activated by a mouse activate message
    * (eg. X-mouse).
    */
-  virtual bool ShouldRollupOnMouseActivate() override
-    { return false; }
+  virtual bool ShouldRollupOnMouseActivate() override { return false; }
 
-  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) override
-    { return 0; }
+  virtual uint32_t GetSubmenuWidgetChain(
+      nsTArray<nsIWidget*>* aWidgetChain) override {
+    return 0;
+  }
 
   virtual nsIWidget* GetRollupWidget() override;
 
-  //nsIStatefulFrame
+  // nsIStatefulFrame
   NS_IMETHOD SaveState(nsPresState** aState) override;
   NS_IMETHOD RestoreState(nsPresState* aState) override;
-  NS_IMETHOD GenerateStateKey(nsIContent* aContent,
-                              nsIDocument* aDocument,
+  NS_IMETHOD GenerateStateKey(nsIContent* aContent, nsIDocument* aDocument,
                               nsACString& aKey) override;
 
   static bool ToolkitHasNativePopup();
 
-protected:
+ protected:
   friend class RedisplayTextEvent;
   friend class nsAsyncResize;
   friend class nsResizeDropdownAtFinalPosition;
 
   // Utilities
-  void ReflowDropdown(nsPresContext*          aPresContext,
+  void ReflowDropdown(nsPresContext* aPresContext,
                       const ReflowInput& aReflowInput);
 
   // Return true if we should render a dropdown button.
@@ -248,16 +240,15 @@ protected:
                             nsLayoutUtils::IntrinsicISizeType aType);
 
   class RedisplayTextEvent : public mozilla::Runnable {
-  public:
+   public:
     NS_DECL_NSIRUNNABLE
     explicit RedisplayTextEvent(nsComboboxControlFrame* c)
-      : mozilla::Runnable("nsComboboxControlFrame::RedisplayTextEvent")
-      , mControlFrame(c)
-    {
-    }
+        : mozilla::Runnable("nsComboboxControlFrame::RedisplayTextEvent"),
+          mControlFrame(c) {}
     void Revoke() { mControlFrame = nullptr; }
-  private:
-    nsComboboxControlFrame *mControlFrame;
+
+   private:
+    nsComboboxControlFrame* mControlFrame;
   };
 
   /**
@@ -279,19 +270,21 @@ protected:
   void HandleRedisplayTextEvent();
   void ActuallyDisplayText(bool aNotify);
 
-private:
+ private:
   // If our total transform to the root frame of the root document is only a 2d
   // translation then return that translation, otherwise returns (0,0).
   nsPoint GetCSSTransformTranslation();
 
-protected:
-  nsFrameList              mPopupFrames;             // additional named child list
-  nsCOMPtr<nsIContent>     mDisplayContent;          // Anonymous content used to display the current selection
-  RefPtr<Element>     mButtonContent;                // Anonymous content for the button
-  nsContainerFrame*        mDisplayFrame;            // frame to display selection
-  nsIFrame*                mButtonFrame;             // button frame
-  nsIFrame*                mDropdownFrame;           // dropdown list frame
-  nsIListControlFrame *    mListControlFrame;        // ListControl Interface for the dropdown frame
+ protected:
+  nsFrameList mPopupFrames;              // additional named child list
+  nsCOMPtr<nsIContent> mDisplayContent;  // Anonymous content used to display
+                                         // the current selection
+  RefPtr<Element> mButtonContent;        // Anonymous content for the button
+  nsContainerFrame* mDisplayFrame;       // frame to display selection
+  nsIFrame* mButtonFrame;                // button frame
+  nsIFrame* mDropdownFrame;              // dropdown list frame
+  nsIListControlFrame*
+      mListControlFrame;  // ListControl Interface for the dropdown frame
 
   // The inline size of our display area.  Used by that frame's reflow
   // to size to the full inline size except the drop-marker.
@@ -299,12 +292,12 @@ protected:
 
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 
-  int32_t               mRecentSelectedIndex;
-  int32_t               mDisplayedIndex;
-  nsString              mDisplayedOptionTextOrPreview;
+  int32_t mRecentSelectedIndex;
+  int32_t mDisplayedIndex;
+  nsString mDisplayedOptionTextOrPreview;
 
-  // make someone to listen to the button. If its programmatically pressed by someone like Accessibility
-  // then open or close the combo box.
+  // make someone to listen to the button. If its programmatically pressed by
+  // someone like Accessibility then open or close the combo box.
   nsCOMPtr<nsIDOMEventListener> mButtonListener;
 
   // The last y-positions used for estimating available space before and
@@ -312,16 +305,16 @@ protected:
   // reset to nscoord_MIN in AbsolutelyPositionDropDown when placing the
   // dropdown at its actual position.  The GetAvailableDropdownSpace call
   // from nsListControlFrame::ReflowAsDropdown use the last position.
-  nscoord               mLastDropDownBeforeScreenBCoord;
-  nscoord               mLastDropDownAfterScreenBCoord;
+  nscoord mLastDropDownBeforeScreenBCoord;
+  nscoord mLastDropDownAfterScreenBCoord;
   // Current state of the dropdown list, true is dropped down.
-  bool                  mDroppedDown;
+  bool mDroppedDown;
   // See comment in HandleRedisplayTextEvent().
-  bool                  mInRedisplayText;
+  bool mInRedisplayText;
   // Acting on ShowDropDown(true) is delayed until we're focused.
-  bool                  mDelayedShowDropDown;
+  bool mDelayedShowDropDown;
 
-  bool                  mIsOpenInParentProcess;
+  bool mIsOpenInParentProcess;
 
   // static class data member for Bug 32920
   // only one control can be focused at a time

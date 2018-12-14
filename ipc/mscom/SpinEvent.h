@@ -14,9 +14,8 @@
 namespace mozilla {
 namespace mscom {
 
-class MOZ_NON_TEMPORARY_CLASS SpinEvent final
-{
-public:
+class MOZ_NON_TEMPORARY_CLASS SpinEvent final {
+ public:
   SpinEvent();
   ~SpinEvent() = default;
 
@@ -28,12 +27,12 @@ public:
   SpinEvent& operator=(SpinEvent&&) = delete;
   SpinEvent& operator=(const SpinEvent&) = delete;
 
-private:
-  Atomic<bool, ReleaseAcquire>  mDone;
-  nsAutoHandle                  mDoneEvent;
+ private:
+  Atomic<bool, ReleaseAcquire> mDone;
+  nsAutoHandle mDoneEvent;
 };
 
-} // namespace mscom
-} // namespace mozilla
+}  // namespace mscom
+}  // namespace mozilla
 
-#endif // mozilla_mscom_SpinEvent_h
+#endif  // mozilla_mscom_SpinEvent_h

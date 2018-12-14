@@ -15,23 +15,18 @@
 namespace mozilla {
 namespace dom {
 
-JSObject*
-AnimationEffectTiming::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* AnimationEffectTiming::WrapObject(JSContext* aCx,
+                                            JS::Handle<JSObject*> aGivenProto) {
   return AnimationEffectTimingBinding::Wrap(aCx, this, aGivenProto);
 }
 
-static inline void
-PostSpecifiedTimingUpdated(KeyframeEffect* aEffect)
-{
+static inline void PostSpecifiedTimingUpdated(KeyframeEffect* aEffect) {
   if (aEffect) {
     aEffect->NotifySpecifiedTimingUpdated();
   }
 }
 
-void
-AnimationEffectTiming::SetDelay(double aDelay)
-{
+void AnimationEffectTiming::SetDelay(double aDelay) {
   TimeDuration delay = TimeDuration::FromMilliseconds(aDelay);
   if (mTiming.Delay() == delay) {
     return;
@@ -41,9 +36,7 @@ AnimationEffectTiming::SetDelay(double aDelay)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetEndDelay(double aEndDelay)
-{
+void AnimationEffectTiming::SetEndDelay(double aEndDelay) {
   TimeDuration endDelay = TimeDuration::FromMilliseconds(aEndDelay);
   if (mTiming.EndDelay() == endDelay) {
     return;
@@ -53,9 +46,7 @@ AnimationEffectTiming::SetEndDelay(double aEndDelay)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetFill(const FillMode& aFill)
-{
+void AnimationEffectTiming::SetFill(const FillMode& aFill) {
   if (mTiming.Fill() == aFill) {
     return;
   }
@@ -64,10 +55,8 @@ AnimationEffectTiming::SetFill(const FillMode& aFill)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetIterationStart(double aIterationStart,
-                                         ErrorResult& aRv)
-{
+void AnimationEffectTiming::SetIterationStart(double aIterationStart,
+                                              ErrorResult& aRv) {
   if (mTiming.IterationStart() == aIterationStart) {
     return;
   }
@@ -82,9 +71,8 @@ AnimationEffectTiming::SetIterationStart(double aIterationStart,
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetIterations(double aIterations, ErrorResult& aRv)
-{
+void AnimationEffectTiming::SetIterations(double aIterations,
+                                          ErrorResult& aRv) {
   if (mTiming.Iterations() == aIterations) {
     return;
   }
@@ -99,12 +87,10 @@ AnimationEffectTiming::SetIterations(double aIterations, ErrorResult& aRv)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetDuration(const UnrestrictedDoubleOrString& aDuration,
-                                   ErrorResult& aRv)
-{
+void AnimationEffectTiming::SetDuration(
+    const UnrestrictedDoubleOrString& aDuration, ErrorResult& aRv) {
   Maybe<StickyTimeDuration> newDuration =
-    TimingParams::ParseDuration(aDuration, aRv);
+      TimingParams::ParseDuration(aDuration, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -118,9 +104,7 @@ AnimationEffectTiming::SetDuration(const UnrestrictedDoubleOrString& aDuration,
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetDirection(const PlaybackDirection& aDirection)
-{
+void AnimationEffectTiming::SetDirection(const PlaybackDirection& aDirection) {
   if (mTiming.Direction() == aDirection) {
     return;
   }
@@ -130,11 +114,10 @@ AnimationEffectTiming::SetDirection(const PlaybackDirection& aDirection)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-void
-AnimationEffectTiming::SetEasing(const nsAString& aEasing, ErrorResult& aRv)
-{
+void AnimationEffectTiming::SetEasing(const nsAString& aEasing,
+                                      ErrorResult& aRv) {
   Maybe<ComputedTimingFunction> newFunction =
-    TimingParams::ParseEasing(aEasing, mDocument, aRv);
+      TimingParams::ParseEasing(aEasing, mDocument, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -148,5 +131,5 @@ AnimationEffectTiming::SetEasing(const nsAString& aEasing, ErrorResult& aRv)
   PostSpecifiedTimingUpdated(mEffect);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

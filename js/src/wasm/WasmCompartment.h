@@ -31,40 +31,40 @@ typedef Vector<Instance*, 0, SystemAllocPolicy> InstanceVector;
 // compartment and must be notified, via registerInstance(), of any new
 // WasmInstanceObject.
 
-class Compartment
-{
-    InstanceVector instances_;
+class Compartment {
+  InstanceVector instances_;
 
-  public:
-    explicit Compartment(Zone* zone);
-    ~Compartment();
+ public:
+  explicit Compartment(Zone* zone);
+  ~Compartment();
 
-    // Before a WasmInstanceObject can be considered fully constructed and
-    // valid, it must be registered with the Compartment. If this method fails,
-    // an error has been reported and the instance object must be abandoned.
-    // After a successful registration, an Instance must call
-    // unregisterInstance() before being destroyed.
+  // Before a WasmInstanceObject can be considered fully constructed and
+  // valid, it must be registered with the Compartment. If this method fails,
+  // an error has been reported and the instance object must be abandoned.
+  // After a successful registration, an Instance must call
+  // unregisterInstance() before being destroyed.
 
-    bool registerInstance(JSContext* cx, HandleWasmInstanceObject instanceObj);
-    void unregisterInstance(Instance& instance);
+  bool registerInstance(JSContext* cx, HandleWasmInstanceObject instanceObj);
+  void unregisterInstance(Instance& instance);
 
-    // Return a vector of all live instances in the compartment. The lifetime of
-    // these Instances is determined by their owning WasmInstanceObject.
-    // Note that accessing instances()[i]->object() triggers a read barrier
-    // since instances() is effectively a weak list.
+  // Return a vector of all live instances in the compartment. The lifetime of
+  // these Instances is determined by their owning WasmInstanceObject.
+  // Note that accessing instances()[i]->object() triggers a read barrier
+  // since instances() is effectively a weak list.
 
-    const InstanceVector& instances() const { return instances_; }
+  const InstanceVector& instances() const { return instances_; }
 
-    // Ensure all Instances in this JSCompartment have profiling labels created.
+  // Ensure all Instances in this JSCompartment have profiling labels created.
 
-    void ensureProfilingLabels(bool profilingEnabled);
+  void ensureProfilingLabels(bool profilingEnabled);
 
-    // about:memory reporting
+  // about:memory reporting
 
-    void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, size_t* compartmentTables);
+  void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
+                              size_t* compartmentTables);
 };
 
-} // namespace wasm
-} // namespace js
+}  // namespace wasm
+}  // namespace js
 
-#endif // wasm_compartment_h
+#endif  // wasm_compartment_h

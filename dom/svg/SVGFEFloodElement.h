@@ -9,42 +9,44 @@
 
 #include "nsSVGFilters.h"
 
-nsresult NS_NewSVGFEFloodElement(nsIContent **aResult,
-                                 already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGFEFloodElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 
 typedef nsSVGFE SVGFEFloodElementBase;
 
-class SVGFEFloodElement : public SVGFEFloodElementBase
-{
-  friend nsresult (::NS_NewSVGFEFloodElement(nsIContent **aResult,
-                                             already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-protected:
-  explicit SVGFEFloodElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : SVGFEFloodElementBase(aNodeInfo)
-  {
-  }
-  virtual JSObject* WrapNode(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+class SVGFEFloodElement : public SVGFEFloodElementBase {
+  friend nsresult(::NS_NewSVGFEFloodElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
 
-public:
+ protected:
+  explicit SVGFEFloodElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+      : SVGFEFloodElementBase(aNodeInfo) {}
+  virtual JSObject* WrapNode(JSContext* cx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+
+ public:
   virtual bool SubregionIsUnionOfRegions() override { return false; }
 
-  virtual FilterPrimitiveDescription
-    GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
-                            const IntRect& aFilterSubregion,
-                            const nsTArray<bool>& aInputsAreTainted,
-                            nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
-  virtual nsSVGString& GetResultImageName() override { return mStringAttributes[RESULT]; }
+  virtual FilterPrimitiveDescription GetPrimitiveDescription(
+      nsSVGFilterInstance* aInstance, const IntRect& aFilterSubregion,
+      const nsTArray<bool>& aInputsAreTainted,
+      nsTArray<RefPtr<SourceSurface>>& aInputImages) override;
+  virtual nsSVGString& GetResultImageName() override {
+    return mStringAttributes[RESULT];
+  }
 
   // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
-protected:
+ protected:
   virtual bool ProducesSRGB() override { return true; }
 
   virtual StringAttributesInfo GetStringInfo() override;
@@ -54,7 +56,7 @@ protected:
   static StringInfo sStringInfo[1];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGFEFloodElement_h
+#endif  // mozilla_dom_SVGFEFloodElement_h

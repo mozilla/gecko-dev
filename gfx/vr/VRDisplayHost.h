@@ -31,7 +31,7 @@ class VRThread;
 class VRLayerParent;
 
 class VRDisplayHost {
-public:
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRDisplayHost)
 
   const VRDisplayInfo& GetDisplayInfo() const { return mDisplayInfo; }
@@ -46,8 +46,7 @@ public:
 
   void StartFrame();
   void SubmitFrame(VRLayerParent* aLayer,
-                   const layers::SurfaceDescriptor& aTexture,
-                   uint64_t aFrameId,
+                   const layers::SurfaceDescriptor& aTexture, uint64_t aFrameId,
                    const gfx::Rect& aLeftEyeRect,
                    const gfx::Rect& aRightEyeRect);
 
@@ -56,11 +55,12 @@ public:
   bool GetIsConnected();
 
   class AutoRestoreRenderState {
-  public:
+   public:
     explicit AutoRestoreRenderState(VRDisplayHost* aDisplay);
     ~AutoRestoreRenderState();
     bool IsSuccess();
-  private:
+
+   private:
     RefPtr<VRDisplayHost> mDisplay;
 #if defined(XP_WIN)
     RefPtr<ID3DDeviceContextState> mPrevDeviceContextState;
@@ -68,7 +68,7 @@ public:
     bool mSuccess;
   };
 
-protected:
+ protected:
   explicit VRDisplayHost(VRDeviceType aType);
   virtual ~VRDisplayHost();
 
@@ -77,35 +77,33 @@ protected:
   // Returns true if the SubmitFrame call will block as necessary
   // to control timing of the next frame and throttle the render loop
   // for the needed framerate.
-  virtual bool SubmitFrame(ID3D11Texture2D* aSource,
-                           const IntSize& aSize,
+  virtual bool SubmitFrame(ID3D11Texture2D* aSource, const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) = 0;
 #elif defined(XP_MACOSX)
-  virtual bool SubmitFrame(MacIOSurface* aMacIOSurface,
-                           const IntSize& aSize,
+  virtual bool SubmitFrame(MacIOSurface* aMacIOSurface, const IntSize& aSize,
                            const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect) = 0;
 #elif defined(MOZ_ANDROID_GOOGLE_VR)
-  virtual bool SubmitFrame(const mozilla::layers::EGLImageDescriptor* aDescriptor,
-                           const gfx::Rect& aLeftEyeRect,
-                           const gfx::Rect& aRightEyeRect) = 0;
+  virtual bool SubmitFrame(
+      const mozilla::layers::EGLImageDescriptor* aDescriptor,
+      const gfx::Rect& aLeftEyeRect, const gfx::Rect& aRightEyeRect) = 0;
 #endif
 
   VRDisplayInfo mDisplayInfo;
 
-  nsTArray<VRLayerParent *> mLayers;
+  nsTArray<VRLayerParent*> mLayers;
   // Weak reference to mLayers entries are cleared in
   // VRLayerParent destructor
 
-protected:
+ protected:
   virtual VRHMDSensorState GetSensorState() = 0;
 
   RefPtr<VRThread> mSubmitThread;
-private:
+
+ private:
   void SubmitFrameInternal(const layers::SurfaceDescriptor& aTexture,
-                           uint64_t aFrameId,
-                           const gfx::Rect& aLeftEyeRect,
+                           uint64_t aFrameId, const gfx::Rect& aLeftEyeRect,
                            const gfx::Rect& aRightEyeRect);
 
   VRDisplayInfo mLastUpdateDisplayInfo;
@@ -113,7 +111,7 @@ private:
   bool mFrameStarted;
 
 #if defined(XP_WIN)
-protected:
+ protected:
   bool CreateD3DObjects();
   RefPtr<ID3D11Device1> mDevice;
   RefPtr<ID3D11DeviceContext1> mContext;
@@ -121,13 +119,13 @@ protected:
   ID3D11DeviceContext1* GetD3DDeviceContext();
   ID3DDeviceContextState* GetD3DDeviceContextState();
 
-private:
+ private:
   RefPtr<ID3DDeviceContextState> mDeviceContextState;
 #endif
 };
 
 class VRControllerHost {
-public:
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRControllerHost)
 
   const VRControllerInfo& GetControllerInfo() const;
@@ -141,7 +139,7 @@ public:
   void SetVibrateIndex(uint64_t aIndex);
   uint64_t GetVibrateIndex();
 
-protected:
+ protected:
   explicit VRControllerHost(VRDeviceType aType, dom::GamepadHand aHand,
                             uint32_t aDisplayID);
   virtual ~VRControllerHost();
@@ -155,7 +153,7 @@ protected:
   dom::GamepadPoseState mPose;
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* GFX_VR_DISPLAY_HOST_H */

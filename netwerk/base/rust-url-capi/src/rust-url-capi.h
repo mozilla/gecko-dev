@@ -48,14 +48,16 @@ nsresult rusturl_set_path(rusturl* url, const nsACString* path);
 nsresult rusturl_set_query(rusturl* url, const nsACString* query);
 nsresult rusturl_set_fragment(rusturl* url, const nsACString* fragment);
 
-nsresult rusturl_resolve(const rusturl* url, const nsACString* relative, nsACString* cont);
-nsresult rusturl_common_base_spec(const rusturl* url1, const rusturl* url2, nsACString* cont);
-nsresult rusturl_relative_spec(const rusturl* url1, const rusturl* url2, nsACString* cont);
+nsresult rusturl_resolve(const rusturl* url, const nsACString* relative,
+                         nsACString* cont);
+nsresult rusturl_common_base_spec(const rusturl* url1, const rusturl* url2,
+                                  nsACString* cont);
+nsresult rusturl_relative_spec(const rusturl* url1, const rusturl* url2,
+                               nsACString* cont);
 
 nsresult rusturl_parse_ipv6addr(const nsACString* input, nsACString* cont);
 
 size_t sizeof_rusturl();
-
 }
 
-#endif // __RUST_URL_CAPI
+#endif  // __RUST_URL_CAPI

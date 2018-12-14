@@ -15,18 +15,15 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace dom {
 
-JSObject*
-SVGFEPointLightElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* SVGFEPointLightElement::WrapNode(JSContext* aCx,
+                                           JS::Handle<JSObject*> aGivenProto) {
   return SVGFEPointLightElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-nsSVGElement::NumberInfo SVGFEPointLightElement::sNumberInfo[3] =
-{
-  { &nsGkAtoms::x, 0, false },
-  { &nsGkAtoms::y, 0, false },
-  { &nsGkAtoms::z, 0, false }
-};
+nsSVGElement::NumberInfo SVGFEPointLightElement::sNumberInfo[3] = {
+    {&nsGkAtoms::x, 0, false},
+    {&nsGkAtoms::y, 0, false},
+    {&nsGkAtoms::z, 0, false}};
 
 //----------------------------------------------------------------------
 // nsIDOMNode methods
@@ -36,21 +33,17 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEPointLightElement)
 //----------------------------------------------------------------------
 // nsFEUnstyledElement methods
 
-bool
-SVGFEPointLightElement::AttributeAffectsRendering(int32_t aNameSpaceID,
-                                                  nsAtom* aAttribute) const
-{
+bool SVGFEPointLightElement::AttributeAffectsRendering(
+    int32_t aNameSpaceID, nsAtom* aAttribute) const {
   return aNameSpaceID == kNameSpaceID_None &&
-         (aAttribute == nsGkAtoms::x ||
-          aAttribute == nsGkAtoms::y ||
+         (aAttribute == nsGkAtoms::x || aAttribute == nsGkAtoms::y ||
           aAttribute == nsGkAtoms::z);
 }
 
 //----------------------------------------------------------------------
 
-AttributeMap
-SVGFEPointLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
-{
+AttributeMap SVGFEPointLightElement::ComputeLightAttributes(
+    nsSVGFilterInstance* aInstance) {
   Point3D lightPos;
   GetAnimatedNumberValues(&lightPos.x, &lightPos.y, &lightPos.z, nullptr);
 
@@ -60,33 +53,25 @@ SVGFEPointLightElement::ComputeLightAttributes(nsSVGFilterInstance* aInstance)
   return map;
 }
 
-already_AddRefed<SVGAnimatedNumber>
-SVGFEPointLightElement::X()
-{
+already_AddRefed<SVGAnimatedNumber> SVGFEPointLightElement::X() {
   return mNumberAttributes[ATTR_X].ToDOMAnimatedNumber(this);
 }
 
-already_AddRefed<SVGAnimatedNumber>
-SVGFEPointLightElement::Y()
-{
+already_AddRefed<SVGAnimatedNumber> SVGFEPointLightElement::Y() {
   return mNumberAttributes[ATTR_Y].ToDOMAnimatedNumber(this);
 }
 
-already_AddRefed<SVGAnimatedNumber>
-SVGFEPointLightElement::Z()
-{
+already_AddRefed<SVGAnimatedNumber> SVGFEPointLightElement::Z() {
   return mNumberAttributes[ATTR_Z].ToDOMAnimatedNumber(this);
 }
 
 //----------------------------------------------------------------------
 // nsSVGElement methods
 
-nsSVGElement::NumberAttributesInfo
-SVGFEPointLightElement::GetNumberInfo()
-{
+nsSVGElement::NumberAttributesInfo SVGFEPointLightElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
                               ArrayLength(sNumberInfo));
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

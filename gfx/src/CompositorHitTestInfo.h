@@ -59,7 +59,7 @@ enum class CompositorHitTestInfo : uint16_t {
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(CompositorHitTestInfo)
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_COMPOSITORHITTESTINFO_H_ */

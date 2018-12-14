@@ -20,13 +20,10 @@
 class nsIRDFDataSource;
 
 // in nsInMemoryDataSource.cpp
-nsresult
-NS_NewRDFInMemoryDataSource(nsISupports* aOuter, const nsIID& aIID, void** aResult);
+nsresult NS_NewRDFInMemoryDataSource(nsISupports* aOuter, const nsIID& aIID,
+                                     void** aResult);
 
 // in nsRDFXMLDataSource.cpp
-extern nsresult
-NS_NewRDFXMLDataSource(nsIRDFDataSource** aResult);
+extern nsresult NS_NewRDFXMLDataSource(nsIRDFDataSource** aResult);
 
-#endif // nsBaseDataSources_h__
-
-
+#endif  // nsBaseDataSources_h__

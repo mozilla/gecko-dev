@@ -15,20 +15,13 @@
 #include "nsBoxLayout.h"
 #include "nsIContent.h"
 
-nsListItemFrame::nsListItemFrame(nsStyleContext* aContext,
-                                 bool aIsRoot,
+nsListItemFrame::nsListItemFrame(nsStyleContext* aContext, bool aIsRoot,
                                  nsBoxLayout* aLayoutManager)
-  : nsGridRowLeafFrame(aContext, aIsRoot, aLayoutManager, kClassID)
-{
-}
+    : nsGridRowLeafFrame(aContext, aIsRoot, aLayoutManager, kClassID) {}
 
-nsListItemFrame::~nsListItemFrame()
-{
-}
+nsListItemFrame::~nsListItemFrame() {}
 
-nsSize
-nsListItemFrame::GetXULPrefSize(nsBoxLayoutState& aState)
-{
+nsSize nsListItemFrame::GetXULPrefSize(nsBoxLayoutState& aState) {
   nsSize size = nsBoxFrame::GetXULPrefSize(aState);
   DISPLAY_PREF_SIZE(this, size);
 
@@ -38,10 +31,8 @@ nsListItemFrame::GetXULPrefSize(nsBoxLayoutState& aState)
   return size;
 }
 
-void
-nsListItemFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                             const nsDisplayListSet& aLists)
-{
+void nsListItemFrame::BuildDisplayListForChildren(
+    nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists) {
   if (aBuilder->IsForEventDelivery()) {
     if (!mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
                                             nsGkAtoms::allowevents,
@@ -52,13 +43,13 @@ nsListItemFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
   nsGridRowLeafFrame::BuildDisplayListForChildren(aBuilder, aLists);
 }
 
-// Creation Routine ///////////////////////////////////////////////////////////////////////
+// Creation Routine
+// ///////////////////////////////////////////////////////////////////////
 
 already_AddRefed<nsBoxLayout> NS_NewGridRowLeafLayout();
 
-nsIFrame*
-NS_NewListItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewListItemFrame(nsIPresShell* aPresShell,
+                              nsStyleContext* aContext) {
   nsCOMPtr<nsBoxLayout> layout = NS_NewGridRowLeafLayout();
   if (!layout) {
     return nullptr;

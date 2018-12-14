@@ -39,8 +39,7 @@ namespace mozilla {
 
 static Atomic<bool> sDXVAEnabled(false);
 
-WMFDecoderModule::~WMFDecoderModule()
-{
+WMFDecoderModule::~WMFDecoderModule() {
   if (mWMFInitialized) {
     DebugOnly<HRESULT> hr = wmf::MFShutdown();
     NS_ASSERTION(SUCCEEDED(hr), "MFShutdown failed");
@@ -48,9 +47,7 @@ WMFDecoderModule::~WMFDecoderModule()
 }
 
 /* static */
-void
-WMFDecoderModule::Init()
-{
+void WMFDecoderModule::Init() {
   if (XRE_IsContentProcess()) {
     // If we're in the content process and the UseGPUDecoder pref is set, it
     // means that we've given up on the GPU process (it's been crashing) so we
@@ -68,9 +65,7 @@ WMFDecoderModule::Init()
 }
 
 /* static */
-int
-WMFDecoderModule::GetNumDecoderThreads()
-{
+int WMFDecoderModule::GetNumDecoderThreads() {
   int32_t numCores = PR_GetNumberOfProcessors();
 
   // If we have more than 4 cores, let the decoder decide how many threads.
@@ -82,28 +77,22 @@ WMFDecoderModule::GetNumDecoderThreads()
   return std::max(numCores - 1, 1);
 }
 
-nsresult
-WMFDecoderModule::Startup()
-{
+nsresult WMFDecoderModule::Startup() {
   mWMFInitialized = SUCCEEDED(wmf::MFStartup());
   return mWMFInitialized ? NS_OK : NS_ERROR_FAILURE;
 }
 
-already_AddRefed<MediaDataDecoder>
-WMFDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
-{
+already_AddRefed<MediaDataDecoder> WMFDecoderModule::CreateVideoDecoder(
+    const CreateDecoderParams& aParams) {
   if (aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)) {
     // Latency on Windows is bad. Let's not attempt to decode with WMF decoders
     // when low latency is required.
     return nullptr;
   }
 
-  nsAutoPtr<WMFVideoMFTManager> manager(
-    new WMFVideoMFTManager(aParams.VideoConfig(),
-                           aParams.mKnowsCompositor,
-                           aParams.mImageContainer,
-                           aParams.mRate.mValue,
-                           sDXVAEnabled));
+  nsAutoPtr<WMFVideoMFTManager> manager(new WMFVideoMFTManager(
+      aParams.VideoConfig(), aParams.mKnowsCompositor, aParams.mImageContainer,
+      aParams.mRate.mValue, sDXVAEnabled));
 
   MediaResult result = manager->Init();
   if (NS_FAILED(result)) {
@@ -114,29 +103,26 @@ WMFDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
   }
 
   RefPtr<MediaDataDecoder> decoder =
-    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
+      new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
 
   return decoder.forget();
 }
 
-already_AddRefed<MediaDataDecoder>
-WMFDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
-{
+already_AddRefed<MediaDataDecoder> WMFDecoderModule::CreateAudioDecoder(
+    const CreateDecoderParams& aParams) {
   nsAutoPtr<WMFAudioMFTManager> manager(
-    new WMFAudioMFTManager(aParams.AudioConfig()));
+      new WMFAudioMFTManager(aParams.AudioConfig()));
 
   if (!manager->Init()) {
     return nullptr;
   }
 
   RefPtr<MediaDataDecoder> decoder =
-    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
+      new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
   return decoder.forget();
 }
 
-static bool
-CanCreateMFTDecoder(const GUID& aGuid)
-{
+static bool CanCreateMFTDecoder(const GUID& aGuid) {
   // The IMFTransform interface used by MFTDecoder is documented to require to
   // run on an MTA thread.
   // https://msdn.microsoft.com/en-us/library/windows/desktop/ee892371(v=vs.85).aspx#components
@@ -155,10 +141,8 @@ CanCreateMFTDecoder(const GUID& aGuid)
   return canCreateDecoder;
 }
 
-template<const GUID& aGuid>
-static bool
-CanCreateWMFDecoder()
-{
+template <const GUID& aGuid>
+static bool CanCreateWMFDecoder() {
   static StaticMutex sMutex;
   StaticMutexAutoLock lock(sMutex);
   static Maybe<bool> result;
@@ -168,23 +152,16 @@ CanCreateWMFDecoder()
   return result.value();
 }
 
-/* static */ bool
-WMFDecoderModule::HasH264()
-{
+/* static */ bool WMFDecoderModule::HasH264() {
   return CanCreateWMFDecoder<CLSID_CMSH264DecoderMFT>();
 }
 
-/* static */ bool
-WMFDecoderModule::HasAAC()
-{
+/* static */ bool WMFDecoderModule::HasAAC() {
   return CanCreateWMFDecoder<CLSID_CMSAACDecMFT>();
 }
 
-bool
-WMFDecoderModule::SupportsMimeType(
-  const nsACString& aMimeType,
-  DecoderDoctorDiagnostics* aDiagnostics) const
-{
+bool WMFDecoderModule::SupportsMimeType(
+    const nsACString& aMimeType, DecoderDoctorDiagnostics* aDiagnostics) const {
   UniquePtr<TrackInfo> trackInfo = CreateTrackInfoWithMIMEType(aMimeType);
   if (!trackInfo) {
     return false;
@@ -192,10 +169,8 @@ WMFDecoderModule::SupportsMimeType(
   return Supports(*trackInfo, aDiagnostics);
 }
 
-bool
-WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
-                           DecoderDoctorDiagnostics* aDiagnostics) const
-{
+bool WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
+                                DecoderDoctorDiagnostics* aDiagnostics) const {
   const auto videoInfo = aTrackInfo.GetAsVideoInfo();
   if (videoInfo && !SupportsBitDepth(videoInfo->mBitDepth, aDiagnostics)) {
     return false;
@@ -203,7 +178,7 @@ WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
 
   if ((aTrackInfo.mMimeType.EqualsLiteral("audio/mp4a-latm") ||
        aTrackInfo.mMimeType.EqualsLiteral("audio/mp4")) &&
-       WMFDecoderModule::HasAAC()) {
+      WMFDecoderModule::HasAAC()) {
     return true;
   }
   if (MP4Decoder::IsH264(aTrackInfo.mMimeType) && WMFDecoderModule::HasH264()) {
@@ -232,4 +207,4 @@ WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
   return false;
 }
 
-} // namespace mozilla
+}  // namespace mozilla

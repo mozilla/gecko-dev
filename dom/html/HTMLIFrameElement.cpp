@@ -20,32 +20,25 @@ namespace mozilla {
 namespace dom {
 
 // static
-const DOMTokenListSupportedToken HTMLIFrameElement::sSupportedSandboxTokens[] = {
+const DOMTokenListSupportedToken HTMLIFrameElement::sSupportedSandboxTokens[] =
+    {
 #define SANDBOX_KEYWORD(string, atom, flags) string,
 #include "IframeSandboxKeywordList.h"
 #undef SANDBOX_KEYWORD
-  nullptr
-};
+        nullptr};
 
-HTMLIFrameElement::HTMLIFrameElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo,
-                                     FromParser aFromParser)
-  : nsGenericHTMLFrameElement(aNodeInfo, aFromParser)
-{
-}
+HTMLIFrameElement::HTMLIFrameElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo, FromParser aFromParser)
+    : nsGenericHTMLFrameElement(aNodeInfo, aFromParser) {}
 
-HTMLIFrameElement::~HTMLIFrameElement()
-{
-}
+HTMLIFrameElement::~HTMLIFrameElement() {}
 
 NS_IMPL_ELEMENT_CLONE(HTMLIFrameElement)
 
-bool
-HTMLIFrameElement::ParseAttribute(int32_t aNamespaceID,
-                                  nsAtom* aAttribute,
-                                  const nsAString& aValue,
-                                  nsIPrincipal* aMaybeScriptedPrincipal,
-                                  nsAttrValue& aResult)
-{
+bool HTMLIFrameElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                                       const nsAString& aValue,
+                                       nsIPrincipal* aMaybeScriptedPrincipal,
+                                       nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::marginwidth) {
       return aResult.ParseSpecialIntValue(aValue);
@@ -74,16 +67,12 @@ HTMLIFrameElement::ParseAttribute(int32_t aNamespaceID,
     }
   }
 
-  return nsGenericHTMLFrameElement::ParseAttribute(aNamespaceID, aAttribute,
-                                                   aValue,
-                                                   aMaybeScriptedPrincipal,
-                                                   aResult);
+  return nsGenericHTMLFrameElement::ParseAttribute(
+      aNamespaceID, aAttribute, aValue, aMaybeScriptedPrincipal, aResult);
 }
 
-void
-HTMLIFrameElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                         GenericSpecifiedValues* aData)
-{
+void HTMLIFrameElement::MapAttributesIntoRule(
+    const nsMappedAttributes* aAttributes, GenericSpecifiedValues* aData) {
   if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(Border))) {
     // frameborder: 0 | 1 (| NO | YES in quirks mode)
     // If frameborder is 0 or No, set border to 0
@@ -91,8 +80,7 @@ HTMLIFrameElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::frameborder);
     if (value && value->Type() == nsAttrValue::eEnum) {
       int32_t frameborder = value->GetEnumValue();
-      if (NS_STYLE_FRAME_0 == frameborder ||
-          NS_STYLE_FRAME_NO == frameborder ||
+      if (NS_STYLE_FRAME_0 == frameborder || NS_STYLE_FRAME_NO == frameborder ||
           NS_STYLE_FRAME_OFF == frameborder) {
         aData->SetPixelValueIfUnset(eCSSProperty_border_top_width, 0.0f);
         aData->SetPixelValueIfUnset(eCSSProperty_border_right_width, 0.0f);
@@ -108,39 +96,33 @@ HTMLIFrameElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLIFrameElement::IsAttributeMapped(const nsAtom* aAttribute) const
-{
+HTMLIFrameElement::IsAttributeMapped(const nsAtom* aAttribute) const {
   static const MappedAttributeEntry attributes[] = {
-    { &nsGkAtoms::width },
-    { &nsGkAtoms::height },
-    { &nsGkAtoms::frameborder },
-    { nullptr },
+      {&nsGkAtoms::width},
+      {&nsGkAtoms::height},
+      {&nsGkAtoms::frameborder},
+      {nullptr},
   };
 
   static const MappedAttributeEntry* const map[] = {
-    attributes,
-    sImageAlignAttributeMap,
-    sCommonAttributeMap,
+      attributes,
+      sImageAlignAttributeMap,
+      sCommonAttributeMap,
   };
 
   return FindAttributeDependence(aAttribute, map);
 }
 
-
-
-nsMapRuleToAttributesFunc
-HTMLIFrameElement::GetAttributeMappingFunction() const
-{
+nsMapRuleToAttributesFunc HTMLIFrameElement::GetAttributeMappingFunction()
+    const {
   return &MapAttributesIntoRule;
 }
 
-nsresult
-HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
-                                const nsAttrValue* aValue,
-                                const nsAttrValue* aOldValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                bool aNotify)
-{
+nsresult HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                         const nsAttrValue* aValue,
+                                         const nsAttrValue* aOldValue,
+                                         nsIPrincipal* aMaybeScriptedPrincipal,
+                                         bool aNotify) {
   AfterMaybeChangeAttr(aNameSpaceID, aName, aNotify);
 
   if (aNameSpaceID == kNameSpaceID_None) {
@@ -153,28 +135,21 @@ HTMLIFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       }
     }
   }
-  return nsGenericHTMLFrameElement::AfterSetAttr(aNameSpaceID, aName,
-                                                 aValue, aOldValue,
-                                                 aMaybeScriptedPrincipal,
-                                                 aNotify);
+  return nsGenericHTMLFrameElement::AfterSetAttr(
+      aNameSpaceID, aName, aValue, aOldValue, aMaybeScriptedPrincipal, aNotify);
 }
 
-nsresult
-HTMLIFrameElement::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
-                                          const nsAttrValueOrString& aValue,
-                                          bool aNotify)
-{
+nsresult HTMLIFrameElement::OnAttrSetButNotChanged(
+    int32_t aNamespaceID, nsAtom* aName, const nsAttrValueOrString& aValue,
+    bool aNotify) {
   AfterMaybeChangeAttr(aNamespaceID, aName, aNotify);
 
   return nsGenericHTMLFrameElement::OnAttrSetButNotChanged(aNamespaceID, aName,
                                                            aValue, aNotify);
 }
 
-void
-HTMLIFrameElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
-                                        nsAtom* aName,
-                                        bool aNotify)
-{
+void HTMLIFrameElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
+                                             nsAtom* aName, bool aNotify) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::srcdoc) {
       // Don't propagate errors from LoadSrc. The attribute was successfully
@@ -184,9 +159,7 @@ HTMLIFrameElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
   }
 }
 
-uint32_t
-HTMLIFrameElement::GetSandboxFlags()
-{
+uint32_t HTMLIFrameElement::GetSandboxFlags() {
   const nsAttrValue* sandboxAttr = GetParsedAttr(nsGkAtoms::sandbox);
   // No sandbox attribute, no sandbox flags.
   if (!sandboxAttr) {
@@ -195,11 +168,10 @@ HTMLIFrameElement::GetSandboxFlags()
   return nsContentUtils::ParseSandboxAttributeToFlags(sandboxAttr);
 }
 
-JSObject*
-HTMLIFrameElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* HTMLIFrameElement::WrapNode(JSContext* aCx,
+                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLIFrameElementBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

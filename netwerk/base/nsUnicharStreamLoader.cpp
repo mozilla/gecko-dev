@@ -19,8 +19,7 @@
 using namespace mozilla;
 
 NS_IMETHODIMP
-nsUnicharStreamLoader::Init(nsIUnicharStreamLoaderObserver *aObserver)
-{
+nsUnicharStreamLoader::Init(nsIUnicharStreamLoaderObserver *aObserver) {
   NS_ENSURE_ARG_POINTER(aObserver);
 
   mObserver = aObserver;
@@ -31,14 +30,11 @@ nsUnicharStreamLoader::Init(nsIUnicharStreamLoaderObserver *aObserver)
   return NS_OK;
 }
 
-nsresult
-nsUnicharStreamLoader::Create(nsISupports *aOuter,
-                              REFNSIID aIID,
-                              void **aResult)
-{
+nsresult nsUnicharStreamLoader::Create(nsISupports *aOuter, REFNSIID aIID,
+                                       void **aResult) {
   if (aOuter) return NS_ERROR_NO_AGGREGATION;
 
-  nsUnicharStreamLoader* it = new nsUnicharStreamLoader();
+  nsUnicharStreamLoader *it = new nsUnicharStreamLoader();
   NS_ADDREF(it);
   nsresult rv = it->QueryInterface(aIID, aResult);
   NS_RELEASE(it);
@@ -49,31 +45,26 @@ NS_IMPL_ISUPPORTS(nsUnicharStreamLoader, nsIUnicharStreamLoader,
                   nsIRequestObserver, nsIStreamListener)
 
 NS_IMETHODIMP
-nsUnicharStreamLoader::GetChannel(nsIChannel **aChannel)
-{
+nsUnicharStreamLoader::GetChannel(nsIChannel **aChannel) {
   NS_IF_ADDREF(*aChannel = mChannel);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsUnicharStreamLoader::GetCharset(nsACString& aCharset)
-{
+nsUnicharStreamLoader::GetCharset(nsACString &aCharset) {
   aCharset = mCharset;
   return NS_OK;
 }
 
 /* nsIRequestObserver implementation */
 NS_IMETHODIMP
-nsUnicharStreamLoader::OnStartRequest(nsIRequest*, nsISupports*)
-{
+nsUnicharStreamLoader::OnStartRequest(nsIRequest *, nsISupports *) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsUnicharStreamLoader::OnStopRequest(nsIRequest *aRequest,
-                                     nsISupports *aContext,
-                                     nsresult aStatus)
-{
+                                     nsISupports *aContext, nsresult aStatus) {
   if (!mObserver) {
     NS_ERROR("nsUnicharStreamLoader::OnStopRequest called before ::Init");
     return NS_ERROR_UNEXPECTED;
@@ -108,8 +99,7 @@ nsUnicharStreamLoader::OnStopRequest(nsIRequest *aRequest,
 }
 
 NS_IMETHODIMP
-nsUnicharStreamLoader::GetRawBuffer(nsACString& aRawBuffer)
-{
+nsUnicharStreamLoader::GetRawBuffer(nsACString &aRawBuffer) {
   aRawBuffer = mRawBuffer;
   return NS_OK;
 }
@@ -120,8 +110,7 @@ nsUnicharStreamLoader::OnDataAvailable(nsIRequest *aRequest,
                                        nsISupports *aContext,
                                        nsIInputStream *aInputStream,
                                        uint64_t aSourceOffset,
-                                       uint32_t aCount)
-{
+                                       uint32_t aCount) {
   if (!mObserver) {
     NS_ERROR("nsUnicharStreamLoader::OnDataAvailable called before ::Init");
     return NS_ERROR_UNEXPECTED;
@@ -168,17 +157,15 @@ nsUnicharStreamLoader::OnDataAvailable(nsIRequest *aRequest,
   return rv;
 }
 
-nsresult
-nsUnicharStreamLoader::DetermineCharset()
-{
-  nsresult rv = mObserver->OnDetermineCharset(this, mContext,
-                                              mRawData, mCharset);
+nsresult nsUnicharStreamLoader::DetermineCharset() {
+  nsresult rv =
+      mObserver->OnDetermineCharset(this, mContext, mRawData, mCharset);
   if (NS_FAILED(rv) || mCharset.IsEmpty()) {
     // The observer told us nothing useful
     mCharset.AssignLiteral("UTF-8");
   }
 
-  const Encoding* encoding = Encoding::ForLabel(mCharset);
+  const Encoding *encoding = Encoding::ForLabel(mCharset);
   if (!encoding) {
     return NS_ERROR_UCONV_NOCONV;
   }
@@ -186,23 +173,18 @@ nsUnicharStreamLoader::DetermineCharset()
 
   // Process the data into mBuffer
   uint32_t dummy;
-  rv = WriteSegmentFun(nullptr, this,
-                       mRawData.BeginReading(),
-                       0, mRawData.Length(),
-                       &dummy);
+  rv = WriteSegmentFun(nullptr, this, mRawData.BeginReading(), 0,
+                       mRawData.Length(), &dummy);
   mRawData.Truncate();
   return rv;
 }
 
-nsresult
-nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
-                                       void *aClosure,
-                                       const char *aSegment,
-                                       uint32_t,
-                                       uint32_t aCount,
-                                       uint32_t *aWriteCount)
-{
-  nsUnicharStreamLoader* self = static_cast<nsUnicharStreamLoader*>(aClosure);
+nsresult nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
+                                                void *aClosure,
+                                                const char *aSegment, uint32_t,
+                                                uint32_t aCount,
+                                                uint32_t *aWriteCount) {
+  nsUnicharStreamLoader *self = static_cast<nsUnicharStreamLoader *>(aClosure);
 
   nsAString::size_type haveRead(self->mBuffer.Length());
 
@@ -231,9 +213,8 @@ nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
   bool hadErrors;
 
   Tie(result, read, written, hadErrors) = self->mDecoder->DecodeToUTF16(
-    AsBytes(MakeSpan(aSegment, aCount)),
-    MakeSpan(self->mBuffer.BeginWriting() + haveRead, needed.value()),
-    false);
+      AsBytes(MakeSpan(aSegment, aCount)),
+      MakeSpan(self->mBuffer.BeginWriting() + haveRead, needed.value()), false);
   MOZ_ASSERT(result == kInputEmpty);
   MOZ_ASSERT(read == aCount);
   Unused << hadErrors;

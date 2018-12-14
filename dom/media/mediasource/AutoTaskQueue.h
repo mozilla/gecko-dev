@@ -16,35 +16,27 @@ class nsIEventTarget;
 namespace mozilla {
 
 // A convenience TaskQueue not requiring explicit shutdown.
-class AutoTaskQueue : public AbstractThread
-{
-public:
+class AutoTaskQueue : public AbstractThread {
+ public:
   explicit AutoTaskQueue(already_AddRefed<nsIEventTarget> aPool,
                          bool aSupportsTailDispatch = false)
-    : AbstractThread(aSupportsTailDispatch)
-    , mTaskQueue(new TaskQueue(Move(aPool), aSupportsTailDispatch))
-    , mMonitor("AutoTaskQueue")
-  {
-  }
+      : AbstractThread(aSupportsTailDispatch),
+        mTaskQueue(new TaskQueue(Move(aPool), aSupportsTailDispatch)),
+        mMonitor("AutoTaskQueue") {}
 
-  AutoTaskQueue(already_AddRefed<nsIEventTarget> aPool,
-                const char* aName,
+  AutoTaskQueue(already_AddRefed<nsIEventTarget> aPool, const char* aName,
                 bool aSupportsTailDispatch = false)
-    : AbstractThread(aSupportsTailDispatch)
-    , mTaskQueue(new TaskQueue(Move(aPool), aName, aSupportsTailDispatch))
-    , mMonitor("AutoTaskQueue")
-  {
-  }
+      : AbstractThread(aSupportsTailDispatch),
+        mTaskQueue(new TaskQueue(Move(aPool), aName, aSupportsTailDispatch)),
+        mMonitor("AutoTaskQueue") {}
 
-  TaskDispatcher& TailDispatcher() override
-  {
+  TaskDispatcher& TailDispatcher() override {
     return mTaskQueue->TailDispatcher();
   }
 
   MOZ_MUST_USE nsresult
   Dispatch(already_AddRefed<nsIRunnable> aRunnable,
-           DispatchReason aReason = NormalDispatch) override
-  {
+           DispatchReason aReason = NormalDispatch) override {
     return mTaskQueue->Dispatch(Move(aRunnable), aReason);
   }
 
@@ -62,12 +54,12 @@ public:
 
   mozilla::Monitor& Monitor() { return mMonitor; }
 
-private:
+ private:
   ~AutoTaskQueue() { mTaskQueue->BeginShutdown(); }
   RefPtr<TaskQueue> mTaskQueue;
   mozilla::Monitor mMonitor;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

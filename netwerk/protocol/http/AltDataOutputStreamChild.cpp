@@ -7,8 +7,7 @@ namespace net {
 
 NS_IMPL_ADDREF(AltDataOutputStreamChild)
 
-NS_IMETHODIMP_(MozExternalRefCountType) AltDataOutputStreamChild::Release()
-{
+NS_IMETHODIMP_(MozExternalRefCountType) AltDataOutputStreamChild::Release() {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
   MOZ_ASSERT(NS_IsMainThread(), "Main thread only");
   --mRefCnt;
@@ -36,36 +35,26 @@ NS_INTERFACE_MAP_BEGIN(AltDataOutputStreamChild)
 NS_INTERFACE_MAP_END
 
 AltDataOutputStreamChild::AltDataOutputStreamChild()
-  : mIPCOpen(false)
-  , mError(NS_OK)
-{
+    : mIPCOpen(false), mError(NS_OK) {
   MOZ_ASSERT(NS_IsMainThread(), "Main thread only");
 }
 
-AltDataOutputStreamChild::~AltDataOutputStreamChild()
-{
-}
+AltDataOutputStreamChild::~AltDataOutputStreamChild() {}
 
-void
-AltDataOutputStreamChild::AddIPDLReference()
-{
+void AltDataOutputStreamChild::AddIPDLReference() {
   MOZ_ASSERT(!mIPCOpen, "Attempt to retain more than one IPDL reference");
   mIPCOpen = true;
   AddRef();
 }
 
-void
-AltDataOutputStreamChild::ReleaseIPDLReference()
-{
+void AltDataOutputStreamChild::ReleaseIPDLReference() {
   MOZ_ASSERT(mIPCOpen, "Attempt to release nonexistent IPDL reference");
   mIPCOpen = false;
   Release();
 }
 
-bool
-AltDataOutputStreamChild::WriteDataInChunks(const nsCString& data)
-{
-  const uint32_t kChunkSize = 128*1024;
+bool AltDataOutputStreamChild::WriteDataInChunks(const nsCString &data) {
+  const uint32_t kChunkSize = 128 * 1024;
   uint32_t next = std::min(data.Length(), kChunkSize);
   for (uint32_t i = 0; i < data.Length();
        i = next, next = std::min(data.Length(), next + kChunkSize)) {
@@ -79,8 +68,7 @@ AltDataOutputStreamChild::WriteDataInChunks(const nsCString& data)
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::Close()
-{
+AltDataOutputStreamChild::Close() {
   if (!mIPCOpen) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -92,8 +80,7 @@ AltDataOutputStreamChild::Close()
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::Flush()
-{
+AltDataOutputStreamChild::Flush() {
   if (!mIPCOpen) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -106,8 +93,8 @@ AltDataOutputStreamChild::Flush()
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::Write(const char * aBuf, uint32_t aCount, uint32_t *_retval)
-{
+AltDataOutputStreamChild::Write(const char *aBuf, uint32_t aCount,
+                                uint32_t *_retval) {
   if (!mIPCOpen) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -122,37 +109,34 @@ AltDataOutputStreamChild::Write(const char * aBuf, uint32_t aCount, uint32_t *_r
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::WriteFrom(nsIInputStream *aFromStream, uint32_t aCount, uint32_t *_retval)
-{
+AltDataOutputStreamChild::WriteFrom(nsIInputStream *aFromStream,
+                                    uint32_t aCount, uint32_t *_retval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::WriteSegments(nsReadSegmentFun aReader, void *aClosure, uint32_t aCount, uint32_t *_retval)
-{
+AltDataOutputStreamChild::WriteSegments(nsReadSegmentFun aReader,
+                                        void *aClosure, uint32_t aCount,
+                                        uint32_t *_retval) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-AltDataOutputStreamChild::IsNonBlocking(bool *_retval)
-{
+AltDataOutputStreamChild::IsNonBlocking(bool *_retval) {
   *_retval = false;
   return NS_OK;
 }
 
-mozilla::ipc::IPCResult
-AltDataOutputStreamChild::RecvError(const nsresult& err)
-{
+mozilla::ipc::IPCResult AltDataOutputStreamChild::RecvError(
+    const nsresult &err) {
   mError = err;
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-AltDataOutputStreamChild::RecvDeleteSelf()
-{
+mozilla::ipc::IPCResult AltDataOutputStreamChild::RecvDeleteSelf() {
   PAltDataOutputStreamChild::Send__delete__(this);
   return IPC_OK();
 }
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla

@@ -26,119 +26,107 @@ class SystemPrincipal;
 
 namespace mozilla {
 class OriginAttributes;
-} // namespace mozilla
+}  // namespace mozilla
 
 /////////////////////////////
 // nsScriptSecurityManager //
 /////////////////////////////
-#define NS_SCRIPTSECURITYMANAGER_CID \
-{ 0x7ee2a4c0, 0x4b93, 0x17d3, \
-{ 0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2 }}
+#define NS_SCRIPTSECURITYMANAGER_CID                 \
+  {                                                  \
+    0x7ee2a4c0, 0x4b93, 0x17d3, {                    \
+      0xba, 0x18, 0x00, 0x60, 0xb0, 0xf1, 0x99, 0xa2 \
+    }                                                \
+  }
 
 class nsScriptSecurityManager final : public nsIScriptSecurityManager,
-                                      public nsIObserver
-{
-public:
-    static void Shutdown();
+                                      public nsIObserver {
+ public:
+  static void Shutdown();
 
-    NS_DEFINE_STATIC_CID_ACCESSOR(NS_SCRIPTSECURITYMANAGER_CID)
+  NS_DEFINE_STATIC_CID_ACCESSOR(NS_SCRIPTSECURITYMANAGER_CID)
 
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISCRIPTSECURITYMANAGER
-    NS_DECL_NSIOBSERVER
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSISCRIPTSECURITYMANAGER
+  NS_DECL_NSIOBSERVER
 
-    static nsScriptSecurityManager*
-    GetScriptSecurityManager();
+  static nsScriptSecurityManager* GetScriptSecurityManager();
 
-    // Invoked exactly once, by XPConnect.
-    static void InitStatics();
+  // Invoked exactly once, by XPConnect.
+  static void InitStatics();
 
-    static already_AddRefed<SystemPrincipal>
-    SystemPrincipalSingletonConstructor();
+  static already_AddRefed<SystemPrincipal>
+  SystemPrincipalSingletonConstructor();
 
-    /**
-     * Utility method for comparing two URIs.  For security purposes, two URIs
-     * are equivalent if their schemes, hosts, and ports (if any) match.  This
-     * method returns true if aSubjectURI and aObjectURI have the same origin,
-     * false otherwise.
-     */
-    static bool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
-    static uint32_t SecurityHashURI(nsIURI* aURI);
+  /**
+   * Utility method for comparing two URIs.  For security purposes, two URIs
+   * are equivalent if their schemes, hosts, and ports (if any) match.  This
+   * method returns true if aSubjectURI and aObjectURI have the same origin,
+   * false otherwise.
+   */
+  static bool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
+  static uint32_t SecurityHashURI(nsIURI* aURI);
 
-    static nsresult
-    ReportError(JSContext* cx, const char* aMessageTag,
-                nsIURI* aSource, nsIURI* aTarget);
+  static nsresult ReportError(JSContext* cx, const char* aMessageTag,
+                              nsIURI* aSource, nsIURI* aTarget);
 
-    static uint32_t
-    HashPrincipalByOrigin(nsIPrincipal* aPrincipal);
+  static uint32_t HashPrincipalByOrigin(nsIPrincipal* aPrincipal);
 
-    static bool
-    GetStrictFileOriginPolicy()
-    {
-        return sStrictFileOriginPolicy;
-    }
+  static bool GetStrictFileOriginPolicy() { return sStrictFileOriginPolicy; }
 
-    void DeactivateDomainPolicy();
+  void DeactivateDomainPolicy();
 
-private:
+ private:
+  // GetScriptSecurityManager is the only call that can make one
+  nsScriptSecurityManager();
+  virtual ~nsScriptSecurityManager();
 
-    // GetScriptSecurityManager is the only call that can make one
-    nsScriptSecurityManager();
-    virtual ~nsScriptSecurityManager();
+  // Decides, based on CSP, whether or not eval() and stuff can be executed.
+  static bool ContentSecurityPolicyPermitsJSAction(JSContext* cx);
 
-    // Decides, based on CSP, whether or not eval() and stuff can be executed.
-    static bool
-    ContentSecurityPolicyPermitsJSAction(JSContext *cx);
+  static bool JSPrincipalsSubsume(JSPrincipals* first, JSPrincipals* second);
 
-    static bool
-    JSPrincipalsSubsume(JSPrincipals *first, JSPrincipals *second);
+  // Returns null if a principal cannot be found; generally callers
+  // should error out at that point.
+  static nsIPrincipal* doGetObjectPrincipal(JSObject* obj);
 
-    // Returns null if a principal cannot be found; generally callers
-    // should error out at that point.
-    static nsIPrincipal* doGetObjectPrincipal(JSObject* obj);
+  nsresult Init();
 
-    nsresult
-    Init();
+  nsresult InitPrefs();
 
-    nsresult
-    InitPrefs();
+  inline void ScriptSecurityPrefChanged();
 
-    inline void
-    ScriptSecurityPrefChanged();
+  inline void AddSitesToFileURIWhitelist(const nsCString& aSiteList);
 
-    inline void
-    AddSitesToFileURIWhitelist(const nsCString& aSiteList);
+  nsresult GetChannelResultPrincipal(nsIChannel* aChannel,
+                                     nsIPrincipal** aPrincipal,
+                                     bool aIgnoreSandboxing);
 
-    nsresult GetChannelResultPrincipal(nsIChannel* aChannel,
-                                       nsIPrincipal** aPrincipal,
-                                       bool aIgnoreSandboxing);
+  nsresult CheckLoadURIFlags(nsIURI* aSourceURI, nsIURI* aTargetURI,
+                             nsIURI* aSourceBaseURI, nsIURI* aTargetBaseURI,
+                             uint32_t aFlags);
 
-    nsresult
-    CheckLoadURIFlags(nsIURI* aSourceURI, nsIURI* aTargetURI, nsIURI* aSourceBaseURI,
-                      nsIURI* aTargetBaseURI, uint32_t aFlags);
+  // Returns the file URI whitelist, initializing it if it has not been
+  // initialized.
+  const nsTArray<nsCOMPtr<nsIURI>>& EnsureFileURIWhitelist();
 
-    // Returns the file URI whitelist, initializing it if it has not been
-    // initialized.
-    const nsTArray<nsCOMPtr<nsIURI>>& EnsureFileURIWhitelist();
+  nsCOMPtr<nsIPrincipal> mSystemPrincipal;
+  bool mPrefInitialized;
+  bool mIsJavaScriptEnabled;
 
-    nsCOMPtr<nsIPrincipal> mSystemPrincipal;
-    bool mPrefInitialized;
-    bool mIsJavaScriptEnabled;
+  // List of URIs whose domains and sub-domains are whitelisted to allow
+  // access to file: URIs.  Lazily initialized; isNothing() when not yet
+  // initialized.
+  mozilla::Maybe<nsTArray<nsCOMPtr<nsIURI>>> mFileURIWhitelist;
 
-    // List of URIs whose domains and sub-domains are whitelisted to allow
-    // access to file: URIs.  Lazily initialized; isNothing() when not yet
-    // initialized.
-    mozilla::Maybe<nsTArray<nsCOMPtr<nsIURI>>> mFileURIWhitelist;
+  // This machinery controls new-style domain policies. The old-style
+  // policy machinery will be removed soon.
+  nsCOMPtr<nsIDomainPolicy> mDomainPolicy;
 
-    // This machinery controls new-style domain policies. The old-style
-    // policy machinery will be removed soon.
-    nsCOMPtr<nsIDomainPolicy> mDomainPolicy;
+  static bool sStrictFileOriginPolicy;
 
-    static bool sStrictFileOriginPolicy;
-
-    static nsIIOService    *sIOService;
-    static nsIStringBundle *sStrBundle;
-    static JSContext       *sContext;
+  static nsIIOService* sIOService;
+  static nsIStringBundle* sStrBundle;
+  static JSContext* sContext;
 };
 
-#endif // nsScriptSecurityManager_h__
+#endif  // nsScriptSecurityManager_h__

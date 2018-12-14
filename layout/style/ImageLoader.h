@@ -30,15 +30,12 @@ namespace css {
 
 struct ImageValue;
 
-class ImageLoader final : public imgINotificationObserver
-{
-public:
+class ImageLoader final : public imgINotificationObserver {
+ public:
   typedef mozilla::css::ImageValue Image;
 
   explicit ImageLoader(nsIDocument* aDocument)
-  : mDocument(aDocument),
-    mInClone(false)
-  {
+      : mDocument(aDocument), mInClone(false) {
     MOZ_ASSERT(mDocument);
   }
 
@@ -50,11 +47,9 @@ public:
   void MaybeRegisterCSSImage(Image* aImage);
   void DeregisterCSSImage(Image* aImage);
 
-  void AssociateRequestToFrame(imgIRequest* aRequest,
-                               nsIFrame* aFrame);
+  void AssociateRequestToFrame(imgIRequest* aRequest, nsIFrame* aFrame);
 
-  void DisassociateRequestFromFrame(imgIRequest* aRequest,
-                                    nsIFrame* aFrame);
+  void DisassociateRequestFromFrame(imgIRequest* aRequest, nsIFrame* aFrame);
 
   void DropRequestsForFrame(nsIFrame* aFrame);
 
@@ -72,7 +67,7 @@ public:
 
   void FlushUseCounters();
 
-private:
+ private:
   ~ImageLoader() {}
 
   // We need to be able to look up the frames associated with a request (for
@@ -83,10 +78,9 @@ private:
   typedef nsTArray<nsIFrame*> FrameSet;
   typedef nsTArray<nsCOMPtr<imgIRequest> > RequestSet;
   typedef nsTHashtable<nsPtrHashKey<Image> > ImageHashSet;
-  typedef nsClassHashtable<nsISupportsHashKey,
-                           FrameSet> RequestToFrameMap;
-  typedef nsClassHashtable<nsPtrHashKey<nsIFrame>,
-                           RequestSet> FrameToRequestMap;
+  typedef nsClassHashtable<nsISupportsHashKey, FrameSet> RequestToFrameMap;
+  typedef nsClassHashtable<nsPtrHashKey<nsIFrame>, RequestSet>
+      FrameToRequestMap;
 
   void AddImage(Image* aCSSImage);
   void RemoveImage(Image* aCSSImage);
@@ -122,7 +116,7 @@ private:
   bool mInClone;
 };
 
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 #endif /* mozilla_css_ImageLoader_h___ */

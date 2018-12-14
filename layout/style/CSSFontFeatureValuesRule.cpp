@@ -13,18 +13,12 @@ namespace dom {
 // If this ever gets its own cycle-collection bits, reevaluate our IsCCLeaf
 // implementation.
 
-bool
-CSSFontFeatureValuesRule::IsCCLeaf() const
-{
-  return Rule::IsCCLeaf();
-}
+bool CSSFontFeatureValuesRule::IsCCLeaf() const { return Rule::IsCCLeaf(); }
 
-/* virtual */ JSObject*
-CSSFontFeatureValuesRule::WrapObject(JSContext* aCx,
-                                       JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* CSSFontFeatureValuesRule::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSFontFeatureValuesRuleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

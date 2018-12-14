@@ -7,7 +7,7 @@
 #ifndef mozAutoDocUpdate_h_
 #define mozAutoDocUpdate_h_
 
-#include "nsContentUtils.h" // For AddScriptBlocker() and RemoveScriptBlocker().
+#include "nsContentUtils.h"  // For AddScriptBlocker() and RemoveScriptBlocker().
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
 
@@ -18,44 +18,37 @@
  * in which case no updates will be called.  The constructor also takes a
  * boolean that can be set to false to prevent notifications.
  */
-class MOZ_STACK_CLASS mozAutoDocUpdate
-{
-public:
+class MOZ_STACK_CLASS mozAutoDocUpdate {
+ public:
   mozAutoDocUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType,
-                   bool aNotify) :
-    mDocument(aNotify ? aDocument : nullptr),
-    mUpdateType(aUpdateType)
-  {
+                   bool aNotify)
+      : mDocument(aNotify ? aDocument : nullptr), mUpdateType(aUpdateType) {
     if (mDocument) {
       mDocument->BeginUpdate(mUpdateType);
-    }
-    else {
+    } else {
       nsContentUtils::AddScriptBlocker();
     }
   }
 
-  ~mozAutoDocUpdate()
-  {
+  ~mozAutoDocUpdate() {
     if (mDocument) {
       mDocument->EndUpdate(mUpdateType);
-    }
-    else {
+    } else {
       nsContentUtils::RemoveScriptBlocker();
     }
   }
 
-private:
+ private:
   nsCOMPtr<nsIDocument> mDocument;
   nsUpdateType mUpdateType;
 };
 
-#define MOZ_AUTO_DOC_UPDATE_PASTE2(tok,line) tok##line
-#define MOZ_AUTO_DOC_UPDATE_PASTE(tok,line) \
-  MOZ_AUTO_DOC_UPDATE_PASTE2(tok,line)
-#define MOZ_AUTO_DOC_UPDATE(doc,type,notify) \
-  mozAutoDocUpdate MOZ_AUTO_DOC_UPDATE_PASTE(_autoDocUpdater_, __LINE__) \
-  (doc,type,notify)
-
+#define MOZ_AUTO_DOC_UPDATE_PASTE2(tok, line) tok##line
+#define MOZ_AUTO_DOC_UPDATE_PASTE(tok, line) \
+  MOZ_AUTO_DOC_UPDATE_PASTE2(tok, line)
+#define MOZ_AUTO_DOC_UPDATE(doc, type, notify)                            \
+  mozAutoDocUpdate MOZ_AUTO_DOC_UPDATE_PASTE(_autoDocUpdater_, __LINE__)( \
+      doc, type, notify)
 
 /**
  * Creates an update batch only under certain conditions.
@@ -65,26 +58,22 @@ private:
  * but then have inner mozAutoDocUpdate call the last EndUpdate before.
  * we remove that blocker. See bug 423269.
  */
-class MOZ_STACK_CLASS mozAutoDocConditionalContentUpdateBatch
-{
-public:
-  mozAutoDocConditionalContentUpdateBatch(nsIDocument* aDocument,
-                                          bool aNotify) :
-    mDocument(aNotify ? aDocument : nullptr)
-  {
+class MOZ_STACK_CLASS mozAutoDocConditionalContentUpdateBatch {
+ public:
+  mozAutoDocConditionalContentUpdateBatch(nsIDocument* aDocument, bool aNotify)
+      : mDocument(aNotify ? aDocument : nullptr) {
     if (mDocument) {
       mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
     }
   }
 
-  ~mozAutoDocConditionalContentUpdateBatch()
-  {
+  ~mozAutoDocConditionalContentUpdateBatch() {
     if (mDocument) {
       mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
     }
   }
 
-private:
+ private:
   nsCOMPtr<nsIDocument> mDocument;
 };
 

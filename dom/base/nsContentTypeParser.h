@@ -12,17 +12,16 @@
 class nsIMIMEHeaderParam;
 
 class nsContentTypeParser {
-public:
+ public:
   explicit nsContentTypeParser(const nsAString& aString);
   ~nsContentTypeParser();
 
   nsresult GetParameter(const char* aParameterName, nsAString& aResult) const;
   nsresult GetType(nsAString& aResult) const;
 
-private:
+ private:
   NS_ConvertUTF16toUTF8 mString;
-  nsIMIMEHeaderParam*   mService;
+  nsIMIMEHeaderParam* mService;
 };
 
 #endif
-

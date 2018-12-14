@@ -20,8 +20,8 @@
 #include "mozilla/dom/ContentChild.h"
 
 #include "nsAutoPtr.h"
-#include "nsNetCID.h" // NS_SOCKETTRANSPORTSERVICE_CONTRACTID
-#include "nsServiceManagerUtils.h" // do_GetService
+#include "nsNetCID.h"               // NS_SOCKETTRANSPORTSERVICE_CONTRACTID
+#include "nsServiceManagerUtils.h"  // do_GetService
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Vector.h"
 #include "nsProxyRelease.h"
@@ -48,19 +48,16 @@ namespace dom {
 typedef Vector<nsAutoPtr<RTCStatsQuery>> RTCStatsQueries;
 typedef nsTArray<RTCStatsReportInternal> Stats;
 
-template<class Request, typename Callback,
-         typename Result, typename QueryParam>
-class RequestManager
-{
-public:
-
-  static Request* Create(Callback& aCallback, QueryParam& aParam)
-  {
+template <class Request, typename Callback, typename Result,
+          typename QueryParam>
+class RequestManager {
+ public:
+  static Request* Create(Callback& aCallback, QueryParam& aParam) {
     mozilla::StaticMutexAutoLock lock(sMutex);
 
     int id = ++sLastRequestId;
-    auto result = sRequests.insert(
-      std::make_pair(id, Request(id, aCallback, aParam)));
+    auto result =
+        sRequests.insert(std::make_pair(id, Request(id, aCallback, aParam)));
 
     if (!result.second) {
       return nullptr;
@@ -69,14 +66,12 @@ public:
     return &result.first->second;
   }
 
-  static void Delete(int aId)
-  {
+  static void Delete(int aId) {
     mozilla::StaticMutexAutoLock lock(sMutex);
     sRequests.erase(aId);
   }
 
-  static Request* Get(int aId)
-  {
+  static Request* Get(int aId) {
     mozilla::StaticMutexAutoLock lock(sMutex);
     auto r = sRequests.find(aId);
 
@@ -91,8 +86,7 @@ public:
   std::queue<RefPtr<WebrtcGlobalParent>> mContactList;
   const int mRequestId;
 
-  RefPtr<WebrtcGlobalParent> GetNextParent()
-  {
+  RefPtr<WebrtcGlobalParent> GetNextParent() {
     while (!mContactList.empty()) {
       RefPtr<WebrtcGlobalParent> next = mContactList.front();
       mContactList.pop();
@@ -104,8 +98,7 @@ public:
     return nullptr;
   }
 
-  void Complete()
-  {
+  void Complete() {
     ErrorResult rv;
     mCallback.get()->Call(mResult, rv);
 
@@ -114,11 +107,11 @@ public:
     }
   }
 
-protected:
-  // The mutex is used to protect two related operations involving the sRequest map
-  // and the sLastRequestId. For the map, it prevents more than one thread from
-  // adding or deleting map entries at the same time. For id generation,
-  // it creates an atomic allocation and increment.
+ protected:
+  // The mutex is used to protect two related operations involving the sRequest
+  // map and the sLastRequestId. For the map, it prevents more than one thread
+  // from adding or deleting map entries at the same time. For id generation, it
+  // creates an atomic allocation and increment.
   static mozilla::StaticMutex sMutex;
   static std::map<int, Request> sRequests;
   static int sLastRequestId;
@@ -126,82 +119,70 @@ protected:
   Callback mCallback;
 
   explicit RequestManager(int aId, Callback& aCallback)
-    : mRequestId(aId)
-    , mCallback(aCallback)
-  {}
+      : mRequestId(aId), mCallback(aCallback) {}
   ~RequestManager() {}
-private:
 
+ private:
   RequestManager() = delete;
   RequestManager& operator=(const RequestManager&) = delete;
 };
 
-template<class Request, typename Callback,
-         typename Result, typename QueryParam>
-mozilla::StaticMutex RequestManager<Request, Callback, Result, QueryParam>::sMutex;
-template<class Request, typename Callback,
-         typename Result, typename QueryParam>
-std::map<int, Request> RequestManager<Request, Callback, Result, QueryParam>::sRequests;
-template<class Request, typename Callback,
-         typename Result, typename QueryParam>
+template <class Request, typename Callback, typename Result,
+          typename QueryParam>
+mozilla::StaticMutex
+    RequestManager<Request, Callback, Result, QueryParam>::sMutex;
+template <class Request, typename Callback, typename Result,
+          typename QueryParam>
+std::map<int, Request>
+    RequestManager<Request, Callback, Result, QueryParam>::sRequests;
+template <class Request, typename Callback, typename Result,
+          typename QueryParam>
 int RequestManager<Request, Callback, Result, QueryParam>::sLastRequestId;
 
-typedef nsMainThreadPtrHandle<WebrtcGlobalStatisticsCallback> StatsRequestCallback;
+typedef nsMainThreadPtrHandle<WebrtcGlobalStatisticsCallback>
+    StatsRequestCallback;
 
 class StatsRequest
-  : public RequestManager<StatsRequest,
-                          StatsRequestCallback,
-                          WebrtcGlobalStatisticsReport,
-                          nsAString>
-{
-public:
+    : public RequestManager<StatsRequest, StatsRequestCallback,
+                            WebrtcGlobalStatisticsReport, nsAString> {
+ public:
   const nsString mPcIdFilter;
-  explicit StatsRequest(int aId, StatsRequestCallback& aCallback, nsAString& aFilter)
-    : RequestManager(aId, aCallback)
-    , mPcIdFilter(aFilter)
-  {
+  explicit StatsRequest(int aId, StatsRequestCallback& aCallback,
+                        nsAString& aFilter)
+      : RequestManager(aId, aCallback), mPcIdFilter(aFilter) {
     mResult.mReports.Construct();
   }
 
-private:
+ private:
   StatsRequest() = delete;
   StatsRequest& operator=(const StatsRequest&) = delete;
 };
 
 typedef nsMainThreadPtrHandle<WebrtcGlobalLoggingCallback> LogRequestCallback;
 
-class LogRequest
-  : public RequestManager<LogRequest,
-                          LogRequestCallback,
-                          Sequence<nsString>,
-                          const nsACString>
-{
-public:
+class LogRequest : public RequestManager<LogRequest, LogRequestCallback,
+                                         Sequence<nsString>, const nsACString> {
+ public:
   const nsCString mPattern;
-  explicit LogRequest(int aId, LogRequestCallback& aCallback, const nsACString& aPattern)
-    : RequestManager(aId, aCallback)
-    , mPattern(aPattern)
-  {}
+  explicit LogRequest(int aId, LogRequestCallback& aCallback,
+                      const nsACString& aPattern)
+      : RequestManager(aId, aCallback), mPattern(aPattern) {}
 
-private:
+ private:
   LogRequest() = delete;
   LogRequest& operator=(const LogRequest&) = delete;
 };
 
-class WebrtcContentParents
-{
-public:
+class WebrtcContentParents {
+ public:
   static WebrtcGlobalParent* Alloc();
   static void Dealloc(WebrtcGlobalParent* aParent);
-  static bool Empty()
-  {
-    return sContentParents.empty();
-  }
-  static const std::vector<RefPtr<WebrtcGlobalParent>>& GetAll()
-  {
+  static bool Empty() { return sContentParents.empty(); }
+  static const std::vector<RefPtr<WebrtcGlobalParent>>& GetAll() {
     return sContentParents;
   }
-private:
+
+ private:
   static std::vector<RefPtr<WebrtcGlobalParent>> sContentParents;
   WebrtcContentParents() = delete;
   WebrtcContentParents(const WebrtcContentParents&) = delete;
@@ -210,38 +191,33 @@ private:
 
 std::vector<RefPtr<WebrtcGlobalParent>> WebrtcContentParents::sContentParents;
 
-WebrtcGlobalParent* WebrtcContentParents::Alloc()
-{
+WebrtcGlobalParent* WebrtcContentParents::Alloc() {
   RefPtr<WebrtcGlobalParent> cp = new WebrtcGlobalParent;
   sContentParents.push_back(cp);
   return cp.get();
 }
 
-void WebrtcContentParents::Dealloc(WebrtcGlobalParent* aParent)
-{
+void WebrtcContentParents::Dealloc(WebrtcGlobalParent* aParent) {
   if (aParent) {
     aParent->mShutdown = true;
-    auto cp = std::find(sContentParents.begin(), sContentParents.end(), aParent);
+    auto cp =
+        std::find(sContentParents.begin(), sContentParents.end(), aParent);
     if (cp != sContentParents.end()) {
       sContentParents.erase(cp);
     }
   }
 }
 
-static PeerConnectionCtx* GetPeerConnectionCtx()
-{
-  if(PeerConnectionCtx::isActive()) {
+static PeerConnectionCtx* GetPeerConnectionCtx() {
+  if (PeerConnectionCtx::isActive()) {
     MOZ_ASSERT(PeerConnectionCtx::GetInstance());
     return PeerConnectionCtx::GetInstance();
   }
   return nullptr;
 }
 
-static void
-OnStatsReport_m(WebrtcGlobalChild* aThisChild,
-                const int aRequestId,
-                nsAutoPtr<RTCStatsQueries> aQueryList)
-{
+static void OnStatsReport_m(WebrtcGlobalChild* aThisChild, const int aRequestId,
+                            nsAutoPtr<RTCStatsQueries> aQueryList) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aQueryList);
 
@@ -290,11 +266,8 @@ OnStatsReport_m(WebrtcGlobalChild* aThisChild,
   StatsRequest::Delete(aRequestId);
 }
 
-static void
-GetAllStats_s(WebrtcGlobalChild* aThisChild,
-              const int aRequestId,
-              nsAutoPtr<RTCStatsQueries> aQueryList)
-{
+static void GetAllStats_s(WebrtcGlobalChild* aThisChild, const int aRequestId,
+                          nsAutoPtr<RTCStatsQueries> aQueryList) {
   MOZ_ASSERT(aQueryList);
   // The call to PeerConnetionImpl must happen from a runnable
   // dispatched on the STS thread.
@@ -306,17 +279,13 @@ GetAllStats_s(WebrtcGlobalChild* aThisChild,
 
   // After the RTCStatsQueries have been filled in, control must return
   // to the main thread before their eventual destruction.
-  NS_DispatchToMainThread(WrapRunnableNM(&OnStatsReport_m,
-                                         aThisChild,
-                                         aRequestId,
-                                         aQueryList),
-                          NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(
+      WrapRunnableNM(&OnStatsReport_m, aThisChild, aRequestId, aQueryList),
+      NS_DISPATCH_NORMAL);
 }
 
-static void OnGetLogging_m(WebrtcGlobalChild* aThisChild,
-                           const int aRequestId,
-                           nsAutoPtr<std::deque<std::string>> aLogList)
-{
+static void OnGetLogging_m(WebrtcGlobalChild* aThisChild, const int aRequestId,
+                           nsAutoPtr<std::deque<std::string>> aLogList) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aThisChild) {
@@ -358,10 +327,8 @@ static void OnGetLogging_m(WebrtcGlobalChild* aThisChild,
   LogRequest::Delete(aRequestId);
 }
 
-static void GetLogging_s(WebrtcGlobalChild* aThisChild,
-                         const int aRequestId,
-                         const std::string& aPattern)
-{
+static void GetLogging_s(WebrtcGlobalChild* aThisChild, const int aRequestId,
+                         const std::string& aPattern) {
   // Request log while not on the main thread.
   RLogConnector* logs = RLogConnector::GetInstance();
   nsAutoPtr<std::deque<std::string>> result(new std::deque<std::string>);
@@ -370,19 +337,14 @@ static void GetLogging_s(WebrtcGlobalChild* aThisChild,
     logs->Filter(aPattern, 0, result);
   }
   // Return to main thread to complete processing.
-  NS_DispatchToMainThread(WrapRunnableNM(&OnGetLogging_m,
-                                         aThisChild,
-                                         aRequestId,
-                                         result),
-                          NS_DISPATCH_NORMAL);
+  NS_DispatchToMainThread(
+      WrapRunnableNM(&OnGetLogging_m, aThisChild, aRequestId, result),
+      NS_DISPATCH_NORMAL);
 }
 
-static nsresult
-BuildStatsQueryList(
-  const std::map<const std::string, PeerConnectionImpl *>& aPeerConnections,
-  const nsAString& aPcIdFilter,
-  RTCStatsQueries* queries)
-{
+static nsresult BuildStatsQueryList(
+    const std::map<const std::string, PeerConnectionImpl*>& aPeerConnections,
+    const nsAString& aPcIdFilter, RTCStatsQueries* queries) {
   nsresult rv;
 
   for (auto&& pc : aPeerConnections) {
@@ -390,10 +352,12 @@ BuildStatsQueryList(
     if (aPcIdFilter.IsEmpty() ||
         aPcIdFilter.EqualsASCII(pc.second->GetIdAsAscii().c_str())) {
       if (pc.second->HasMedia()) {
-        if (!queries->append(nsAutoPtr<RTCStatsQuery>(new RTCStatsQuery(true)))) {
-	  return NS_ERROR_OUT_OF_MEMORY;
-	}
-        rv = pc.second->BuildStatsQuery_m(nullptr, queries->back()); // all tracks
+        if (!queries->append(
+                nsAutoPtr<RTCStatsQuery>(new RTCStatsQuery(true)))) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+        rv = pc.second->BuildStatsQuery_m(nullptr,
+                                          queries->back());  // all tracks
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }
@@ -405,13 +369,10 @@ BuildStatsQueryList(
   return NS_OK;
 }
 
-static nsresult
-RunStatsQuery(
-  const std::map<const std::string, PeerConnectionImpl *>& aPeerConnections,
-  const nsAString& aPcIdFilter,
-  WebrtcGlobalChild* aThisChild,
-  const int aRequestId)
-{
+static nsresult RunStatsQuery(
+    const std::map<const std::string, PeerConnectionImpl*>& aPeerConnections,
+    const nsAString& aPcIdFilter, WebrtcGlobalChild* aThisChild,
+    const int aRequestId) {
   nsAutoPtr<RTCStatsQueries> queries(new RTCStatsQueries);
   nsresult rv = BuildStatsQueryList(aPeerConnections, aPcIdFilter, queries);
 
@@ -420,7 +381,7 @@ RunStatsQuery(
   }
 
   nsCOMPtr<nsIEventTarget> stsThread =
-    do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -429,17 +390,14 @@ RunStatsQuery(
     return NS_ERROR_FAILURE;
   }
 
-  rv = RUN_ON_THREAD(stsThread,
-                     WrapRunnableNM(&GetAllStats_s,
-                                    aThisChild,
-                                    aRequestId,
-                                    queries),
-                     NS_DISPATCH_NORMAL);
+  rv = RUN_ON_THREAD(
+      stsThread,
+      WrapRunnableNM(&GetAllStats_s, aThisChild, aRequestId, queries),
+      NS_DISPATCH_NORMAL);
   return rv;
 }
 
-void ClearClosedStats()
-{
+void ClearClosedStats() {
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
 
   if (ctx) {
@@ -447,10 +405,7 @@ void ClearClosedStats()
   }
 }
 
-void
-WebrtcGlobalInformation::ClearAllStats(
-  const GlobalObject& aGlobal)
-{
+void WebrtcGlobalInformation::ClearAllStats(const GlobalObject& aGlobal) {
   if (!NS_IsMainThread()) {
     return;
   }
@@ -469,13 +424,9 @@ WebrtcGlobalInformation::ClearAllStats(
   ClearClosedStats();
 }
 
-void
-WebrtcGlobalInformation::GetAllStats(
-  const GlobalObject& aGlobal,
-  WebrtcGlobalStatisticsCallback& aStatsCallback,
-  const Optional<nsAString>& pcIdFilter,
-  ErrorResult& aRv)
-{
+void WebrtcGlobalInformation::GetAllStats(
+    const GlobalObject& aGlobal, WebrtcGlobalStatisticsCallback& aStatsCallback,
+    const Optional<nsAString>& pcIdFilter, ErrorResult& aRv) {
   if (!NS_IsMainThread()) {
     aRv.Throw(NS_ERROR_NOT_SAME_THREAD);
     return;
@@ -486,8 +437,8 @@ WebrtcGlobalInformation::GetAllStats(
   // CallbackObject does not support threadsafe refcounting, and must be
   // used and destroyed on main.
   StatsRequestCallback callbackHandle(
-    new nsMainThreadPtrHolder<WebrtcGlobalStatisticsCallback>(
-      "WebrtcGlobalStatisticsCallback", &aStatsCallback));
+      new nsMainThreadPtrHolder<WebrtcGlobalStatisticsCallback>(
+          "WebrtcGlobalStatisticsCallback", &aStatsCallback));
 
   nsString filter;
   if (pcIdFilter.WasPassed()) {
@@ -509,8 +460,9 @@ WebrtcGlobalInformation::GetAllStats(
 
     auto next = request->GetNextParent();
     if (next) {
-      aRv = next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter) ?
-                NS_OK : NS_ERROR_FAILURE;
+      aRv = next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter)
+                ? NS_OK
+                : NS_ERROR_FAILURE;
       return;
     }
   }
@@ -520,8 +472,8 @@ WebrtcGlobalInformation::GetAllStats(
   nsresult rv;
 
   if (ctx) {
-    rv = RunStatsQuery(ctx->mGetPeerConnections(),
-                       filter, nullptr, request->mRequestId);
+    rv = RunStatsQuery(ctx->mGetPeerConnections(), filter, nullptr,
+                       request->mRequestId);
 
     if (NS_FAILED(rv)) {
       StatsRequest::Delete(request->mRequestId);
@@ -536,14 +488,12 @@ WebrtcGlobalInformation::GetAllStats(
   aRv = rv;
 }
 
-static nsresult
-RunLogQuery(const nsCString& aPattern,
-            WebrtcGlobalChild* aThisChild,
-            const int aRequestId)
-{
+static nsresult RunLogQuery(const nsCString& aPattern,
+                            WebrtcGlobalChild* aThisChild,
+                            const int aRequestId) {
   nsresult rv;
   nsCOMPtr<nsIEventTarget> stsThread =
-    do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -552,17 +502,14 @@ RunLogQuery(const nsCString& aPattern,
     return NS_ERROR_FAILURE;
   }
 
-  rv = RUN_ON_THREAD(stsThread,
-                     WrapRunnableNM(&GetLogging_s,
-                                    aThisChild,
-                                    aRequestId,
-                                    aPattern.get()),
-                     NS_DISPATCH_NORMAL);
+  rv = RUN_ON_THREAD(
+      stsThread,
+      WrapRunnableNM(&GetLogging_s, aThisChild, aRequestId, aPattern.get()),
+      NS_DISPATCH_NORMAL);
   return rv;
 }
 
-static void ClearLogs_s()
-{
+static void ClearLogs_s() {
   // Make call off main thread.
   RLogConnector* logs = RLogConnector::GetInstance();
   if (logs) {
@@ -570,12 +517,10 @@ static void ClearLogs_s()
   }
 }
 
-static nsresult
-RunLogClear()
-{
+static nsresult RunLogClear() {
   nsresult rv;
   nsCOMPtr<nsIEventTarget> stsThread =
-    do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -584,15 +529,11 @@ RunLogClear()
     return NS_ERROR_FAILURE;
   }
 
-  return RUN_ON_THREAD(stsThread,
-                       WrapRunnableNM(&ClearLogs_s),
+  return RUN_ON_THREAD(stsThread, WrapRunnableNM(&ClearLogs_s),
                        NS_DISPATCH_NORMAL);
 }
 
-void
-WebrtcGlobalInformation::ClearLogging(
-  const GlobalObject& aGlobal)
-{
+void WebrtcGlobalInformation::ClearLogging(const GlobalObject& aGlobal) {
   if (!NS_IsMainThread()) {
     return;
   }
@@ -601,7 +542,7 @@ WebrtcGlobalInformation::ClearLogging(
   MOZ_ASSERT(XRE_IsParentProcess());
 
   if (!WebrtcContentParents::Empty()) {
-  // Clear content process signaling logs
+    // Clear content process signaling logs
     for (auto& cp : WebrtcContentParents::GetAll()) {
       Unused << cp->SendClearLogRequest();
     }
@@ -611,13 +552,9 @@ WebrtcGlobalInformation::ClearLogging(
   Unused << RunLogClear();
 }
 
-void
-WebrtcGlobalInformation::GetLogging(
-  const GlobalObject& aGlobal,
-  const nsAString& aPattern,
-  WebrtcGlobalLoggingCallback& aLoggingCallback,
-  ErrorResult& aRv)
-{
+void WebrtcGlobalInformation::GetLogging(
+    const GlobalObject& aGlobal, const nsAString& aPattern,
+    WebrtcGlobalLoggingCallback& aLoggingCallback, ErrorResult& aRv) {
   if (!NS_IsMainThread()) {
     aRv.Throw(NS_ERROR_NOT_SAME_THREAD);
     return;
@@ -628,8 +565,8 @@ WebrtcGlobalInformation::GetLogging(
   // CallbackObject does not support threadsafe refcounting, and must be
   // destroyed on main.
   LogRequestCallback callbackHandle(
-    new nsMainThreadPtrHolder<WebrtcGlobalLoggingCallback>(
-      "WebrtcGlobalLoggingCallback", &aLoggingCallback));
+      new nsMainThreadPtrHolder<WebrtcGlobalLoggingCallback>(
+          "WebrtcGlobalLoggingCallback", &aLoggingCallback));
 
   nsAutoCString pattern;
   CopyUTF16toUTF8(aPattern, pattern);
@@ -642,15 +579,16 @@ WebrtcGlobalInformation::GetLogging(
   }
 
   if (!WebrtcContentParents::Empty()) {
-  // Pass on the request to any content based PeerConnections.
+    // Pass on the request to any content based PeerConnections.
     for (auto& cp : WebrtcContentParents::GetAll()) {
       request->mContactList.push(cp);
     }
 
     auto next = request->GetNextParent();
     if (next) {
-      aRv = next->SendGetLogRequest(request->mRequestId, request->mPattern) ?
-                NS_OK : NS_ERROR_FAILURE;
+      aRv = next->SendGetLogRequest(request->mRequestId, request->mPattern)
+                ? NS_OK
+                : NS_ERROR_FAILURE;
       return;
     }
   }
@@ -668,9 +606,8 @@ static int32_t sLastSetLevel = 0;
 static bool sLastAECDebug = false;
 static Maybe<nsCString> sAecDebugLogDir;
 
-void
-WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal, int32_t aLevel)
-{
+void WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal,
+                                            int32_t aLevel) {
   if (aLevel) {
     StartWebRtcLog(webrtc::TraceLevel(aLevel));
   } else {
@@ -678,20 +615,17 @@ WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal, int32_t aLev
   }
   sLastSetLevel = aLevel;
 
-  for (auto& cp : WebrtcContentParents::GetAll()){
+  for (auto& cp : WebrtcContentParents::GetAll()) {
     Unused << cp->SendSetDebugMode(aLevel);
   }
 }
 
-int32_t
-WebrtcGlobalInformation::DebugLevel(const GlobalObject& aGlobal)
-{
+int32_t WebrtcGlobalInformation::DebugLevel(const GlobalObject& aGlobal) {
   return sLastSetLevel;
 }
 
-void
-WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
-{
+void WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal,
+                                          bool aEnable) {
   if (aEnable) {
     sAecDebugLogDir.emplace(StartAecLog());
   } else {
@@ -700,27 +634,22 @@ WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
 
   sLastAECDebug = aEnable;
 
-  for (auto& cp : WebrtcContentParents::GetAll()){
+  for (auto& cp : WebrtcContentParents::GetAll()) {
     Unused << cp->SendSetAecLogging(aEnable);
   }
 }
 
-bool
-WebrtcGlobalInformation::AecDebug(const GlobalObject& aGlobal)
-{
+bool WebrtcGlobalInformation::AecDebug(const GlobalObject& aGlobal) {
   return sLastAECDebug;
 }
 
-void
-WebrtcGlobalInformation::GetAecDebugLogDir(const GlobalObject& aGlobal, nsAString& aDir)
-{
+void WebrtcGlobalInformation::GetAecDebugLogDir(const GlobalObject& aGlobal,
+                                                nsAString& aDir) {
   aDir = NS_ConvertASCIItoUTF16(sAecDebugLogDir.valueOr(EmptyCString()));
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
-                                       nsTArray<RTCStatsReportInternal>&& Stats)
-{
+mozilla::ipc::IPCResult WebrtcGlobalParent::RecvGetStatsResult(
+    const int& aRequestId, nsTArray<RTCStatsReportInternal>&& Stats) {
   MOZ_ASSERT(NS_IsMainThread());
   nsresult rv = NS_OK;
 
@@ -748,8 +677,8 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
 
   if (ctx) {
-    rv = RunStatsQuery(ctx->mGetPeerConnections(),
-                       request->mPcIdFilter, nullptr, aRequestId);
+    rv = RunStatsQuery(ctx->mGetPeerConnections(), request->mPcIdFilter,
+                       nullptr, aRequestId);
   } else {
     // No instance in the process, return the collections as is
     request->Complete();
@@ -762,10 +691,8 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
-                                     const WebrtcGlobalLog& aLog)
-{
+mozilla::ipc::IPCResult WebrtcGlobalParent::RecvGetLogResult(
+    const int& aRequestId, const WebrtcGlobalLog& aLog) {
   MOZ_ASSERT(NS_IsMainThread());
 
   LogRequest* request = LogRequest::Get(aRequestId);
@@ -789,7 +716,7 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
   nsresult rv = RunLogQuery(request->mPattern, nullptr, aRequestId);
 
   if (NS_FAILED(rv)) {
-    //Unable to get gecko process log. Return what has been collected.
+    // Unable to get gecko process log. Return what has been collected.
     CSFLogError(LOGTAG, "Unable to extract chrome process log");
     request->Complete();
     LogRequest::Delete(aRequestId);
@@ -798,46 +725,33 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
   return IPC_OK();
 }
 
-WebrtcGlobalParent*
-WebrtcGlobalParent::Alloc()
-{
+WebrtcGlobalParent* WebrtcGlobalParent::Alloc() {
   return WebrtcContentParents::Alloc();
 }
 
-bool
-WebrtcGlobalParent::Dealloc(WebrtcGlobalParent * aActor)
-{
+bool WebrtcGlobalParent::Dealloc(WebrtcGlobalParent* aActor) {
   WebrtcContentParents::Dealloc(aActor);
   return true;
 }
 
-void
-WebrtcGlobalParent::ActorDestroy(ActorDestroyReason aWhy)
-{
+void WebrtcGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
   mShutdown = true;
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalParent::Recv__delete__()
-{
+mozilla::ipc::IPCResult WebrtcGlobalParent::Recv__delete__() {
   return IPC_OK();
 }
 
-MOZ_IMPLICIT WebrtcGlobalParent::WebrtcGlobalParent()
-  : mShutdown(false)
-{
+MOZ_IMPLICIT WebrtcGlobalParent::WebrtcGlobalParent() : mShutdown(false) {
   MOZ_COUNT_CTOR(WebrtcGlobalParent);
 }
 
-MOZ_IMPLICIT WebrtcGlobalParent::~WebrtcGlobalParent()
-{
+MOZ_IMPLICIT WebrtcGlobalParent::~WebrtcGlobalParent() {
   MOZ_COUNT_DTOR(WebrtcGlobalParent);
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
-                                       const nsString& aPcIdFilter)
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvGetStatsRequest(
+    const int& aRequestId, const nsString& aPcIdFilter) {
   if (mShutdown) {
     return IPC_OK();
   }
@@ -845,8 +759,8 @@ WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
 
   if (ctx) {
-    nsresult rv = RunStatsQuery(ctx->mGetPeerConnections(),
-                                aPcIdFilter, this, aRequestId);
+    nsresult rv = RunStatsQuery(ctx->mGetPeerConnections(), aPcIdFilter, this,
+                                aRequestId);
     if (NS_FAILED(rv)) {
       return IPC_FAIL_NO_REASON(this);
     }
@@ -859,9 +773,7 @@ WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvClearStatsRequest()
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvClearStatsRequest() {
   if (mShutdown) {
     return IPC_OK();
   }
@@ -870,24 +782,23 @@ WebrtcGlobalChild::RecvClearStatsRequest()
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
-                                     const nsCString& aPattern)
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvGetLogRequest(
+    const int& aRequestId, const nsCString& aPattern) {
   if (mShutdown) {
     return IPC_OK();
   }
 
   nsresult rv;
   nsCOMPtr<nsIEventTarget> stsThread =
-    do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
 
   if (NS_SUCCEEDED(rv) && stsThread) {
     // this is a singleton, so we shouldn't need to hold a ref for the
     // request (and can't just add a ref here anyways)
-    rv = RUN_ON_THREAD(stsThread,
-                       WrapRunnableNM(&GetLogging_s, this, aRequestId, aPattern.get()),
-                       NS_DISPATCH_NORMAL);
+    rv = RUN_ON_THREAD(
+        stsThread,
+        WrapRunnableNM(&GetLogging_s, this, aRequestId, aPattern.get()),
+        NS_DISPATCH_NORMAL);
 
     if (NS_SUCCEEDED(rv)) {
       return IPC_OK();
@@ -900,9 +811,7 @@ WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvClearLogRequest()
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvClearLogRequest() {
   if (mShutdown) {
     return IPC_OK();
   }
@@ -911,9 +820,8 @@ WebrtcGlobalChild::RecvClearLogRequest()
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvSetAecLogging(
+    const bool& aEnable) {
   if (!mShutdown) {
     if (aEnable) {
       StartAecLog();
@@ -924,9 +832,7 @@ WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
-{
+mozilla::ipc::IPCResult WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel) {
   if (!mShutdown) {
     if (aLevel) {
       StartWebRtcLog(webrtc::TraceLevel(aLevel));
@@ -937,29 +843,21 @@ WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
   return IPC_OK();
 }
 
-WebrtcGlobalChild*
-WebrtcGlobalChild::Create()
-{
-  WebrtcGlobalChild* child =
-    static_cast<WebrtcGlobalChild*>(
+WebrtcGlobalChild* WebrtcGlobalChild::Create() {
+  WebrtcGlobalChild* child = static_cast<WebrtcGlobalChild*>(
       ContentChild::GetSingleton()->SendPWebrtcGlobalConstructor());
   return child;
 }
 
-void
-WebrtcGlobalChild::ActorDestroy(ActorDestroyReason aWhy)
-{
+void WebrtcGlobalChild::ActorDestroy(ActorDestroyReason aWhy) {
   mShutdown = true;
 }
 
-MOZ_IMPLICIT WebrtcGlobalChild::WebrtcGlobalChild()
-  : mShutdown(false)
-{
+MOZ_IMPLICIT WebrtcGlobalChild::WebrtcGlobalChild() : mShutdown(false) {
   MOZ_COUNT_CTOR(WebrtcGlobalChild);
 }
 
-MOZ_IMPLICIT WebrtcGlobalChild::~WebrtcGlobalChild()
-{
+MOZ_IMPLICIT WebrtcGlobalChild::~WebrtcGlobalChild() {
   MOZ_COUNT_DTOR(WebrtcGlobalChild);
 }
 
@@ -969,8 +867,8 @@ struct StreamResult {
   bool streamSucceeded;
 };
 
-static uint32_t GetCandidateIpAndTransportMask(const RTCIceCandidateStats *cand) {
-
+static uint32_t GetCandidateIpAndTransportMask(
+    const RTCIceCandidateStats* cand) {
   enum {
     CANDIDATE_BITMASK_UDP = 1,
     CANDIDATE_BITMASK_TCP = 1 << 1,
@@ -999,14 +897,11 @@ static uint32_t GetCandidateIpAndTransportMask(const RTCIceCandidateStats *cand)
   return res;
 };
 
-static void StoreLongTermICEStatisticsImpl_m(
-    nsresult result,
-    nsAutoPtr<RTCStatsQuery> query) {
-
+static void StoreLongTermICEStatisticsImpl_m(nsresult result,
+                                             nsAutoPtr<RTCStatsQuery> query) {
   using namespace Telemetry;
 
-  if (NS_FAILED(result) ||
-      !query->error.empty() ||
+  if (NS_FAILED(result) || !query->error.empty() ||
       !query->report->mIceCandidateStats.WasPassed()) {
     return;
   }
@@ -1022,11 +917,10 @@ static void StoreLongTermICEStatisticsImpl_m(
   std::map<std::string, StreamResult> streamResults;
 
   // Build list of streams, and whether or not they failed.
-  for (size_t i = 0;
-       i < query->report->mIceCandidatePairStats.Value().Length();
+  for (size_t i = 0; i < query->report->mIceCandidatePairStats.Value().Length();
        ++i) {
-    const RTCIceCandidatePairStats &pair =
-      query->report->mIceCandidatePairStats.Value()[i];
+    const RTCIceCandidatePairStats& pair =
+        query->report->mIceCandidatePairStats.Value()[i];
 
     if (!pair.mState.WasPassed() || !pair.mTransportId.WasPassed()) {
       MOZ_CRASH();
@@ -1036,22 +930,19 @@ static void StoreLongTermICEStatisticsImpl_m(
     // Note: we use NrIceMediaStream's name for the
     // RTCIceCandidatePairStats tranportId
     std::string streamId(
-      NS_ConvertUTF16toUTF8(pair.mTransportId.Value()).get());
+        NS_ConvertUTF16toUTF8(pair.mTransportId.Value()).get());
 
     streamResults[streamId].streamSucceeded |=
-      pair.mState.Value() == RTCStatsIceCandidatePairState::Succeeded;
+        pair.mState.Value() == RTCStatsIceCandidatePairState::Succeeded;
   }
 
-  for (size_t i = 0;
-       i < query->report->mIceCandidateStats.Value().Length();
+  for (size_t i = 0; i < query->report->mIceCandidateStats.Value().Length();
        ++i) {
-    const RTCIceCandidateStats &cand =
-      query->report->mIceCandidateStats.Value()[i];
+    const RTCIceCandidateStats& cand =
+        query->report->mIceCandidateStats.Value()[i];
 
-    if (!cand.mType.WasPassed() ||
-        !cand.mCandidateType.WasPassed() ||
-        !cand.mTransport.WasPassed() ||
-        !cand.mIpAddress.WasPassed() ||
+    if (!cand.mType.WasPassed() || !cand.mCandidateType.WasPassed() ||
+        !cand.mTransport.WasPassed() || !cand.mIpAddress.WasPassed() ||
         !cand.mComponentId.WasPassed()) {
       // Crash on debug, ignore this candidate otherwise.
       MOZ_CRASH();
@@ -1098,11 +989,14 @@ static void StoreLongTermICEStatisticsImpl_m(
       candBitmask <<= kLocalShift;
     }
 
-    if (cand.mCandidateType.Value() == RTCStatsIceCandidateType::Serverreflexive) {
+    if (cand.mCandidateType.Value() ==
+        RTCStatsIceCandidateType::Serverreflexive) {
       candBitmask <<= kSrflxShift;
-    } else if (cand.mCandidateType.Value() == RTCStatsIceCandidateType::Relayed) {
+    } else if (cand.mCandidateType.Value() ==
+               RTCStatsIceCandidateType::Relayed) {
       candBitmask <<= kRelayShift;
-    } else if (cand.mCandidateType.Value() == RTCStatsIceCandidateType::Peerreflexive) {
+    } else if (cand.mCandidateType.Value() ==
+               RTCStatsIceCandidateType::Peerreflexive) {
       candBitmask <<= kPrflxShift;
     }
 
@@ -1110,14 +1004,15 @@ static void StoreLongTermICEStatisticsImpl_m(
     // stream ID. This is just the way the stats API is standardized right now.
     // Very confusing.
     std::string streamId(
-      NS_ConvertUTF16toUTF8(cand.mComponentId.Value()).get());
+        NS_ConvertUTF16toUTF8(cand.mComponentId.Value()).get());
 
     streamResults[streamId].candidateTypeBitpattern |= candBitmask;
   }
 
   for (auto& streamResult : streamResults) {
-    Telemetry::RecordWebrtcIceCandidates(streamResult.second.candidateTypeBitpattern,
-                                         streamResult.second.streamSucceeded);
+    Telemetry::RecordWebrtcIceCandidates(
+        streamResult.second.candidateTypeBitpattern,
+        streamResult.second.streamSucceeded);
   }
 
   // Beyond ICE, accumulate telemetry for various PER_CALL settings here.
@@ -1192,15 +1087,13 @@ static void StoreLongTermICEStatisticsImpl_m(
 
   // Finally, store the stats
 
-  PeerConnectionCtx *ctx = GetPeerConnectionCtx();
+  PeerConnectionCtx* ctx = GetPeerConnectionCtx();
   if (ctx) {
     ctx->mStatsForClosedPeerConnections.AppendElement(*query->report, fallible);
   }
 }
 
-static void GetStatsForLongTermStorage_s(
-    nsAutoPtr<RTCStatsQuery> query) {
-
+static void GetStatsForLongTermStorage_s(nsAutoPtr<RTCStatsQuery> query) {
   MOZ_ASSERT(query);
 
   nsresult rv = PeerConnectionImpl::ExecuteStatsQuery_s(query.get());
@@ -1232,10 +1125,7 @@ static void GetStatsForLongTermStorage_s(
   // Even if Telemetry::Accumulate is threadsafe, we still need to send the
   // query back to main, since that is where it must be destroyed.
   NS_DispatchToMainThread(
-      WrapRunnableNM(
-          &StoreLongTermICEStatisticsImpl_m,
-          rv,
-          query),
+      WrapRunnableNM(&StoreLongTermICEStatisticsImpl_m, rv, query),
       NS_DISPATCH_NORMAL);
 }
 
@@ -1257,10 +1147,9 @@ void WebrtcGlobalInformation::StoreLongTermICEStatistics(
   NS_ENSURE_SUCCESS_VOID(rv);
 
   RUN_ON_THREAD(aPc.GetSTSThread(),
-                WrapRunnableNM(&GetStatsForLongTermStorage_s,
-                               query),
+                WrapRunnableNM(&GetStatsForLongTermStorage_s, query),
                 NS_DISPATCH_NORMAL);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

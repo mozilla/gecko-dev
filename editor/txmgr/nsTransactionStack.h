@@ -11,9 +11,8 @@
 class nsCycleCollectionTraversalCallback;
 class nsTransactionItem;
 
-class nsTransactionStack : private nsDeque
-{
-public:
+class nsTransactionStack : private nsDeque {
+ public:
   enum Type { FOR_UNDO, FOR_REDO };
 
   explicit nsTransactionStack(Type aType);
@@ -32,8 +31,8 @@ public:
   void DoUnlink() { Clear(); }
   void DoTraverse(nsCycleCollectionTraversalCallback &cb);
 
-private:
+ private:
   const Type mType;
 };
 
-#endif // nsTransactionStack_h__
+#endif  // nsTransactionStack_h__

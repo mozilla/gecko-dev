@@ -23,20 +23,21 @@ class CSSVariableDeclarations;
 class CSSVariableValues;
 class EnumerateVariableReferencesData;
 
-class CSSVariableResolver
-{
+class CSSVariableResolver {
   friend class CSSVariableDeclarations;
   friend class CSSVariableValues;
   friend class EnumerateVariableReferencesData;
-public:
+
+ public:
   /**
    * Creates a new CSSVariableResolver that will output a set of resolved,
    * computed variables into aOutput.
    */
   explicit CSSVariableResolver(CSSVariableValues* aOutput)
-    : mOutput(aOutput)
+      : mOutput(aOutput)
 #ifdef DEBUG
-    , mResolved(false)
+        ,
+        mResolved(false)
 #endif
   {
     MOZ_ASSERT(aOutput);
@@ -50,24 +51,21 @@ public:
   void Resolve(const CSSVariableValues* aInherited,
                const CSSVariableDeclarations* aSpecified);
 
-private:
-  struct Variable
-  {
-    Variable(const nsAString& aVariableName,
-             nsString aValue,
+ private:
+  struct Variable {
+    Variable(const nsAString& aVariableName, nsString aValue,
              nsCSSTokenSerializationType aFirstToken,
-             nsCSSTokenSerializationType aLastToken,
-             bool aWasInherited)
-      : mVariableName(aVariableName)
-      , mValue(aValue)
-      , mFirstToken(aFirstToken)
-      , mLastToken(aLastToken)
-      , mWasInherited(aWasInherited)
-      , mResolved(false)
-      , mReferencesNonExistentVariable(false)
-      , mInStack(false)
-      , mIndex(0)
-      , mLowLink(0) { }
+             nsCSSTokenSerializationType aLastToken, bool aWasInherited)
+        : mVariableName(aVariableName),
+          mValue(aValue),
+          mFirstToken(aFirstToken),
+          mLastToken(aLastToken),
+          mWasInherited(aWasInherited),
+          mResolved(false),
+          mReferencesNonExistentVariable(false),
+          mInStack(false),
+          mIndex(0),
+          mLowLink(0) {}
 
     nsString mVariableName;
     nsString mValue;
@@ -103,11 +101,9 @@ private:
    * @param aWasInherited Whether this variable came from the set of inherited
    *   variables.
    */
-  void Put(const nsAString& aVariableName,
-           nsString aValue,
+  void Put(const nsAString& aVariableName, nsString aValue,
            nsCSSTokenSerializationType aFirstToken,
-           nsCSSTokenSerializationType aLastToken,
-           bool aWasInherited);
+           nsCSSTokenSerializationType aLastToken, bool aWasInherited);
 
   // Helper functions for Resolve.
   void RemoveCycles(size_t aID);
@@ -144,6 +140,6 @@ private:
 #endif
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

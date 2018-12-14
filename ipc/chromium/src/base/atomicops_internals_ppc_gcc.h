@@ -49,8 +49,7 @@ inline Atomic32 Release_CompareAndSwap(volatile Atomic32* ptr,
 inline void NoBarrier_Store(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
 }
-inline void MemoryBarrier() {
-  __asm__ __volatile__("sync" : : : "memory"); }
+inline void MemoryBarrier() { __asm__ __volatile__("sync" : : : "memory"); }
 inline void Acquire_Store(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
   MemoryBarrier();
@@ -129,6 +128,6 @@ inline Atomic64 Release_Load(volatile const Atomic64* ptr) {
   return *ptr;
 }
 #endif
-}  // namespace base::subtle
+}  // namespace subtle
 }  // namespace base
 #endif  // BASE_ATOMICOPS_INTERNALS_PPC_GCC_H_

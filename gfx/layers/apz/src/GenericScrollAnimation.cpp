@@ -16,38 +16,35 @@
 namespace mozilla {
 namespace layers {
 
-GenericScrollAnimation::GenericScrollAnimation(AsyncPanZoomController& aApzc,
-                                               const nsPoint& aInitialPosition,
-                                               const ScrollAnimationBezierPhysicsSettings& aSettings)
-  : mApzc(aApzc)
-  , mFinalDestination(aInitialPosition)
-{
+GenericScrollAnimation::GenericScrollAnimation(
+    AsyncPanZoomController& aApzc, const nsPoint& aInitialPosition,
+    const ScrollAnimationBezierPhysicsSettings& aSettings)
+    : mApzc(aApzc), mFinalDestination(aInitialPosition) {
   if (gfxPrefs::SmoothScrollMSDPhysicsEnabled()) {
     mAnimationPhysics = MakeUnique<ScrollAnimationMSDPhysics>(aInitialPosition);
   } else {
-    mAnimationPhysics = MakeUnique<ScrollAnimationBezierPhysics>(aInitialPosition, aSettings);
+    mAnimationPhysics =
+        MakeUnique<ScrollAnimationBezierPhysics>(aInitialPosition, aSettings);
   }
 }
 
-void
-GenericScrollAnimation::UpdateDelta(TimeStamp aTime, nsPoint aDelta, const nsSize& aCurrentVelocity)
-{
+void GenericScrollAnimation::UpdateDelta(TimeStamp aTime, nsPoint aDelta,
+                                         const nsSize& aCurrentVelocity) {
   mFinalDestination += aDelta;
 
   Update(aTime, aCurrentVelocity);
 }
 
-void
-GenericScrollAnimation::UpdateDestination(TimeStamp aTime, nsPoint aDestination, const nsSize& aCurrentVelocity)
-{
+void GenericScrollAnimation::UpdateDestination(TimeStamp aTime,
+                                               nsPoint aDestination,
+                                               const nsSize& aCurrentVelocity) {
   mFinalDestination = aDestination;
 
   Update(aTime, aCurrentVelocity);
 }
 
-void
-GenericScrollAnimation::Update(TimeStamp aTime, const nsSize& aCurrentVelocity)
-{
+void GenericScrollAnimation::Update(TimeStamp aTime,
+                                    const nsSize& aCurrentVelocity) {
   // Clamp the final destination to the scrollable area.
   CSSPoint clamped = CSSPoint::FromAppUnits(mFinalDestination);
   clamped.x = mApzc.mX.ClampOriginToScrollableRect(clamped.x);
@@ -57,9 +54,8 @@ GenericScrollAnimation::Update(TimeStamp aTime, const nsSize& aCurrentVelocity)
   mAnimationPhysics->Update(aTime, mFinalDestination, aCurrentVelocity);
 }
 
-bool
-GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration& aDelta)
-{
+bool GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics,
+                                      const TimeDuration& aDelta) {
   TimeStamp now = mApzc.GetFrameTime();
   CSSToParentLayerScale2D zoom = aFrameMetrics.GetZoom();
 
@@ -69,7 +65,8 @@ GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration
   bool finished = mAnimationPhysics->IsFinished(now);
   nsPoint sampledDest = mAnimationPhysics->PositionAt(now);
   ParentLayerPoint displacement =
-    (CSSPoint::FromAppUnits(sampledDest) - aFrameMetrics.GetScrollOffset()) * zoom;
+      (CSSPoint::FromAppUnits(sampledDest) - aFrameMetrics.GetScrollOffset()) *
+      zoom;
 
   if (finished) {
     mApzc.mX.SetVelocity(0);
@@ -78,19 +75,19 @@ GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration
     // Convert velocity from AppUnits/Seconds to ParentLayerCoords/Milliseconds
     nsSize velocity = mAnimationPhysics->VelocityAt(now);
     ParentLayerPoint velocityPL =
-      CSSPoint::FromAppUnits(nsPoint(velocity.width, velocity.height)) * zoom;
+        CSSPoint::FromAppUnits(nsPoint(velocity.width, velocity.height)) * zoom;
     mApzc.mX.SetVelocity(velocityPL.x / 1000.0);
     mApzc.mY.SetVelocity(velocityPL.y / 1000.0);
   }
 
   // Note: we ignore overscroll for generic animations.
   ParentLayerPoint adjustedOffset, overscroll;
-  mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x,
-                              mDirectionForcedToOverscroll
-                                == Some(ScrollDirection::eHorizontal));
-  mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y,
-                              mDirectionForcedToOverscroll
-                                == Some(ScrollDirection::eVertical));
+  mApzc.mX.AdjustDisplacement(
+      displacement.x, adjustedOffset.x, overscroll.x,
+      mDirectionForcedToOverscroll == Some(ScrollDirection::eHorizontal));
+  mApzc.mY.AdjustDisplacement(
+      displacement.y, adjustedOffset.y, overscroll.y,
+      mDirectionForcedToOverscroll == Some(ScrollDirection::eVertical));
 
   // If we expected to scroll, but there's no more scroll range on either axis,
   // then end the animation early. Note that the initial displacement could be 0
@@ -105,5 +102,5 @@ GenericScrollAnimation::DoSample(FrameMetrics& aFrameMetrics, const TimeDuration
   return !finished;
 }
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla

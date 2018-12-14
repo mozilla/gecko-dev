@@ -16,15 +16,13 @@ namespace mozilla {
 
 namespace hal {
 class BatteryInformation;
-} // namespace hal
+}  // namespace hal
 
 namespace dom {
 namespace battery {
 
-class BatteryManager : public DOMEventTargetHelper
-                     , public BatteryObserver
-{
-public:
+class BatteryManager : public DOMEventTargetHelper, public BatteryObserver {
+ public:
   explicit BatteryManager(nsPIDOMWindowInner* aWindow);
 
   void Init();
@@ -37,12 +35,10 @@ public:
    * WebIDL Interface
    */
 
-  nsPIDOMWindowInner* GetParentObject() const
-  {
-     return GetOwner();
-  }
+  nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* aCx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
   bool Charging() const;
 
@@ -57,7 +53,7 @@ public:
   IMPL_EVENT_HANDLER(dischargingtimechange)
   IMPL_EVENT_HANDLER(levelchange)
 
-private:
+ private:
   /**
    * Update the battery information stored in the battery manager object using
    * a battery information object.
@@ -69,7 +65,7 @@ private:
    * to 1.0 (fully charged)
    */
   double mLevel;
-  bool   mCharging;
+  bool mCharging;
   /**
    * Represents the discharging time or the charging time, depending on the
    * current battery status (charging or not).
@@ -77,8 +73,8 @@ private:
   double mRemainingTime;
 };
 
-} // namespace battery
-} // namespace dom
-} // namespace mozilla
+}  // namespace battery
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_battery_BatteryManager_h
+#endif  // mozilla_dom_battery_BatteryManager_h

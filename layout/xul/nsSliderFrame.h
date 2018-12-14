@@ -20,27 +20,24 @@ class nsSliderFrame;
 
 nsIFrame* NS_NewSliderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-class nsSliderMediator final : public nsIDOMEventListener
-{
-public:
-
+class nsSliderMediator final : public nsIDOMEventListener {
+ public:
   NS_DECL_ISUPPORTS
 
   nsSliderFrame* mSlider;
 
-  explicit nsSliderMediator(nsSliderFrame* aSlider) {  mSlider = aSlider; }
+  explicit nsSliderMediator(nsSliderFrame* aSlider) { mSlider = aSlider; }
 
   virtual void SetSlider(nsSliderFrame* aSlider) { mSlider = aSlider; }
 
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
 
-protected:
+ protected:
   virtual ~nsSliderMediator() {}
 };
 
-class nsSliderFrame final : public nsBoxFrame
-{
-public:
+class nsSliderFrame final : public nsBoxFrame {
+ public:
   NS_DECL_FRAMEARENA_HELPERS(nsSliderFrame)
   NS_DECL_QUERYFRAME
 
@@ -61,37 +58,33 @@ public:
   NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState) override;
 
   // nsIFrame overrides
-  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot,
+                           PostDestroyData& aPostDestroyData) override;
 
-  virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                           const nsDisplayListSet& aLists) override;
+  virtual void BuildDisplayListForChildren(
+      nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsAtom* aAttribute,
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
-  virtual void Init(nsIContent*       aContent,
-                    nsContainerFrame* aParent,
-                    nsIFrame*         asPrevInFlow) override;
-
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* asPrevInFlow) override;
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
                                nsEventStatus* aEventStatus) override;
 
   // nsContainerFrame overrides
-  virtual void SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList) override;
-  virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) override;
-  virtual void InsertFrames(ChildListID     aListID,
-                            nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) override;
-  virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) override;
+  virtual void SetInitialChildList(ChildListID aListID,
+                                   nsFrameList& aChildList) override;
+  virtual void AppendFrames(ChildListID aListID,
+                            nsFrameList& aFrameList) override;
+  virtual void InsertFrames(ChildListID aListID, nsIFrame* aPrevFrame,
+                            nsFrameList& aFrameList) override;
+  virtual void RemoveFrame(ChildListID aListID, nsIFrame* aOldFrame) override;
 
   nsresult StartDrag(nsIDOMEvent* aEvent);
   nsresult StopDrag();
@@ -103,7 +96,8 @@ public:
   static int32_t GetMaxPosition(nsIContent* content);
   static int32_t GetIncrement(nsIContent* content);
   static int32_t GetPageIncrement(nsIContent* content);
-  static int32_t GetIntegerAttribute(nsIContent* content, nsAtom* atom, int32_t defaultValue);
+  static int32_t GetIntegerAttribute(nsIContent* content, nsAtom* atom,
+                                     int32_t defaultValue);
   void EnsureOrient();
 
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
@@ -113,15 +107,13 @@ public:
   NS_IMETHOD HandleMultiplePress(nsPresContext* aPresContext,
                                  mozilla::WidgetGUIEvent* aEvent,
                                  nsEventStatus* aEventStatus,
-                                 bool aControlHeld) override
-  {
+                                 bool aControlHeld) override {
     return NS_OK;
   }
 
   NS_IMETHOD HandleDrag(nsPresContext* aPresContext,
                         mozilla::WidgetGUIEvent* aEvent,
-                        nsEventStatus* aEventStatus) override
-  {
+                        nsEventStatus* aEventStatus) override {
     return NS_OK;
   }
 
@@ -143,8 +135,7 @@ public:
   // Returns the associated scrollframe that contains this slider if any.
   nsIScrollableFrame* GetScrollFrame();
 
-private:
-
+ private:
   bool GetScrollToClick();
   nsIFrame* GetScrollbar();
   bool ShouldScrollForEvent(mozilla::WidgetGUIEvent* aEvent);
@@ -152,9 +143,10 @@ private:
   bool IsEventOverThumb(mozilla::WidgetGUIEvent* aEvent);
 
   void PageUpDown(nscoord change);
-  void SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewPos, bool aIsSmooth,
-                               bool aMaySnap);
-  void SetCurrentPosition(nsIContent* aScrollbar, int32_t aNewPos, bool aIsSmooth);
+  void SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewPos,
+                               bool aIsSmooth, bool aMaySnap);
+  void SetCurrentPosition(nsIContent* aScrollbar, int32_t aNewPos,
+                          bool aIsSmooth);
   void SetCurrentPositionInternal(nsIContent* aScrollbar, int32_t pos,
                                   bool aIsSmooth);
   void CurrentPositionChanged();
@@ -168,13 +160,10 @@ private:
   void UnsuppressDisplayport();
 
   void StartRepeat() {
-    nsRepeatService::GetInstance()->Start(Notify, this,
-                                          mContent->OwnerDoc(),
+    nsRepeatService::GetInstance()->Start(Notify, this, mContent->OwnerDoc(),
                                           NS_LITERAL_CSTRING("nsSliderFrame"));
   }
-  void StopRepeat() {
-    nsRepeatService::GetInstance()->Stop(Notify, this);
-  }
+  void StopRepeat() { nsRepeatService::GetInstance()->Stop(Notify, this); }
   void Notify();
   static void Notify(void* aData) {
     (static_cast<nsSliderFrame*>(aData))->Notify();
@@ -212,6 +201,6 @@ private:
 
   static bool gMiddlePref;
   static int32_t gSnapMultiplier;
-}; // class nsSliderFrame
+};  // class nsSliderFrame
 
 #endif

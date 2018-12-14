@@ -36,11 +36,11 @@ class Layer;
 class LayerManager;
 class SharedSurfaceTextureClient;
 class WebRenderCanvasData;
-} // namespace layers
+}  // namespace layers
 namespace gfx {
 class SourceSurface;
 class VRLayerChild;
-} // namespace gfx
+}  // namespace gfx
 
 namespace dom {
 class BlobCallback;
@@ -53,10 +53,9 @@ class RequestedFrameRefreshObserver;
 
 // Listen visibilitychange and memory-pressure event and inform
 // context when event is fired.
-class HTMLCanvasElementObserver final : public nsIObserver
-                                      , public nsIDOMEventListener
-{
-public:
+class HTMLCanvasElementObserver final : public nsIObserver,
+                                        public nsIDOMEventListener {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
@@ -70,7 +69,7 @@ public:
   void RegisterMemoryPressureEvent();
   void UnregisterMemoryPressureEvent();
 
-private:
+ private:
   ~HTMLCanvasElementObserver();
 
   HTMLCanvasElement* mElement;
@@ -84,13 +83,11 @@ private:
  * will be given a copy of the just-painted canvas.
  * All FrameCaptureListeners get the same copy.
  */
-class FrameCaptureListener : public SupportsWeakPtr<FrameCaptureListener>
-{
-public:
+class FrameCaptureListener : public SupportsWeakPtr<FrameCaptureListener> {
+ public:
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(FrameCaptureListener)
 
-  FrameCaptureListener()
-    : mFrameCaptureRequested(false) {}
+  FrameCaptureListener() : mFrameCaptureRequested(false) {}
 
   /*
    * Called when a frame capture is desired on next paint.
@@ -109,19 +106,15 @@ public:
   virtual void NewFrame(already_AddRefed<layers::Image> aImage,
                         const TimeStamp& aTime) = 0;
 
-protected:
+ protected:
   virtual ~FrameCaptureListener() {}
 
   bool mFrameCaptureRequested;
 };
 
 class HTMLCanvasElement final : public nsGenericHTMLElement,
-                                public CanvasRenderingContextHelper
-{
-  enum {
-    DEFAULT_CANVAS_WIDTH = 300,
-    DEFAULT_CANVAS_HEIGHT = 150
-  };
+                                public CanvasRenderingContextHelper {
+  enum { DEFAULT_CANVAS_WIDTH = 300, DEFAULT_CANVAS_HEIGHT = 150 };
 
   typedef layers::AsyncCanvasRenderer AsyncCanvasRenderer;
   typedef layers::CanvasRenderer CanvasRenderer;
@@ -130,8 +123,9 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   typedef layers::LayerManager LayerManager;
   typedef layers::WebRenderCanvasData WebRenderCanvasData;
 
-public:
-  explicit HTMLCanvasElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+ public:
+  explicit HTMLCanvasElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLCanvasElement, canvas)
 
@@ -143,12 +137,10 @@ public:
                                            nsGenericHTMLElement)
 
   // WebIDL
-  uint32_t Height()
-  {
+  uint32_t Height() {
     return GetUnsignedIntAttr(nsGkAtoms::height, DEFAULT_CANVAS_HEIGHT);
   }
-  void SetHeight(uint32_t aHeight, ErrorResult& aRv)
-  {
+  void SetHeight(uint32_t aHeight, ErrorResult& aRv) {
     if (mOffscreenCanvas) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
@@ -156,12 +148,10 @@ public:
 
     SetUnsignedIntAttr(nsGkAtoms::height, aHeight, DEFAULT_CANVAS_HEIGHT, aRv);
   }
-  uint32_t Width()
-  {
+  uint32_t Width() {
     return GetUnsignedIntAttr(nsGkAtoms::width, DEFAULT_CANVAS_WIDTH);
   }
-  void SetWidth(uint32_t aWidth, ErrorResult& aRv)
-  {
+  void SetWidth(uint32_t aWidth, ErrorResult& aRv) {
     if (mOffscreenCanvas) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
@@ -170,30 +160,21 @@ public:
     SetUnsignedIntAttr(nsGkAtoms::width, aWidth, DEFAULT_CANVAS_WIDTH, aRv);
   }
 
-  virtual already_AddRefed<nsISupports>
-  GetContext(JSContext* aCx, const nsAString& aContextId,
-             JS::Handle<JS::Value> aContextOptions,
-             ErrorResult& aRv) override;
+  virtual already_AddRefed<nsISupports> GetContext(
+      JSContext* aCx, const nsAString& aContextId,
+      JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv) override;
 
   void ToDataURL(JSContext* aCx, const nsAString& aType,
-                 JS::Handle<JS::Value> aParams,
-                 nsAString& aDataURL,
+                 JS::Handle<JS::Value> aParams, nsAString& aDataURL,
                  ErrorResult& aRv);
 
-  void ToBlob(JSContext* aCx,
-              BlobCallback& aCallback,
-              const nsAString& aType,
-              JS::Handle<JS::Value> aParams,
-              ErrorResult& aRv);
+  void ToBlob(JSContext* aCx, BlobCallback& aCallback, const nsAString& aType,
+              JS::Handle<JS::Value> aParams, ErrorResult& aRv);
 
   OffscreenCanvas* TransferControlToOffscreen(ErrorResult& aRv);
 
-  bool MozOpaque() const
-  {
-    return GetBoolAttr(nsGkAtoms::moz_opaque);
-  }
-  void SetMozOpaque(bool aValue, ErrorResult& aRv)
-  {
+  bool MozOpaque() const { return GetBoolAttr(nsGkAtoms::moz_opaque); }
+  void SetMozOpaque(bool aValue, ErrorResult& aRv) {
     if (mOffscreenCanvas) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
@@ -203,15 +184,14 @@ public:
   }
   already_AddRefed<File> MozGetAsFile(const nsAString& aName,
                                       const nsAString& aType,
-                                      CallerType aCallerType,
-                                      ErrorResult& aRv);
+                                      CallerType aCallerType, ErrorResult& aRv);
   already_AddRefed<nsISupports> MozGetIPCContext(const nsAString& aContextId,
                                                  ErrorResult& aRv);
   PrintCallback* GetMozPrintCallback() const;
   void SetMozPrintCallback(PrintCallback* aCallback);
 
-  already_AddRefed<CanvasCaptureMediaStream>
-  CaptureStream(const Optional<double>& aFrameRate, ErrorResult& aRv);
+  already_AddRefed<CanvasCaptureMediaStream> CaptureStream(
+      const Optional<double>& aFrameRate, ErrorResult& aRv);
 
   /**
    * Get the size in pixels of this canvas element
@@ -243,8 +223,8 @@ public:
    * Get the number of contexts in this canvas, and request a context at
    * an index.
    */
-  int32_t CountContexts ();
-  nsICanvasRenderingContextInternal *GetContextAtIndex (int32_t index);
+  int32_t CountContexts();
+  nsICanvasRenderingContextInternal* GetContextAtIndex(int32_t index);
 
   /*
    * Returns true if the canvas context content is guaranteed to be opaque
@@ -253,8 +233,8 @@ public:
   bool GetIsOpaque();
   virtual bool GetOpaqueAttr() override;
 
-  virtual already_AddRefed<gfx::SourceSurface>
-  GetSurfaceSnapshot(gfxAlphaType* aOutAlphaType = nullptr);
+  virtual already_AddRefed<gfx::SourceSurface> GetSurfaceSnapshot(
+      gfxAlphaType* aOutAlphaType = nullptr);
 
   /*
    * Register a FrameCaptureListener with this canvas.
@@ -287,28 +267,27 @@ public:
   void SetFrameCapture(already_AddRefed<gfx::SourceSurface> aSurface,
                        const TimeStamp& aTime);
 
-  virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsIPrincipal* aMaybeScriptedPrincipal,
-                                nsAttrValue& aResult) override;
-  nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute, int32_t aModType) const override;
+  virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
+                              const nsAString& aValue,
+                              nsIPrincipal* aMaybeScriptedPrincipal,
+                              nsAttrValue& aResult) override;
+  nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
+                                      int32_t aModType) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
-  nsresult CopyInnerTo(mozilla::dom::Element* aDest,
-                       bool aPreallocateChildren);
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest, bool aPreallocateChildren);
 
   virtual nsresult GetEventTargetParent(
-                     mozilla::EventChainPreVisitor& aVisitor) override;
+      mozilla::EventChainPreVisitor& aVisitor) override;
 
   /*
    * Helpers called by various users of Canvas
    */
 
   already_AddRefed<Layer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
-                                         Layer *aOldLayer,
-                                         LayerManager *aManager);
+                                         Layer* aOldLayer,
+                                         LayerManager* aManager);
   bool UpdateWebRenderCanvasData(nsDisplayListBuilder* aBuilder,
                                  WebRenderCanvasData* aCanvasData);
   bool InitializeCanvasRenderer(nsDisplayListBuilder* aBuilder,
@@ -316,7 +295,7 @@ public:
   // Should return true if the canvas layer should always be marked inactive.
   // We should return true here if we can't do accelerated compositing with
   // a non-BasicCanvasLayer.
-  bool ShouldForceInactiveLayer(LayerManager *aManager);
+  bool ShouldForceInactiveLayer(LayerManager* aManager);
 
   // Call this whenever we need future changes to the canvas
   // to trigger fresh invalidation requests. This needs to be called
@@ -339,31 +318,27 @@ public:
 
   void OnMemoryPressure();
 
-  static void SetAttrFromAsyncCanvasRenderer(AsyncCanvasRenderer *aRenderer);
-  static void InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer *aRenderer);
+  static void SetAttrFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
+  static void InvalidateFromAsyncCanvasRenderer(AsyncCanvasRenderer* aRenderer);
 
   already_AddRefed<layers::SharedSurfaceTextureClient> GetVRFrame();
 
-protected:
+ protected:
   virtual ~HTMLCanvasElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
   virtual nsIntSize GetWidthHeight() override;
 
-  virtual already_AddRefed<nsICanvasRenderingContextInternal>
-  CreateContext(CanvasContextType aContextType) override;
+  virtual already_AddRefed<nsICanvasRenderingContextInternal> CreateContext(
+      CanvasContextType aContextType) override;
 
-  nsresult ExtractData(JSContext* aCx,
-                       nsAString& aType,
-                       const nsAString& aOptions,
-                       nsIInputStream** aStream);
-  nsresult ToDataURLImpl(JSContext* aCx,
-                         const nsAString& aMimeType,
-                         const JS::Value& aEncoderOptions,
-                         nsAString& aDataURL);
-  nsresult MozGetAsFileImpl(const nsAString& aName,
-                            const nsAString& aType,
+  nsresult ExtractData(JSContext* aCx, nsAString& aType,
+                       const nsAString& aOptions, nsIInputStream** aStream);
+  nsresult ToDataURLImpl(JSContext* aCx, const nsAString& aMimeType,
+                         const JS::Value& aEncoderOptions, nsAString& aDataURL);
+  nsresult MozGetAsFileImpl(const nsAString& aName, const nsAString& aType,
                             File** aResult);
   void CallPrintCallback();
 
@@ -388,12 +363,12 @@ protected:
   RefPtr<OffscreenCanvas> mOffscreenCanvas;
   RefPtr<HTMLCanvasElementObserver> mContextObserver;
 
-public:
+ public:
   // Record whether this canvas should be write-only or not.
   // We set this when script paints an image from a different origin.
   // We also transitively set it when script paints a canvas which
   // is itself write-only.
-  bool                     mWriteOnly;
+  bool mWriteOnly;
 
   bool IsPrintCallbackDone();
 
@@ -405,11 +380,9 @@ public:
 
   HTMLCanvasElement* GetOriginalCanvas();
 
-  CanvasContextType GetCurrentContextType() {
-    return mCurrentContextType;
-  }
+  CanvasContextType GetCurrentContextType() { return mCurrentContextType; }
 
-private:
+ private:
   /**
    * This function is called by AfterSetAttr and OnAttrSetButNotChanged.
    * This function will be called by AfterSetAttr whether the attribute is being
@@ -422,9 +395,8 @@ private:
   void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName, bool aNotify);
 };
 
-class HTMLCanvasPrintState final : public nsWrapperCache
-{
-public:
+class HTMLCanvasPrintState final : public nsWrapperCache {
+ public:
   HTMLCanvasPrintState(HTMLCanvasElement* aCanvas,
                        nsICanvasRenderingContextInternal* aContext,
                        nsITimerCallback* aCallback);
@@ -440,24 +412,22 @@ public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(HTMLCanvasPrintState)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(HTMLCanvasPrintState)
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapObject(JSContext* cx,
+                               JS::Handle<JSObject*> aGivenProto) override;
 
-  HTMLCanvasElement* GetParentObject()
-  {
-    return mCanvas;
-  }
+  HTMLCanvasElement* GetParentObject() { return mCanvas; }
 
-private:
+ private:
   ~HTMLCanvasPrintState();
   bool mPendingNotify;
 
-protected:
+ protected:
   RefPtr<HTMLCanvasElement> mCanvas;
   nsCOMPtr<nsICanvasRenderingContextInternal> mContext;
   nsCOMPtr<nsITimerCallback> mCallback;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_HTMLCanvasElement_h */

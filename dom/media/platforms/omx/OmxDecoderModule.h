@@ -11,19 +11,18 @@
 
 namespace mozilla {
 
-class OmxDecoderModule : public PlatformDecoderModule
-{
-public:
-  already_AddRefed<MediaDataDecoder>
-  CreateVideoDecoder(const CreateDecoderParams& aParams) override;
+class OmxDecoderModule : public PlatformDecoderModule {
+ public:
+  already_AddRefed<MediaDataDecoder> CreateVideoDecoder(
+      const CreateDecoderParams& aParams) override;
 
-  already_AddRefed<MediaDataDecoder>
-  CreateAudioDecoder(const CreateDecoderParams& aParams) override;
+  already_AddRefed<MediaDataDecoder> CreateAudioDecoder(
+      const CreateDecoderParams& aParams) override;
 
   bool SupportsMimeType(const nsACString& aMimeType,
                         DecoderDoctorDiagnostics* aDiagnostics) const override;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // OmxDecoderModule_h_
+#endif  // OmxDecoderModule_h_

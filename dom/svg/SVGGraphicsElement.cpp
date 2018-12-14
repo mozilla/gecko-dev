@@ -22,14 +22,11 @@ NS_INTERFACE_MAP_END_INHERITING(SVGGraphicsElementBase)
 //----------------------------------------------------------------------
 // Implementation
 
-SVGGraphicsElement::SVGGraphicsElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-  : SVGGraphicsElementBase(aNodeInfo)
-{
-}
+SVGGraphicsElement::SVGGraphicsElement(
+    already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
+    : SVGGraphicsElementBase(aNodeInfo) {}
 
-SVGGraphicsElement::~SVGGraphicsElement()
-{
-}
+SVGGraphicsElement::~SVGGraphicsElement() {}
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

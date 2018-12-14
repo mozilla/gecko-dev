@@ -27,7 +27,8 @@
 
 #include "pkixder.h"
 
-namespace mozilla { namespace pkix {
+namespace mozilla {
+namespace pkix {
 
 // During path building and verification, we build a linked list of BackCerts
 // from the current cert toward the end-entity certificate. The linked list
@@ -38,17 +39,12 @@ namespace mozilla { namespace pkix {
 // Each BackCert contains pointers to all the given certificate's extensions
 // so that we can parse the extension block once and then process the
 // extensions in an order that may be different than they appear in the cert.
-class BackCert final
-{
-public:
+class BackCert final {
+ public:
   // certDER and childCert must be valid for the lifetime of BackCert.
   BackCert(Input certDER, EndEntityOrCA endEntityOrCA,
            const BackCert* childCert)
-    : der(certDER)
-    , endEntityOrCA(endEntityOrCA)
-    , childCert(childCert)
-  {
-  }
+      : der(certDER), endEntityOrCA(endEntityOrCA), childCert(childCert) {}
 
   Result Init();
 
@@ -66,67 +62,47 @@ public:
   // RFC 5280 names for everything.
   const Input GetValidity() const { return validity; }
   const Input GetSubject() const { return subject; }
-  const Input GetSubjectPublicKeyInfo() const
-  {
-    return subjectPublicKeyInfo;
-  }
-  const Input* GetAuthorityInfoAccess() const
-  {
+  const Input GetSubjectPublicKeyInfo() const { return subjectPublicKeyInfo; }
+  const Input* GetAuthorityInfoAccess() const {
     return MaybeInput(authorityInfoAccess);
   }
-  const Input* GetBasicConstraints() const
-  {
+  const Input* GetBasicConstraints() const {
     return MaybeInput(basicConstraints);
   }
-  const Input* GetCertificatePolicies() const
-  {
+  const Input* GetCertificatePolicies() const {
     return MaybeInput(certificatePolicies);
   }
-  const Input* GetExtKeyUsage() const
-  {
-    return MaybeInput(extKeyUsage);
-  }
-  const Input* GetKeyUsage() const
-  {
-    return MaybeInput(keyUsage);
-  }
-  const Input* GetInhibitAnyPolicy() const
-  {
+  const Input* GetExtKeyUsage() const { return MaybeInput(extKeyUsage); }
+  const Input* GetKeyUsage() const { return MaybeInput(keyUsage); }
+  const Input* GetInhibitAnyPolicy() const {
     return MaybeInput(inhibitAnyPolicy);
   }
-  const Input* GetNameConstraints() const
-  {
+  const Input* GetNameConstraints() const {
     return MaybeInput(nameConstraints);
   }
-  const Input* GetSubjectAltName() const
-  {
-    return MaybeInput(subjectAltName);
-  }
-  const Input* GetRequiredTLSFeatures() const
-  {
+  const Input* GetSubjectAltName() const { return MaybeInput(subjectAltName); }
+  const Input* GetRequiredTLSFeatures() const {
     return MaybeInput(requiredTLSFeatures);
   }
-  const Input* GetSignedCertificateTimestamps() const
-  {
+  const Input* GetSignedCertificateTimestamps() const {
     return MaybeInput(signedCertificateTimestamps);
   }
 
-private:
+ private:
   const Input der;
 
-public:
+ public:
   const EndEntityOrCA endEntityOrCA;
   BackCert const* const childCert;
 
-private:
+ private:
   // When parsing certificates in BackCert::Init, we don't accept empty
   // extensions. Consequently, we don't have to store a distinction between
   // empty extensions and extensions that weren't included. However, when
   // *processing* extensions, we distinguish between whether an extension was
   // included or not based on whetehr the GetXXX function for the extension
   // returns nullptr.
-  static inline const Input* MaybeInput(const Input& item)
-  {
+  static inline const Input* MaybeInput(const Input& item) {
     return item.GetLength() > 0 ? &item : nullptr;
   }
 
@@ -153,7 +129,7 @@ private:
   Input subjectAltName;
   Input criticalNetscapeCertificateType;
   Input requiredTLSFeatures;
-  Input signedCertificateTimestamps; // RFC 6962 (Certificate Transparency)
+  Input signedCertificateTimestamps;  // RFC 6962 (Certificate Transparency)
 
   Result RememberExtension(Reader& extnID, Input extnValue, bool critical,
                            /*out*/ bool& understood);
@@ -162,29 +138,24 @@ private:
   void operator=(const BackCert&) = delete;
 };
 
-class NonOwningDERArray final : public DERArray
-{
-public:
-  NonOwningDERArray()
-    : numItems(0)
-  {
+class NonOwningDERArray final : public DERArray {
+ public:
+  NonOwningDERArray() : numItems(0) {
     // we don't need to initialize the items array because we always check
     // numItems before accessing i.
   }
 
   size_t GetLength() const override { return numItems; }
 
-  const Input* GetDER(size_t i) const override
-  {
+  const Input* GetDER(size_t i) const override {
     return i < numItems ? &items[i] : nullptr;
   }
 
-  Result Append(Input der)
-  {
+  Result Append(Input der) {
     if (numItems >= MAX_LENGTH) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
-    Result rv = items[numItems].Init(der); // structure assignment
+    Result rv = items[numItems].Init(der);  // structure assignment
     if (rv != Success) {
       return rv;
     }
@@ -194,8 +165,9 @@ public:
 
   // Public so we can static_assert on this. Keep in sync with MAX_SUBCA_COUNT.
   static const size_t MAX_LENGTH = 8;
-private:
-  Input items[MAX_LENGTH]; // avoids any heap allocations
+
+ private:
+  Input items[MAX_LENGTH];  // avoids any heap allocations
   size_t numItems;
 
   NonOwningDERArray(const NonOwningDERArray&) = delete;
@@ -204,25 +176,22 @@ private:
 
 // Extracts the SignedCertificateTimestampList structure which is encoded as an
 // OCTET STRING within the X.509v3 / OCSP extensions (see RFC 6962 section 3.3).
-Result
-ExtractSignedCertificateTimestampListFromExtension(Input extnValue,
-                                                   Input& sctList);
+Result ExtractSignedCertificateTimestampListFromExtension(Input extnValue,
+                                                          Input& sctList);
 
-inline unsigned int
-DaysBeforeYear(unsigned int year)
-{
+inline unsigned int DaysBeforeYear(unsigned int year) {
   assert(year <= 9999);
-  return ((year - 1u) * 365u)
-       + ((year - 1u) / 4u)    // leap years are every 4 years,
-       - ((year - 1u) / 100u)  // except years divisible by 100,
-       + ((year - 1u) / 400u); // except years divisible by 400.
+  return ((year - 1u) * 365u) +
+         ((year - 1u) / 4u)       // leap years are every 4 years,
+         - ((year - 1u) / 100u)   // except years divisible by 100,
+         + ((year - 1u) / 400u);  // except years divisible by 400.
 }
 
-static const size_t MAX_DIGEST_SIZE_IN_BYTES = 512 / 8; // sha-512
+static const size_t MAX_DIGEST_SIZE_IN_BYTES = 512 / 8;  // sha-512
 
 Result DigestSignedData(TrustDomain& trustDomain,
                         const der::SignedDataWithSignature& signedData,
-                        /*out*/ uint8_t(&digestBuf)[MAX_DIGEST_SIZE_IN_BYTES],
+                        /*out*/ uint8_t (&digestBuf)[MAX_DIGEST_SIZE_IN_BYTES],
                         /*out*/ der::PublicKeyAlgorithm& publicKeyAlg,
                         /*out*/ SignedDigest& signedDigest);
 
@@ -238,9 +207,9 @@ Result VerifySignedData(TrustDomain& trustDomain,
 
 // Extracts the key parameters from |subjectPublicKeyInfo|, invoking
 // the relevant methods of |trustDomain|.
-Result
-CheckSubjectPublicKeyInfo(Input subjectPublicKeyInfo, TrustDomain& trustDomain,
-                          EndEntityOrCA endEntityOrCA);
+Result CheckSubjectPublicKeyInfo(Input subjectPublicKeyInfo,
+                                 TrustDomain& trustDomain,
+                                 EndEntityOrCA endEntityOrCA);
 
 // In a switch over an enum, sometimes some compilers are not satisfied that
 // all control flow paths have been considered unless there is a default case.
@@ -269,21 +238,26 @@ CheckSubjectPublicKeyInfo(Input subjectPublicKeyInfo, TrustDomain& trustDomain,
 // (-W-covered-switch-default). Versions prior to 3.5 warned about unreachable
 // code in such default cases (-Wunreachable-code) even when
 // -W-covered-switch-default was disabled, but that changed in Clang 3.5.
-#define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM // empty
+#define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM  // empty
 #elif defined(__GNUC__)
 // GCC will warn if not all cases are covered (-Wswitch-enum). It does not
 // assume that the default case is unreachable.
 #define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
-        default: assert(false); __builtin_unreachable();
+  default:                                    \
+    assert(false);                            \
+    __builtin_unreachable();
 #elif defined(_MSC_VER)
 // MSVC will warn if not all cases are covered (C4061, level 4). It does not
 // assume that the default case is unreachable.
 #define MOZILLA_PKIX_UNREACHABLE_DEFAULT_ENUM \
-        default: assert(false); __assume(0);
+  default:                                    \
+    assert(false);                            \
+    __assume(0);
 #else
 #error Unsupported compiler for MOZILLA_PKIX_UNREACHABLE_DEFAULT.
 #endif
 
-} } // namespace mozilla::pkix
+}  // namespace pkix
+}  // namespace mozilla
 
-#endif // mozilla_pkix_pkixutil_h
+#endif  // mozilla_pkix_pkixutil_h

@@ -7,7 +7,7 @@
 #ifndef mozilla_AnimationEventDispatcher_h
 #define mozilla_AnimationEventDispatcher_h
 
-#include <algorithm> // For <std::stable_sort>
+#include <algorithm>  // For <std::stable_sort>
 #include "mozilla/AnimationComparator.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ContentEvents.h"
@@ -21,8 +21,7 @@ class nsRefreshDriver;
 
 namespace mozilla {
 
-struct AnimationEventInfo
-{
+struct AnimationEventInfo {
   RefPtr<dom::Element> mElement;
   RefPtr<dom::Animation> mAnimation;
   TimeStamp mTimeStamp;
@@ -33,44 +32,38 @@ struct AnimationEventInfo
   // For CSS animation events
   AnimationEventInfo(nsAtom* aAnimationName,
                      const NonOwningAnimationTarget& aTarget,
-                     EventMessage aMessage,
-                     double aElapsedTime,
-                     const TimeStamp& aTimeStamp,
-                     dom::Animation* aAnimation)
-    : mElement(aTarget.mElement)
-    , mAnimation(aAnimation)
-    , mTimeStamp(aTimeStamp)
-    , mEvent(EventVariant(InternalAnimationEvent(true, aMessage)))
-  {
+                     EventMessage aMessage, double aElapsedTime,
+                     const TimeStamp& aTimeStamp, dom::Animation* aAnimation)
+      : mElement(aTarget.mElement),
+        mAnimation(aAnimation),
+        mTimeStamp(aTimeStamp),
+        mEvent(EventVariant(InternalAnimationEvent(true, aMessage))) {
     InternalAnimationEvent& event = mEvent.as<InternalAnimationEvent>();
 
     aAnimationName->ToString(event.mAnimationName);
     // XXX Looks like nobody initialize WidgetEvent::time
     event.mElapsedTime = aElapsedTime;
     event.mPseudoElement =
-      nsCSSPseudoElements::PseudoTypeAsString(aTarget.mPseudoType);
+        nsCSSPseudoElements::PseudoTypeAsString(aTarget.mPseudoType);
   }
 
   // For CSS transition events
   AnimationEventInfo(nsCSSPropertyID aProperty,
                      const NonOwningAnimationTarget& aTarget,
-                     EventMessage aMessage,
-                     double aElapsedTime,
-                     const TimeStamp& aTimeStamp,
-                     dom::Animation* aAnimation)
-    : mElement(aTarget.mElement)
-    , mAnimation(aAnimation)
-    , mTimeStamp(aTimeStamp)
-    , mEvent(EventVariant(InternalTransitionEvent(true, aMessage)))
-  {
+                     EventMessage aMessage, double aElapsedTime,
+                     const TimeStamp& aTimeStamp, dom::Animation* aAnimation)
+      : mElement(aTarget.mElement),
+        mAnimation(aAnimation),
+        mTimeStamp(aTimeStamp),
+        mEvent(EventVariant(InternalTransitionEvent(true, aMessage))) {
     InternalTransitionEvent& event = mEvent.as<InternalTransitionEvent>();
 
     event.mPropertyName =
-      NS_ConvertUTF8toUTF16(nsCSSProps::GetStringValue(aProperty));
+        NS_ConvertUTF8toUTF16(nsCSSProps::GetStringValue(aProperty));
     // XXX Looks like nobody initialize WidgetEvent::time
     event.mElapsedTime = aElapsedTime;
     event.mPseudoElement =
-      nsCSSPseudoElements::PseudoTypeAsString(aTarget.mPseudoType);
+        nsCSSPseudoElements::PseudoTypeAsString(aTarget.mPseudoType);
   }
 
   AnimationEventInfo(const AnimationEventInfo& aOther) = delete;
@@ -78,8 +71,7 @@ struct AnimationEventInfo
   AnimationEventInfo(AnimationEventInfo&& aOther) = default;
   AnimationEventInfo& operator=(AnimationEventInfo&& aOther) = default;
 
-  WidgetEvent* AsWidgetEvent()
-  {
+  WidgetEvent* AsWidgetEvent() {
     if (mEvent.is<InternalTransitionEvent>()) {
       return &mEvent.as<InternalTransitionEvent>();
     }
@@ -92,15 +84,10 @@ struct AnimationEventInfo
   }
 };
 
-class AnimationEventDispatcher final
-{
-public:
+class AnimationEventDispatcher final {
+ public:
   explicit AnimationEventDispatcher(nsPresContext* aPresContext)
-    : mPresContext(aPresContext)
-    , mIsSorted(true)
-    , mIsObserving(false)
-  {
-  }
+      : mPresContext(aPresContext), mIsSorted(true), mIsObserving(false) {}
 
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationEventDispatcher)
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(AnimationEventDispatcher)
@@ -111,8 +98,7 @@ public:
 
   // This will call SortEvents automatically if it has not already been
   // called.
-  void DispatchEvents()
-  {
+  void DispatchEvents() {
     mIsObserving = false;
     if (!mPresContext || mPendingEvents.IsEmpty()) {
       return;
@@ -126,10 +112,9 @@ public:
     // that way since mPendingEvents is now empty
     for (AnimationEventInfo& info : events) {
       MOZ_ASSERT(!info.AsWidgetEvent()->mFlags.mIsBeingDispatched &&
-                 !info.AsWidgetEvent()->mFlags.mDispatchedAtLeastOnce,
+                     !info.AsWidgetEvent()->mFlags.mDispatchedAtLeastOnce,
                  "The WidgetEvent should be fresh");
-      EventDispatcher::Dispatch(info.mElement,
-                                mPresContext,
+      EventDispatcher::Dispatch(info.mElement, mPresContext,
                                 info.AsWidgetEvent());
 
       // Bail out if our mPresContext was nullified due to destroying the pres
@@ -140,30 +125,27 @@ public:
     }
   }
 
-  void ClearEventQueue()
-  {
+  void ClearEventQueue() {
     mPendingEvents.Clear();
     mIsSorted = true;
   }
   bool HasQueuedEvents() const { return !mPendingEvents.IsEmpty(); }
 
-private:
+ private:
 #ifndef DEBUG
   ~AnimationEventDispatcher() = default;
 #else
-  ~AnimationEventDispatcher()
-  {
+  ~AnimationEventDispatcher() {
     MOZ_ASSERT(!mIsObserving,
                "AnimationEventDispatcher should have disassociated from "
                "nsRefreshDriver");
   }
 #endif
 
-  class AnimationEventInfoLessThan
-  {
-  public:
-    bool operator()(const AnimationEventInfo& a, const AnimationEventInfo& b) const
-    {
+  class AnimationEventInfoLessThan {
+   public:
+    bool operator()(const AnimationEventInfo& a,
+                    const AnimationEventInfo& b) const {
       if (a.mTimeStamp != b.mTimeStamp) {
         // Null timestamps sort first
         if (a.mTimeStamp.IsNull() || b.mTimeStamp.IsNull()) {
@@ -181,8 +163,7 @@ private:
   // Sort all pending CSS animation/transition events by scheduled event time
   // and composite order.
   // https://drafts.csswg.org/web-animations/#update-animations-and-send-events
-  void SortEvents()
-  {
+  void SortEvents() {
     if (mIsSorted) {
       return;
     }
@@ -201,6 +182,6 @@ private:
   bool mIsObserving;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_AnimationEventDispatcher_h
+#endif  // mozilla_AnimationEventDispatcher_h

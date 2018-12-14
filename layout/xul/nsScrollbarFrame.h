@@ -16,17 +16,16 @@
 
 class nsIScrollbarMediator;
 
-nsIFrame* NS_NewScrollbarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+nsIFrame* NS_NewScrollbarFrame(nsIPresShell* aPresShell,
+                               nsStyleContext* aContext);
 
-class nsScrollbarFrame final : public nsBoxFrame
-{
-public:
+class nsScrollbarFrame final : public nsBoxFrame {
+ public:
   explicit nsScrollbarFrame(nsStyleContext* aContext)
-    : nsBoxFrame(aContext, kClassID)
-    , mIncrement(0)
-    , mSmoothScroll(false)
-    , mScrollbarMediator(nullptr)
-  {}
+      : nsBoxFrame(aContext, kClassID),
+        mIncrement(0),
+        mSmoothScroll(false),
+        mScrollbarMediator(nullptr) {}
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsScrollbarFrame)
@@ -38,8 +37,7 @@ public:
 #endif
 
   // nsIFrame overrides
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsAtom* aAttribute,
+  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
@@ -59,14 +57,12 @@ public:
                            mozilla::WidgetGUIEvent* aEvent,
                            nsEventStatus* aEventStatus) override;
 
-  virtual void Init(nsIContent*       aContent,
-                    nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) override;
+  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
+                    nsIFrame* aPrevInFlow) override;
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      ReflowOutput&     aDesiredSize,
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
                       const ReflowInput& aReflowInput,
-                      nsReflowStatus&          aStatus) override;
+                      nsReflowStatus& aStatus) override;
 
   void SetScrollbarMediatorContent(nsIContent* aMediator);
   nsIScrollbarMediator* GetScrollbarMediator();
@@ -100,12 +96,12 @@ public:
   int32_t MoveToNewPosition();
   int32_t GetIncrement() { return mIncrement; }
 
-protected:
-  int32_t mIncrement; // Amount to scroll, in CSSPixels
+ protected:
+  int32_t mIncrement;  // Amount to scroll, in CSSPixels
   bool mSmoothScroll;
 
-private:
+ private:
   nsCOMPtr<nsIContent> mScrollbarMediator;
-}; // class nsScrollbarFrame
+};  // class nsScrollbarFrame
 
 #endif

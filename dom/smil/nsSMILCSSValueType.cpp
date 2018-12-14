@@ -17,10 +17,10 @@
 #include "nsColor.h"
 #include "nsPresContext.h"
 #include "mozilla/ServoBindings.h"
-#include "mozilla/StyleAnimationValue.h" // For AnimationValue
+#include "mozilla/StyleAnimationValue.h"  // For AnimationValue
 #include "mozilla/ServoCSSParser.h"
 #include "mozilla/StyleSetHandleInlines.h"
-#include "mozilla/dom/BaseKeyframeTypesBinding.h" // For CompositeOperation
+#include "mozilla/dom/BaseKeyframeTypesBinding.h"  // For CompositeOperation
 #include "mozilla/dom/Element.h"
 #include "nsDebug.h"
 #include "nsStyleUtil.h"
@@ -35,8 +35,7 @@ typedef AutoTArray<RefPtr<RawServoAnimationValue>, 1> ServoAnimationValues;
 
 struct ValueWrapper {
   ValueWrapper(nsCSSPropertyID aPropID, const AnimationValue& aValue)
-    : mPropID(aPropID)
-  {
+      : mPropID(aPropID) {
     if (aValue.mServo) {
       mServoValues.AppendElement(aValue.mServo);
       return;
@@ -49,16 +48,15 @@ struct ValueWrapper {
   }
 #ifdef MOZ_OLD_STYLE
   ValueWrapper(nsCSSPropertyID aPropID, const StyleAnimationValue& aValue)
-    : mPropID(aPropID), mGeckoValue(aValue) {}
+      : mPropID(aPropID), mGeckoValue(aValue) {}
 #endif
   ValueWrapper(nsCSSPropertyID aPropID,
                const RefPtr<RawServoAnimationValue>& aValue)
-    : mPropID(aPropID), mServoValues{(aValue)} {}
+      : mPropID(aPropID), mServoValues{(aValue)} {}
   ValueWrapper(nsCSSPropertyID aPropID, ServoAnimationValues&& aValues)
-    : mPropID(aPropID), mServoValues{aValues} {}
+      : mPropID(aPropID), mServoValues{aValues} {}
 
-  bool operator==(const ValueWrapper& aOther) const
-  {
+  bool operator==(const ValueWrapper& aOther) const {
     if (mPropID != aOther.mPropID) {
       return false;
     }
@@ -84,8 +82,7 @@ struct ValueWrapper {
 #endif
   }
 
-  bool operator!=(const ValueWrapper& aOther) const
-  {
+  bool operator!=(const ValueWrapper& aOther) const {
     return !(*this == aOther);
   }
 
@@ -99,17 +96,16 @@ struct ValueWrapper {
 // Helper Methods
 // --------------
 #ifdef MOZ_OLD_STYLE
-static const StyleAnimationValue*
-GetZeroValueForUnit(StyleAnimationValue::Unit aUnit)
-{
-  static const StyleAnimationValue
-    sZeroCoord(0, StyleAnimationValue::CoordConstructor);
-  static const StyleAnimationValue
-    sZeroPercent(0.0f, StyleAnimationValue::PercentConstructor);
-  static const StyleAnimationValue
-    sZeroFloat(0.0f,  StyleAnimationValue::FloatConstructor);
-  static const StyleAnimationValue
-    sZeroColor(NS_RGB(0,0,0), StyleAnimationValue::ColorConstructor);
+static const StyleAnimationValue* GetZeroValueForUnit(
+    StyleAnimationValue::Unit aUnit) {
+  static const StyleAnimationValue sZeroCoord(
+      0, StyleAnimationValue::CoordConstructor);
+  static const StyleAnimationValue sZeroPercent(
+      0.0f, StyleAnimationValue::PercentConstructor);
+  static const StyleAnimationValue sZeroFloat(
+      0.0f, StyleAnimationValue::FloatConstructor);
+  static const StyleAnimationValue sZeroColor(
+      NS_RGB(0, 0, 0), StyleAnimationValue::ColorConstructor);
 
   MOZ_ASSERT(aUnit != StyleAnimationValue::eUnit_Null,
              "Need non-null unit for a zero value");
@@ -135,16 +131,15 @@ GetZeroValueForUnit(StyleAnimationValue::Unit aUnit)
 //
 // If both arguments are null, this method returns false.
 //
-// |aZeroValueStorage| should be a reference to a RefPtr<RawServoAnimationValue>.
-// This is used where we may need to allocate a new ServoAnimationValue to
-// represent the appropriate zero value.
+// |aZeroValueStorage| should be a reference to a
+// RefPtr<RawServoAnimationValue>. This is used where we may need to allocate a
+// new ServoAnimationValue to represent the appropriate zero value.
 //
 // Returns true on success, or otherwise.
-static bool
-FinalizeServoAnimationValues(const RefPtr<RawServoAnimationValue>*& aValue1,
-                             const RefPtr<RawServoAnimationValue>*& aValue2,
-                             RefPtr<RawServoAnimationValue>& aZeroValueStorage)
-{
+static bool FinalizeServoAnimationValues(
+    const RefPtr<RawServoAnimationValue>*& aValue1,
+    const RefPtr<RawServoAnimationValue>*& aValue2,
+    RefPtr<RawServoAnimationValue>& aZeroValueStorage) {
   if (!aValue1 && !aValue2) {
     return false;
   }
@@ -162,21 +157,19 @@ FinalizeServoAnimationValues(const RefPtr<RawServoAnimationValue>*& aValue1,
 }
 
 #ifdef MOZ_OLD_STYLE
-static bool
-FinalizeStyleAnimationValues(const StyleAnimationValue*& aValue1,
-                             const StyleAnimationValue*& aValue2)
-{
+static bool FinalizeStyleAnimationValues(const StyleAnimationValue*& aValue1,
+                                         const StyleAnimationValue*& aValue2) {
   if (!aValue1 && !aValue2) {
     return false;
   }
 
   if (!aValue1) {
     aValue1 = GetZeroValueForUnit(aValue2->GetUnit());
-    return !!aValue1; // Fail if we have no zero value for this unit.
+    return !!aValue1;  // Fail if we have no zero value for this unit.
   }
   if (!aValue2) {
     aValue2 = GetZeroValueForUnit(aValue1->GetUnit());
-    return !!aValue2; // Fail if we have no zero value for this unit.
+    return !!aValue2;  // Fail if we have no zero value for this unit.
   }
 
   // Ok, both values were specified.
@@ -185,7 +178,7 @@ FinalizeStyleAnimationValues(const StyleAnimationValue*& aValue1,
   // won't interoperate in StyleAnimationValue, since their Units don't match.
   // In this case, we replace the eUnit_Coord 0 value with eUnit_Float 0 value.
   const StyleAnimationValue& zeroCoord =
-    *GetZeroValueForUnit(StyleAnimationValue::eUnit_Coord);
+      *GetZeroValueForUnit(StyleAnimationValue::eUnit_Coord);
   if (*aValue1 == zeroCoord &&
       aValue2->GetUnit() == StyleAnimationValue::eUnit_Float) {
     aValue1 = GetZeroValueForUnit(StyleAnimationValue::eUnit_Float);
@@ -197,9 +190,7 @@ FinalizeStyleAnimationValues(const StyleAnimationValue*& aValue1,
   return true;
 }
 
-static void
-InvertSign(StyleAnimationValue& aValue)
-{
+static void InvertSign(StyleAnimationValue& aValue) {
   switch (aValue.GetUnit()) {
     case StyleAnimationValue::eUnit_Coord:
       aValue.SetCoordValue(-aValue.GetCoordValue());
@@ -217,40 +208,31 @@ InvertSign(StyleAnimationValue& aValue)
 }
 #endif
 
-static ValueWrapper*
-ExtractValueWrapper(nsSMILValue& aValue)
-{
+static ValueWrapper* ExtractValueWrapper(nsSMILValue& aValue) {
   return static_cast<ValueWrapper*>(aValue.mU.mPtr);
 }
 
-static const ValueWrapper*
-ExtractValueWrapper(const nsSMILValue& aValue)
-{
+static const ValueWrapper* ExtractValueWrapper(const nsSMILValue& aValue) {
   return static_cast<const ValueWrapper*>(aValue.mU.mPtr);
 }
 
 // Class methods
 // -------------
-void
-nsSMILCSSValueType::Init(nsSMILValue& aValue) const
-{
+void nsSMILCSSValueType::Init(nsSMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected SMIL value type");
 
   aValue.mU.mPtr = nullptr;
   aValue.mType = this;
 }
 
-void
-nsSMILCSSValueType::Destroy(nsSMILValue& aValue) const
-{
+void nsSMILCSSValueType::Destroy(nsSMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<ValueWrapper*>(aValue.mU.mPtr);
   aValue.mType = nsSMILNullType::Singleton();
 }
 
-nsresult
-nsSMILCSSValueType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
-{
+nsresult nsSMILCSSValueType::Assign(nsSMILValue& aDest,
+                                    const nsSMILValue& aSrc) const {
   MOZ_ASSERT(aDest.mType == aSrc.mType, "Incompatible SMIL types");
   MOZ_ASSERT(aDest.mType == this, "Unexpected SMIL value type");
   const ValueWrapper* srcWrapper = ExtractValueWrapper(aSrc);
@@ -268,15 +250,13 @@ nsSMILCSSValueType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
     // fully-initialized dest, barely-initialized src -- clear dest
     delete destWrapper;
     aDest.mU.mPtr = destWrapper = nullptr;
-  } // else, both are barely-initialized -- nothing to do.
+  }  // else, both are barely-initialized -- nothing to do.
 
   return NS_OK;
 }
 
-bool
-nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
-                            const nsSMILValue& aRight) const
-{
+bool nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
+                                 const nsSMILValue& aRight) const {
   MOZ_ASSERT(aLeft.mType == aRight.mType, "Incompatible SMIL types");
   MOZ_ASSERT(aLeft.mType == this, "Unexpected SMIL value");
   const ValueWrapper* leftWrapper = ExtractValueWrapper(aLeft);
@@ -300,37 +280,30 @@ nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
   return true;
 }
 
-static bool
-AddOrAccumulateForServo(nsSMILValue& aDest,
-                        const ValueWrapper* aValueToAddWrapper,
-                        ValueWrapper* aDestWrapper,
-                        CompositeOperation aCompositeOp,
-                        uint64_t aCount)
-{
-  nsCSSPropertyID property = aValueToAddWrapper
-                             ? aValueToAddWrapper->mPropID
-                             : aDestWrapper->mPropID;
-  size_t len = aValueToAddWrapper
-               ? aValueToAddWrapper->mServoValues.Length()
-               : aDestWrapper->mServoValues.Length();
+static bool AddOrAccumulateForServo(nsSMILValue& aDest,
+                                    const ValueWrapper* aValueToAddWrapper,
+                                    ValueWrapper* aDestWrapper,
+                                    CompositeOperation aCompositeOp,
+                                    uint64_t aCount) {
+  nsCSSPropertyID property =
+      aValueToAddWrapper ? aValueToAddWrapper->mPropID : aDestWrapper->mPropID;
+  size_t len = aValueToAddWrapper ? aValueToAddWrapper->mServoValues.Length()
+                                  : aDestWrapper->mServoValues.Length();
 
   MOZ_ASSERT(!aValueToAddWrapper || !aDestWrapper ||
-             aValueToAddWrapper->mServoValues.Length() ==
-               aDestWrapper->mServoValues.Length(),
+                 aValueToAddWrapper->mServoValues.Length() ==
+                     aDestWrapper->mServoValues.Length(),
              "Both of values' length in the wrappers should be the same if "
              "both of them exist");
 
   for (size_t i = 0; i < len; i++) {
     const RefPtr<RawServoAnimationValue>* valueToAdd =
-      aValueToAddWrapper
-      ? &aValueToAddWrapper->mServoValues[i]
-      : nullptr;
+        aValueToAddWrapper ? &aValueToAddWrapper->mServoValues[i] : nullptr;
     const RefPtr<RawServoAnimationValue>* destValue =
-      aDestWrapper
-      ? &aDestWrapper->mServoValues[i]
-      : nullptr;
+        aDestWrapper ? &aDestWrapper->mServoValues[i] : nullptr;
     RefPtr<RawServoAnimationValue> zeroValueStorage;
-    if (!FinalizeServoAnimationValues(valueToAdd, destValue, zeroValueStorage)) {
+    if (!FinalizeServoAnimationValues(valueToAdd, destValue,
+                                      zeroValueStorage)) {
       return false;
     }
 
@@ -348,9 +321,8 @@ AddOrAccumulateForServo(nsSMILValue& aDest,
     if (aCompositeOp == CompositeOperation::Add) {
       result = Servo_AnimationValues_Add(*destValue, *valueToAdd).Consume();
     } else {
-      result = Servo_AnimationValues_Accumulate(*destValue,
-                                                *valueToAdd,
-                                                aCount).Consume();
+      result = Servo_AnimationValues_Accumulate(*destValue, *valueToAdd, aCount)
+                   .Consume();
     }
 
     if (!result) {
@@ -362,16 +334,14 @@ AddOrAccumulateForServo(nsSMILValue& aDest,
   return true;
 }
 
-static bool
-AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                CompositeOperation aCompositeOp, uint64_t aCount)
-{
+static bool AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
+                            CompositeOperation aCompositeOp, uint64_t aCount) {
   MOZ_ASSERT(aValueToAdd.mType == aDest.mType,
              "Trying to add mismatching types");
   MOZ_ASSERT(aValueToAdd.mType == &nsSMILCSSValueType::sSingleton,
              "Unexpected SMIL value type");
   MOZ_ASSERT(aCompositeOp == CompositeOperation::Add ||
-             aCompositeOp == CompositeOperation::Accumulate,
+                 aCompositeOp == CompositeOperation::Accumulate,
              "Composite operation should be add or accumulate");
   MOZ_ASSERT(aCompositeOp != CompositeOperation::Add || aCount == 1,
              "Count should be 1 if composite operation is add");
@@ -388,9 +358,8 @@ AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
     return false;
   }
 
-  nsCSSPropertyID property = valueToAddWrapper
-                             ? valueToAddWrapper->mPropID
-                             : destWrapper->mPropID;
+  nsCSSPropertyID property =
+      valueToAddWrapper ? valueToAddWrapper->mPropID : destWrapper->mPropID;
   // Special case: font-size-adjust and stroke-dasharray are explicitly
   // non-additive (even though StyleAnimationValue *could* support adding them)
   if (property == eCSSProperty_font_size_adjust ||
@@ -402,22 +371,18 @@ AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
     return false;
   }
 
-  bool isServo = valueToAddWrapper
-                 ? !valueToAddWrapper->mServoValues.IsEmpty()
-                 : !destWrapper->mServoValues.IsEmpty();
+  bool isServo = valueToAddWrapper ? !valueToAddWrapper->mServoValues.IsEmpty()
+                                   : !destWrapper->mServoValues.IsEmpty();
   if (isServo) {
-    return AddOrAccumulateForServo(aDest,
-                                   valueToAddWrapper,
-                                   destWrapper,
-                                   aCompositeOp,
-                                   aCount);
+    return AddOrAccumulateForServo(aDest, valueToAddWrapper, destWrapper,
+                                   aCompositeOp, aCount);
   }
 
 #ifdef MOZ_OLD_STYLE
-  const StyleAnimationValue* valueToAdd = valueToAddWrapper ?
-    &valueToAddWrapper->mGeckoValue : nullptr;
-  const StyleAnimationValue* destValue = destWrapper ?
-    &destWrapper->mGeckoValue : nullptr;
+  const StyleAnimationValue* valueToAdd =
+      valueToAddWrapper ? &valueToAddWrapper->mGeckoValue : nullptr;
+  const StyleAnimationValue* destValue =
+      destWrapper ? &destWrapper->mGeckoValue : nullptr;
   if (!FinalizeStyleAnimationValues(valueToAdd, destValue)) {
     return false;
   }
@@ -437,38 +402,32 @@ AddOrAccumulate(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   // This is not ideal, but it doesn't make any difference for the set of
   // properties we currently allow adding in SMIL and this code path will
   // hopefully become obsolete before we expand that set.
-  return StyleAnimationValue::Add(property,
-                                  destWrapper->mGeckoValue,
+  return StyleAnimationValue::Add(property, destWrapper->mGeckoValue,
                                   *valueToAdd, aCount);
 #else
   MOZ_CRASH("old style system disabled");
 #endif
 }
 
-nsresult
-nsSMILCSSValueType::SandwichAdd(nsSMILValue& aDest,
-                                const nsSMILValue& aValueToAdd) const
-{
+nsresult nsSMILCSSValueType::SandwichAdd(nsSMILValue& aDest,
+                                         const nsSMILValue& aValueToAdd) const {
   return AddOrAccumulate(aDest, aValueToAdd, CompositeOperation::Add, 1)
-         ? NS_OK
-         : NS_ERROR_FAILURE;
+             ? NS_OK
+             : NS_ERROR_FAILURE;
 }
 
-nsresult
-nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                        uint32_t aCount) const
-{
+nsresult nsSMILCSSValueType::Add(nsSMILValue& aDest,
+                                 const nsSMILValue& aValueToAdd,
+                                 uint32_t aCount) const {
   return AddOrAccumulate(aDest, aValueToAdd, CompositeOperation::Accumulate,
                          aCount)
-         ? NS_OK
-         : NS_ERROR_FAILURE;
+             ? NS_OK
+             : NS_ERROR_FAILURE;
 }
 
-static nsresult
-ComputeDistanceForServo(const ValueWrapper* aFromWrapper,
-                        const ValueWrapper& aToWrapper,
-                        double& aDistance)
-{
+static nsresult ComputeDistanceForServo(const ValueWrapper* aFromWrapper,
+                                        const ValueWrapper& aToWrapper,
+                                        double& aDistance) {
   size_t len = aToWrapper.mServoValues.Length();
   MOZ_ASSERT(!aFromWrapper || aFromWrapper->mServoValues.Length() == len,
              "From and to values length should be the same if "
@@ -478,14 +437,15 @@ ComputeDistanceForServo(const ValueWrapper* aFromWrapper,
 
   for (size_t i = 0; i < len; i++) {
     const RefPtr<RawServoAnimationValue>* fromValue =
-      aFromWrapper ? &aFromWrapper->mServoValues[0] : nullptr;
+        aFromWrapper ? &aFromWrapper->mServoValues[0] : nullptr;
     const RefPtr<RawServoAnimationValue>* toValue = &aToWrapper.mServoValues[0];
     RefPtr<RawServoAnimationValue> zeroValueStorage;
     if (!FinalizeServoAnimationValues(fromValue, toValue, zeroValueStorage)) {
       return NS_ERROR_FAILURE;
     }
 
-    double distance = Servo_AnimationValues_ComputeDistance(*fromValue, *toValue);
+    double distance =
+        Servo_AnimationValues_ComputeDistance(*fromValue, *toValue);
     if (distance < 0.0) {
       return NS_ERROR_FAILURE;
     }
@@ -502,13 +462,10 @@ ComputeDistanceForServo(const ValueWrapper* aFromWrapper,
   return NS_OK;
 }
 
-nsresult
-nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
-                                    const nsSMILValue& aTo,
-                                    double& aDistance) const
-{
-  MOZ_ASSERT(aFrom.mType == aTo.mType,
-             "Trying to compare different types");
+nsresult nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
+                                             const nsSMILValue& aTo,
+                                             double& aDistance) const {
+  MOZ_ASSERT(aFrom.mType == aTo.mType, "Trying to compare different types");
   MOZ_ASSERT(aFrom.mType == this, "Unexpected source type");
 
   const ValueWrapper* fromWrapper = ExtractValueWrapper(aFrom);
@@ -520,45 +477,39 @@ nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
   }
 
 #ifdef MOZ_OLD_STYLE
-  const StyleAnimationValue* fromCSSValue = fromWrapper ?
-    &fromWrapper->mGeckoValue : nullptr;
+  const StyleAnimationValue* fromCSSValue =
+      fromWrapper ? &fromWrapper->mGeckoValue : nullptr;
   const StyleAnimationValue* toCSSValue = &toWrapper->mGeckoValue;
   if (!FinalizeStyleAnimationValues(fromCSSValue, toCSSValue)) {
     return NS_ERROR_FAILURE;
   }
 
-  return StyleAnimationValue::ComputeDistance(toWrapper->mPropID,
-                                              fromWrapper->mGeckoValue,
-                                              toWrapper->mGeckoValue,
-                                              nullptr,
-                                              aDistance)
-         ? NS_OK
-         : NS_ERROR_FAILURE;
+  return StyleAnimationValue::ComputeDistance(
+             toWrapper->mPropID, fromWrapper->mGeckoValue,
+             toWrapper->mGeckoValue, nullptr, aDistance)
+             ? NS_OK
+             : NS_ERROR_FAILURE;
 #else
   MOZ_CRASH("old style system disabled");
 #endif
 }
 
 #ifdef MOZ_OLD_STYLE
-static nsresult
-InterpolateForGecko(const ValueWrapper* aStartWrapper,
-                    const ValueWrapper& aEndWrapper,
-                    double aUnitDistance,
-                    nsSMILValue& aResult)
-{
-  const StyleAnimationValue* startCSSValue = aStartWrapper
-                                             ? &aStartWrapper->mGeckoValue
-                                             : nullptr;
+static nsresult InterpolateForGecko(const ValueWrapper* aStartWrapper,
+                                    const ValueWrapper& aEndWrapper,
+                                    double aUnitDistance,
+                                    nsSMILValue& aResult) {
+  const StyleAnimationValue* startCSSValue =
+      aStartWrapper ? &aStartWrapper->mGeckoValue : nullptr;
   const StyleAnimationValue* endCSSValue = &aEndWrapper.mGeckoValue;
   if (!FinalizeStyleAnimationValues(startCSSValue, endCSSValue)) {
     return NS_ERROR_FAILURE;
   }
 
   StyleAnimationValue resultValue;
-  if (StyleAnimationValue::Interpolate(aEndWrapper.mPropID,
-                                       *startCSSValue,
-                                       *endCSSValue,
-                                       aUnitDistance, resultValue)) {
+  if (StyleAnimationValue::Interpolate(aEndWrapper.mPropID, *startCSSValue,
+                                       *endCSSValue, aUnitDistance,
+                                       resultValue)) {
     aResult.mU.mPtr = new ValueWrapper(aEndWrapper.mPropID, resultValue);
     return NS_OK;
   }
@@ -566,12 +517,10 @@ InterpolateForGecko(const ValueWrapper* aStartWrapper,
 }
 #endif
 
-static nsresult
-InterpolateForServo(const ValueWrapper* aStartWrapper,
-                    const ValueWrapper& aEndWrapper,
-                    double aUnitDistance,
-                    nsSMILValue& aResult)
-{
+static nsresult InterpolateForServo(const ValueWrapper* aStartWrapper,
+                                    const ValueWrapper& aEndWrapper,
+                                    double aUnitDistance,
+                                    nsSMILValue& aResult) {
   // For discretely-animated properties Servo_AnimationValues_Interpolate will
   // perform the discrete animation (i.e. 50% flip) and return a success result.
   // However, SMIL has its own special discrete animation behavior that it uses
@@ -594,20 +543,18 @@ InterpolateForServo(const ValueWrapper* aStartWrapper,
              "Start and end values length should be the same if "
              "the start value exists");
   for (size_t i = 0; i < len; i++) {
-    const RefPtr<RawServoAnimationValue>*
-      startValue = aStartWrapper
-                   ? &aStartWrapper->mServoValues[i]
-                   : nullptr;
-    const RefPtr<RawServoAnimationValue>* endValue = &aEndWrapper.mServoValues[i];
+    const RefPtr<RawServoAnimationValue>* startValue =
+        aStartWrapper ? &aStartWrapper->mServoValues[i] : nullptr;
+    const RefPtr<RawServoAnimationValue>* endValue =
+        &aEndWrapper.mServoValues[i];
     RefPtr<RawServoAnimationValue> zeroValueStorage;
     if (!FinalizeServoAnimationValues(startValue, endValue, zeroValueStorage)) {
       return NS_ERROR_FAILURE;
     }
 
     RefPtr<RawServoAnimationValue> result =
-      Servo_AnimationValues_Interpolate(*startValue,
-                                        *endValue,
-                                        aUnitDistance).Consume();
+        Servo_AnimationValues_Interpolate(*startValue, *endValue, aUnitDistance)
+            .Consume();
     if (!result) {
       return NS_ERROR_FAILURE;
     }
@@ -618,16 +565,13 @@ InterpolateForServo(const ValueWrapper* aStartWrapper,
   return NS_OK;
 }
 
-nsresult
-nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
-                                const nsSMILValue& aEndVal,
-                                double aUnitDistance,
-                                nsSMILValue& aResult) const
-{
+nsresult nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
+                                         const nsSMILValue& aEndVal,
+                                         double aUnitDistance,
+                                         nsSMILValue& aResult) const {
   MOZ_ASSERT(aStartVal.mType == aEndVal.mType,
              "Trying to interpolate different types");
-  MOZ_ASSERT(aStartVal.mType == this,
-             "Unexpected types for interpolation");
+  MOZ_ASSERT(aStartVal.mType == this, "Unexpected types for interpolation");
   MOZ_ASSERT(aResult.mType == this, "Unexpected result type");
   MOZ_ASSERT(aUnitDistance >= 0.0 && aUnitDistance <= 1.0,
              "unit distance value out of bounds");
@@ -638,26 +582,19 @@ nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
   MOZ_ASSERT(endWrapper, "expecting non-null endpoint");
 
   if (!endWrapper->mServoValues.IsEmpty()) {
-    return InterpolateForServo(startWrapper,
-                               *endWrapper,
-                               aUnitDistance,
+    return InterpolateForServo(startWrapper, *endWrapper, aUnitDistance,
                                aResult);
   }
 
 #ifdef MOZ_OLD_STYLE
-  return InterpolateForGecko(startWrapper,
-                             *endWrapper,
-                             aUnitDistance,
-                             aResult);
+  return InterpolateForGecko(startWrapper, *endWrapper, aUnitDistance, aResult);
 #else
   MOZ_CRASH("old style system disabled");
 #endif
 }
 
 // Helper function to extract presContext
-static nsPresContext*
-GetPresContextForElement(Element* aElem)
-{
+static nsPresContext* GetPresContextForElement(Element* aElem) {
   nsIDocument* doc = aElem->GetUncomposedDoc();
   if (!doc) {
     // This can happen if we process certain types of restyles mid-sample
@@ -669,10 +606,8 @@ GetPresContextForElement(Element* aElem)
 }
 
 #ifdef MOZ_OLD_STYLE
-static const nsDependentSubstring
-GetNonNegativePropValue(const nsAString& aString, nsCSSPropertyID aPropID,
-                        bool& aIsNegative)
-{
+static const nsDependentSubstring GetNonNegativePropValue(
+    const nsAString& aString, nsCSSPropertyID aPropID, bool& aIsNegative) {
   // If value is negative, we'll strip off the "-" so the CSS parser won't
   // barf, and then manually make the parsed value negative.
   // (This is a partial solution to let us accept some otherwise out-of-bounds
@@ -687,7 +622,7 @@ GetNonNegativePropValue(const nsAString& aString, nsCSSPropertyID aPropID,
     int32_t absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
     if (absValuePos > 0) {
       aIsNegative = true;
-      subStringBegin = (uint32_t)absValuePos; // Start parsing after '-' sign
+      subStringBegin = (uint32_t)absValuePos;  // Start parsing after '-' sign
     }
   }
 
@@ -695,18 +630,16 @@ GetNonNegativePropValue(const nsAString& aString, nsCSSPropertyID aPropID,
 }
 
 // Helper function to parse a string into a StyleAnimationValue
-static bool
-ValueFromStringHelper(nsCSSPropertyID aPropID,
-                      Element* aTargetElement,
-                      nsPresContext* aPresContext,
-                      mozilla::GeckoStyleContext* aStyleContext,
-                      const nsAString& aString,
-                      StyleAnimationValue& aStyleAnimValue,
-                      bool* aIsContextSensitive)
-{
+static bool ValueFromStringHelper(nsCSSPropertyID aPropID,
+                                  Element* aTargetElement,
+                                  nsPresContext* aPresContext,
+                                  mozilla::GeckoStyleContext* aStyleContext,
+                                  const nsAString& aString,
+                                  StyleAnimationValue& aStyleAnimValue,
+                                  bool* aIsContextSensitive) {
   bool isNegative = false;
   const nsDependentSubstring subString =
-    GetNonNegativePropValue(aString, aPropID, isNegative);
+      GetNonNegativePropValue(aString, aPropID, isNegative);
 
   if (!StyleAnimationValue::ComputeValue(aPropID, aTargetElement, aStyleContext,
                                          subString, true, aStyleAnimValue,
@@ -728,13 +661,11 @@ ValueFromStringHelper(nsCSSPropertyID aPropID,
 }
 #endif
 
-static ServoAnimationValues
-ValueFromStringHelper(nsCSSPropertyID aPropID,
-                      Element* aTargetElement,
-                      nsPresContext* aPresContext,
-                      nsStyleContext* aStyleContext,
-                      const nsAString& aString)
-{
+static ServoAnimationValues ValueFromStringHelper(nsCSSPropertyID aPropID,
+                                                  Element* aTargetElement,
+                                                  nsPresContext* aPresContext,
+                                                  nsStyleContext* aStyleContext,
+                                                  const nsAString& aString) {
   ServoAnimationValues result;
 
   nsIDocument* doc = aTargetElement->GetUncomposedDoc();
@@ -744,32 +675,28 @@ ValueFromStringHelper(nsCSSPropertyID aPropID,
 
   // Parse property
   ServoCSSParser::ParsingEnvironment env =
-    ServoCSSParser::GetParsingEnvironment(doc);
+      ServoCSSParser::GetParsingEnvironment(doc);
   RefPtr<RawServoDeclarationBlock> servoDeclarationBlock =
-    ServoCSSParser::ParseProperty(aPropID, aString, env,
-                                  ParsingMode::AllowUnitlessLength |
-                                    ParsingMode::AllowAllNumericValues);
+      ServoCSSParser::ParseProperty(aPropID, aString, env,
+                                    ParsingMode::AllowUnitlessLength |
+                                        ParsingMode::AllowAllNumericValues);
   if (!servoDeclarationBlock) {
     return result;
   }
 
   // Compute value
-  aPresContext->StyleSet()->AsServo()->GetAnimationValues(servoDeclarationBlock,
-                                                          aTargetElement,
-                                                          aStyleContext->AsServo(),
-                                                          result);
+  aPresContext->StyleSet()->AsServo()->GetAnimationValues(
+      servoDeclarationBlock, aTargetElement, aStyleContext->AsServo(), result);
 
   return result;
 }
 
 // static
-void
-nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
-                                    Element* aTargetElement,
-                                    const nsAString& aString,
-                                    nsSMILValue& aValue,
-                                    bool* aIsContextSensitive)
-{
+void nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
+                                         Element* aTargetElement,
+                                         const nsAString& aString,
+                                         nsSMILValue& aValue,
+                                         bool* aIsContextSensitive) {
   MOZ_ASSERT(aValue.IsNull(), "Outparam should be null-typed");
   nsPresContext* presContext = GetPresContextForElement(aTargetElement);
   if (!presContext) {
@@ -778,24 +705,21 @@ nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
   }
 
   nsIDocument* doc = aTargetElement->GetUncomposedDoc();
-  if (doc && !nsStyleUtil::CSPAllowsInlineStyle(nullptr,
-                                                doc->NodePrincipal(),
-                                                nullptr,
-                                                doc->GetDocumentURI(),
+  if (doc && !nsStyleUtil::CSPAllowsInlineStyle(nullptr, doc->NodePrincipal(),
+                                                nullptr, doc->GetDocumentURI(),
                                                 0, aString, nullptr)) {
     return;
   }
 
   RefPtr<nsStyleContext> styleContext =
-    nsComputedDOMStyle::GetStyleContext(aTargetElement, nullptr);
+      nsComputedDOMStyle::GetStyleContext(aTargetElement, nullptr);
   if (!styleContext) {
     return;
   }
 
   if (styleContext->IsServo()) {
-    ServoAnimationValues parsedValues =
-      ValueFromStringHelper(aPropID, aTargetElement, presContext,
-                            styleContext, aString);
+    ServoAnimationValues parsedValues = ValueFromStringHelper(
+        aPropID, aTargetElement, presContext, styleContext, aString);
     if (aIsContextSensitive) {
       // FIXME: Bug 1358955 - detect context-sensitive values and set this value
       // appropriately.
@@ -818,16 +742,14 @@ nsSMILCSSValueType::ValueFromString(nsCSSPropertyID aPropID,
     aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue);
   }
 #else
-    MOZ_CRASH("old style system disabled");
+  MOZ_CRASH("old style system disabled");
 #endif
 }
 
 // static
-nsSMILValue
-nsSMILCSSValueType::ValueFromAnimationValue(nsCSSPropertyID aPropID,
-                                            Element* aTargetElement,
-                                            const AnimationValue& aValue)
-{
+nsSMILValue nsSMILCSSValueType::ValueFromAnimationValue(
+    nsCSSPropertyID aPropID, Element* aTargetElement,
+    const AnimationValue& aValue) {
   nsSMILValue result;
 
   nsIDocument* doc = aTargetElement->GetUncomposedDoc();
@@ -836,11 +758,9 @@ nsSMILCSSValueType::ValueFromAnimationValue(nsCSSPropertyID aPropID,
   // and an intermediate CSS value is not likely to be particularly useful
   // in that case, we just use a generic placeholder string instead.
   static const nsLiteralString kPlaceholderText =
-    NS_LITERAL_STRING("[SVG animation of CSS]");
-  if (doc && !nsStyleUtil::CSPAllowsInlineStyle(nullptr,
-                                                doc->NodePrincipal(),
-                                                nullptr,
-                                                doc->GetDocumentURI(),
+      NS_LITERAL_STRING("[SVG animation of CSS]");
+  if (doc && !nsStyleUtil::CSPAllowsInlineStyle(nullptr, doc->NodePrincipal(),
+                                                nullptr, doc->GetDocumentURI(),
                                                 0, kPlaceholderText, nullptr)) {
     return result;
   }
@@ -852,10 +772,8 @@ nsSMILCSSValueType::ValueFromAnimationValue(nsCSSPropertyID aPropID,
 }
 
 // static
-void
-nsSMILCSSValueType::ValueToString(const nsSMILValue& aValue,
-                                  nsAString& aString)
-{
+void nsSMILCSSValueType::ValueToString(const nsSMILValue& aValue,
+                                       nsAString& aString) {
   MOZ_ASSERT(aValue.mType == &nsSMILCSSValueType::sSingleton,
              "Unexpected SMIL value type");
   const ValueWrapper* wrapper = ExtractValueWrapper(aValue);
@@ -865,10 +783,8 @@ nsSMILCSSValueType::ValueToString(const nsSMILValue& aValue,
 
   if (wrapper->mServoValues.IsEmpty()) {
 #ifdef MOZ_OLD_STYLE
-    DebugOnly<bool> uncomputeResult =
-      StyleAnimationValue::UncomputeValue(wrapper->mPropID,
-                                          wrapper->mGeckoValue,
-                                          aString);
+    DebugOnly<bool> uncomputeResult = StyleAnimationValue::UncomputeValue(
+        wrapper->mPropID, wrapper->mGeckoValue, aString);
     return;
 #else
     MOZ_CRASH("old style system disabled");
@@ -880,20 +796,17 @@ nsSMILCSSValueType::ValueToString(const nsSMILValue& aValue,
     // since we have multiple AnimationValues in the array for each longhand
     // component.
     Servo_Shorthand_AnimationValues_Serialize(wrapper->mPropID,
-                                              &wrapper->mServoValues,
-                                              &aString);
+                                              &wrapper->mServoValues, &aString);
     return;
   }
 
-  Servo_AnimationValue_Serialize(wrapper->mServoValues[0],
-                                 wrapper->mPropID,
+  Servo_AnimationValue_Serialize(wrapper->mServoValues[0], wrapper->mPropID,
                                  &aString);
 }
 
 // static
-nsCSSPropertyID
-nsSMILCSSValueType::PropertyFromValue(const nsSMILValue& aValue)
-{
+nsCSSPropertyID nsSMILCSSValueType::PropertyFromValue(
+    const nsSMILValue& aValue) {
   if (aValue.mType != &nsSMILCSSValueType::sSingleton) {
     return eCSSProperty_UNKNOWN;
   }
@@ -907,10 +820,8 @@ nsSMILCSSValueType::PropertyFromValue(const nsSMILValue& aValue)
 }
 
 // static
-void
-nsSMILCSSValueType::FinalizeValue(nsSMILValue& aValue,
-                                  const nsSMILValue& aValueToMatch)
-{
+void nsSMILCSSValueType::FinalizeValue(nsSMILValue& aValue,
+                                       const nsSMILValue& aValueToMatch) {
   MOZ_ASSERT(aValue.mType == aValueToMatch.mType, "Incompatible SMIL types");
   MOZ_ASSERT(aValue.mType == &nsSMILCSSValueType::sSingleton,
              "Unexpected SMIL value type");
@@ -935,23 +846,22 @@ nsSMILCSSValueType::FinalizeValue(nsSMILValue& aValue,
 
     for (auto& valueToMatch : valueToMatchWrapper->mServoValues) {
       RefPtr<RawServoAnimationValue> zeroValue =
-        Servo_AnimationValues_GetZeroValue(valueToMatch).Consume();
+          Servo_AnimationValues_GetZeroValue(valueToMatch).Consume();
       if (!zeroValue) {
         return;
       }
       zeroValues.AppendElement(Move(zeroValue));
     }
-    aValue.mU.mPtr = new ValueWrapper(valueToMatchWrapper->mPropID,
-                                      Move(zeroValues));
+    aValue.mU.mPtr =
+        new ValueWrapper(valueToMatchWrapper->mPropID, Move(zeroValues));
   } else {
 #ifdef MOZ_OLD_STYLE
     const StyleAnimationValue* zeroValue =
-      GetZeroValueForUnit(valueToMatchWrapper->mGeckoValue.GetUnit());
+        GetZeroValueForUnit(valueToMatchWrapper->mGeckoValue.GetUnit());
     if (!zeroValue) {
       return;
     }
-    aValue.mU.mPtr = new ValueWrapper(valueToMatchWrapper->mPropID,
-                                      *zeroValue);
+    aValue.mU.mPtr = new ValueWrapper(valueToMatchWrapper->mPropID, *zeroValue);
 #else
     MOZ_CRASH("old style system disabled");
 #endif

@@ -22,17 +22,15 @@ class nsView;
 struct nsPoint;
 
 namespace mozilla {
-  namespace layers {
-    class LayerTransactionChild;
-    class WebRenderBridgeChild;
-  } // namespace layers
-} // namespace mozilla
+namespace layers {
+class LayerTransactionChild;
+class WebRenderBridgeChild;
+}  // namespace layers
+}  // namespace mozilla
 
-class nsTranslationNodeList final : public nsITranslationNodeList
-{
-public:
-  nsTranslationNodeList()
-  {
+class nsTranslationNodeList final : public nsITranslationNodeList {
+ public:
+  nsTranslationNodeList() {
     mNodes.SetCapacity(1000);
     mNodeIsRoot.SetCapacity(1000);
     mLength = 0;
@@ -41,14 +39,13 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSITRANSLATIONNODELIST
 
-  void AppendElement(nsIDOMNode* aElement, bool aIsRoot)
-  {
+  void AppendElement(nsIDOMNode* aElement, bool aIsRoot) {
     mNodes.AppendElement(aElement);
     mNodeIsRoot.AppendElement(aIsRoot);
     mLength++;
   }
 
-private:
+ private:
   ~nsTranslationNodeList() {}
 
   nsTArray<nsCOMPtr<nsIDOMNode> > mNodes;
@@ -57,16 +54,15 @@ private:
 };
 
 class nsDOMWindowUtils final : public nsIDOMWindowUtils,
-                               public nsSupportsWeakReference
-{
-  typedef mozilla::widget::TextEventDispatcher
-    TextEventDispatcher;
-public:
-  explicit nsDOMWindowUtils(nsGlobalWindowOuter *aWindow);
+                               public nsSupportsWeakReference {
+  typedef mozilla::widget::TextEventDispatcher TextEventDispatcher;
+
+ public:
+  explicit nsDOMWindowUtils(nsGlobalWindowOuter* aWindow);
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMWINDOWUTILS
 
-protected:
+ protected:
   ~nsDOMWindowUtils();
 
   nsWeakPtr mWindow;
@@ -84,34 +80,19 @@ protected:
   mozilla::layers::LayerTransactionChild* GetLayerTransaction();
   mozilla::layers::WebRenderBridgeChild* GetWebRenderBridge();
 
-  NS_IMETHOD SendMouseEventCommon(const nsAString& aType,
-                                  float aX,
-                                  float aY,
-                                  int32_t aButton,
-                                  int32_t aClickCount,
-                                  int32_t aModifiers,
-                                  bool aIgnoreRootScrollFrame,
-                                  float aPressure,
-                                  unsigned short aInputSourceArg,
-                                  uint32_t aIdentifier,
-                                  bool aToWindow,
-                                  bool *aPreventDefault,
-                                  bool aIsDOMEventSynthesized,
-                                  bool aIsWidgetEventSynthesized,
-                                  int32_t aButtons);
+  NS_IMETHOD SendMouseEventCommon(
+      const nsAString& aType, float aX, float aY, int32_t aButton,
+      int32_t aClickCount, int32_t aModifiers, bool aIgnoreRootScrollFrame,
+      float aPressure, unsigned short aInputSourceArg, uint32_t aIdentifier,
+      bool aToWindow, bool* aPreventDefault, bool aIsDOMEventSynthesized,
+      bool aIsWidgetEventSynthesized, int32_t aButtons);
 
   NS_IMETHOD SendTouchEventCommon(const nsAString& aType,
-                                  uint32_t* aIdentifiers,
-                                  int32_t* aXs,
-                                  int32_t* aYs,
-                                  uint32_t* aRxs,
-                                  uint32_t* aRys,
-                                  float* aRotationAngles,
-                                  float* aForces,
-                                  uint32_t aCount,
-                                  int32_t aModifiers,
-                                  bool aIgnoreRootScrollFrame,
-                                  bool aToWindow,
+                                  uint32_t* aIdentifiers, int32_t* aXs,
+                                  int32_t* aYs, uint32_t* aRxs, uint32_t* aRys,
+                                  float* aRotationAngles, float* aForces,
+                                  uint32_t aCount, int32_t aModifiers,
+                                  bool aIgnoreRootScrollFrame, bool aToWindow,
                                   bool* aPreventDefault);
 };
 

@@ -14,19 +14,17 @@
 namespace js {
 namespace frontend {
 
-inline PropertyName*
-ParseNode::name() const
-{
-    MOZ_ASSERT(isKind(ParseNodeKind::Function) || isKind(ParseNodeKind::Name));
-    JSAtom* atom = isKind(ParseNodeKind::Function) ? pn_funbox->function()->explicitName() : pn_atom;
-    return atom->asPropertyName();
+inline PropertyName* ParseNode::name() const {
+  MOZ_ASSERT(isKind(ParseNodeKind::Function) || isKind(ParseNodeKind::Name));
+  JSAtom* atom = isKind(ParseNodeKind::Function)
+                     ? pn_funbox->function()->explicitName()
+                     : pn_atom;
+  return atom->asPropertyName();
 }
 
-inline JSAtom*
-ParseNode::atom() const
-{
-    MOZ_ASSERT(isKind(ParseNodeKind::String));
-    return pn_atom;
+inline JSAtom* ParseNode::atom() const {
+  MOZ_ASSERT(isKind(ParseNodeKind::String));
+  return pn_atom;
 }
 
 } /* namespace frontend */

@@ -13,23 +13,19 @@ using namespace webrtc;
 namespace test {
 
 class MockAudioSendStream : public webrtc::AudioSendStream {
-public:
+ public:
   void Start() override {}
 
   void Stop() override {}
 
-  bool SendTelephoneEvent(int payload_type, int payload_frequency,
-                          int event, int duration_ms) override
-  {
+  bool SendTelephoneEvent(int payload_type, int payload_frequency, int event,
+                          int duration_ms) override {
     return true;
   }
 
   void SetMuted(bool muted) override {}
 
-  Stats GetStats() const override
-  {
-    return mStats;
-  }
+  Stats GetStats() const override { return mStats; }
 
   virtual ~MockAudioSendStream() {}
 
@@ -37,15 +33,12 @@ public:
 };
 
 class MockAudioReceiveStream : public webrtc::AudioReceiveStream {
-public:
+ public:
   void Start() override {}
 
   void Stop() override {}
 
-  Stats GetStats() const override
-  {
-    return mStats;
-  }
+  Stats GetStats() const override { return mStats; }
 
   void SetSink(std::unique_ptr<AudioSinkInterface> sink) override {}
 
@@ -57,28 +50,22 @@ public:
 };
 
 class MockVideoSendStream : public webrtc::VideoSendStream {
-public:
+ public:
   void Start() override {}
 
   void Stop() override {}
 
   void SetSource(rtc::VideoSourceInterface<webrtc::VideoFrame>* source,
-                 const DegradationPreference& degradation_preference) override {}
-
-  CPULoadStateObserver* LoadStateObserver() override
-  {
-    return nullptr;
+                 const DegradationPreference& degradation_preference) override {
   }
 
-  void ReconfigureVideoEncoder(VideoEncoderConfig config) override
-  {
+  CPULoadStateObserver* LoadStateObserver() override { return nullptr; }
+
+  void ReconfigureVideoEncoder(VideoEncoderConfig config) override {
     mEncoderConfig = config.Copy();
   }
 
-  Stats GetStats() override
-  {
-    return mStats;
-  }
+  Stats GetStats() override { return mStats; }
 
   void EnableEncodedFrameRecording(const std::vector<rtc::PlatformFile>& files,
                                    size_t byte_limit) override {}
@@ -90,23 +77,19 @@ public:
 };
 
 class MockVideoReceiveStream : public webrtc::VideoReceiveStream {
-public:
+ public:
   void Start() override {}
 
   void Stop() override {}
 
-  Stats GetStats() const override
-  {
-    return mStats;
-  }
+  Stats GetStats() const override { return mStats; }
 
-  bool
-  GetRemoteRTCPSenderInfo(RTCPSenderInfo* sender_info) const override
-  {
+  bool GetRemoteRTCPSenderInfo(RTCPSenderInfo* sender_info) const override {
     return false;
   }
 
-  void SetSyncChannel(VoiceEngine* voice_engine, int audio_channel_id) override {}
+  void SetSyncChannel(VoiceEngine* voice_engine,
+                      int audio_channel_id) override {}
 
   void EnableEncodedFrameRecording(rtc::PlatformFile file,
                                    size_t byte_limit) override {}
@@ -117,36 +100,35 @@ public:
 };
 
 class MockCall : public webrtc::Call {
-public:
+ public:
   MockCall()
-    : mAudioSendConfig(nullptr)
-    , mVideoReceiveConfig(nullptr)
-    , mVideoSendConfig(nullptr)
-    , mCurrentVideoSendStream(nullptr) {}
+      : mAudioSendConfig(nullptr),
+        mVideoReceiveConfig(nullptr),
+        mVideoSendConfig(nullptr),
+        mCurrentVideoSendStream(nullptr) {}
 
-  AudioSendStream* CreateAudioSendStream(const AudioSendStream::Config& config) override
-  {
+  AudioSendStream* CreateAudioSendStream(
+      const AudioSendStream::Config& config) override {
     mAudioSendConfig = config;
     return new MockAudioSendStream;
   }
 
-  void DestroyAudioSendStream(AudioSendStream* send_stream) override
-  {
+  void DestroyAudioSendStream(AudioSendStream* send_stream) override {
     delete static_cast<MockAudioSendStream*>(send_stream);
   }
 
-  AudioReceiveStream* CreateAudioReceiveStream(const AudioReceiveStream::Config& config) override
-  {
+  AudioReceiveStream* CreateAudioReceiveStream(
+      const AudioReceiveStream::Config& config) override {
     mAudioReceiveConfig = config;
     return new MockAudioReceiveStream;
   }
-  void DestroyAudioReceiveStream(AudioReceiveStream* receive_stream) override
-  {
+  void DestroyAudioReceiveStream(AudioReceiveStream* receive_stream) override {
     delete static_cast<MockAudioReceiveStream*>(receive_stream);
   }
 
-  VideoSendStream* CreateVideoSendStream(VideoSendStream::Config config,
-                                         VideoEncoderConfig encoder_config) override {
+  VideoSendStream* CreateVideoSendStream(
+      VideoSendStream::Config config,
+      VideoEncoderConfig encoder_config) override {
     MOZ_RELEASE_ASSERT(!mCurrentVideoSendStream);
     mVideoSendConfig = config.Copy();
     mEncoderConfig = encoder_config.Copy();
@@ -154,47 +136,38 @@ public:
     return mCurrentVideoSendStream;
   }
 
-  void DestroyVideoSendStream(VideoSendStream* send_stream) override
-  {
+  void DestroyVideoSendStream(VideoSendStream* send_stream) override {
     MOZ_RELEASE_ASSERT(mCurrentVideoSendStream == send_stream);
     mCurrentVideoSendStream = nullptr;
     delete static_cast<MockVideoSendStream*>(send_stream);
   }
 
-  VideoReceiveStream* CreateVideoReceiveStream(VideoReceiveStream::Config configuration) override
-  {
+  VideoReceiveStream* CreateVideoReceiveStream(
+      VideoReceiveStream::Config configuration) override {
     mVideoReceiveConfig = configuration.Copy();
     return new MockVideoReceiveStream;
   }
 
-  void DestroyVideoReceiveStream(VideoReceiveStream* receive_stream) override
-  {
+  void DestroyVideoReceiveStream(VideoReceiveStream* receive_stream) override {
     delete static_cast<MockVideoReceiveStream*>(receive_stream);
   }
 
-  FlexfecReceiveStream* CreateFlexfecReceiveStream(const FlexfecReceiveStream::Config& config) override
-  {
+  FlexfecReceiveStream* CreateFlexfecReceiveStream(
+      const FlexfecReceiveStream::Config& config) override {
     return nullptr;
   }
 
-  void DestroyFlexfecReceiveStream(FlexfecReceiveStream* receive_stream) override
-  {
-  }
+  void DestroyFlexfecReceiveStream(
+      FlexfecReceiveStream* receive_stream) override {}
 
-  PacketReceiver* Receiver() override
-  {
-    return nullptr;
-  }
+  PacketReceiver* Receiver() override { return nullptr; }
 
-  Stats GetStats() const override
-  {
-    return mStats;
-  }
+  Stats GetStats() const override { return mStats; }
 
   void SetBitrateConfig(const Config::BitrateConfig& bitrate_config) override {}
 
-  void SignalChannelNetworkState(MediaType media,
-                                 NetworkState state) override {}
+  void SignalChannelNetworkState(MediaType media, NetworkState state) override {
+  }
 
   void OnTransportOverheadChanged(MediaType media,
                                   int transport_overhead_per_packet) override {}
@@ -204,12 +177,9 @@ public:
 
   void OnSentPacket(const rtc::SentPacket& sent_packet) override {}
 
-  VoiceEngine* voice_engine() override
-  {
-    return nullptr;
-  }
+  VoiceEngine* voice_engine() override { return nullptr; }
 
-  virtual ~MockCall() {};
+  virtual ~MockCall(){};
 
   AudioReceiveStream::Config mAudioReceiveConfig;
   AudioSendStream::Config mAudioSendConfig;
@@ -220,5 +190,5 @@ public:
   MockVideoSendStream* mCurrentVideoSendStream;
 };
 
-}
+}  // namespace test
 #endif

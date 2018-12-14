@@ -14,9 +14,8 @@ class MediaContainerType;
 class DecoderDoctorDiagnostics;
 
 // Decoder that uses a bundled MP4 demuxer and platform decoders to play MP4.
-class MP4Decoder
-{
-public:
+class MP4Decoder {
+ public:
   // Returns true if aContainerType is an MP4 type that we think we can render
   // with the a platform decoder backend.
   // If provided, codecs are checked for support.
@@ -24,7 +23,7 @@ public:
                               DecoderDoctorDiagnostics* aDiagnostics);
 
   static bool IsSupportedTypeWithoutDiagnostics(
-    const MediaContainerType& aContainerType);
+      const MediaContainerType& aContainerType);
 
   // Return true if aMimeType is a one of the strings used by our demuxers to
   // identify H264. Does not parse general content type strings, i.e. white
@@ -38,9 +37,8 @@ public:
 
   // Returns true if the MP4 backend is preffed on.
   static bool IsEnabled();
-
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

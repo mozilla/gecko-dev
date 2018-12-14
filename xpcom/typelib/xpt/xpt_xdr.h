@@ -20,61 +20,47 @@ struct XPTArena;
 struct XPTCursor;
 struct XPTState;
 
-bool
-XPT_SkipStringInline(NotNull<XPTCursor*> cursor);
+bool XPT_SkipStringInline(NotNull<XPTCursor *> cursor);
 
-bool
-XPT_DoCString(XPTArena *arena, NotNull<XPTCursor*> cursor, const char **strp,
-              bool ignore = false);
+bool XPT_DoCString(XPTArena *arena, NotNull<XPTCursor *> cursor,
+                   const char **strp, bool ignore = false);
 
-bool
-XPT_DoIID(NotNull<XPTCursor*> cursor, nsID *iidp);
+bool XPT_DoIID(NotNull<XPTCursor *> cursor, nsID *iidp);
 
-bool
-XPT_Do64(NotNull<XPTCursor*> cursor, int64_t *u64p);
+bool XPT_Do64(NotNull<XPTCursor *> cursor, int64_t *u64p);
 
-bool
-XPT_Do32(NotNull<XPTCursor*> cursor, uint32_t *u32p);
+bool XPT_Do32(NotNull<XPTCursor *> cursor, uint32_t *u32p);
 
-bool
-XPT_Do16(NotNull<XPTCursor*> cursor, uint16_t *u16p);
+bool XPT_Do16(NotNull<XPTCursor *> cursor, uint16_t *u16p);
 
-bool
-XPT_Do8(NotNull<XPTCursor*> cursor, uint8_t *u8p);
+bool XPT_Do8(NotNull<XPTCursor *> cursor, uint8_t *u8p);
 
-bool
-XPT_DoHeader(XPTArena *arena, NotNull<XPTCursor*> cursor, XPTHeader **headerp);
+bool XPT_DoHeader(XPTArena *arena, NotNull<XPTCursor *> cursor,
+                  XPTHeader **headerp);
 
-enum XPTPool {
-    XPT_HEADER = 0,
-    XPT_DATA = 1
-};
+enum XPTPool { XPT_HEADER = 0, XPT_DATA = 1 };
 
 struct XPTState {
-    uint32_t         data_offset;
-    uint32_t         next_cursor[2];
-    char             *pool_data;
-    uint32_t         pool_allocated;
+  uint32_t data_offset;
+  uint32_t next_cursor[2];
+  char *pool_data;
+  uint32_t pool_allocated;
 };
 
 struct XPTCursor {
-    XPTState    *state;
-    XPTPool     pool;
-    uint32_t    offset;
-    uint8_t     bits;
+  XPTState *state;
+  XPTPool pool;
+  uint32_t offset;
+  uint8_t bits;
 };
 
-void
-XPT_InitXDRState(XPTState* state, char* data, uint32_t len);
+void XPT_InitXDRState(XPTState *state, char *data, uint32_t len);
 
-bool
-XPT_MakeCursor(XPTState *state, XPTPool pool, uint32_t len,
-               NotNull<XPTCursor*> cursor);
+bool XPT_MakeCursor(XPTState *state, XPTPool pool, uint32_t len,
+                    NotNull<XPTCursor *> cursor);
 
-bool
-XPT_SeekTo(NotNull<XPTCursor*> cursor, uint32_t offset);
+bool XPT_SeekTo(NotNull<XPTCursor *> cursor, uint32_t offset);
 
-void
-XPT_SetDataOffset(XPTState *state, uint32_t data_offset);
+void XPT_SetDataOffset(XPTState *state, uint32_t data_offset);
 
 #endif /* __xpt_xdr_h__ */

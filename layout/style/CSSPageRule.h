@@ -14,13 +14,12 @@
 namespace mozilla {
 namespace dom {
 
-class CSSPageRule : public css::Rule
-{
-protected:
+class CSSPageRule : public css::Rule {
+ protected:
   using Rule::Rule;
-  virtual ~CSSPageRule() {};
+  virtual ~CSSPageRule(){};
 
-public:
+ public:
   virtual bool IsCCLeaf() const override = 0;
 
   int32_t GetType() const final { return Rule::PAGE_RULE; }
@@ -30,14 +29,14 @@ public:
   virtual void GetCssText(nsAString& aCssText) const override = 0;
   virtual nsICSSDeclaration* Style() = 0;
 
-  virtual size_t
-  SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override = 0;
+  virtual size_t SizeOfIncludingThis(
+      MallocSizeOf aMallocSizeOf) const override = 0;
 
-  JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_CSSPageRule_h
+#endif  // mozilla_dom_CSSPageRule_h

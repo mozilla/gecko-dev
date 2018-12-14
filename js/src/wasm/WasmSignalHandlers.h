@@ -22,7 +22,7 @@
 #include "mozilla/Attributes.h"
 
 #if defined(XP_DARWIN)
-# include <mach/mach.h>
+#include <mach/mach.h>
 #endif
 
 #include "js/TypeDecls.h"
@@ -31,29 +31,26 @@
 
 namespace js {
 
-// Force any currently-executing asm.js/ion code to call HandleExecutionInterrupt.
-extern void
-InterruptRunningJitCode(JSContext* cx);
+// Force any currently-executing asm.js/ion code to call
+// HandleExecutionInterrupt.
+extern void InterruptRunningJitCode(JSContext* cx);
 
 namespace wasm {
 
 // Ensure the given JSRuntime is set up to use signals. Failure to enable signal
 // handlers indicates some catastrophic failure and creation of the runtime must
 // fail.
-MOZ_MUST_USE bool
-EnsureSignalHandlers(JSContext* cx);
+MOZ_MUST_USE bool EnsureSignalHandlers(JSContext* cx);
 
 // Return whether signals can be used in this process for interrupts or
 // asm.js/wasm out-of-bounds.
-bool
-HaveSignalHandlers();
+bool HaveSignalHandlers();
 
 class ModuleSegment;
 
 // Returns true if wasm code is on top of the activation stack (and fills out
 // the code segment outparam in this case), or false otherwise.
-bool
-InInterruptibleCode(JSContext* cx, uint8_t* pc, const ModuleSegment** ms);
+bool InInterruptibleCode(JSContext* cx, uint8_t* pc, const ModuleSegment** ms);
 
 #if defined(XP_DARWIN)
 // On OSX we are forced to use the lower-level Mach exception mechanism instead
@@ -62,20 +59,19 @@ InInterruptibleCode(JSContext* cx, uint8_t* pc, const ModuleSegment** ms);
 // per JSContext (upon the first use of wasm in the JSContext). This thread
 // and related resources are owned by AsmJSMachExceptionHandler which is owned
 // by JSContext.
-class MachExceptionHandler
-{
-    bool installed_;
-    js::Thread thread_;
-    mach_port_t port_;
+class MachExceptionHandler {
+  bool installed_;
+  js::Thread thread_;
+  mach_port_t port_;
 
-    void uninstall();
+  void uninstall();
 
-  public:
-    MachExceptionHandler();
-    ~MachExceptionHandler() { uninstall(); }
-    mach_port_t port() const { return port_; }
-    bool installed() const { return installed_; }
-    bool install(JSContext* cx);
+ public:
+  MachExceptionHandler();
+  ~MachExceptionHandler() { uninstall(); }
+  mach_port_t port() const { return port_; }
+  bool installed() const { return installed_; }
+  bool install(JSContext* cx);
 };
 #endif
 
@@ -83,32 +79,28 @@ class MachExceptionHandler
 // interrupt or trap. On interrupt, the PC at which to resume is saved. On trap,
 // the bytecode offset to be reported in callstacks is saved.
 
-struct InterruptData
-{
-    // The pc to use for unwinding purposes which is kept consistent with fp at
-    // call boundaries.
-    void* unwindPC;
+struct InterruptData {
+  // The pc to use for unwinding purposes which is kept consistent with fp at
+  // call boundaries.
+  void* unwindPC;
 
-    // The pc at which we should return if the interrupt doesn't stop execution.
-    void* resumePC;
+  // The pc at which we should return if the interrupt doesn't stop execution.
+  void* resumePC;
 
-    InterruptData(void* unwindPC, void* resumePC)
-      : unwindPC(unwindPC), resumePC(resumePC)
-    {}
+  InterruptData(void* unwindPC, void* resumePC)
+      : unwindPC(unwindPC), resumePC(resumePC) {}
 };
 
-struct TrapData
-{
-    void* pc;
-    Trap trap;
-    uint32_t bytecodeOffset;
+struct TrapData {
+  void* pc;
+  Trap trap;
+  uint32_t bytecodeOffset;
 
-    TrapData(void* pc, Trap trap, uint32_t bytecodeOffset)
-      : pc(pc), trap(trap), bytecodeOffset(bytecodeOffset)
-    {}
+  TrapData(void* pc, Trap trap, uint32_t bytecodeOffset)
+      : pc(pc), trap(trap), bytecodeOffset(bytecodeOffset) {}
 };
 
-} // namespace wasm
-} // namespace js
+}  // namespace wasm
+}  // namespace js
 
-#endif // wasm_signal_handlers_h
+#endif  // wasm_signal_handlers_h

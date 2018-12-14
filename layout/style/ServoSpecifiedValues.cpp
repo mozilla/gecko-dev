@@ -9,23 +9,18 @@
 
 using namespace mozilla;
 
-bool
-ServoSpecifiedValues::PropertyIsSet(nsCSSPropertyID aId)
-{
+bool ServoSpecifiedValues::PropertyIsSet(nsCSSPropertyID aId) {
   return Servo_DeclarationBlock_PropertyIsSet(mDecl, aId);
 }
 
-void
-ServoSpecifiedValues::SetIdentStringValue(nsCSSPropertyID aId,
-                                          const nsString& aValue)
-{
+void ServoSpecifiedValues::SetIdentStringValue(nsCSSPropertyID aId,
+                                               const nsString& aValue) {
   RefPtr<nsAtom> atom = NS_Atomize(aValue);
   SetIdentAtomValue(aId, atom);
 }
 
-void
-ServoSpecifiedValues::SetIdentAtomValue(nsCSSPropertyID aId, nsAtom* aValue)
-{
+void ServoSpecifiedValues::SetIdentAtomValue(nsCSSPropertyID aId,
+                                             nsAtom* aValue) {
   Servo_DeclarationBlock_SetIdentStringValue(mDecl, aId, aValue);
   if (aId == eCSSProperty__x_lang) {
     // This forces the lang prefs result to be cached so that we can access them
@@ -40,77 +35,55 @@ ServoSpecifiedValues::SetIdentAtomValue(nsCSSPropertyID aId, nsAtom* aValue)
   }
 }
 
-void
-ServoSpecifiedValues::SetKeywordValue(nsCSSPropertyID aId, int32_t aValue)
-{
+void ServoSpecifiedValues::SetKeywordValue(nsCSSPropertyID aId,
+                                           int32_t aValue) {
   Servo_DeclarationBlock_SetKeywordValue(mDecl, aId, aValue);
 }
 
-void
-ServoSpecifiedValues::SetIntValue(nsCSSPropertyID aId, int32_t aValue)
-{
+void ServoSpecifiedValues::SetIntValue(nsCSSPropertyID aId, int32_t aValue) {
   Servo_DeclarationBlock_SetIntValue(mDecl, aId, aValue);
 }
 
-void
-ServoSpecifiedValues::SetPixelValue(nsCSSPropertyID aId, float aValue)
-{
+void ServoSpecifiedValues::SetPixelValue(nsCSSPropertyID aId, float aValue) {
   Servo_DeclarationBlock_SetPixelValue(mDecl, aId, aValue);
 }
 
-void
-ServoSpecifiedValues::SetLengthValue(nsCSSPropertyID aId, nsCSSValue aValue)
-{
+void ServoSpecifiedValues::SetLengthValue(nsCSSPropertyID aId,
+                                          nsCSSValue aValue) {
   MOZ_ASSERT(aValue.IsLengthUnit());
-  Servo_DeclarationBlock_SetLengthValue(
-    mDecl, aId, aValue.GetFloatValue(), aValue.GetUnit());
+  Servo_DeclarationBlock_SetLengthValue(mDecl, aId, aValue.GetFloatValue(),
+                                        aValue.GetUnit());
 }
 
-void
-ServoSpecifiedValues::SetNumberValue(nsCSSPropertyID aId, float aValue)
-{
+void ServoSpecifiedValues::SetNumberValue(nsCSSPropertyID aId, float aValue) {
   Servo_DeclarationBlock_SetNumberValue(mDecl, aId, aValue);
 }
 
-void
-ServoSpecifiedValues::SetPercentValue(nsCSSPropertyID aId, float aValue)
-{
+void ServoSpecifiedValues::SetPercentValue(nsCSSPropertyID aId, float aValue) {
   Servo_DeclarationBlock_SetPercentValue(mDecl, aId, aValue);
 }
 
-void
-ServoSpecifiedValues::SetAutoValue(nsCSSPropertyID aId)
-{
+void ServoSpecifiedValues::SetAutoValue(nsCSSPropertyID aId) {
   Servo_DeclarationBlock_SetAutoValue(mDecl, aId);
 }
 
-void
-ServoSpecifiedValues::SetCurrentColor(nsCSSPropertyID aId)
-{
+void ServoSpecifiedValues::SetCurrentColor(nsCSSPropertyID aId) {
   Servo_DeclarationBlock_SetCurrentColor(mDecl, aId);
 }
 
-void
-ServoSpecifiedValues::SetColorValue(nsCSSPropertyID aId, nscolor aColor)
-{
+void ServoSpecifiedValues::SetColorValue(nsCSSPropertyID aId, nscolor aColor) {
   Servo_DeclarationBlock_SetColorValue(mDecl, aId, aColor);
 }
 
-void
-ServoSpecifiedValues::SetFontFamily(const nsString& aValue)
-{
+void ServoSpecifiedValues::SetFontFamily(const nsString& aValue) {
   Servo_DeclarationBlock_SetFontFamily(mDecl, aValue);
 }
 
-void
-ServoSpecifiedValues::SetTextDecorationColorOverride()
-{
+void ServoSpecifiedValues::SetTextDecorationColorOverride() {
   Servo_DeclarationBlock_SetTextDecorationColorOverride(mDecl);
 }
 
-void
-ServoSpecifiedValues::SetBackgroundImage(nsAttrValue& aValue)
-{
+void ServoSpecifiedValues::SetBackgroundImage(nsAttrValue& aValue) {
   if (aValue.Type() != nsAttrValue::eURL &&
       aValue.Type() != nsAttrValue::eImage) {
     return;
@@ -118,5 +91,5 @@ ServoSpecifiedValues::SetBackgroundImage(nsAttrValue& aValue)
   nsAutoString str;
   aValue.ToString(str);
   Servo_DeclarationBlock_SetBackgroundImage(
-    mDecl, str, mDocument->DefaultStyleAttrURLData());
+      mDecl, str, mDocument->DefaultStyleAttrURLData());
 }

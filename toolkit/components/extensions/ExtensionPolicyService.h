@@ -27,17 +27,16 @@ class nsIPIDOMWindowOuter;
 
 namespace mozilla {
 namespace extensions {
-  class DocInfo;
+class DocInfo;
 }
 
 using extensions::DocInfo;
 using extensions::WebExtensionPolicy;
 
-class ExtensionPolicyService final : public nsIAddonPolicyService
-                                   , public nsIObserver
-                                   , public nsIMemoryReporter
-{
-public:
+class ExtensionPolicyService final : public nsIAddonPolicyService,
+                                     public nsIObserver,
+                                     public nsIMemoryReporter {
+ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ExtensionPolicyService,
                                            nsIAddonPolicyService)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -47,27 +46,22 @@ public:
 
   static ExtensionPolicyService& GetSingleton();
 
-  static already_AddRefed<ExtensionPolicyService> GetInstance()
-  {
+  static already_AddRefed<ExtensionPolicyService> GetInstance() {
     return do_AddRef(&GetSingleton());
   }
 
-  WebExtensionPolicy*
-  GetByID(const nsAtom* aAddonId)
-  {
+  WebExtensionPolicy* GetByID(const nsAtom* aAddonId) {
     return mExtensions.GetWeak(aAddonId);
   }
 
-  WebExtensionPolicy* GetByID(const nsAString& aAddonId)
-  {
+  WebExtensionPolicy* GetByID(const nsAString& aAddonId) {
     RefPtr<nsAtom> atom = NS_AtomizeMainThread(aAddonId);
     return GetByID(atom);
   }
 
   WebExtensionPolicy* GetByURL(const extensions::URLInfo& aURL);
 
-  WebExtensionPolicy* GetByHost(const nsACString& aHost) const
-  {
+  WebExtensionPolicy* GetByHost(const nsACString& aHost) const {
     return mExtensionHosts.GetWeak(aHost);
   }
 
@@ -82,10 +76,10 @@ public:
   bool UseRemoteExtensions() const;
   bool IsExtensionProcess() const;
 
-protected:
+ protected:
   virtual ~ExtensionPolicyService();
 
-private:
+ private:
   ExtensionPolicyService();
 
   void RegisterObservers();
@@ -105,6 +99,6 @@ private:
   static bool sRemoteExtensions;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_ExtensionPolicyService_h
+#endif  // mozilla_ExtensionPolicyService_h

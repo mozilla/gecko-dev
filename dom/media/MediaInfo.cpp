@@ -8,20 +8,18 @@
 
 namespace mozilla {
 
-const char*
-TrackTypeToStr(TrackInfo::TrackType aTrack)
-{
+const char* TrackTypeToStr(TrackInfo::TrackType aTrack) {
   switch (aTrack) {
-  case TrackInfo::kUndefinedTrack:
-    return "Undefined";
-  case TrackInfo::kAudioTrack:
-    return "Audio";
-  case TrackInfo::kVideoTrack:
-    return "Video";
-  case TrackInfo::kTextTrack:
-    return "Text";
-  default:
-    return "Unknown";
+    case TrackInfo::kUndefinedTrack:
+      return "Undefined";
+    case TrackInfo::kAudioTrack:
+      return "Audio";
+    case TrackInfo::kVideoTrack:
+      return "Video";
+    case TrackInfo::kTextTrack:
+      return "Text";
+    default:
+      return "Unknown";
   }
 }
 
@@ -53,9 +51,7 @@ typedef AudioConfig::ChannelLayout ChannelLayout;
  3F4-LFE        L   R   C    LFE  Rls  Rrs  LS   RS
 */
 
-void
-AudioConfig::ChannelLayout::UpdateChannelMap()
-{
+void AudioConfig::ChannelLayout::UpdateChannelMap() {
   mChannelMap = 0;
   mValid = mChannels.Length() <= MAX_AUDIO_CHANNELS;
   for (size_t i = 0; i < mChannels.Length() && i <= MAX_AUDIO_CHANNELS; i++) {
@@ -68,47 +64,55 @@ AudioConfig::ChannelLayout::UpdateChannelMap()
 }
 
 /* static */ const AudioConfig::Channel*
-AudioConfig::ChannelLayout::SMPTEDefault(uint32_t aChannels) const
-{
+AudioConfig::ChannelLayout::SMPTEDefault(uint32_t aChannels) const {
   switch (aChannels) {
-    case 1: // MONO
+    case 1:  // MONO
     {
-      static const Channel config[] = { CHANNEL_MONO };
+      static const Channel config[] = {CHANNEL_MONO};
       return config;
     }
-    case 2: // STEREO
+    case 2:  // STEREO
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT };
+      static const Channel config[] = {CHANNEL_LEFT, CHANNEL_RIGHT};
       return config;
     }
-    case 3: // 3F
+    case 3:  // 3F
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER };
+      static const Channel config[] = {CHANNEL_LEFT, CHANNEL_RIGHT,
+                                       CHANNEL_CENTER};
       return config;
     }
-    case 4: // 2F2
+    case 4:  // 2F2
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_LS, CHANNEL_RS };
+      static const Channel config[] = {CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_LS,
+                                       CHANNEL_RS};
       return config;
     }
-    case 5: // 3F2
+    case 5:  // 3F2
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LS, CHANNEL_RS };
+      static const Channel config[] = {CHANNEL_LEFT, CHANNEL_RIGHT,
+                                       CHANNEL_CENTER, CHANNEL_LS, CHANNEL_RS};
       return config;
     }
-    case 6: // 3F2-LFE
+    case 6:  // 3F2-LFE
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LFE, CHANNEL_LS, CHANNEL_RS };
+      static const Channel config[] = {CHANNEL_LEFT,   CHANNEL_RIGHT,
+                                       CHANNEL_CENTER, CHANNEL_LFE,
+                                       CHANNEL_LS,     CHANNEL_RS};
       return config;
     }
-    case 7: // 3F3R-LFE
+    case 7:  // 3F3R-LFE
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LFE, CHANNEL_RCENTER, CHANNEL_LS, CHANNEL_RS };
+      static const Channel config[] = {
+          CHANNEL_LEFT,    CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LFE,
+          CHANNEL_RCENTER, CHANNEL_LS,    CHANNEL_RS};
       return config;
     }
-    case 8: // 3F4-LFE
+    case 8:  // 3F4-LFE
     {
-      static const Channel config[] = { CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LFE, CHANNEL_RLS, CHANNEL_RRS, CHANNEL_LS, CHANNEL_RS };
+      static const Channel config[] = {
+          CHANNEL_LEFT, CHANNEL_RIGHT, CHANNEL_CENTER, CHANNEL_LFE,
+          CHANNEL_RLS,  CHANNEL_RRS,   CHANNEL_LS,     CHANNEL_RS};
       return config;
     }
     default:
@@ -116,12 +120,9 @@ AudioConfig::ChannelLayout::SMPTEDefault(uint32_t aChannels) const
   }
 }
 
-bool
-AudioConfig::ChannelLayout::MappingTable(const ChannelLayout& aOther,
-                                         uint8_t* aMap) const
-{
-  if (!IsValid() || !aOther.IsValid() ||
-      Map() != aOther.Map()) {
+bool AudioConfig::ChannelLayout::MappingTable(const ChannelLayout& aOther,
+                                              uint8_t* aMap) const {
+  if (!IsValid() || !aOther.IsValid() || Map() != aOther.Map()) {
     return false;
   }
   if (!aMap) {
@@ -142,66 +143,84 @@ AudioConfig::ChannelLayout::MappingTable(const ChannelLayout& aOther,
  * AudioConfig::ChannelConfig
  */
 
-/* static */ const char*
-AudioConfig::FormatToString(AudioConfig::SampleFormat aFormat)
-{
+/* static */ const char* AudioConfig::FormatToString(
+    AudioConfig::SampleFormat aFormat) {
   switch (aFormat) {
-    case FORMAT_U8:     return "unsigned 8 bit";
-    case FORMAT_S16:    return "signed 16 bit";
-    case FORMAT_S24:    return "signed 24 bit MSB";
-    case FORMAT_S24LSB: return "signed 24 bit LSB";
-    case FORMAT_S32:    return "signed 32 bit";
-    case FORMAT_FLT:    return "32 bit floating point";
-    case FORMAT_NONE:   return "none";
-    default:            return "unknown";
+    case FORMAT_U8:
+      return "unsigned 8 bit";
+    case FORMAT_S16:
+      return "signed 16 bit";
+    case FORMAT_S24:
+      return "signed 24 bit MSB";
+    case FORMAT_S24LSB:
+      return "signed 24 bit LSB";
+    case FORMAT_S32:
+      return "signed 32 bit";
+    case FORMAT_FLT:
+      return "32 bit floating point";
+    case FORMAT_NONE:
+      return "none";
+    default:
+      return "unknown";
   }
 }
-/* static */ uint32_t
-AudioConfig::SampleSize(AudioConfig::SampleFormat aFormat)
-{
+/* static */ uint32_t AudioConfig::SampleSize(
+    AudioConfig::SampleFormat aFormat) {
   switch (aFormat) {
-    case FORMAT_U8:     return 1;
-    case FORMAT_S16:    return 2;
-    case FORMAT_S24:    MOZ_FALLTHROUGH;
-    case FORMAT_S24LSB: MOZ_FALLTHROUGH;
-    case FORMAT_S32:    MOZ_FALLTHROUGH;
-    case FORMAT_FLT:    return 4;
+    case FORMAT_U8:
+      return 1;
+    case FORMAT_S16:
+      return 2;
+    case FORMAT_S24:
+      MOZ_FALLTHROUGH;
+    case FORMAT_S24LSB:
+      MOZ_FALLTHROUGH;
+    case FORMAT_S32:
+      MOZ_FALLTHROUGH;
+    case FORMAT_FLT:
+      return 4;
     case FORMAT_NONE:
-    default:            return 0;
+    default:
+      return 0;
   }
 }
 
-/* static */ uint32_t
-AudioConfig::FormatToBits(AudioConfig::SampleFormat aFormat)
-{
+/* static */ uint32_t AudioConfig::FormatToBits(
+    AudioConfig::SampleFormat aFormat) {
   switch (aFormat) {
-    case FORMAT_U8:     return 8;
-    case FORMAT_S16:    return 16;
-    case FORMAT_S24LSB: MOZ_FALLTHROUGH;
-    case FORMAT_S24:    return 24;
-    case FORMAT_S32:    MOZ_FALLTHROUGH;
-    case FORMAT_FLT:    return 32;
-    case FORMAT_NONE:   MOZ_FALLTHROUGH;
-    default:            return 0;
+    case FORMAT_U8:
+      return 8;
+    case FORMAT_S16:
+      return 16;
+    case FORMAT_S24LSB:
+      MOZ_FALLTHROUGH;
+    case FORMAT_S24:
+      return 24;
+    case FORMAT_S32:
+      MOZ_FALLTHROUGH;
+    case FORMAT_FLT:
+      return 32;
+    case FORMAT_NONE:
+      MOZ_FALLTHROUGH;
+    default:
+      return 0;
   }
 }
 
 AudioConfig::AudioConfig(const ChannelLayout& aChannelLayout, uint32_t aRate,
                          AudioConfig::SampleFormat aFormat, bool aInterleaved)
-  : mChannelLayout(aChannelLayout)
-  , mChannels(aChannelLayout.Count())
-  , mRate(aRate)
-  , mFormat(aFormat)
-  , mInterleaved(aInterleaved)
-{}
+    : mChannelLayout(aChannelLayout),
+      mChannels(aChannelLayout.Count()),
+      mRate(aRate),
+      mFormat(aFormat),
+      mInterleaved(aInterleaved) {}
 
 AudioConfig::AudioConfig(uint32_t aChannels, uint32_t aRate,
                          AudioConfig::SampleFormat aFormat, bool aInterleaved)
-  : mChannelLayout(aChannels)
-  , mChannels(aChannels)
-  , mRate(aRate)
-  , mFormat(aFormat)
-  , mInterleaved(aInterleaved)
-{}
+    : mChannelLayout(aChannels),
+      mChannels(aChannels),
+      mRate(aRate),
+      mFormat(aFormat),
+      mInterleaved(aInterleaved) {}
 
-} // namespace mozilla
+}  // namespace mozilla

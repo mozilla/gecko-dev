@@ -11,27 +11,29 @@
 
 class nsSVGSwitchFrame;
 
-nsresult NS_NewSVGSwitchElement(nsIContent **aResult,
-                                already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGSwitchElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
 
 typedef SVGGraphicsElement SVGSwitchElementBase;
 
-class SVGSwitchElement final : public SVGSwitchElementBase
-{
+class SVGSwitchElement final : public SVGSwitchElementBase {
   friend class ::nsSVGSwitchFrame;
-protected:
-  friend nsresult (::NS_NewSVGSwitchElement(nsIContent **aResult,
-                                            already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  explicit SVGSwitchElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
-  ~SVGSwitchElement();
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-public:
-  nsIContent * GetActiveChild() const
-  { return mActiveChild; }
+ protected:
+  friend nsresult(::NS_NewSVGSwitchElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+  explicit SVGSwitchElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  ~SVGSwitchElement();
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+
+ public:
+  nsIContent* GetActiveChild() const { return mActiveChild; }
   void MaybeInvalidate();
 
   // interfaces:
@@ -50,18 +52,18 @@ public:
   // nsIContent
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
-private:
-  void UpdateActiveChild()
-  { mActiveChild = FindActiveChild(); }
+
+ private:
+  void UpdateActiveChild() { mActiveChild = FindActiveChild(); }
   nsIContent* FindActiveChild() const;
 
   // only this child will be displayed
   nsCOMPtr<nsIContent> mActiveChild;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGSwitchElement_h
+#endif  // mozilla_dom_SVGSwitchElement_h

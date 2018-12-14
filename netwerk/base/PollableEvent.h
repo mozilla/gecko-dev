@@ -13,9 +13,8 @@ namespace mozilla {
 namespace net {
 
 // class must be called locked
-class PollableEvent
-{
-public:
+class PollableEvent {
+ public:
   PollableEvent();
   ~PollableEvent();
 
@@ -26,13 +25,13 @@ public:
 
   PRFileDesc *PollableFD() { return mReadFD; }
 
-private:
+ private:
   PRFileDesc *mWriteFD;
   PRFileDesc *mReadFD;
-  bool        mSignaled;
+  bool mSignaled;
 };
 
-} // namespace net
-} // namespace mozilla
+}  // namespace net
+}  // namespace mozilla
 
 #endif

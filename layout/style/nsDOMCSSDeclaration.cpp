@@ -24,23 +24,17 @@
 
 using namespace mozilla;
 
-nsDOMCSSDeclaration::~nsDOMCSSDeclaration()
-{
-}
+nsDOMCSSDeclaration::~nsDOMCSSDeclaration() {}
 
-/* virtual */ JSObject*
-nsDOMCSSDeclaration::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+/* virtual */ JSObject* nsDOMCSSDeclaration::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::CSS2PropertiesBinding::Wrap(aCx, this, aGivenProto);
 }
 
-NS_IMPL_QUERY_INTERFACE(nsDOMCSSDeclaration,
-                        nsICSSDeclaration)
+NS_IMPL_QUERY_INTERFACE(nsDOMCSSDeclaration, nsICSSDeclaration)
 
-nsresult
-nsDOMCSSDeclaration::GetPropertyValue(const nsCSSPropertyID aPropID,
-                                      nsAString& aValue)
-{
+nsresult nsDOMCSSDeclaration::GetPropertyValue(const nsCSSPropertyID aPropID,
+                                               nsAString& aValue) {
   NS_PRECONDITION(aPropID != eCSSProperty_UNKNOWN,
                   "Should never pass eCSSProperty_UNKNOWN around");
 
@@ -51,11 +45,9 @@ nsDOMCSSDeclaration::GetPropertyValue(const nsCSSPropertyID aPropID,
   return NS_OK;
 }
 
-nsresult
-nsDOMCSSDeclaration::SetPropertyValue(const nsCSSPropertyID aPropID,
-                                      const nsAString& aValue,
-                                      nsIPrincipal* aSubjectPrincipal)
-{
+nsresult nsDOMCSSDeclaration::SetPropertyValue(
+    const nsCSSPropertyID aPropID, const nsAString& aValue,
+    nsIPrincipal* aSubjectPrincipal) {
   switch (aPropID) {
     case eCSSProperty_background_position:
     case eCSSProperty_background_position_x:
@@ -89,10 +81,7 @@ nsDOMCSSDeclaration::SetPropertyValue(const nsCSSPropertyID aPropID,
   return ParsePropertyValue(aPropID, aValue, false, aSubjectPrincipal);
 }
 
-
-void
-nsDOMCSSDeclaration::GetCssText(nsAString& aCssText)
-{
+void nsDOMCSSDeclaration::GetCssText(nsAString& aCssText) {
   DeclarationBlock* decl = GetCSSDeclaration(eOperation_Read);
   aCssText.Truncate();
 
@@ -101,11 +90,9 @@ nsDOMCSSDeclaration::GetCssText(nsAString& aCssText)
   }
 }
 
-void
-nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
-                                nsIPrincipal* aSubjectPrincipal,
-                                ErrorResult& aRv)
-{
+void nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
+                                     nsIPrincipal* aSubjectPrincipal,
+                                     ErrorResult& aRv) {
   // We don't need to *do* anything with the old declaration, but we need
   // to ensure that it exists, or else SetCSSDeclaration may crash.
   DeclarationBlock* olddecl = GetCSSDeclaration(eOperation_Modify);
@@ -123,15 +110,16 @@ nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
 
   RefPtr<DeclarationBlock> newdecl;
   if (olddecl->IsServo()) {
-    ServoCSSParsingEnvironment servoEnv = GetServoCSSParsingEnvironment(
-        aSubjectPrincipal);
+    ServoCSSParsingEnvironment servoEnv =
+        GetServoCSSParsingEnvironment(aSubjectPrincipal);
     if (!servoEnv.mUrlExtraData) {
       aRv.Throw(NS_ERROR_NOT_AVAILABLE);
       return;
     }
 
-    newdecl = ServoDeclarationBlock::FromCssText(aCssText, servoEnv.mUrlExtraData,
-                                                 servoEnv.mCompatMode, servoEnv.mLoader);
+    newdecl = ServoDeclarationBlock::FromCssText(
+        aCssText, servoEnv.mUrlExtraData, servoEnv.mCompatMode,
+        servoEnv.mLoader);
   } else {
 #ifdef MOZ_OLD_STYLE
     CSSParsingEnvironment geckoEnv;
@@ -145,9 +133,9 @@ nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
     decl->InitializeEmpty();
     nsCSSParser cssParser(geckoEnv.mCSSLoader);
     bool changed;
-    nsresult result = cssParser.ParseDeclarations(aCssText, geckoEnv.mSheetURI,
-                                                  geckoEnv.mBaseURI, geckoEnv.mPrincipal,
-                                                  decl, &changed);
+    nsresult result = cssParser.ParseDeclarations(
+        aCssText, geckoEnv.mSheetURI, geckoEnv.mBaseURI, geckoEnv.mPrincipal,
+        decl, &changed);
     if (NS_FAILED(result)) {
       aRv.Throw(result);
       return;
@@ -165,9 +153,7 @@ nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
   aRv = SetCSSDeclaration(newdecl);
 }
 
-uint32_t
-nsDOMCSSDeclaration::Length()
-{
+uint32_t nsDOMCSSDeclaration::Length() {
   DeclarationBlock* decl = GetCSSDeclaration(eOperation_Read);
 
   if (decl) {
@@ -177,25 +163,22 @@ nsDOMCSSDeclaration::Length()
   return 0;
 }
 
-already_AddRefed<dom::CSSValue>
-nsDOMCSSDeclaration::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorResult& aRv)
-{
+already_AddRefed<dom::CSSValue> nsDOMCSSDeclaration::GetPropertyCSSValue(
+    const nsAString& aPropertyName, ErrorResult& aRv) {
   // We don't support CSSValue yet so we'll just return null...
 
   return nullptr;
 }
 
-void
-nsDOMCSSDeclaration::IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName)
-{
+void nsDOMCSSDeclaration::IndexedGetter(uint32_t aIndex, bool& aFound,
+                                        nsAString& aPropName) {
   DeclarationBlock* decl = GetCSSDeclaration(eOperation_Read);
   aFound = decl && decl->GetNthProperty(aIndex, aPropName);
 }
 
 NS_IMETHODIMP
 nsDOMCSSDeclaration::GetPropertyValue(const nsAString& aPropertyName,
-                                      nsAString& aReturn)
-{
+                                      nsAString& aReturn) {
   aReturn.Truncate();
   if (DeclarationBlock* decl = GetCSSDeclaration(eOperation_Read)) {
     decl->GetPropertyValue(aPropertyName, aReturn);
@@ -203,10 +186,8 @@ nsDOMCSSDeclaration::GetPropertyValue(const nsAString& aPropertyName,
   return NS_OK;
 }
 
-void
-nsDOMCSSDeclaration::GetPropertyPriority(const nsAString& aPropertyName,
-                                         nsAString& aPriority)
-{
+void nsDOMCSSDeclaration::GetPropertyPriority(const nsAString& aPropertyName,
+                                              nsAString& aPriority) {
   DeclarationBlock* decl = GetCSSDeclaration(eOperation_Read);
 
   aPriority.Truncate();
@@ -219,8 +200,7 @@ NS_IMETHODIMP
 nsDOMCSSDeclaration::SetProperty(const nsAString& aPropertyName,
                                  const nsAString& aValue,
                                  const nsAString& aPriority,
-                                 nsIPrincipal* aSubjectPrincipal)
-{
+                                 nsIPrincipal* aSubjectPrincipal) {
   if (aValue.IsEmpty()) {
     // If the new value of the property is an empty string we remove the
     // property.
@@ -229,8 +209,8 @@ nsDOMCSSDeclaration::SetProperty(const nsAString& aPropertyName,
   }
 
   // In the common (and fast) cases we can use the property id
-  nsCSSPropertyID propID =
-    nsCSSProps::LookupProperty(aPropertyName, CSSEnabledState::eForAllContent);
+  nsCSSPropertyID propID = nsCSSProps::LookupProperty(
+      aPropertyName, CSSEnabledState::eForAllContent);
   if (propID == eCSSProperty_UNKNOWN) {
     return NS_OK;
   }
@@ -254,17 +234,14 @@ nsDOMCSSDeclaration::SetProperty(const nsAString& aPropertyName,
 
 NS_IMETHODIMP
 nsDOMCSSDeclaration::RemoveProperty(const nsAString& aPropertyName,
-                                    nsAString& aReturn)
-{
+                                    nsAString& aReturn) {
   nsresult rv = GetPropertyValue(aPropertyName, aReturn);
   NS_ENSURE_SUCCESS(rv, rv);
   return RemovePropertyInternal(aPropertyName);
 }
 
-/* static */ void
-nsDOMCSSDeclaration::GetCSSParsingEnvironmentForRule(css::Rule* aRule,
-                                                     CSSParsingEnvironment& aCSSParseEnv)
-{
+/* static */ void nsDOMCSSDeclaration::GetCSSParsingEnvironmentForRule(
+    css::Rule* aRule, CSSParsingEnvironment& aCSSParseEnv) {
   StyleSheet* sheet = aRule ? aRule->GetStyleSheet() : nullptr;
   if (!sheet) {
     aCSSParseEnv.mPrincipal = nullptr;
@@ -279,34 +256,32 @@ nsDOMCSSDeclaration::GetCSSParsingEnvironmentForRule(css::Rule* aRule,
 }
 
 /* static */ nsDOMCSSDeclaration::ServoCSSParsingEnvironment
-nsDOMCSSDeclaration::GetServoCSSParsingEnvironmentForRule(const css::Rule* aRule)
-{
+nsDOMCSSDeclaration::GetServoCSSParsingEnvironmentForRule(
+    const css::Rule* aRule) {
   StyleSheet* sheet = aRule ? aRule->GetStyleSheet() : nullptr;
   if (!sheet) {
-    return { nullptr, eCompatibility_FullStandards, nullptr };
+    return {nullptr, eCompatibility_FullStandards, nullptr};
   }
 
   if (nsIDocument* document = aRule->GetDocument()) {
     return {
-      sheet->AsServo()->URLData(),
-      document->GetCompatibilityMode(),
-      document->CSSLoader(),
+        sheet->AsServo()->URLData(),
+        document->GetCompatibilityMode(),
+        document->CSSLoader(),
     };
   }
 
   return {
-    sheet->AsServo()->URLData(),
-    eCompatibility_FullStandards,
-    nullptr,
+      sheet->AsServo()->URLData(),
+      eCompatibility_FullStandards,
+      nullptr,
   };
 }
 
-template<typename GeckoFunc, typename ServoFunc>
-nsresult
-nsDOMCSSDeclaration::ModifyDeclaration(nsIPrincipal* aSubjectPrincipal,
-                                       GeckoFunc aGeckoFunc,
-                                       ServoFunc aServoFunc)
-{
+template <typename GeckoFunc, typename ServoFunc>
+nsresult nsDOMCSSDeclaration::ModifyDeclaration(nsIPrincipal* aSubjectPrincipal,
+                                                GeckoFunc aGeckoFunc,
+                                                ServoFunc aServoFunc) {
   DeclarationBlock* olddecl = GetCSSDeclaration(eOperation_Modify);
   if (!olddecl) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -334,8 +309,8 @@ nsDOMCSSDeclaration::ModifyDeclaration(nsIPrincipal* aSubjectPrincipal,
     MOZ_CRASH("old style system disabled");
 #endif
   } else {
-    ServoCSSParsingEnvironment servoEnv = GetServoCSSParsingEnvironment(
-        aSubjectPrincipal);
+    ServoCSSParsingEnvironment servoEnv =
+        GetServoCSSParsingEnvironment(aSubjectPrincipal);
     if (!servoEnv.mUrlExtraData) {
       return NS_ERROR_NOT_AVAILABLE;
     }
@@ -350,67 +325,59 @@ nsDOMCSSDeclaration::ModifyDeclaration(nsIPrincipal* aSubjectPrincipal,
   return SetCSSDeclaration(decl);
 }
 
-nsresult
-nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSPropertyID aPropID,
-                                        const nsAString& aPropValue,
-                                        bool aIsImportant,
-                                        nsIPrincipal* aSubjectPrincipal)
-{
+nsresult nsDOMCSSDeclaration::ParsePropertyValue(
+    const nsCSSPropertyID aPropID, const nsAString& aPropValue,
+    bool aIsImportant, nsIPrincipal* aSubjectPrincipal) {
   return ModifyDeclaration(
-    aSubjectPrincipal,
-    [&](css::Declaration* decl, CSSParsingEnvironment& env, bool* changed) {
+      aSubjectPrincipal,
+      [&](css::Declaration* decl, CSSParsingEnvironment& env, bool* changed) {
 #ifdef MOZ_OLD_STYLE
-      nsCSSParser cssParser(env.mCSSLoader);
-      cssParser.ParseProperty(aPropID, aPropValue,
-                              env.mSheetURI, env.mBaseURI, env.mPrincipal,
-                              decl, changed, aIsImportant);
+        nsCSSParser cssParser(env.mCSSLoader);
+        cssParser.ParseProperty(aPropID, aPropValue, env.mSheetURI,
+                                env.mBaseURI, env.mPrincipal, decl, changed,
+                                aIsImportant);
 #else
-      MOZ_CRASH("old style system disabled");
+        MOZ_CRASH("old style system disabled");
 #endif
-    },
-    [&](ServoDeclarationBlock* decl, ServoCSSParsingEnvironment& env) {
-      NS_ConvertUTF16toUTF8 value(aPropValue);
-      return Servo_DeclarationBlock_SetPropertyById(
-        decl->Raw(), aPropID, &value, aIsImportant, env.mUrlExtraData,
-        ParsingMode::Default, env.mCompatMode, env.mLoader);
-    });
+      },
+      [&](ServoDeclarationBlock* decl, ServoCSSParsingEnvironment& env) {
+        NS_ConvertUTF16toUTF8 value(aPropValue);
+        return Servo_DeclarationBlock_SetPropertyById(
+            decl->Raw(), aPropID, &value, aIsImportant, env.mUrlExtraData,
+            ParsingMode::Default, env.mCompatMode, env.mLoader);
+      });
 }
 
-nsresult
-nsDOMCSSDeclaration::ParseCustomPropertyValue(const nsAString& aPropertyName,
-                                              const nsAString& aPropValue,
-                                              bool aIsImportant,
-                                              nsIPrincipal* aSubjectPrincipal)
-{
+nsresult nsDOMCSSDeclaration::ParseCustomPropertyValue(
+    const nsAString& aPropertyName, const nsAString& aPropValue,
+    bool aIsImportant, nsIPrincipal* aSubjectPrincipal) {
   MOZ_ASSERT(nsCSSProps::IsCustomPropertyName(aPropertyName));
   return ModifyDeclaration(
-    aSubjectPrincipal,
-    [&](css::Declaration* decl, CSSParsingEnvironment& env, bool* changed) {
+      aSubjectPrincipal,
+      [&](css::Declaration* decl, CSSParsingEnvironment& env, bool* changed) {
 #ifdef MOZ_OLD_STYLE
-      nsCSSParser cssParser(env.mCSSLoader);
-      auto propName = Substring(aPropertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
-      cssParser.ParseVariable(propName, aPropValue, env.mSheetURI,
-                              env.mBaseURI, env.mPrincipal, decl,
-                              changed, aIsImportant);
+        nsCSSParser cssParser(env.mCSSLoader);
+        auto propName = Substring(aPropertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
+        cssParser.ParseVariable(propName, aPropValue, env.mSheetURI,
+                                env.mBaseURI, env.mPrincipal, decl, changed,
+                                aIsImportant);
 #else
-      MOZ_CRASH("old style system disabled");
+        MOZ_CRASH("old style system disabled");
 #endif
-    },
-    [&](ServoDeclarationBlock* decl, ServoCSSParsingEnvironment& env) {
-      NS_ConvertUTF16toUTF8 property(aPropertyName);
-      NS_ConvertUTF16toUTF8 value(aPropValue);
-      return Servo_DeclarationBlock_SetProperty(
-        decl->Raw(), &property, &value, aIsImportant, env.mUrlExtraData,
-        ParsingMode::Default, env.mCompatMode, env.mLoader);
-    });
+      },
+      [&](ServoDeclarationBlock* decl, ServoCSSParsingEnvironment& env) {
+        NS_ConvertUTF16toUTF8 property(aPropertyName);
+        NS_ConvertUTF16toUTF8 value(aPropValue);
+        return Servo_DeclarationBlock_SetProperty(
+            decl->Raw(), &property, &value, aIsImportant, env.mUrlExtraData,
+            ParsingMode::Default, env.mCompatMode, env.mLoader);
+      });
 }
 
-nsresult
-nsDOMCSSDeclaration::RemovePropertyInternal(nsCSSPropertyID aPropID)
-{
+nsresult nsDOMCSSDeclaration::RemovePropertyInternal(nsCSSPropertyID aPropID) {
   DeclarationBlock* olddecl = GetCSSDeclaration(eOperation_RemoveProperty);
   if (!olddecl) {
-    return NS_OK; // no decl, so nothing to remove
+    return NS_OK;  // no decl, so nothing to remove
   }
 
   // For nsDOMCSSAttributeDeclaration, SetCSSDeclaration will lead to
@@ -427,12 +394,11 @@ nsDOMCSSDeclaration::RemovePropertyInternal(nsCSSPropertyID aPropID)
   return SetCSSDeclaration(decl);
 }
 
-nsresult
-nsDOMCSSDeclaration::RemovePropertyInternal(const nsAString& aPropertyName)
-{
+nsresult nsDOMCSSDeclaration::RemovePropertyInternal(
+    const nsAString& aPropertyName) {
   DeclarationBlock* olddecl = GetCSSDeclaration(eOperation_RemoveProperty);
   if (!olddecl) {
-    return NS_OK; // no decl, so nothing to remove
+    return NS_OK;  // no decl, so nothing to remove
   }
 
   // For nsDOMCSSAttributeDeclaration, SetCSSDeclaration will lead to

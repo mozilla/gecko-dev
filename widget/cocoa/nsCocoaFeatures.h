@@ -13,7 +13,7 @@
 /// support, we set it to the minimum supported version.  GetSystemVersion
 /// is the only call that returns the unadjusted values.
 class nsCocoaFeatures {
-public:
+ public:
   static int32_t OSXVersion();
   static int32_t OSXVersionMajor();
   static int32_t OSXVersionMinor();
@@ -24,19 +24,21 @@ public:
   static bool OnHighSierraOrLater();
   static bool OnMojaveOrLater();
 
-  static bool IsAtLeastVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix=0);
+  static bool IsAtLeastVersion(int32_t aMajor, int32_t aMinor,
+                               int32_t aBugFix = 0);
 
-  // These are utilities that do not change or depend on the value of mOSXVersion
-  // and instead just encapsulate the encoding algorithm.  Note that GetVersion
-  // actually adjusts to the lowest supported OS, so it will always return
-  // a "supported" version.  GetSystemVersion does not make any modifications.
+  // These are utilities that do not change or depend on the value of
+  // mOSXVersion and instead just encapsulate the encoding algorithm.  Note that
+  // GetVersion actually adjusts to the lowest supported OS, so it will always
+  // return a "supported" version.  GetSystemVersion does not make any
+  // modifications.
   static void GetSystemVersion(int &aMajor, int &aMinor, int &aBugFix);
   static int32_t GetVersion(int32_t aMajor, int32_t aMinor, int32_t aBugFix);
   static int32_t ExtractMajorVersion(int32_t aVersion);
   static int32_t ExtractMinorVersion(int32_t aVersion);
   static int32_t ExtractBugFixVersion(int32_t aVersion);
 
-private:
+ private:
   static void InitializeVersionNumbers();
 
   static int32_t mOSXVersion;
@@ -44,7 +46,7 @@ private:
 
 // C-callable helper for cairo-quartz-font.c
 extern "C" {
-    bool Gecko_OnSierraOrLater();
+bool Gecko_OnSierraOrLater();
 }
 
-#endif // nsCocoaFeatures_h_
+#endif  // nsCocoaFeatures_h_

@@ -18,13 +18,10 @@ namespace dom {
 NS_IMPL_ISUPPORTS(WindowsLocationProvider::MLSUpdate, nsIGeolocationUpdate);
 
 WindowsLocationProvider::MLSUpdate::MLSUpdate(nsIGeolocationUpdate* aCallback)
-: mCallback(aCallback)
-{
-}
+    : mCallback(aCallback) {}
 
 NS_IMETHODIMP
-WindowsLocationProvider::MLSUpdate::Update(nsIDOMGeoPosition *aPosition)
-{
+WindowsLocationProvider::MLSUpdate::Update(nsIDOMGeoPosition* aPosition) {
   if (!mCallback) {
     return NS_ERROR_FAILURE;
   }
@@ -38,20 +35,18 @@ WindowsLocationProvider::MLSUpdate::Update(nsIDOMGeoPosition *aPosition)
   return mCallback->Update(aPosition);
 }
 NS_IMETHODIMP
-WindowsLocationProvider::MLSUpdate::NotifyError(uint16_t aError)
-{
+WindowsLocationProvider::MLSUpdate::NotifyError(uint16_t aError) {
   if (!mCallback) {
     return NS_ERROR_FAILURE;
   }
   return mCallback->NotifyError(aError);
 }
 
-class LocationEvent final : public ILocationEvents
-{
-public:
-  LocationEvent(nsIGeolocationUpdate* aCallback, WindowsLocationProvider *aProvider)
-    : mCallback(aCallback), mProvider(aProvider), mCount(0) {
-  }
+class LocationEvent final : public ILocationEvents {
+ public:
+  LocationEvent(nsIGeolocationUpdate* aCallback,
+                WindowsLocationProvider* aProvider)
+      : mCallback(aCallback), mProvider(aProvider), mCount(0) {}
 
   // IUnknown interface
   STDMETHODIMP_(ULONG) AddRef() override;
@@ -62,23 +57,19 @@ public:
   STDMETHODIMP OnStatusChanged(REFIID aReportType,
                                LOCATION_REPORT_STATUS aStatus) override;
   STDMETHODIMP OnLocationChanged(REFIID aReportType,
-                                 ILocationReport *aReport) override;
+                                 ILocationReport* aReport) override;
 
-private:
+ private:
   nsCOMPtr<nsIGeolocationUpdate> mCallback;
   RefPtr<WindowsLocationProvider> mProvider;
   ULONG mCount;
 };
 
 STDMETHODIMP_(ULONG)
-LocationEvent::AddRef()
-{
-  return InterlockedIncrement(&mCount);
-}
+LocationEvent::AddRef() { return InterlockedIncrement(&mCount); }
 
 STDMETHODIMP_(ULONG)
-LocationEvent::Release()
-{
+LocationEvent::Release() {
   ULONG count = InterlockedDecrement(&mCount);
   if (!count) {
     delete this;
@@ -88,8 +79,7 @@ LocationEvent::Release()
 }
 
 STDMETHODIMP
-LocationEvent::QueryInterface(REFIID iid, void** ppv)
-{
+LocationEvent::QueryInterface(REFIID iid, void** ppv) {
   if (iid == IID_IUnknown) {
     *ppv = static_cast<IUnknown*>(this);
   } else if (iid == IID_ILocationEvents) {
@@ -101,11 +91,9 @@ LocationEvent::QueryInterface(REFIID iid, void** ppv)
   return S_OK;
 }
 
-
 STDMETHODIMP
 LocationEvent::OnStatusChanged(REFIID aReportType,
-                               LOCATION_REPORT_STATUS aStatus)
-{
+                               LOCATION_REPORT_STATUS aStatus) {
   if (aReportType != IID_ILatLongReport) {
     return S_OK;
   }
@@ -128,24 +116,22 @@ LocationEvent::OnStatusChanged(REFIID aReportType,
   // Location API.
   uint16_t err;
   switch (aStatus) {
-  case REPORT_ACCESS_DENIED:
-    err = nsIDOMGeoPositionError::PERMISSION_DENIED;
-    break;
-  case REPORT_NOT_SUPPORTED:
-  case REPORT_ERROR:
-    err = nsIDOMGeoPositionError::POSITION_UNAVAILABLE;
-    break;
-  default:
-    return S_OK;
+    case REPORT_ACCESS_DENIED:
+      err = nsIDOMGeoPositionError::PERMISSION_DENIED;
+      break;
+    case REPORT_NOT_SUPPORTED:
+    case REPORT_ERROR:
+      err = nsIDOMGeoPositionError::POSITION_UNAVAILABLE;
+      break;
+    default:
+      return S_OK;
   }
   mCallback->NotifyError(err);
   return S_OK;
 }
 
 STDMETHODIMP
-LocationEvent::OnLocationChanged(REFIID aReportType,
-                                 ILocationReport *aReport)
-{
+LocationEvent::OnLocationChanged(REFIID aReportType, ILocationReport* aReport) {
   if (aReportType != IID_ILatLongReport) {
     return S_OK;
   }
@@ -172,8 +158,8 @@ LocationEvent::OnLocationChanged(REFIID aReportType,
   latLongReport->GetAltitudeError(&verror);
 
   RefPtr<nsGeoPosition> position =
-    new nsGeoPosition(latitude, longitude, alt, herror, verror, 0.0, 0.0,
-                      PR_Now() / PR_USEC_PER_MSEC);
+      new nsGeoPosition(latitude, longitude, alt, herror, verror, 0.0, 0.0,
+                        PR_Now() / PR_USEC_PER_MSEC);
   mCallback->Update(position);
 
   Telemetry::Accumulate(Telemetry::GEOLOCATION_WIN8_SOURCE_IS_MLS, false);
@@ -183,26 +169,20 @@ LocationEvent::OnLocationChanged(REFIID aReportType,
 
 NS_IMPL_ISUPPORTS(WindowsLocationProvider, nsIGeolocationProvider)
 
-WindowsLocationProvider::WindowsLocationProvider()
-{
-}
+WindowsLocationProvider::WindowsLocationProvider() {}
 
-WindowsLocationProvider::~WindowsLocationProvider()
-{
-}
+WindowsLocationProvider::~WindowsLocationProvider() {}
 
 NS_IMETHODIMP
-WindowsLocationProvider::Startup()
-{
+WindowsLocationProvider::Startup() {
   RefPtr<ILocation> location;
   if (FAILED(::CoCreateInstance(CLSID_Location, nullptr, CLSCTX_INPROC_SERVER,
-                                IID_ILocation,
-                                getter_AddRefs(location)))) {
+                                IID_ILocation, getter_AddRefs(location)))) {
     // We will use MLS provider
     return NS_OK;
   }
 
-  IID reportTypes[] = { IID_ILatLongReport };
+  IID reportTypes[] = {IID_ILatLongReport};
   if (FAILED(location->RequestPermissions(nullptr, reportTypes, 1, FALSE))) {
     // We will use MLS provider
     return NS_OK;
@@ -213,8 +193,7 @@ WindowsLocationProvider::Startup()
 }
 
 NS_IMETHODIMP
-WindowsLocationProvider::Watch(nsIGeolocationUpdate* aCallback)
-{
+WindowsLocationProvider::Watch(nsIGeolocationUpdate* aCallback) {
   if (mLocation) {
     RefPtr<LocationEvent> event = new LocationEvent(aCallback, this);
     if (SUCCEEDED(mLocation->RegisterForReport(event, IID_ILatLongReport, 0))) {
@@ -229,8 +208,7 @@ WindowsLocationProvider::Watch(nsIGeolocationUpdate* aCallback)
 }
 
 NS_IMETHODIMP
-WindowsLocationProvider::Shutdown()
-{
+WindowsLocationProvider::Shutdown() {
   if (mLocation) {
     mLocation->UnregisterForReport(IID_ILatLongReport);
     mLocation = nullptr;
@@ -242,8 +220,7 @@ WindowsLocationProvider::Shutdown()
 }
 
 NS_IMETHODIMP
-WindowsLocationProvider::SetHighAccuracy(bool enable)
-{
+WindowsLocationProvider::SetHighAccuracy(bool enable) {
   if (!mLocation) {
     // MLS provider doesn't support HighAccuracy
     return NS_OK;
@@ -255,17 +232,15 @@ WindowsLocationProvider::SetHighAccuracy(bool enable)
   } else {
     desiredAccuracy = LOCATION_DESIRED_ACCURACY_DEFAULT;
   }
-  if (FAILED(mLocation->SetDesiredAccuracy(IID_ILatLongReport,
-                                           desiredAccuracy))) {
+  if (FAILED(
+          mLocation->SetDesiredAccuracy(IID_ILatLongReport, desiredAccuracy))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
-nsresult
-WindowsLocationProvider::CreateAndWatchMLSProvider(
-  nsIGeolocationUpdate* aCallback)
-{
+nsresult WindowsLocationProvider::CreateAndWatchMLSProvider(
+    nsIGeolocationUpdate* aCallback) {
   if (mMLSProvider) {
     return NS_OK;
   }
@@ -274,9 +249,7 @@ WindowsLocationProvider::CreateAndWatchMLSProvider(
   return mMLSProvider->Startup(new MLSUpdate(aCallback));
 }
 
-void
-WindowsLocationProvider::CancelMLSProvider()
-{
+void WindowsLocationProvider::CancelMLSProvider() {
   if (!mMLSProvider) {
     return;
   }
@@ -285,5 +258,5 @@ WindowsLocationProvider::CancelMLSProvider()
   mMLSProvider = nullptr;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

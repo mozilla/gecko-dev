@@ -58,7 +58,7 @@
 #include "nsHTMLDNSPrefetch.h"
 #include "nsHtml5Module.h"
 #include "nsHTMLTags.h"
-#include "nsIRDFContentSink.h"	// for RDF atom initialization
+#include "nsIRDFContentSink.h"  // for RDF atom initialization
 #include "mozilla/dom/FallbackEncoding.h"
 #include "nsFocusManager.h"
 #include "nsListControlFrame.h"
@@ -133,15 +133,12 @@ using namespace mozilla::dom::ipc;
 
 nsrefcnt nsLayoutStatics::sLayoutStaticRefcnt = 0;
 
-nsresult
-nsLayoutStatics::Initialize()
-{
-  NS_ASSERTION(sLayoutStaticRefcnt == 0,
-               "nsLayoutStatics isn't zero!");
+nsresult nsLayoutStatics::Initialize() {
+  NS_ASSERTION(sLayoutStaticRefcnt == 0, "nsLayoutStatics isn't zero!");
 
   sLayoutStaticRefcnt = 1;
-  NS_LOG_ADDREF(&sLayoutStaticRefcnt, sLayoutStaticRefcnt,
-                "nsLayoutStatics", 1);
+  NS_LOG_ADDREF(&sLayoutStaticRefcnt, sLayoutStaticRefcnt, "nsLayoutStatics",
+                1);
 
   nsresult rv;
 
@@ -325,11 +322,9 @@ nsLayoutStatics::Initialize()
   return NS_OK;
 }
 
-void
-nsLayoutStatics::Shutdown()
-{
-  // Don't need to shutdown nsWindowMemoryReporter, that will be done by the
-  // memory reporter manager.
+void nsLayoutStatics::Shutdown() {
+// Don't need to shutdown nsWindowMemoryReporter, that will be done by the
+// memory reporter manager.
 
 #ifdef MOZ_STYLO
   if (XRE_IsParentProcess() || XRE_IsContentProcess()) {

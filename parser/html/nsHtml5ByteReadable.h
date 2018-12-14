@@ -8,26 +8,21 @@
 /**
  * A weak reference wrapper around a byte array.
  */
-class nsHtml5ByteReadable
-{
-  public:
+class nsHtml5ByteReadable {
+ public:
+  nsHtml5ByteReadable(const uint8_t* aCurrent, const uint8_t* aEnd)
+      : current(aCurrent), end(aEnd) {}
 
-    nsHtml5ByteReadable(const uint8_t* aCurrent, const uint8_t* aEnd)
-     : current(aCurrent),
-       end(aEnd)
-    {
+  inline int32_t read() {
+    if (current < end) {
+      return *(current++);
+    } else {
+      return -1;
     }
+  }
 
-    inline int32_t read() {
-      if (current < end) {
-        return *(current++);
-      } else {
-        return -1;
-      }
-    }
-
-  private:
-    const uint8_t* current;
-    const uint8_t* end;
+ private:
+  const uint8_t* current;
+  const uint8_t* end;
 };
 #endif

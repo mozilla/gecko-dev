@@ -33,22 +33,22 @@ class imgRequestProxy;
 
 namespace mozilla {
 class AsyncEventDispatcher;
-} // namespace mozilla
+}  // namespace mozilla
 
 #ifdef LoadImage
 // Undefine LoadImage to prevent naming conflict with Windows.
 #undef LoadImage
 #endif
 
-class nsImageLoadingContent : public nsIImageLoadingContent
-{
-  template <typename T> using Maybe = mozilla::Maybe<T>;
+class nsImageLoadingContent : public nsIImageLoadingContent {
+  template <typename T>
+  using Maybe = mozilla::Maybe<T>;
   using Nothing = mozilla::Nothing;
   using OnNonvisible = mozilla::OnNonvisible;
   using Visibility = mozilla::Visibility;
 
   /* METHODS */
-public:
+ public:
   nsImageLoadingContent();
   virtual ~nsImageLoadingContent();
 
@@ -61,21 +61,17 @@ public:
   // the Web IDL bindings.
 
   bool LoadingEnabled() const { return mLoadingEnabled; }
-  int16_t ImageBlockingStatus() const
-  {
-    return mImageBlockingStatus;
-  }
+  int16_t ImageBlockingStatus() const { return mImageBlockingStatus; }
   void AddObserver(imgINotificationObserver* aObserver);
   void RemoveObserver(imgINotificationObserver* aObserver);
-  already_AddRefed<imgIRequest>
-    GetRequest(int32_t aRequestType, mozilla::ErrorResult& aError);
-  int32_t
-    GetRequestType(imgIRequest* aRequest, mozilla::ErrorResult& aError);
+  already_AddRefed<imgIRequest> GetRequest(int32_t aRequestType,
+                                           mozilla::ErrorResult& aError);
+  int32_t GetRequestType(imgIRequest* aRequest, mozilla::ErrorResult& aError);
   already_AddRefed<nsIURI> GetCurrentURI(mozilla::ErrorResult& aError);
   already_AddRefed<nsIURI> GetCurrentRequestFinalURI();
   void ForceReload(bool aNotify, mozilla::ErrorResult& aError);
 
-protected:
+ protected:
   enum ImageLoadType {
     // Most normal image loads
     eImageLoadType_Normal,
@@ -100,8 +96,8 @@ protected:
    * @param aTriggeringPrincipal Optional parameter specifying the triggering
    *        principal to use for the image load
    */
-  nsresult LoadImage(const nsAString& aNewURI, bool aForce,
-                     bool aNotify, ImageLoadType aImageLoadType,
+  nsresult LoadImage(const nsAString& aNewURI, bool aForce, bool aNotify,
+                     ImageLoadType aImageLoadType,
                      nsIPrincipal* aTriggeringPrincipal = nullptr);
 
   /**
@@ -143,11 +139,9 @@ protected:
 
   nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
                      ImageLoadType aImageLoadType,
-                     nsIPrincipal* aTriggeringPrincipal)
-  {
-    return LoadImage(aNewURI, aForce, aNotify, aImageLoadType,
-                     true, nullptr, nsIRequest::LOAD_NORMAL,
-                     aTriggeringPrincipal);
+                     nsIPrincipal* aTriggeringPrincipal) {
+    return LoadImage(aNewURI, aForce, aNotify, aImageLoadType, true, nullptr,
+                     nsIRequest::LOAD_NORMAL, aTriggeringPrincipal);
   }
 
   /**
@@ -221,7 +215,7 @@ protected:
 
   nsresult OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
   void OnUnlockedDraw();
-  nsresult OnImageIsAnimated(imgIRequest *aRequest);
+  nsresult OnImageIsAnimated(imgIRequest* aRequest);
 
   // The nsContentPolicyType we would use for this ImageLoadType
   static nsContentPolicyType PolicyTypeForLoad(ImageLoadType aImageLoadType);
@@ -232,7 +226,7 @@ protected:
   // want a non-const nsIContent.
   virtual nsIContent* AsContent() = 0;
 
-private:
+ private:
   /**
    * Struct used to manage the native image observers.
    */
@@ -248,7 +242,7 @@ private:
    * Struct used to manage the scripted/XPCOM image observers.
    */
   class ScriptedImageObserver final {
-  public:
+   public:
     NS_INLINE_DECL_REFCOUNTING(ScriptedImageObserver)
 
     ScriptedImageObserver(imgINotificationObserver* aObserver,
@@ -260,7 +254,7 @@ private:
     RefPtr<imgRequestProxy> mCurrentRequest;
     RefPtr<imgRequestProxy> mPendingRequest;
 
-  private:
+   private:
     ~ScriptedImageObserver();
   };
 
@@ -268,15 +262,11 @@ private:
    * Struct to report state changes
    */
   struct AutoStateChanger {
-    AutoStateChanger(nsImageLoadingContent* aImageContent,
-                     bool aNotify) :
-      mImageContent(aImageContent),
-      mNotify(aNotify)
-    {
+    AutoStateChanger(nsImageLoadingContent* aImageContent, bool aNotify)
+        : mImageContent(aImageContent), mNotify(aNotify) {
       mImageContent->mStateChangerDepth++;
     }
-    ~AutoStateChanger()
-    {
+    ~AutoStateChanger() {
       mImageContent->mStateChangerDepth--;
       mImageContent->UpdateImageState(mNotify);
     }
@@ -310,7 +300,7 @@ private:
 
   RefPtr<mozilla::AsyncEventDispatcher> mPendingEvent;
 
-protected:
+ protected:
   /**
    * Method to create an nsIURI object from the given string (will
    * handle getting the right charset, base, etc).  You MUST pass in a
@@ -333,7 +323,7 @@ protected:
    *
    * @param aImageLoadType The ImageLoadType for this request
    */
-   RefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType aImageLoadType);
+  RefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType aImageLoadType);
 
   /**
    * Returns a COMPtr reference to the current/pending image requests, cleaning
@@ -358,10 +348,12 @@ protected:
    * @param aNonvisibleAction An action to take if the image is no longer
    *                          visible as a result; see |UntrackImage|.
    */
-  void ClearCurrentRequest(nsresult aReason,
-                           const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
-  void ClearPendingRequest(nsresult aReason,
-                           const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
+  void ClearCurrentRequest(
+      nsresult aReason,
+      const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
+  void ClearPendingRequest(
+      nsresult aReason,
+      const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
 
   /**
    * Retrieve a pointer to the 'registered with the refresh driver' flag for
@@ -374,8 +366,9 @@ protected:
   bool* GetRegisteredFlagForRequest(imgIRequest* aRequest);
 
   /**
-   * Reset animation of the current request if |mNewRequestsWillNeedAnimationReset|
-   * was true when the request was prepared.
+   * Reset animation of the current request if
+   * |mNewRequestsWillNeedAnimationReset| was true when the request was
+   * prepared.
    */
   void ResetAnimationIfNeeded();
 
@@ -383,7 +376,7 @@ protected:
    * Static helper method to tell us if we have the size of a request. The
    * image may be null.
    */
-  static bool HaveSize(imgIRequest *aImage);
+  static bool HaveSize(imgIRequest* aImage);
 
   /**
    * Adds/Removes a given imgIRequest from our document's tracker.
@@ -426,9 +419,9 @@ protected:
   // still keep track of what the URI was despite not having an imgIRequest.
   // We only maintain this in those situations (in the common case, this is
   // always null).
-  nsCOMPtr<nsIURI>      mCurrentURI;
+  nsCOMPtr<nsIURI> mCurrentURI;
 
-private:
+ private:
   /**
    * Clones the given "current" or "pending" request for each scripted observer.
    */
@@ -489,7 +482,7 @@ private:
   bool mUserDisabled : 1;
   bool mSuppressed : 1;
 
-protected:
+ protected:
   /**
    * A hack to get animations to reset, see bug 594771. On requests
    * that originate from setting .src, we mark them for needing their animation
@@ -507,7 +500,8 @@ protected:
    * get the response ASAP for better user responsiveness.
    */
   bool mUseUrgentStartForChannel;
-private:
+
+ private:
   /* The number of nested AutoStateChangers currently tracking our state. */
   uint8_t mStateChangerDepth;
 
@@ -524,8 +518,9 @@ private:
   // If this is false, it means this call is from other places like
   // ServiceWorker, then we will ignore call to SetBlockedRequest for now.
   //
-  // Also we use this variable to check if some evil code is reentering LoadImage.
+  // Also we use this variable to check if some evil code is reentering
+  // LoadImage.
   bool mIsStartingImageLoad;
 };
 
-#endif // nsImageLoadingContent_h__
+#endif  // nsImageLoadingContent_h__

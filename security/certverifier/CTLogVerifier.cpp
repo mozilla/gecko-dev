@@ -15,7 +15,8 @@
 #include "pkix/pkixnss.h"
 #include "pkixutil.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
@@ -25,51 +26,41 @@ using namespace mozilla::pkix;
 // with SHA-256 are allowed.
 // RSA keys must be at least 2048 bits.
 // See See RFC 6962, Section 2.1.4.
-class SignatureParamsTrustDomain final : public TrustDomain
-{
-public:
+class SignatureParamsTrustDomain final : public TrustDomain {
+ public:
   SignatureParamsTrustDomain()
-    : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous)
-  {
-  }
+      : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous) {}
 
   Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input,
-                      TrustLevel&) override
-  {
+                      TrustLevel&) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result FindIssuer(Input, IssuerChecker&, Time) override
-  {
+  Result FindIssuer(Input, IssuerChecker&, Time) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
   Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         const Input*, const Input*) override
-  {
+                         const Input*, const Input*) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override
-  {
+  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result DigestBuf(Input, DigestAlgorithm, uint8_t*, size_t) override
-  {
+  Result DigestBuf(Input, DigestAlgorithm, uint8_t*, size_t) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
   Result CheckSignatureDigestAlgorithm(DigestAlgorithm, EndEntityOrCA,
-                                       Time) override
-  {
+                                       Time) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckECDSACurveIsAcceptable(EndEntityOrCA, NamedCurve curve) override
-  {
+  Result CheckECDSACurveIsAcceptable(EndEntityOrCA, NamedCurve curve) override {
     MOZ_ASSERT(mSignatureAlgorithm ==
-      DigitallySigned::SignatureAlgorithm::Anonymous);
+               DigitallySigned::SignatureAlgorithm::Anonymous);
     if (curve != NamedCurve::secp256r1) {
       return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
     }
@@ -77,17 +68,14 @@ public:
     return Success;
   }
 
-  Result VerifyECDSASignedDigest(const SignedDigest&, Input) override
-  {
+  Result VerifyECDSASignedDigest(const SignedDigest&, Input) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckRSAPublicKeyModulusSizeInBits(EndEntityOrCA,
-                                            unsigned int modulusSizeInBits)
-                                            override
-  {
+  Result CheckRSAPublicKeyModulusSizeInBits(
+      EndEntityOrCA, unsigned int modulusSizeInBits) override {
     MOZ_ASSERT(mSignatureAlgorithm ==
-      DigitallySigned::SignatureAlgorithm::Anonymous);
+               DigitallySigned::SignatureAlgorithm::Anonymous);
     // Require RSA keys of at least 2048 bits. See RFC 6962, Section 2.1.4.
     if (modulusSizeInBits < 2048) {
       return Result::ERROR_INADEQUATE_KEY_SIZE;
@@ -96,44 +84,33 @@ public:
     return Success;
   }
 
-  Result VerifyRSAPKCS1SignedDigest(const SignedDigest&, Input) override
-  {
+  Result VerifyRSAPKCS1SignedDigest(const SignedDigest&, Input) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
   Result CheckValidityIsAcceptable(Time, Time, EndEntityOrCA,
-                                   KeyPurposeId) override
-  {
+                                   KeyPurposeId) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result NetscapeStepUpMatchesServerAuth(Time, bool&) override
-  {
+  Result NetscapeStepUpMatchesServerAuth(Time, bool&) override {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  void NoteAuxiliaryExtension(AuxiliaryExtension, Input) override
-  {
-  }
+  void NoteAuxiliaryExtension(AuxiliaryExtension, Input) override {}
 
   DigitallySigned::SignatureAlgorithm mSignatureAlgorithm;
 };
 
-
 CTLogVerifier::CTLogVerifier()
-  : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous)
-  , mOperatorId(-1)
-  , mDisqualified(false)
-  , mDisqualificationTime(UINT64_MAX)
-{
-}
+    : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous),
+      mOperatorId(-1),
+      mDisqualified(false),
+      mDisqualificationTime(UINT64_MAX) {}
 
-Result
-CTLogVerifier::Init(Input subjectPublicKeyInfo,
-                    CTLogOperatorId operatorId,
-                    CTLogStatus logStatus,
-                    uint64_t disqualificationTime)
-{
+Result CTLogVerifier::Init(Input subjectPublicKeyInfo,
+                           CTLogOperatorId operatorId, CTLogStatus logStatus,
+                           uint64_t disqualificationTime) {
   switch (logStatus) {
     case CTLogStatus::Included:
       mDisqualified = false;
@@ -164,12 +141,10 @@ CTLogVerifier::Init(Input subjectPublicKeyInfo,
 
   if (mSignatureAlgorithm == DigitallySigned::SignatureAlgorithm::ECDSA) {
     SECItem spkiSECItem = {
-      siBuffer,
-      mSubjectPublicKeyInfo.begin(),
-      static_cast<unsigned int>(mSubjectPublicKeyInfo.length())
-    };
+        siBuffer, mSubjectPublicKeyInfo.begin(),
+        static_cast<unsigned int>(mSubjectPublicKeyInfo.length())};
     UniqueCERTSubjectPublicKeyInfo spki(
-      SECKEY_DecodeDERSubjectPublicKeyInfo(&spkiSECItem));
+        SECKEY_DecodeDERSubjectPublicKeyInfo(&spkiSECItem));
     if (!spki) {
       return MapPRErrorCodeToResult(PR_GetError());
     }
@@ -181,8 +156,8 @@ CTLogVerifier::Init(Input subjectPublicKeyInfo,
     if (!slot) {
       return MapPRErrorCodeToResult(PR_GetError());
     }
-    CK_OBJECT_HANDLE handle = PK11_ImportPublicKey(slot.get(),
-                                                   mPublicECKey.get(), false);
+    CK_OBJECT_HANDLE handle =
+        PK11_ImportPublicKey(slot.get(), mPublicECKey.get(), false);
     if (handle == CK_INVALID_HANDLE) {
       return MapPRErrorCodeToResult(PR_GetError());
     }
@@ -203,10 +178,8 @@ CTLogVerifier::Init(Input subjectPublicKeyInfo,
   return Success;
 }
 
-Result
-CTLogVerifier::Verify(const LogEntry& entry,
-                      const SignedCertificateTimestamp& sct)
-{
+Result CTLogVerifier::Verify(const LogEntry& entry,
+                             const SignedCertificateTimestamp& sct) {
   if (mKeyId.empty() || sct.logId != mKeyId) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
@@ -246,9 +219,7 @@ CTLogVerifier::Verify(const LogEntry& entry,
   return VerifySignature(serializedData, sct.signature.signatureData);
 }
 
-Result
-CTLogVerifier::VerifySignedTreeHead(const SignedTreeHead& sth)
-{
+Result CTLogVerifier::VerifySignedTreeHead(const SignedTreeHead& sth) {
   if (!SignatureParametersMatch(sth.signature)) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
@@ -261,17 +232,13 @@ CTLogVerifier::VerifySignedTreeHead(const SignedTreeHead& sth)
   return VerifySignature(serializedData, sth.signature.signatureData);
 }
 
-bool
-CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature)
-{
+bool CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature) {
   return signature.SignatureParametersMatch(
-    DigitallySigned::HashAlgorithm::SHA256, mSignatureAlgorithm);
+      DigitallySigned::HashAlgorithm::SHA256, mSignatureAlgorithm);
 }
 
-static Result
-FasterVerifyECDSASignedDigestNSS(const SignedDigest& sd,
-                                 UniqueSECKEYPublicKey& pubkey)
-{
+static Result FasterVerifyECDSASignedDigestNSS(const SignedDigest& sd,
+                                               UniqueSECKEYPublicKey& pubkey) {
   MOZ_ASSERT(pubkey);
   if (!pubkey) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
@@ -285,8 +252,8 @@ FasterVerifyECDSASignedDigestNSS(const SignedDigest& sd,
   if (signatureLen == 0) {
     return MapPRErrorCodeToResult(PR_GetError());
   }
-  UniqueSECItem signatureSECItem(DSAU_DecodeDerSigToLen(&derSignatureSECItem,
-                                                        signatureLen));
+  UniqueSECItem signatureSECItem(
+      DSAU_DecodeDerSigToLen(&derSignatureSECItem, signatureLen));
   if (!signatureSECItem) {
     return MapPRErrorCodeToResult(PR_GetError());
   }
@@ -300,12 +267,10 @@ FasterVerifyECDSASignedDigestNSS(const SignedDigest& sd,
   return Success;
 }
 
-Result
-CTLogVerifier::VerifySignature(Input data, Input signature)
-{
+Result CTLogVerifier::VerifySignature(Input data, Input signature) {
   uint8_t digest[SHA256_LENGTH];
-  Result rv = DigestBufNSS(data, DigestAlgorithm::sha256, digest,
-                           ArrayLength(digest));
+  Result rv =
+      DigestBufNSS(data, DigestAlgorithm::sha256, digest, ArrayLength(digest));
   if (rv != Success) {
     return rv;
   }
@@ -354,9 +319,8 @@ CTLogVerifier::VerifySignature(Input data, Input signature)
   return Success;
 }
 
-Result
-CTLogVerifier::VerifySignature(const Buffer& data, const Buffer& signature)
-{
+Result CTLogVerifier::VerifySignature(const Buffer& data,
+                                      const Buffer& signature) {
   Input dataInput;
   Result rv = BufferToInput(data, dataInput);
   if (rv != Success) {
@@ -370,4 +334,5 @@ CTLogVerifier::VerifySignature(const Buffer& data, const Buffer& signature)
   return VerifySignature(dataInput, signatureInput);
 }
 
-} } // namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

@@ -29,20 +29,14 @@ NS_INTERFACE_MAP_END
 
 MediaError::MediaError(HTMLMediaElement* aParent, uint16_t aCode,
                        const nsACString& aMessage)
-  : mParent(aParent)
-  , mCode(aCode)
-  , mMessage(aMessage)
-{
-}
+    : mParent(aParent), mCode(aCode), mMessage(aMessage) {}
 
-void
-MediaError::GetMessage(nsAString& aResult) const
-{
+void MediaError::GetMessage(nsAString& aResult) const {
   // When fingerprinting resistance is enabled, only messages in this list
   // can be returned to content script.
   static const std::unordered_set<std::string> whitelist = {
-    "404: Not Found"
-    // TODO
+      "404: Not Found"
+      // TODO
   };
 
   bool shouldBlank = (whitelist.find(mMessage.get()) == whitelist.end());
@@ -51,11 +45,12 @@ MediaError::GetMessage(nsAString& aResult) const
     // Print a warning message to JavaScript console to alert developers of
     // a non-whitelisted error message.
     nsAutoCString message =
-      NS_LITERAL_CSTRING(
-        "This error message will be blank when privacy.resistFingerprinting = true."
-        "  If it is really necessary, please add it to the whitelist in"
-        " MediaError::GetMessage: ") +
-      mMessage;
+        NS_LITERAL_CSTRING(
+            "This error message will be blank when "
+            "privacy.resistFingerprinting = true."
+            "  If it is really necessary, please add it to the whitelist in"
+            " MediaError::GetMessage: ") +
+        mMessage;
     nsIDocument* ownerDoc = mParent->OwnerDoc();
     AutoJSAPI api;
     if (api.Init(ownerDoc->GetScopeObject())) {
@@ -67,17 +62,13 @@ MediaError::GetMessage(nsAString& aResult) const
       // nsContentUtils::ReportToConsoleNonLocalized, which can only print to
       // JavaScript console.
       nsContentUtils::ReportToConsoleNonLocalized(
-        NS_ConvertASCIItoUTF16(message),
-        nsIScriptError::warningFlag,
-        NS_LITERAL_CSTRING("MediaError"),
-        ownerDoc
-      );
+          NS_ConvertASCIItoUTF16(message), nsIScriptError::warningFlag,
+          NS_LITERAL_CSTRING("MediaError"), ownerDoc);
     }
   }
 
   if (!nsContentUtils::IsCallerChrome() &&
-      nsContentUtils::ShouldResistFingerprinting() &&
-      shouldBlank) {
+      nsContentUtils::ShouldResistFingerprinting() && shouldBlank) {
     aResult.Truncate();
     return;
   }
@@ -85,11 +76,10 @@ MediaError::GetMessage(nsAString& aResult) const
   CopyUTF8toUTF16(mMessage, aResult);
 }
 
-JSObject*
-MediaError::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* MediaError::WrapObject(JSContext* aCx,
+                                 JS::Handle<JSObject*> aGivenProto) {
   return MediaErrorBinding::Wrap(aCx, this, aGivenProto);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

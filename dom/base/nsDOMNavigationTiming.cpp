@@ -22,20 +22,15 @@
 
 using namespace mozilla;
 
-nsDOMNavigationTiming::nsDOMNavigationTiming(nsDocShell* aDocShell)
-{
+nsDOMNavigationTiming::nsDOMNavigationTiming(nsDocShell* aDocShell) {
   Clear();
 
   mDocShell = aDocShell;
 }
 
-nsDOMNavigationTiming::~nsDOMNavigationTiming()
-{
-}
+nsDOMNavigationTiming::~nsDOMNavigationTiming() {}
 
-void
-nsDOMNavigationTiming::Clear()
-{
+void nsDOMNavigationTiming::Clear() {
   mNavigationType = TYPE_RESERVED;
   mNavigationStartHighRes = 0;
 
@@ -53,9 +48,7 @@ nsDOMNavigationTiming::Clear()
   mDocShellHasBeenActiveSinceNavigationStart = false;
 }
 
-DOMTimeMilliSec
-nsDOMNavigationTiming::TimeStampToDOM(TimeStamp aStamp) const
-{
+DOMTimeMilliSec nsDOMNavigationTiming::TimeStampToDOM(TimeStamp aStamp) const {
   if (aStamp.IsNull()) {
     return 0;
   }
@@ -64,54 +57,43 @@ nsDOMNavigationTiming::TimeStampToDOM(TimeStamp aStamp) const
   return GetNavigationStart() + static_cast<int64_t>(duration.ToMilliseconds());
 }
 
-void
-nsDOMNavigationTiming::NotifyNavigationStart(DocShellState aDocShellState)
-{
+void nsDOMNavigationTiming::NotifyNavigationStart(
+    DocShellState aDocShellState) {
   mNavigationStartHighRes = (double)PR_Now() / PR_USEC_PER_MSEC;
   mNavigationStart = TimeStamp::Now();
-  mDocShellHasBeenActiveSinceNavigationStart = (aDocShellState == DocShellState::eActive);
+  mDocShellHasBeenActiveSinceNavigationStart =
+      (aDocShellState == DocShellState::eActive);
   PROFILER_ADD_MARKER("Navigation::Start");
 }
 
-void
-nsDOMNavigationTiming::NotifyFetchStart(nsIURI* aURI, Type aNavigationType)
-{
+void nsDOMNavigationTiming::NotifyFetchStart(nsIURI* aURI,
+                                             Type aNavigationType) {
   mNavigationType = aNavigationType;
   // At the unload event time we don't really know the loading uri.
   // Need it for later check for unload timing access.
   mLoadedURI = aURI;
 }
 
-void
-nsDOMNavigationTiming::NotifyBeforeUnload()
-{
+void nsDOMNavigationTiming::NotifyBeforeUnload() {
   mBeforeUnloadStart = TimeStamp::Now();
 }
 
-void
-nsDOMNavigationTiming::NotifyUnloadAccepted(nsIURI* aOldURI)
-{
+void nsDOMNavigationTiming::NotifyUnloadAccepted(nsIURI* aOldURI) {
   mUnloadStart = mBeforeUnloadStart;
   mUnloadedURI = aOldURI;
 }
 
-void
-nsDOMNavigationTiming::NotifyUnloadEventStart()
-{
+void nsDOMNavigationTiming::NotifyUnloadEventStart() {
   mUnloadStart = TimeStamp::Now();
   PROFILER_TRACING("Navigation", "Unload", TRACING_INTERVAL_START);
 }
 
-void
-nsDOMNavigationTiming::NotifyUnloadEventEnd()
-{
+void nsDOMNavigationTiming::NotifyUnloadEventEnd() {
   mUnloadEnd = TimeStamp::Now();
   PROFILER_TRACING("Navigation", "Unload", TRACING_INTERVAL_END);
 }
 
-void
-nsDOMNavigationTiming::NotifyLoadEventStart()
-{
+void nsDOMNavigationTiming::NotifyLoadEventStart() {
   if (!mLoadEventStart.IsNull()) {
     return;
   }
@@ -123,26 +105,24 @@ nsDOMNavigationTiming::NotifyLoadEventStart()
     TimeStamp now = TimeStamp::Now();
 
     Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_LOAD_EVENT_START_MS,
-                                   mNavigationStart,
-                                   now);
+                                   mNavigationStart, now);
 
     if (mDocShellHasBeenActiveSinceNavigationStart) {
-      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(mNavigationStart)) {
-        Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_NETOPT_MS,
-                                       mNavigationStart,
-                                       now);
+      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(
+              mNavigationStart)) {
+        Telemetry::AccumulateTimeDelta(
+            Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_NETOPT_MS,
+            mNavigationStart, now);
       } else {
-        Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_MS,
-                                       mNavigationStart,
-                                       now);
+        Telemetry::AccumulateTimeDelta(
+            Telemetry::TIME_TO_LOAD_EVENT_START_ACTIVE_MS, mNavigationStart,
+            now);
       }
     }
   }
 }
 
-void
-nsDOMNavigationTiming::NotifyLoadEventEnd()
-{
+void nsDOMNavigationTiming::NotifyLoadEventEnd() {
   if (!mLoadEventEnd.IsNull()) {
     return;
   }
@@ -156,9 +136,8 @@ nsDOMNavigationTiming::NotifyLoadEventEnd()
   }
 }
 
-void
-nsDOMNavigationTiming::SetDOMLoadingTimeStamp(nsIURI* aURI, TimeStamp aValue)
-{
+void nsDOMNavigationTiming::SetDOMLoadingTimeStamp(nsIURI* aURI,
+                                                   TimeStamp aValue) {
   if (!mDOMLoading.IsNull()) {
     return;
   }
@@ -166,9 +145,7 @@ nsDOMNavigationTiming::SetDOMLoadingTimeStamp(nsIURI* aURI, TimeStamp aValue)
   mDOMLoading = aValue;
 }
 
-void
-nsDOMNavigationTiming::NotifyDOMLoading(nsIURI* aURI)
-{
+void nsDOMNavigationTiming::NotifyDOMLoading(nsIURI* aURI) {
   if (!mDOMLoading.IsNull()) {
     return;
   }
@@ -178,9 +155,7 @@ nsDOMNavigationTiming::NotifyDOMLoading(nsIURI* aURI)
   PROFILER_ADD_MARKER("Navigation::DOMLoading");
 }
 
-void
-nsDOMNavigationTiming::NotifyDOMInteractive(nsIURI* aURI)
-{
+void nsDOMNavigationTiming::NotifyDOMInteractive(nsIURI* aURI) {
   if (!mDOMInteractive.IsNull()) {
     return;
   }
@@ -190,9 +165,7 @@ nsDOMNavigationTiming::NotifyDOMInteractive(nsIURI* aURI)
   PROFILER_ADD_MARKER("Navigation::DOMInteractive");
 }
 
-void
-nsDOMNavigationTiming::NotifyDOMComplete(nsIURI* aURI)
-{
+void nsDOMNavigationTiming::NotifyDOMComplete(nsIURI* aURI) {
   if (!mDOMComplete.IsNull()) {
     return;
   }
@@ -202,9 +175,7 @@ nsDOMNavigationTiming::NotifyDOMComplete(nsIURI* aURI)
   PROFILER_ADD_MARKER("Navigation::DOMComplete");
 }
 
-void
-nsDOMNavigationTiming::NotifyDOMContentLoadedStart(nsIURI* aURI)
-{
+void nsDOMNavigationTiming::NotifyDOMContentLoadedStart(nsIURI* aURI) {
   if (!mDOMContentLoadedEventStart.IsNull()) {
     return;
   }
@@ -217,27 +188,25 @@ nsDOMNavigationTiming::NotifyDOMContentLoadedStart(nsIURI* aURI)
   if (IsTopLevelContentDocumentInContentProcess()) {
     TimeStamp now = TimeStamp::Now();
 
-    Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_MS,
-                                   mNavigationStart,
-                                   now);
+    Telemetry::AccumulateTimeDelta(
+        Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_MS, mNavigationStart, now);
 
     if (mDocShellHasBeenActiveSinceNavigationStart) {
-      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(mNavigationStart)) {
-        Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_NETOPT_MS,
-                                       mNavigationStart,
-                                       now);
+      if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(
+              mNavigationStart)) {
+        Telemetry::AccumulateTimeDelta(
+            Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_NETOPT_MS,
+            mNavigationStart, now);
       } else {
-        Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_MS,
-                                       mNavigationStart,
-                                       now);
+        Telemetry::AccumulateTimeDelta(
+            Telemetry::TIME_TO_DOM_CONTENT_LOADED_START_ACTIVE_MS,
+            mNavigationStart, now);
       }
     }
   }
 }
 
-void
-nsDOMNavigationTiming::NotifyDOMContentLoadedEnd(nsIURI* aURI)
-{
+void nsDOMNavigationTiming::NotifyDOMContentLoadedEnd(nsIURI* aURI) {
   if (!mDOMContentLoadedEventEnd.IsNull()) {
     return;
   }
@@ -253,9 +222,7 @@ nsDOMNavigationTiming::NotifyDOMContentLoadedEnd(nsIURI* aURI)
   }
 }
 
-void
-nsDOMNavigationTiming::NotifyNonBlankPaintForRootContentDocument()
-{
+void nsDOMNavigationTiming::NotifyNonBlankPaintForRootContentDocument() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mNavigationStart.IsNull());
 
@@ -274,38 +241,38 @@ nsDOMNavigationTiming::NotifyNonBlankPaintForRootContentDocument()
     }
     nsPrintfCString marker("Non-blank paint after %dms for URL %s, %s",
                            int(elapsed.ToMilliseconds()), spec.get(),
-                           mDocShellHasBeenActiveSinceNavigationStart ? "foreground tab" : "this tab was inactive some of the time between navigation start and first non-blank paint");
+                           mDocShellHasBeenActiveSinceNavigationStart
+                               ? "foreground tab"
+                               : "this tab was inactive some of the time "
+                                 "between navigation start and first non-blank "
+                                 "paint");
     profiler_add_marker(marker.get());
   }
 #endif
 
   if (mDocShellHasBeenActiveSinceNavigationStart) {
     if (net::nsHttp::IsBeforeLastActiveTabLoadOptimization(mNavigationStart)) {
-      Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_NON_BLANK_PAINT_NETOPT_MS,
-                                     mNavigationStart,
-                                     mNonBlankPaint);
+      Telemetry::AccumulateTimeDelta(
+          Telemetry::TIME_TO_NON_BLANK_PAINT_NETOPT_MS, mNavigationStart,
+          mNonBlankPaint);
     } else {
-      Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_NON_BLANK_PAINT_NO_NETOPT_MS,
-                                     mNavigationStart,
-                                     mNonBlankPaint);
+      Telemetry::AccumulateTimeDelta(
+          Telemetry::TIME_TO_NON_BLANK_PAINT_NO_NETOPT_MS, mNavigationStart,
+          mNonBlankPaint);
     }
 
     Telemetry::AccumulateTimeDelta(Telemetry::TIME_TO_NON_BLANK_PAINT_MS,
-                                   mNavigationStart,
-                                   mNonBlankPaint);
+                                   mNavigationStart, mNonBlankPaint);
   }
 }
 
-void
-nsDOMNavigationTiming::NotifyDocShellStateChanged(DocShellState aDocShellState)
-{
+void nsDOMNavigationTiming::NotifyDocShellStateChanged(
+    DocShellState aDocShellState) {
   mDocShellHasBeenActiveSinceNavigationStart &=
-    (aDocShellState == DocShellState::eActive);
+      (aDocShellState == DocShellState::eActive);
 }
 
-mozilla::TimeStamp
-nsDOMNavigationTiming::GetUnloadEventStartTimeStamp() const
-{
+mozilla::TimeStamp nsDOMNavigationTiming::GetUnloadEventStartTimeStamp() const {
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   nsresult rv = ssm->CheckSameOriginURI(mLoadedURI, mUnloadedURI, false);
   if (NS_SUCCEEDED(rv)) {
@@ -314,9 +281,7 @@ nsDOMNavigationTiming::GetUnloadEventStartTimeStamp() const
   return mozilla::TimeStamp();
 }
 
-mozilla::TimeStamp
-nsDOMNavigationTiming::GetUnloadEventEndTimeStamp() const
-{
+mozilla::TimeStamp nsDOMNavigationTiming::GetUnloadEventEndTimeStamp() const {
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   nsresult rv = ssm->CheckSameOriginURI(mLoadedURI, mUnloadedURI, false);
   if (NS_SUCCEEDED(rv)) {
@@ -325,9 +290,7 @@ nsDOMNavigationTiming::GetUnloadEventEndTimeStamp() const
   return mozilla::TimeStamp();
 }
 
-bool
-nsDOMNavigationTiming::IsTopLevelContentDocumentInContentProcess() const
-{
+bool nsDOMNavigationTiming::IsTopLevelContentDocumentInContentProcess() const {
   if (!mDocShell) {
     return false;
   }

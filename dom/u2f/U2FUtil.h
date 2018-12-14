@@ -10,10 +10,8 @@
 namespace mozilla {
 namespace dom {
 
-static nsresult
-HashCString(nsICryptoHash* aHashService, const nsACString& aIn,
-            /* out */ CryptoBuffer& aOut)
-{
+static nsresult HashCString(nsICryptoHash* aHashService, const nsACString& aIn,
+                            /* out */ CryptoBuffer& aOut) {
   MOZ_ASSERT(aHashService);
 
   nsresult rv = aHashService->Init(nsICryptoHash::SHA256);
@@ -22,7 +20,7 @@ HashCString(nsICryptoHash* aHashService, const nsACString& aIn,
   }
 
   rv = aHashService->Update(
-    reinterpret_cast<const uint8_t*>(aIn.BeginReading()), aIn.Length());
+      reinterpret_cast<const uint8_t*>(aIn.BeginReading()), aIn.Length());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -39,8 +37,7 @@ HashCString(nsICryptoHash* aHashService, const nsACString& aIn,
   return rv;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_U2FUtil_h
-
+#endif  // mozilla_dom_U2FUtil_h

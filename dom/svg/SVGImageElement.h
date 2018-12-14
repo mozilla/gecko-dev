@@ -13,8 +13,8 @@
 #include "SVGGeometryElement.h"
 #include "SVGAnimatedPreserveAspectRatio.h"
 
-nsresult NS_NewSVGImageElement(nsIContent **aResult,
-                               already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
+nsresult NS_NewSVGImageElement(
+    nsIContent** aResult, already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
 class nsSVGImageFrame;
 
@@ -25,18 +25,19 @@ class DOMSVGAnimatedPreserveAspectRatio;
 typedef SVGGeometryElement SVGImageElementBase;
 
 class SVGImageElement : public SVGImageElementBase,
-                        public nsImageLoadingContent
-{
+                        public nsImageLoadingContent {
   friend class ::nsSVGImageFrame;
 
-protected:
+ protected:
   explicit SVGImageElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
   virtual ~SVGImageElement();
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
-  friend nsresult (::NS_NewSVGImageElement(nsIContent **aResult,
-                                           already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+  friend nsresult(::NS_NewSVGImageElement(
+      nsIContent** aResult,
+      already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
 
-public:
+ public:
   // interfaces:
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -60,15 +61,16 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* name) const override;
 
   // SVGGeometryElement methods:
-  virtual bool GetGeometryBounds(Rect* aBounds, const StrokeOptions& aStrokeOptions,
-                                 const Matrix& aToBoundsSpace,
-                                 const Matrix* aToNonScalingStrokeSpace = nullptr) override;
+  virtual bool GetGeometryBounds(
+      Rect* aBounds, const StrokeOptions& aStrokeOptions,
+      const Matrix& aToBoundsSpace,
+      const Matrix* aToNonScalingStrokeSpace = nullptr) override;
   virtual already_AddRefed<Path> BuildPath(PathBuilder* aBuilder) override;
 
   // nsSVGSVGElement methods:
   virtual bool HasValidDimensions() const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   nsresult CopyInnerTo(mozilla::dom::Element* aDest, bool aPreallocateChildren);
@@ -83,11 +85,11 @@ public:
   already_AddRefed<DOMSVGAnimatedPreserveAspectRatio> PreserveAspectRatio();
   already_AddRefed<SVGAnimatedString> Href();
 
-protected:
+ protected:
   nsresult LoadSVGImage(bool aForce, bool aNotify);
 
   virtual LengthAttributesInfo GetLengthInfo() override;
-  virtual SVGAnimatedPreserveAspectRatio *GetPreserveAspectRatio() override;
+  virtual SVGAnimatedPreserveAspectRatio* GetPreserveAspectRatio() override;
   virtual StringAttributesInfo GetStringInfo() override;
 
   // Override for nsImageLoadingContent.
@@ -104,7 +106,7 @@ protected:
   static StringInfo sStringInfo[2];
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_SVGImageElement_h
+#endif  // mozilla_dom_SVGImageElement_h

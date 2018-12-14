@@ -21,8 +21,7 @@ static const char* mpfLogTag = "MediaPipelineFilter";
 
 namespace mozilla {
 
-MediaPipelineFilter::MediaPipelineFilter() : correlator_(0) {
-}
+MediaPipelineFilter::MediaPipelineFilter() : correlator_(0) {}
 
 bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header,
                                  uint32_t correlator) {
@@ -39,14 +38,12 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header,
     return false;
   }
 
-  if (!header.extension.rtpStreamId.empty() &&
-      !remote_rid_set_.empty() &&
+  if (!header.extension.rtpStreamId.empty() && !remote_rid_set_.empty() &&
       remote_rid_set_.count(header.extension.rtpStreamId.data())) {
     return true;
   }
   if (!header.extension.rtpStreamId.empty()) {
-    CSFLogDebug(LOGTAG,
-                "MediaPipelineFilter ignoring seq# %u ssrc: %u RID: %s",
+    CSFLogDebug(LOGTAG, "MediaPipelineFilter ignoring seq# %u ssrc: %u RID: %s",
                 header.sequenceNumber, header.ssrc,
                 header.extension.rtpStreamId.data());
   }
@@ -94,10 +91,8 @@ void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update) {
   correlator_ = filter_update.correlator_;
 }
 
-bool
-MediaPipelineFilter::FilterSenderReport(const unsigned char* data,
-                                        size_t len) const {
-
+bool MediaPipelineFilter::FilterSenderReport(const unsigned char* data,
+                                             size_t len) const {
   if (!data) {
     return false;
   }
@@ -122,5 +117,4 @@ MediaPipelineFilter::FilterSenderReport(const unsigned char* data,
   return !!remote_ssrc_set_.count(ssrc);
 }
 
-} // end namespace mozilla
-
+}  // end namespace mozilla

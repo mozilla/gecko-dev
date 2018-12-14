@@ -20,14 +20,10 @@ namespace dom {
 NS_IMPL_ISUPPORTS(PaymentRequestParent, nsIPaymentActionCallback)
 
 PaymentRequestParent::PaymentRequestParent(uint64_t aTabId)
-  : mActorAlived(true)
-  , mTabId(aTabId)
-{
-}
+    : mActorAlived(true), mTabId(aTabId) {}
 
-mozilla::ipc::IPCResult
-PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest)
-{
+mozilla::ipc::IPCResult PaymentRequestParent::RecvRequestPayment(
+    const IPCPaymentActionRequest& aRequest) {
   if (!mActorAlived) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -39,7 +35,8 @@ PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest
     case IPCPaymentActionRequest::TIPCPaymentCreateActionRequest: {
       const IPCPaymentCreateActionRequest& request = aRequest;
 
-      nsCOMPtr<nsIMutableArray> methodData = do_CreateInstance(NS_ARRAY_CONTRACTID);
+      nsCOMPtr<nsIMutableArray> methodData =
+          do_CreateInstance(NS_ARRAY_CONTRACTID);
       MOZ_ASSERT(methodData);
       for (IPCPaymentMethodData data : request.methodData()) {
         nsCOMPtr<nsIPaymentMethodData> method;
@@ -54,29 +51,27 @@ PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest
       }
 
       nsCOMPtr<nsIPaymentDetails> details;
-      rv = payments::PaymentDetails::Create(request.details(), getter_AddRefs(details));
+      rv = payments::PaymentDetails::Create(request.details(),
+                                            getter_AddRefs(details));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return IPC_FAIL_NO_REASON(this);
       }
 
       nsCOMPtr<nsIPaymentOptions> options;
-      rv = payments::PaymentOptions::Create(request.options(), getter_AddRefs(options));
+      rv = payments::PaymentOptions::Create(request.options(),
+                                            getter_AddRefs(options));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return IPC_FAIL_NO_REASON(this);
       }
 
       nsCOMPtr<nsIPaymentCreateActionRequest> createAction =
-        do_CreateInstance(NS_PAYMENT_CREATE_ACTION_REQUEST_CONTRACT_ID);
+          do_CreateInstance(NS_PAYMENT_CREATE_ACTION_REQUEST_CONTRACT_ID);
       if (NS_WARN_IF(!createAction)) {
         return IPC_FAIL_NO_REASON(this);
       }
-      rv = createAction->InitRequest(request.requestId(),
-                                     callback,
-                                     mTabId,
-                                     request.topLevelPrincipal(),
-                                     methodData,
-                                     details,
-                                     options);
+      rv = createAction->InitRequest(request.requestId(), callback, mTabId,
+                                     request.topLevelPrincipal(), methodData,
+                                     details, options);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return IPC_FAIL_NO_REASON(this);
       }
@@ -118,9 +113,8 @@ PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest
     case IPCPaymentActionRequest::TIPCPaymentCompleteActionRequest: {
       const IPCPaymentCompleteActionRequest& request = aRequest;
       nsCOMPtr<nsIPaymentCompleteActionRequest> completeAction =
-        do_CreateInstance(NS_PAYMENT_COMPLETE_ACTION_REQUEST_CONTRACT_ID);
-      rv = completeAction->InitRequest(request.requestId(),
-                                       callback,
+          do_CreateInstance(NS_PAYMENT_COMPLETE_ACTION_REQUEST_CONTRACT_ID);
+      rv = completeAction->InitRequest(request.requestId(), callback,
                                        request.completeStatus());
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return IPC_FAIL_NO_REASON(this);
@@ -133,26 +127,23 @@ PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest
       const IPCPaymentUpdateActionRequest& request = aRequest;
 
       nsCOMPtr<nsIPaymentDetails> details;
-      rv = payments::PaymentDetails::Create(request.details(), getter_AddRefs(details));
+      rv = payments::PaymentDetails::Create(request.details(),
+                                            getter_AddRefs(details));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return IPC_FAIL_NO_REASON(this);
       }
 
       nsCOMPtr<nsIPaymentUpdateActionRequest> updateAction =
-        do_CreateInstance(NS_PAYMENT_UPDATE_ACTION_REQUEST_CONTRACT_ID);
-      rv = updateAction->InitRequest(request.requestId(),
-                                     callback,
-                                     details);
+          do_CreateInstance(NS_PAYMENT_UPDATE_ACTION_REQUEST_CONTRACT_ID);
+      rv = updateAction->InitRequest(request.requestId(), callback, details);
       action = do_QueryInterface(updateAction);
       MOZ_ASSERT(action);
       break;
     }
-    default: {
-      return IPC_FAIL(this, "Unexpected request type");
-    }
+    default: { return IPC_FAIL(this, "Unexpected request type"); }
   }
   nsCOMPtr<nsIPaymentRequestService> service =
-    do_GetService(NS_PAYMENT_REQUEST_SERVICE_CONTRACT_ID);
+      do_GetService(NS_PAYMENT_REQUEST_SERVICE_CONTRACT_ID);
   MOZ_ASSERT(service);
   rv = service->RequestPayment(action);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -162,17 +153,14 @@ PaymentRequestParent::RecvRequestPayment(const IPCPaymentActionRequest& aRequest
 }
 
 NS_IMETHODIMP
-PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
-{
+PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse) {
   if (!NS_IsMainThread()) {
     nsCOMPtr<nsIPaymentActionCallback> self = do_QueryInterface(this);
     MOZ_ASSERT(self);
     nsCOMPtr<nsIPaymentActionResponse> response = aResponse;
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction("PaymentRequestParent::RespondPayment",
-                                                     [self, response] ()
-    {
-      self->RespondPayment(response);
-    });
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+        "PaymentRequestParent::RespondPayment",
+        [self, response]() { self->RespondPayment(response); });
     return NS_DispatchToMainThread(r);
   }
 
@@ -187,7 +175,8 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
   NS_ENSURE_SUCCESS(rv, rv);
   switch (type) {
     case nsIPaymentActionResponse::CANMAKE_ACTION: {
-      nsCOMPtr<nsIPaymentCanMakeActionResponse> response = do_QueryInterface(aResponse);
+      nsCOMPtr<nsIPaymentCanMakeActionResponse> response =
+          do_QueryInterface(aResponse);
       MOZ_ASSERT(response);
       bool result;
       rv = response->GetResult(&result);
@@ -200,10 +189,11 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
     }
     case nsIPaymentActionResponse::SHOW_ACTION: {
       nsCOMPtr<nsIPaymentShowActionResponse> response =
-        do_QueryInterface(aResponse);
+          do_QueryInterface(aResponse);
       MOZ_ASSERT(response);
       uint32_t acceptStatus;
-      NS_ENSURE_SUCCESS(response->GetAcceptStatus(&acceptStatus), NS_ERROR_FAILURE);
+      NS_ENSURE_SUCCESS(response->GetAcceptStatus(&acceptStatus),
+                        NS_ERROR_FAILURE);
       nsAutoString methodName;
       NS_ENSURE_SUCCESS(response->GetMethodName(methodName), NS_ERROR_FAILURE);
       nsAutoString data;
@@ -214,13 +204,9 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
       NS_ENSURE_SUCCESS(response->GetPayerEmail(payerEmail), NS_ERROR_FAILURE);
       nsAutoString payerPhone;
       NS_ENSURE_SUCCESS(response->GetPayerPhone(payerPhone), NS_ERROR_FAILURE);
-      IPCPaymentShowActionResponse actionResponse(requestId,
-                                                  acceptStatus,
-                                                  methodName,
-                                                  data,
-                                                  payerName,
-                                                  payerEmail,
-                                                  payerPhone);
+      IPCPaymentShowActionResponse actionResponse(requestId, acceptStatus,
+                                                  methodName, data, payerName,
+                                                  payerEmail, payerPhone);
       if (!SendRespondPayment(actionResponse)) {
         return NS_ERROR_FAILURE;
       }
@@ -228,7 +214,7 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
     }
     case nsIPaymentActionResponse::ABORT_ACTION: {
       nsCOMPtr<nsIPaymentAbortActionResponse> response =
-        do_QueryInterface(aResponse);
+          do_QueryInterface(aResponse);
       MOZ_ASSERT(response);
       bool isSucceeded;
       rv = response->IsSucceeded(&isSucceeded);
@@ -241,7 +227,7 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
     }
     case nsIPaymentActionResponse::COMPLETE_ACTION: {
       nsCOMPtr<nsIPaymentCompleteActionResponse> response =
-        do_QueryInterface(aResponse);
+          do_QueryInterface(aResponse);
       MOZ_ASSERT(response);
       bool isCompleted;
       rv = response->IsCompleted(&isCompleted);
@@ -252,26 +238,23 @@ PaymentRequestParent::RespondPayment(nsIPaymentActionResponse* aResponse)
       }
       break;
     }
-    default: {
-      return NS_ERROR_FAILURE;
-    }
+    default: { return NS_ERROR_FAILURE; }
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
 PaymentRequestParent::ChangeShippingAddress(const nsAString& aRequestId,
-                                            nsIPaymentAddress* aAddress)
-{
+                                            nsIPaymentAddress* aAddress) {
   if (!NS_IsMainThread()) {
     nsCOMPtr<nsIPaymentActionCallback> self = this;
     nsCOMPtr<nsIPaymentAddress> address = aAddress;
     nsAutoString requestId(aRequestId);
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction("dom::PaymentRequestParent::ChangeShippingAddress",
-                                                     [self, requestId, address] ()
-    {
-      self->ChangeShippingAddress(requestId, address);
-    });
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+        "dom::PaymentRequestParent::ChangeShippingAddress",
+        [self, requestId, address]() {
+          self->ChangeShippingAddress(requestId, address);
+        });
     return NS_DispatchToMainThread(r);
   }
   if (!mActorAlived) {
@@ -326,7 +309,8 @@ PaymentRequestParent::ChangeShippingAddress(const nsAString& aRequestId,
   rv = iaddressLine->GetLength(&length);
   NS_ENSURE_SUCCESS(rv, rv);
   for (uint32_t index = 0; index < length; ++index) {
-    nsCOMPtr<nsISupportsString> iaddress = do_QueryElementAt(iaddressLine, index);
+    nsCOMPtr<nsISupportsString> iaddress =
+        do_QueryElementAt(iaddressLine, index);
     MOZ_ASSERT(iaddress);
     nsAutoString address;
     rv = iaddress->GetData(address);
@@ -347,17 +331,16 @@ PaymentRequestParent::ChangeShippingAddress(const nsAString& aRequestId,
 
 NS_IMETHODIMP
 PaymentRequestParent::ChangeShippingOption(const nsAString& aRequestId,
-                                           const nsAString& aOption)
-{
+                                           const nsAString& aOption) {
   if (!NS_IsMainThread()) {
     nsCOMPtr<nsIPaymentActionCallback> self = this;
     nsAutoString requestId(aRequestId);
     nsAutoString option(aOption);
-    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction("dom::PaymentRequestParent::ChangeShippingOption",
-                                                     [self, requestId, option] ()
-    {
-      self->ChangeShippingOption(requestId, option);
-    });
+    nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+        "dom::PaymentRequestParent::ChangeShippingOption",
+        [self, requestId, option]() {
+          self->ChangeShippingOption(requestId, option);
+        });
     return NS_DispatchToMainThread(r);
   }
   if (!mActorAlived) {
@@ -371,19 +354,15 @@ PaymentRequestParent::ChangeShippingOption(const nsAString& aRequestId,
   return NS_OK;
 }
 
-mozilla::ipc::IPCResult
-PaymentRequestParent::Recv__delete__()
-{
+mozilla::ipc::IPCResult PaymentRequestParent::Recv__delete__() {
   mActorAlived = false;
   return IPC_OK();
 }
 
-void
-PaymentRequestParent::ActorDestroy(ActorDestroyReason aWhy)
-{
+void PaymentRequestParent::ActorDestroy(ActorDestroyReason aWhy) {
   mActorAlived = false;
   nsCOMPtr<nsIPaymentRequestService> service =
-    do_GetService(NS_PAYMENT_REQUEST_SERVICE_CONTRACT_ID);
+      do_GetService(NS_PAYMENT_REQUEST_SERVICE_CONTRACT_ID);
   MOZ_ASSERT(service);
   nsCOMPtr<nsIPaymentActionCallback> callback = do_QueryInterface(this);
   MOZ_ASSERT(callback);
@@ -393,14 +372,12 @@ PaymentRequestParent::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-nsresult
-PaymentRequestParent::CreateActionRequest(const nsAString& aRequestId,
-                                          uint32_t aActionType,
-                                          nsIPaymentActionRequest** aAction)
-{
+nsresult PaymentRequestParent::CreateActionRequest(
+    const nsAString& aRequestId, uint32_t aActionType,
+    nsIPaymentActionRequest** aAction) {
   NS_ENSURE_ARG_POINTER(aAction);
   nsCOMPtr<nsIPaymentActionRequest> action =
-    do_CreateInstance(NS_PAYMENT_ACTION_REQUEST_CONTRACT_ID);
+      do_CreateInstance(NS_PAYMENT_ACTION_REQUEST_CONTRACT_ID);
   MOZ_ASSERT(action);
   nsCOMPtr<nsIPaymentActionCallback> callback = do_QueryInterface(this);
   MOZ_ASSERT(callback);
@@ -412,5 +389,5 @@ PaymentRequestParent::CreateActionRequest(const nsAString& aRequestId,
   return NS_OK;
 }
 
-} // end of namespace dom
-} // end of namespace mozilla
+}  // end of namespace dom
+}  // end of namespace mozilla

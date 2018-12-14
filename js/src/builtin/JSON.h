@@ -16,28 +16,24 @@
 namespace js {
 class StringBuffer;
 
-extern JSObject*
-InitJSONClass(JSContext* cx, HandleObject obj);
+extern JSObject* InitJSONClass(JSContext* cx, HandleObject obj);
 
-enum class StringifyBehavior {
-    Normal,
-    RestrictedSafe
-};
+enum class StringifyBehavior { Normal, RestrictedSafe };
 
 /**
  * If maybeSafely is true, Stringify will attempt to assert the API requirements
  * of JS::ToJSONMaybeSafely as it traverses the graph, and will not try to
  * invoke .toJSON on things as it goes.
  */
-extern bool
-Stringify(JSContext* cx, js::MutableHandleValue vp, JSObject* replacer,
-          const Value& space, StringBuffer& sb, StringifyBehavior stringifyBehavior);
+extern bool Stringify(JSContext* cx, js::MutableHandleValue vp,
+                      JSObject* replacer, const Value& space, StringBuffer& sb,
+                      StringifyBehavior stringifyBehavior);
 
 template <typename CharT>
-extern bool
-ParseJSONWithReviver(JSContext* cx, const mozilla::Range<const CharT> chars,
-                     HandleValue reviver, MutableHandleValue vp);
+extern bool ParseJSONWithReviver(JSContext* cx,
+                                 const mozilla::Range<const CharT> chars,
+                                 HandleValue reviver, MutableHandleValue vp);
 
-} // namespace js
+}  // namespace js
 
 #endif /* builtin_JSON_h */

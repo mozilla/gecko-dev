@@ -10,7 +10,8 @@
 #include "Buffer.h"
 #include "mozilla/Vector.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 // Represents a Merkle inclusion proof for purposes of serialization,
 // deserialization, and verification of the proof.  The format for inclusion
@@ -28,14 +29,14 @@ namespace mozilla { namespace ct {
 
 const uint64_t kInitialPathLengthCapacity = 32;
 
-struct InclusionProofDataV2
-{
+struct InclusionProofDataV2 {
   Buffer logId;
   uint64_t treeSize;
   uint64_t leafIndex;
   Vector<Buffer, kInitialPathLengthCapacity> inclusionPath;
 };
 
-} } // namespace mozilla:ct
+}  // namespace ct
+}  // namespace mozilla
 
-#endif // BTInclusionProof_h
+#endif  // BTInclusionProof_h

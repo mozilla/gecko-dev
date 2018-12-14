@@ -33,20 +33,18 @@ NS_DEFINE_CID(kBufferedInputStreamCID, NS_BUFFEREDINPUTSTREAM_CID);
 NS_DEFINE_CID(kMIMEInputStreamCID, NS_MIMEINPUTSTREAM_CID);
 NS_DEFINE_CID(kMultiplexInputStreamCID, NS_MULTIPLEXINPUTSTREAM_CID);
 
-} // namespace
+}  // namespace
 
 namespace mozilla {
 namespace ipc {
 
-void
-InputStreamHelper::SerializeInputStream(nsIInputStream* aInputStream,
-                                        InputStreamParams& aParams,
-                                        nsTArray<FileDescriptor>& aFileDescriptors)
-{
+void InputStreamHelper::SerializeInputStream(
+    nsIInputStream* aInputStream, InputStreamParams& aParams,
+    nsTArray<FileDescriptor>& aFileDescriptors) {
   MOZ_ASSERT(aInputStream);
 
   nsCOMPtr<nsIIPCSerializableInputStream> serializable =
-    do_QueryInterface(aInputStream);
+      do_QueryInterface(aInputStream);
   if (!serializable) {
     MOZ_CRASH("Input stream is not serializable!");
   }
@@ -58,20 +56,20 @@ InputStreamHelper::SerializeInputStream(nsIInputStream* aInputStream,
   }
 }
 
-already_AddRefed<nsIInputStream>
-InputStreamHelper::DeserializeInputStream(const InputStreamParams& aParams,
-                                          const nsTArray<FileDescriptor>& aFileDescriptors)
-{
+already_AddRefed<nsIInputStream> InputStreamHelper::DeserializeInputStream(
+    const InputStreamParams& aParams,
+    const nsTArray<FileDescriptor>& aFileDescriptors) {
   nsCOMPtr<nsIInputStream> stream;
   nsCOMPtr<nsIIPCSerializableInputStream> serializable;
 
   // IPCBlobInputStreams are not deserializable on the parent side.
   if (aParams.type() == InputStreamParams::TIPCBlobInputStreamParams) {
     MOZ_ASSERT(XRE_IsParentProcess());
-    IPCBlobInputStreamStorage::Get()->GetStream(aParams.get_IPCBlobInputStreamParams().id(),
-                                                aParams.get_IPCBlobInputStreamParams().start(),
-                                                aParams.get_IPCBlobInputStreamParams().length(),
-                                                getter_AddRefs(stream));
+    IPCBlobInputStreamStorage::Get()->GetStream(
+        aParams.get_IPCBlobInputStreamParams().id(),
+        aParams.get_IPCBlobInputStreamParams().start(),
+        aParams.get_IPCBlobInputStreamParams().length(),
+        getter_AddRefs(stream));
     return stream.forget();
   }
 
@@ -118,5 +116,5 @@ InputStreamHelper::DeserializeInputStream(const InputStreamParams& aParams,
   return stream.forget();
 }
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla

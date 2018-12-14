@@ -10,17 +10,14 @@ namespace mozilla {
 
 class MediaContainerType;
 
-class WebMDecoder
-{
-public:
-
+class WebMDecoder {
+ public:
   // Returns true if aContainerType is a WebM type that we think we can render
   // with an enabled platform decoder backend.
   // If provided, codecs are checked for support.
   static bool IsSupportedType(const MediaContainerType& aContainerType);
-
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif

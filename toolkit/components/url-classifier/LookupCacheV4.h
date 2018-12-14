@@ -14,20 +14,16 @@ namespace safebrowsing {
 // Forward declaration.
 class TableUpdateV4;
 
-class LookupCacheV4 final : public LookupCache
-{
-public:
+class LookupCacheV4 final : public LookupCache {
+ public:
   explicit LookupCacheV4(const nsACString& aTableName,
-                         const nsACString& aProvider,
-                         nsIFile* aStoreFile)
-    : LookupCache(aTableName, aProvider, aStoreFile) {}
+                         const nsACString& aProvider, nsIFile* aStoreFile)
+      : LookupCache(aTableName, aProvider, aStoreFile) {}
   ~LookupCacheV4() {}
 
   virtual nsresult Init() override;
-  virtual nsresult Has(const Completion& aCompletion,
-                       bool* aHas,
-                       uint32_t* aMatchLength,
-                       bool* aConfirmed) override;
+  virtual nsresult Has(const Completion& aCompletion, bool* aHas,
+                       uint32_t* aMatchLength, bool* aConfirmed) override;
 
   virtual bool IsEmpty() override;
 
@@ -36,9 +32,9 @@ public:
   nsresult GetPrefixes(PrefixStringMap& aPrefixMap);
   nsresult GetFixedLengthPrefixes(FallibleTArray<uint32_t>& aPrefixes);
 
-  // ApplyUpdate will merge data stored in aTableUpdate with prefixes in aInputMap.
-  nsresult ApplyUpdate(TableUpdateV4* aTableUpdate,
-                       PrefixStringMap& aInputMap,
+  // ApplyUpdate will merge data stored in aTableUpdate with prefixes in
+  // aInputMap.
+  nsresult ApplyUpdate(TableUpdateV4* aTableUpdate, PrefixStringMap& aInputMap,
                        PrefixStringMap& aOutputMap);
 
   nsresult AddFullHashResponseToCache(const FullHashResponseMap& aResponseMap);
@@ -49,13 +45,13 @@ public:
   static const int VER;
   static const uint32_t MAX_METADATA_VALUE_LENGTH;
 
-protected:
+ protected:
   virtual nsresult ClearPrefixes() override;
   virtual nsresult StoreToFile(nsIFile* aFile) override;
   virtual nsresult LoadFromFile(nsIFile* aFile) override;
   virtual size_t SizeOfPrefixSet() override;
 
-private:
+ private:
   virtual int Ver() const override { return VER; }
 
   nsresult InitCrypto(nsCOMPtr<nsICryptoHash>& aCrypto);
@@ -64,7 +60,7 @@ private:
   RefPtr<VariableLengthPrefixSet> mVLPrefixSet;
 };
 
-} // namespace safebrowsing
-} // namespace mozilla
+}  // namespace safebrowsing
+}  // namespace mozilla
 
 #endif

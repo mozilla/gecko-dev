@@ -13,80 +13,66 @@
 
 NS_IMPL_ISUPPORTS(nsNSSVersion, nsINSSVersion)
 
-nsNSSVersion::nsNSSVersion()
-{
-}
+nsNSSVersion::nsNSSVersion() {}
 
-nsNSSVersion::~nsNSSVersion()
-{
+nsNSSVersion::~nsNSSVersion() {}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSPR_Version(nsAString& v) {
+  CopyUTF8toUTF16(PR_GetVersion(), v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSPR_Version(nsAString & v)
-{
-    CopyUTF8toUTF16(PR_GetVersion(), v);
-    return NS_OK;
+nsNSSVersion::GetNSS_Version(nsAString& v) {
+  CopyUTF8toUTF16(NSS_GetVersion(), v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSS_Version(nsAString & v)
-{
-    CopyUTF8toUTF16(NSS_GetVersion(), v);
-    return NS_OK;
+nsNSSVersion::GetNSSUTIL_Version(nsAString& v) {
+  CopyUTF8toUTF16(NSSUTIL_GetVersion(), v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSSUTIL_Version(nsAString & v)
-{
-    CopyUTF8toUTF16(NSSUTIL_GetVersion(), v);
-    return NS_OK;
+nsNSSVersion::GetNSSSSL_Version(nsAString& v) {
+  CopyUTF8toUTF16(NSSSSL_GetVersion(), v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSSSSL_Version(nsAString & v)
-{
-    CopyUTF8toUTF16(NSSSSL_GetVersion(), v);
-    return NS_OK;
+nsNSSVersion::GetNSSSMIME_Version(nsAString& v) {
+  CopyUTF8toUTF16(NSSSMIME_GetVersion(), v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSSSMIME_Version(nsAString & v)
-{
-    CopyUTF8toUTF16(NSSSMIME_GetVersion(), v);
-    return NS_OK;
+nsNSSVersion::GetNSPR_MinVersion(nsAString& v) {
+  CopyUTF8toUTF16(PR_VERSION, v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSPR_MinVersion(nsAString & v)
-{
-    CopyUTF8toUTF16(PR_VERSION, v);
-    return NS_OK;
+nsNSSVersion::GetNSS_MinVersion(nsAString& v) {
+  CopyUTF8toUTF16(NSS_VERSION, v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSS_MinVersion(nsAString & v)
-{
-    CopyUTF8toUTF16(NSS_VERSION, v);
-    return NS_OK;
+nsNSSVersion::GetNSSUTIL_MinVersion(nsAString& v) {
+  CopyUTF8toUTF16(NSSUTIL_VERSION, v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSSUTIL_MinVersion(nsAString & v)
-{
-    CopyUTF8toUTF16(NSSUTIL_VERSION, v);
-    return NS_OK;
+nsNSSVersion::GetNSSSSL_MinVersion(nsAString& v) {
+  CopyUTF8toUTF16(NSS_VERSION, v);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSVersion::GetNSSSSL_MinVersion(nsAString & v)
-{
-    CopyUTF8toUTF16(NSS_VERSION, v);
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSVersion::GetNSSSMIME_MinVersion(nsAString & v)
-{
-    CopyUTF8toUTF16(NSS_VERSION, v);
-    return NS_OK;
+nsNSSVersion::GetNSSSMIME_MinVersion(nsAString& v) {
+  CopyUTF8toUTF16(NSS_VERSION, v);
+  return NS_OK;
 }

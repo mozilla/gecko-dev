@@ -14,24 +14,20 @@ namespace dom {
 
 class VoidFunction;
 
-class AudioWorkletGlobalScope final : public WorkletGlobalScope
-{
-public:
+class AudioWorkletGlobalScope final : public WorkletGlobalScope {
+ public:
   explicit AudioWorkletGlobalScope(nsPIDOMWindowInner* aWindow);
 
-  bool
-  WrapGlobalObject(JSContext* aCx, nsIPrincipal* aPrincipal,
-                   JS::MutableHandle<JSObject*> aReflector) override;
+  bool WrapGlobalObject(JSContext* aCx, nsIPrincipal* aPrincipal,
+                        JS::MutableHandle<JSObject*> aReflector) override;
 
-  void
-  RegisterProcessor(const nsAString& aType,
-                    VoidFunction& aProcessorCtor);
+  void RegisterProcessor(const nsAString& aType, VoidFunction& aProcessorCtor);
 
-private:
+ private:
   ~AudioWorkletGlobalScope();
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_AudioWorkletGlobalScope_h
+#endif  // mozilla_dom_AudioWorkletGlobalScope_h

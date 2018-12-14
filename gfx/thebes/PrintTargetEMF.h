@@ -14,9 +14,9 @@
 
 namespace mozilla {
 namespace widget {
-  class PDFiumProcessParent;
+class PDFiumProcessParent;
 }
-}
+}  // namespace mozilla
 
 namespace mozilla {
 namespace gfx {
@@ -29,49 +29,45 @@ namespace gfx {
  * 3. After getting the converted EMF contents from the PDFium process, it then
  *    draws it onto the printer DC to finish one page printing task.
  */
-class PrintTargetEMF final : public mozilla::gfx::PrintTarget
-{
-public:
+class PrintTargetEMF final : public mozilla::gfx::PrintTarget {
+ public:
   typedef gfx::IntSize IntSize;
   typedef mozilla::widget::PDFiumProcessParent PDFiumProcessParent;
 
-  static already_AddRefed<PrintTargetEMF>
-  CreateOrNull(HDC aDC, const IntSize& aSizeInPoints);
+  static already_AddRefed<PrintTargetEMF> CreateOrNull(
+      HDC aDC, const IntSize& aSizeInPoints);
 
   nsresult BeginPrinting(const nsAString& aTitle,
-                                 const nsAString& aPrintToFileName,
-                                 int32_t aStartPage,
-                                 int32_t aEndPage) final;
+                         const nsAString& aPrintToFileName, int32_t aStartPage,
+                         int32_t aEndPage) final;
   nsresult EndPrinting() final;
   nsresult AbortPrinting() final;
   nsresult BeginPage() final;
   nsresult EndPage() final;
 
-  already_AddRefed<DrawTarget>
-  MakeDrawTarget(const IntSize& aSize,
-                 DrawEventRecorder* aRecorder = nullptr) final;
+  already_AddRefed<DrawTarget> MakeDrawTarget(
+      const IntSize& aSize, DrawEventRecorder* aRecorder = nullptr) final;
 
-  already_AddRefed<DrawTarget>
-  GetReferenceDrawTarget() final;
+  already_AddRefed<DrawTarget> GetReferenceDrawTarget() final;
 
   void ConvertToEMFDone(const nsresult& aResult, mozilla::ipc::Shmem&& aEMF);
   bool IsSyncPagePrinting() const final { return false; }
   void ChannelIsBroken() { mChannelBroken = true; }
 
-private:
+ private:
   PrintTargetEMF(HDC aDC, const IntSize& aSize);
   ~PrintTargetEMF() override;
 
   nsString mTitle;
   RefPtr<PrintTargetSkPDF> mTargetForCurrentPage;
-  nsCOMPtr<nsIFile>        mPDFFileForOnePage;
+  nsCOMPtr<nsIFile> mPDFFileForOnePage;
   RefPtr<PrintTargetSkPDF> mRefTarget;
-  PDFiumProcessParent*     mPDFiumProcess;
+  PDFiumProcessParent* mPDFiumProcess;
   HDC mPrinterDC;
   bool mChannelBroken;
 };
 
-} // namespace gfx
-} // namespace mozilla
+}  // namespace gfx
+}  // namespace mozilla
 
 #endif /* MOZILLA_GFX_PRINTTARGETEMF_H */

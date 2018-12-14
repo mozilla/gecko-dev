@@ -8,61 +8,63 @@
 #include "nsMemory.h"
 #include "mozilla/Sprintf.h"
 
-void nsID::Clear()
-{
+void nsID::Clear() {
   m0 = 0;
   m1 = 0;
   m2 = 0;
   memset(m3, 0, sizeof(m3));
 }
 
-/**
- * Multiplies the_int_var with 16 (0x10) and adds the value of the
- * hexadecimal digit the_char. If it fails it returns false from
- * the function it's used in.
- */
+  /**
+   * Multiplies the_int_var with 16 (0x10) and adds the value of the
+   * hexadecimal digit the_char. If it fails it returns false from
+   * the function it's used in.
+   */
 
 #define ADD_HEX_CHAR_TO_INT_OR_RETURN_FALSE(the_char, the_int_var) \
-    the_int_var = (the_int_var << 4) + the_char; \
-    if(the_char >= '0' && the_char <= '9') the_int_var -= '0'; \
-    else if(the_char >= 'a' && the_char <= 'f') the_int_var -= 'a'-10; \
-    else if(the_char >= 'A' && the_char <= 'F') the_int_var -= 'A'-10; \
-    else return false
+  the_int_var = (the_int_var << 4) + the_char;                     \
+  if (the_char >= '0' && the_char <= '9')                          \
+    the_int_var -= '0';                                            \
+  else if (the_char >= 'a' && the_char <= 'f')                     \
+    the_int_var -= 'a' - 10;                                       \
+  else if (the_char >= 'A' && the_char <= 'F')                     \
+    the_int_var -= 'A' - 10;                                       \
+  else                                                             \
+    return false
 
-
-/**
- * Parses number_of_chars characters from the char_pointer pointer and
- * puts the number in the dest_variable. The pointer is moved to point
- * at the first character after the parsed ones. If it fails it returns
- * false from the function the macro is used in.
- */
+  /**
+   * Parses number_of_chars characters from the char_pointer pointer and
+   * puts the number in the dest_variable. The pointer is moved to point
+   * at the first character after the parsed ones. If it fails it returns
+   * false from the function the macro is used in.
+   */
 
 #define PARSE_CHARS_TO_NUM(char_pointer, dest_variable, number_of_chars) \
-  do { int32_t _i=number_of_chars; \
-  dest_variable = 0; \
-  while(_i) { \
-    ADD_HEX_CHAR_TO_INT_OR_RETURN_FALSE(*char_pointer, dest_variable); \
-    char_pointer++; \
-    _i--; \
-  } } while(0)
+  do {                                                                   \
+    int32_t _i = number_of_chars;                                        \
+    dest_variable = 0;                                                   \
+    while (_i) {                                                         \
+      ADD_HEX_CHAR_TO_INT_OR_RETURN_FALSE(*char_pointer, dest_variable); \
+      char_pointer++;                                                    \
+      _i--;                                                              \
+    }                                                                    \
+  } while (0)
 
+  /**
+   * Parses a hyphen from the char_pointer string. If there is no hyphen there
+   * the function returns false from the function it's used in. The
+   * char_pointer is advanced one step.
+   */
 
-/**
- * Parses a hyphen from the char_pointer string. If there is no hyphen there
- * the function returns false from the function it's used in. The
- * char_pointer is advanced one step.
- */
-
-#define PARSE_HYPHEN(char_pointer) if (*(char_pointer++) != '-') return false
+#define PARSE_HYPHEN(char_pointer) \
+  if (*(char_pointer++) != '-') return false
 
 /*
  * Turns a {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} string into
  * an nsID. It can also handle the old format without the { and }.
  */
 
-bool
-nsID::Parse(const char* aIDStr)
-{
+bool nsID::Parse(const char* aIDStr) {
   /* Optimized for speed */
   if (!aIDStr) {
     return false;
@@ -95,7 +97,7 @@ nsID::Parse(const char* aIDStr)
 #ifndef XPCOM_GLUE_AVOID_NSPR
 
 static const char gIDFormat[] =
-  "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}";
+    "{%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}";
 
 /*
  * Returns an allocated string in {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
@@ -103,36 +105,28 @@ static const char gIDFormat[] =
  * the caller.
  */
 
-char*
-nsID::ToString() const
-{
+char* nsID::ToString() const {
   char* res = (char*)moz_xmalloc(NSID_LENGTH);
 
   if (res) {
-    snprintf(res, NSID_LENGTH, gIDFormat,
-             m0, (uint32_t)m1, (uint32_t)m2,
-             (uint32_t)m3[0], (uint32_t)m3[1], (uint32_t)m3[2],
-             (uint32_t)m3[3], (uint32_t)m3[4], (uint32_t)m3[5],
-             (uint32_t)m3[6], (uint32_t)m3[7]);
+    snprintf(res, NSID_LENGTH, gIDFormat, m0, (uint32_t)m1, (uint32_t)m2,
+             (uint32_t)m3[0], (uint32_t)m3[1], (uint32_t)m3[2], (uint32_t)m3[3],
+             (uint32_t)m3[4], (uint32_t)m3[5], (uint32_t)m3[6],
+             (uint32_t)m3[7]);
   }
   return res;
 }
 
-void
-nsID::ToProvidedString(char (&aDest)[NSID_LENGTH]) const
-{
-  SprintfLiteral(aDest, gIDFormat,
-                 m0, (uint32_t)m1, (uint32_t)m2,
+void nsID::ToProvidedString(char (&aDest)[NSID_LENGTH]) const {
+  SprintfLiteral(aDest, gIDFormat, m0, (uint32_t)m1, (uint32_t)m2,
                  (uint32_t)m3[0], (uint32_t)m3[1], (uint32_t)m3[2],
                  (uint32_t)m3[3], (uint32_t)m3[4], (uint32_t)m3[5],
                  (uint32_t)m3[6], (uint32_t)m3[7]);
 }
 
-#endif // XPCOM_GLUE_AVOID_NSPR
+#endif  // XPCOM_GLUE_AVOID_NSPR
 
-nsID*
-nsID::Clone() const
-{
+nsID* nsID::Clone() const {
   auto id = static_cast<nsID*>(moz_xmalloc(sizeof(nsID)));
   *id = *this;
   return id;

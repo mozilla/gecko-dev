@@ -12,7 +12,7 @@
 #include "vm/JSScript-inl.h"
 #endif
 
-#define TYPEOF(cx,v)    (v.isNull() ? JSTYPE_NULL : JS_TypeOfValue(cx,v))
+#define TYPEOF(cx, v) (v.isNull() ? JSTYPE_NULL : JS_TypeOfValue(cx, v))
 
 using namespace js;
 
@@ -22,24 +22,18 @@ const char probes::anonymousName[] = "(anonymous)";
 bool probes::ProfilingActive = true;
 
 #ifdef INCLUDE_MOZILLA_DTRACE
-static const char*
-ScriptFilename(const JSScript* script)
-{
-    if (!script)
-        return probes::nullName;
-    if (!script->filename())
-        return probes::anonymousName;
-    return script->filename();
+static const char* ScriptFilename(const JSScript* script) {
+  if (!script) return probes::nullName;
+  if (!script->filename()) return probes::anonymousName;
+  return script->filename();
 }
 
-static const char*
-FunctionName(JSContext* cx, JSFunction* fun, JSAutoByteString* bytes)
-{
-    if (!fun)
-        return probes::nullName;
-    if (!fun->displayAtom())
-        return probes::anonymousName;
-    return bytes->encodeLatin1(cx, fun->displayAtom()) ? bytes->ptr() : probes::nullName;
+static const char* FunctionName(JSContext* cx, JSFunction* fun,
+                                JSAutoByteString* bytes) {
+  if (!fun) return probes::nullName;
+  if (!fun->displayAtom()) return probes::anonymousName;
+  return bytes->encodeLatin1(cx, fun->displayAtom()) ? bytes->ptr()
+                                                     : probes::nullName;
 }
 
 /*
@@ -49,19 +43,16 @@ FunctionName(JSContext* cx, JSFunction* fun, JSAutoByteString* bytes)
  * to reduce any negative compiler optimization effect that the addition of
  * a number of usually unused lines of code would cause.
  */
-void
-probes::DTraceEnterJSFun(JSContext* cx, JSFunction* fun, JSScript* script)
-{
-    JSAutoByteString funNameBytes;
-    JAVASCRIPT_FUNCTION_ENTRY(ScriptFilename(script), probes::nullName,
-                              FunctionName(cx, fun, &funNameBytes));
+void probes::DTraceEnterJSFun(JSContext* cx, JSFunction* fun,
+                              JSScript* script) {
+  JSAutoByteString funNameBytes;
+  JAVASCRIPT_FUNCTION_ENTRY(ScriptFilename(script), probes::nullName,
+                            FunctionName(cx, fun, &funNameBytes));
 }
 
-void
-probes::DTraceExitJSFun(JSContext* cx, JSFunction* fun, JSScript* script)
-{
-    JSAutoByteString funNameBytes;
-    JAVASCRIPT_FUNCTION_RETURN(ScriptFilename(script), probes::nullName,
-                               FunctionName(cx, fun, &funNameBytes));
+void probes::DTraceExitJSFun(JSContext* cx, JSFunction* fun, JSScript* script) {
+  JSAutoByteString funNameBytes;
+  JAVASCRIPT_FUNCTION_RETURN(ScriptFilename(script), probes::nullName,
+                             FunctionName(cx, fun, &funNameBytes));
 }
 #endif

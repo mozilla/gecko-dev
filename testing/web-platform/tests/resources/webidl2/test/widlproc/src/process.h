@@ -17,11 +17,10 @@
 #if 0
 #define NT_START 0x100
 #include "nonterminals.h"
-#endif/*0*/
+#endif /*0*/
 
 void printtext(const char *s, unsigned int len, int escamp);
 
 void processfiles(const char *const *names, int dtdref);
 
 #endif /* ndef process_h */
-

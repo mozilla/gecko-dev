@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*-
+ */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,11 +18,11 @@ namespace mozilla {
 namespace Telemetry {
 
 /**
- * This class is conceptually a list of ProcessedStack objects, but it represents them
- * more efficiently by keeping a single global list of modules.
+ * This class is conceptually a list of ProcessedStack objects, but it
+ * represents them more efficiently by keeping a single global list of modules.
  */
 class CombinedStacks {
-public:
+ public:
   explicit CombinedStacks();
   explicit CombinedStacks(size_t aMaxStacksCount);
 
@@ -38,7 +39,7 @@ public:
   void Clear();
 #endif
 
-private:
+ private:
   std::vector<Telemetry::ProcessedStack::Module> mModules;
   // A circular buffer to hold the stacks.
   std::vector<Stack> mStacks;
@@ -51,10 +52,9 @@ private:
 /**
  * Creates a JSON representation of given combined stacks object.
  */
-JSObject *
-CreateJSStackObject(JSContext *cx, const CombinedStacks &stacks);
+JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks);
 
-} // namespace Telemetry
-} // namespace mozilla
+}  // namespace Telemetry
+}  // namespace mozilla
 
-#endif // CombinedStacks_h__
+#endif  // CombinedStacks_h__

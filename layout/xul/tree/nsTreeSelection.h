@@ -16,9 +16,8 @@
 class nsITreeBoxObject;
 struct nsTreeRange;
 
-class nsTreeSelection final : public nsINativeTreeSelection
-{
-public:
+class nsTreeSelection final : public nsINativeTreeSelection {
+ public:
   explicit nsTreeSelection(nsITreeBoxObject* aTree);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -30,30 +29,33 @@ public:
 
   friend struct nsTreeRange;
 
-protected:
+ protected:
   ~nsTreeSelection();
 
   nsresult FireOnSelectHandler();
-  static void SelectCallback(nsITimer *aTimer, void *aClosure);
+  static void SelectCallback(nsITimer* aTimer, void* aClosure);
 
-protected:
+ protected:
   // Helper function to get the content node associated with mTree.
   already_AddRefed<nsIContent> GetContent();
 
   // Members
-  nsCOMPtr<nsITreeBoxObject> mTree; // The tree will hold on to us through the view and let go when it dies.
+  nsCOMPtr<nsITreeBoxObject> mTree;  // The tree will hold on to us through the
+                                     // view and let go when it dies.
 
-  bool mSuppressed; // Whether or not we should be firing onselect events.
-  int32_t mCurrentIndex; // The item to draw the rect around. The last one clicked, etc.
+  bool mSuppressed;       // Whether or not we should be firing onselect events.
+  int32_t mCurrentIndex;  // The item to draw the rect around. The last one
+                          // clicked, etc.
   nsCOMPtr<nsITreeColumn> mCurrentColumn;
-  int32_t mShiftSelectPivot; // Used when multiple SHIFT+selects are performed to pivot on.
+  int32_t mShiftSelectPivot;  // Used when multiple SHIFT+selects are performed
+                              // to pivot on.
 
-  nsTreeRange* mFirstRange; // Our list of ranges.
+  nsTreeRange* mFirstRange;  // Our list of ranges.
 
   nsCOMPtr<nsITimer> mSelectTimer;
 };
 
-nsresult
-NS_NewTreeSelection(nsITreeBoxObject* aTree, nsITreeSelection** aResult);
+nsresult NS_NewTreeSelection(nsITreeBoxObject* aTree,
+                             nsITreeSelection** aResult);
 
 #endif

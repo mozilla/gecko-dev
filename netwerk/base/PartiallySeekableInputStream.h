@@ -19,13 +19,12 @@ namespace net {
 // A wrapper for making a stream seekable for the first |aBufferSize| bytes.
 // Note that this object takes the ownership of the underlying stream.
 
-class PartiallySeekableInputStream final : public nsISeekableStream
-                                         , public nsIAsyncInputStream
-                                         , public nsICloneableInputStream
-                                         , public nsIIPCSerializableInputStream
-                                         , public nsIInputStreamCallback
-{
-public:
+class PartiallySeekableInputStream final : public nsISeekableStream,
+                                           public nsIAsyncInputStream,
+                                           public nsICloneableInputStream,
+                                           public nsIIPCSerializableInputStream,
+                                           public nsIInputStreamCallback {
+ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIINPUTSTREAM
   NS_DECL_NSISEEKABLESTREAM
@@ -34,17 +33,18 @@ public:
   NS_DECL_NSIIPCSERIALIZABLEINPUTSTREAM
   NS_DECL_NSIINPUTSTREAMCALLBACK
 
-  explicit PartiallySeekableInputStream(already_AddRefed<nsIInputStream> aInputStream,
-                                        uint64_t aBufferSize = 4096);
+  explicit PartiallySeekableInputStream(
+      already_AddRefed<nsIInputStream> aInputStream,
+      uint64_t aBufferSize = 4096);
 
-private:
-  PartiallySeekableInputStream(already_AddRefed<nsIInputStream> aClonedBaseStream,
-                               PartiallySeekableInputStream* aClonedFrom);
+ private:
+  PartiallySeekableInputStream(
+      already_AddRefed<nsIInputStream> aClonedBaseStream,
+      PartiallySeekableInputStream* aClonedFrom);
 
   ~PartiallySeekableInputStream() = default;
 
-  void
-  Init();
+  void Init();
 
   nsCOMPtr<nsIInputStream> mInputStream;
 
@@ -62,7 +62,7 @@ private:
   bool mClosed;
 };
 
-} // net namespace
-} // mozilla namespace
+}  // namespace net
+}  // namespace mozilla
 
-#endif // PartiallySeekableInputStream_h
+#endif  // PartiallySeekableInputStream_h

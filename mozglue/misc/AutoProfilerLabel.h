@@ -42,21 +42,19 @@ MFBT_API void RegisterProfilerLabelEnterExit(ProfilerLabelEnter aEnter,
 // which would conflict with the one in the profiler.
 #ifdef IMPL_MFBT
 
-class MOZ_RAII AutoProfilerLabel
-{
-public:
+class MOZ_RAII AutoProfilerLabel {
+ public:
   AutoProfilerLabel(const char* aLabel, const char* aDynamicString,
-                    uint32_t aLine
-                    MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+                    uint32_t aLine MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
   ~AutoProfilerLabel();
 
-private:
+ private:
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
   PseudoStack* mPseudoStack;
 };
 
 #endif
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_AutoProfilerLabel_h
+#endif  // mozilla_AutoProfilerLabel_h

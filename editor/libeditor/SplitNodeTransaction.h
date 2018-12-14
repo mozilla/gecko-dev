@@ -6,12 +6,12 @@
 #ifndef SplitNodeTransaction_h
 #define SplitNodeTransaction_h
 
-#include "mozilla/EditorDOMPoint.h"      // for RangeBoundary, EditorRawDOMPoint
-#include "mozilla/EditTransactionBase.h" // for EditTxn, etc.
-#include "nsCOMPtr.h"                   // for nsCOMPtr
+#include "mozilla/EditorDOMPoint.h"  // for RangeBoundary, EditorRawDOMPoint
+#include "mozilla/EditTransactionBase.h"  // for EditTxn, etc.
+#include "nsCOMPtr.h"                     // for nsCOMPtr
 #include "nsCycleCollectionParticipant.h"
-#include "nsISupportsImpl.h"            // for NS_DECL_ISUPPORTS_INHERITED
-#include "nscore.h"                     // for NS_IMETHOD
+#include "nsISupportsImpl.h"  // for NS_DECL_ISUPPORTS_INHERITED
+#include "nscore.h"           // for NS_IMETHOD
 
 class nsIContent;
 class nsINode;
@@ -24,13 +24,12 @@ class EditorBase;
  * A transaction that splits a node into two identical nodes, with the children
  * divided between the new nodes.
  */
-class SplitNodeTransaction final : public EditTransactionBase
-{
-private:
+class SplitNodeTransaction final : public EditTransactionBase {
+ private:
   SplitNodeTransaction(EditorBase& aEditorBase,
                        const EditorRawDOMPoint& aStartOfRightNode);
 
-public:
+ public:
   /**
    * Creates a transaction to create a new node (left node) identical to an
    * existing node (right node), and split the contents between the same point
@@ -42,9 +41,8 @@ public:
    *                            next sibling.  And the point will be start
    *                            of the right node.
    */
-  static already_AddRefed<SplitNodeTransaction>
-  Create(EditorBase& aEditorBase,
-         const EditorRawDOMPoint& aStartOfRightNode);
+  static already_AddRefed<SplitNodeTransaction> Create(
+      EditorBase& aEditorBase, const EditorRawDOMPoint& aStartOfRightNode);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SplitNodeTransaction,
@@ -56,7 +54,7 @@ public:
 
   nsIContent* GetNewNode();
 
-protected:
+ protected:
   virtual ~SplitNodeTransaction();
 
   RefPtr<EditorBase> mEditorBase;
@@ -72,6 +70,6 @@ protected:
   nsCOMPtr<nsINode> mParent;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // #ifndef SplitNodeTransaction_h
+#endif  // #ifndef SplitNodeTransaction_h

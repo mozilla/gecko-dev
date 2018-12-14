@@ -15,9 +15,8 @@
 namespace mozilla {
 namespace dom {
 
-class CSSLexer : public NonRefcountedDOMObject
-{
-public:
+class CSSLexer : public NonRefcountedDOMObject {
+ public:
   explicit CSSLexer(const nsAString&);
   ~CSSLexer();
 
@@ -30,12 +29,12 @@ public:
                        nsAString& aResult);
   void NextToken(Nullable<CSSToken>& aResult);
 
-private:
+ private:
   nsString mInput;
   nsCSSScanner mScanner;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* CSSLexer_h___ */

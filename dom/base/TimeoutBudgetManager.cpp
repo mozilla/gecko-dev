@@ -14,30 +14,20 @@ namespace dom {
 // Time between sampling timeout execution time.
 const uint32_t kTelemetryPeriodMS = 1000;
 
-/* static */ TimeoutBudgetManager&
-TimeoutBudgetManager::Get()
-{
+/* static */ TimeoutBudgetManager& TimeoutBudgetManager::Get() {
   static TimeoutBudgetManager gTimeoutBudgetManager;
   return gTimeoutBudgetManager;
 }
 
-void
-TimeoutBudgetManager::StartRecording(const TimeStamp& aNow)
-{
+void TimeoutBudgetManager::StartRecording(const TimeStamp& aNow) {
   mStart = aNow;
 }
 
-void
-TimeoutBudgetManager::StopRecording()
-{
-  mStart = TimeStamp();
-}
+void TimeoutBudgetManager::StopRecording() { mStart = TimeStamp(); }
 
-TimeDuration
-TimeoutBudgetManager::RecordExecution(const TimeStamp& aNow,
-                                      const Timeout* aTimeout,
-                                      bool aIsBackground)
-{
+TimeDuration TimeoutBudgetManager::RecordExecution(const TimeStamp& aNow,
+                                                   const Timeout* aTimeout,
+                                                   bool aIsBackground) {
   if (!mStart) {
     // If we've started a sync operation mStart might be null, in
     // which case we should not record this piece of execution.
@@ -63,19 +53,15 @@ TimeoutBudgetManager::RecordExecution(const TimeStamp& aNow,
   return duration;
 }
 
-void
-TimeoutBudgetManager::Accumulate(Telemetry::HistogramID aId,
-                                 const TimeDuration& aSample)
-{
+void TimeoutBudgetManager::Accumulate(Telemetry::HistogramID aId,
+                                      const TimeDuration& aSample) {
   uint32_t sample = std::round(aSample.ToMilliseconds());
   if (sample) {
     Telemetry::Accumulate(aId, sample);
   }
 }
 
-void
-TimeoutBudgetManager::MaybeCollectTelemetry(const TimeStamp& aNow)
-{
+void TimeoutBudgetManager::MaybeCollectTelemetry(const TimeStamp& aNow) {
   if ((aNow - mLastCollection).ToMilliseconds() < kTelemetryPeriodMS) {
     return;
   }
@@ -93,5 +79,5 @@ TimeoutBudgetManager::MaybeCollectTelemetry(const TimeStamp& aNow)
   mLastCollection = aNow;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

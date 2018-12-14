@@ -15,28 +15,21 @@
 namespace mozilla {
 namespace dom {
 
-DocumentOrShadowRoot::DocumentOrShadowRoot(mozilla::dom::ShadowRoot& aShadowRoot)
-  : mAsNode(aShadowRoot)
-  , mKind(Kind::ShadowRoot)
-{}
+DocumentOrShadowRoot::DocumentOrShadowRoot(
+    mozilla::dom::ShadowRoot& aShadowRoot)
+    : mAsNode(aShadowRoot), mKind(Kind::ShadowRoot) {}
 
 DocumentOrShadowRoot::DocumentOrShadowRoot(nsIDocument& aDoc)
-  : mAsNode(aDoc)
-  , mKind(Kind::Document)
-{}
+    : mAsNode(aDoc), mKind(Kind::Document) {}
 
-StyleSheetList&
-DocumentOrShadowRoot::EnsureDOMStyleSheets()
-{
+StyleSheetList& DocumentOrShadowRoot::EnsureDOMStyleSheets() {
   if (!mDOMStyleSheets) {
     mDOMStyleSheets = new StyleSheetList(*this);
   }
   return *mDOMStyleSheets;
 }
 
-Element*
-DocumentOrShadowRoot::GetElementById(const nsAString& aElementId)
-{
+Element* DocumentOrShadowRoot::GetElementById(const nsAString& aElementId) {
   if (MOZ_UNLIKELY(aElementId.IsEmpty())) {
     nsContentUtils::ReportEmptyGetElementByIdArg(AsNode().OwnerDoc());
     return nullptr;
@@ -51,30 +44,25 @@ DocumentOrShadowRoot::GetElementById(const nsAString& aElementId)
   return nullptr;
 }
 
-already_AddRefed<nsContentList>
-DocumentOrShadowRoot::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                                   const nsAString& aLocalName)
-{
+already_AddRefed<nsContentList> DocumentOrShadowRoot::GetElementsByTagNameNS(
+    const nsAString& aNamespaceURI, const nsAString& aLocalName) {
   ErrorResult rv;
   RefPtr<nsContentList> list =
-    GetElementsByTagNameNS(aNamespaceURI, aLocalName, rv);
+      GetElementsByTagNameNS(aNamespaceURI, aLocalName, rv);
   if (rv.Failed()) {
     return nullptr;
   }
   return list.forget();
 }
 
-already_AddRefed<nsContentList>
-DocumentOrShadowRoot::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                                   const nsAString& aLocalName,
-                                   mozilla::ErrorResult& aResult)
-{
+already_AddRefed<nsContentList> DocumentOrShadowRoot::GetElementsByTagNameNS(
+    const nsAString& aNamespaceURI, const nsAString& aLocalName,
+    mozilla::ErrorResult& aResult) {
   int32_t nameSpaceId = kNameSpaceID_Wildcard;
 
   if (!aNamespaceURI.EqualsLiteral("*")) {
-    aResult =
-      nsContentUtils::NameSpaceManager()->RegisterNameSpace(aNamespaceURI,
-                                                            nameSpaceId);
+    aResult = nsContentUtils::NameSpaceManager()->RegisterNameSpace(
+        aNamespaceURI, nameSpaceId);
     if (aResult.Failed()) {
       return nullptr;
     }
@@ -84,18 +72,13 @@ DocumentOrShadowRoot::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
   return NS_GetContentList(&AsNode(), nameSpaceId, aLocalName);
 }
 
-already_AddRefed<nsContentList>
-DocumentOrShadowRoot::GetElementsByClassName(const nsAString& aClasses)
-{
+already_AddRefed<nsContentList> DocumentOrShadowRoot::GetElementsByClassName(
+    const nsAString& aClasses) {
   return nsContentUtils::GetElementsByClassName(&AsNode(), aClasses);
 }
 
-nsIContent*
-DocumentOrShadowRoot::Retarget(nsIContent* aContent) const
-{
-  for (nsIContent* cur = aContent;
-       cur;
-       cur = cur->GetContainingShadowHost()) {
+nsIContent* DocumentOrShadowRoot::Retarget(nsIContent* aContent) const {
+  for (nsIContent* cur = aContent; cur; cur = cur->GetContainingShadowHost()) {
     if (cur->SubtreeRoot() == &AsNode()) {
       return cur;
     }
@@ -103,15 +86,12 @@ DocumentOrShadowRoot::Retarget(nsIContent* aContent) const
   return nullptr;
 }
 
-Element*
-DocumentOrShadowRoot::GetRetargetedFocusedElement()
-{
+Element* DocumentOrShadowRoot::GetRetargetedFocusedElement() {
   if (nsCOMPtr<nsPIDOMWindowOuter> window = AsNode().OwnerDoc()->GetWindow()) {
     nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
-    nsIContent* focusedContent =
-      nsFocusManager::GetFocusedDescendant(window,
-                                           nsFocusManager::eOnlyCurrentWindow,
-                                           getter_AddRefs(focusedWindow));
+    nsIContent* focusedContent = nsFocusManager::GetFocusedDescendant(
+        window, nsFocusManager::eOnlyCurrentWindow,
+        getter_AddRefs(focusedWindow));
     // be safe and make sure the element is from this document
     if (focusedContent && focusedContent->OwnerDoc() == AsNode().OwnerDoc()) {
       if (focusedContent->ChromeOnlyAccess()) {
@@ -133,32 +113,29 @@ DocumentOrShadowRoot::GetRetargetedFocusedElement()
   return nullptr;
 }
 
-Element*
-DocumentOrShadowRoot::GetPointerLockElement()
-{
+Element* DocumentOrShadowRoot::GetPointerLockElement() {
   nsCOMPtr<Element> pointerLockedElement =
-    do_QueryReferent(EventStateManager::sPointerLockedElement);
+      do_QueryReferent(EventStateManager::sPointerLockedElement);
   if (!pointerLockedElement) {
     return nullptr;
   }
 
   nsIContent* retargetedPointerLockedElement = Retarget(pointerLockedElement);
-  return
-    retargetedPointerLockedElement && retargetedPointerLockedElement->IsElement() ?
-      retargetedPointerLockedElement->AsElement() : nullptr;
+  return retargetedPointerLockedElement &&
+                 retargetedPointerLockedElement->IsElement()
+             ? retargetedPointerLockedElement->AsElement()
+             : nullptr;
 }
 
-Element*
-DocumentOrShadowRoot::GetFullscreenElement()
-{
+Element* DocumentOrShadowRoot::GetFullscreenElement() {
   if (!AsNode().IsInComposedDoc()) {
     return nullptr;
   }
 
   Element* element = AsNode().OwnerDoc()->FullScreenStackTop();
-  NS_ASSERTION(!element ||
-               element->State().HasState(NS_EVENT_STATE_FULL_SCREEN),
-    "Fullscreen element should have fullscreen styles applied");
+  NS_ASSERTION(
+      !element || element->State().HasState(NS_EVENT_STATE_FULL_SCREEN),
+      "Fullscreen element should have fullscreen styles applied");
 
   nsIContent* retargeted = Retarget(element);
   if (retargeted && retargeted->IsElement()) {
@@ -168,41 +145,33 @@ DocumentOrShadowRoot::GetFullscreenElement()
   return nullptr;
 }
 
-Element*
-DocumentOrShadowRoot::ElementFromPoint(float aX, float aY)
-{
+Element* DocumentOrShadowRoot::ElementFromPoint(float aX, float aY) {
   return ElementFromPointHelper(aX, aY, false, true);
 }
 
-void
-DocumentOrShadowRoot::ElementsFromPoint(float aX, float aY,
-                                        nsTArray<RefPtr<Element>>& aElements)
-{
+void DocumentOrShadowRoot::ElementsFromPoint(
+    float aX, float aY, nsTArray<RefPtr<Element>>& aElements) {
   ElementsFromPointHelper(aX, aY, nsIDocument::FLUSH_LAYOUT, aElements);
 }
 
-Element*
-DocumentOrShadowRoot::ElementFromPointHelper(float aX, float aY,
-                                             bool aIgnoreRootScrollFrame,
-                                             bool aFlushLayout)
-{
+Element* DocumentOrShadowRoot::ElementFromPointHelper(
+    float aX, float aY, bool aIgnoreRootScrollFrame, bool aFlushLayout) {
   AutoTArray<RefPtr<Element>, 1> elementArray;
-  ElementsFromPointHelper(aX, aY,
-                          ((aIgnoreRootScrollFrame ? nsIDocument::IGNORE_ROOT_SCROLL_FRAME : 0) |
-                           (aFlushLayout ? nsIDocument::FLUSH_LAYOUT : 0) |
-                           nsIDocument::IS_ELEMENT_FROM_POINT),
-                          elementArray);
+  ElementsFromPointHelper(
+      aX, aY,
+      ((aIgnoreRootScrollFrame ? nsIDocument::IGNORE_ROOT_SCROLL_FRAME : 0) |
+       (aFlushLayout ? nsIDocument::FLUSH_LAYOUT : 0) |
+       nsIDocument::IS_ELEMENT_FROM_POINT),
+      elementArray);
   if (elementArray.IsEmpty()) {
     return nullptr;
   }
   return elementArray[0];
 }
 
-void
-DocumentOrShadowRoot::ElementsFromPointHelper(float aX, float aY,
-                                              uint32_t aFlags,
-                                              nsTArray<RefPtr<mozilla::dom::Element>>& aElements)
-{
+void DocumentOrShadowRoot::ElementsFromPointHelper(
+    float aX, float aY, uint32_t aFlags,
+    nsTArray<RefPtr<mozilla::dom::Element>>& aElements) {
   // As per the the spec, we return null if either coord is negative
   if (!(aFlags & nsIDocument::IGNORE_ROOT_SCROLL_FRAME) && (aX < 0 || aY < 0)) {
     return;
@@ -228,17 +197,22 @@ DocumentOrShadowRoot::ElementsFromPointHelper(float aX, float aY,
 
   // XUL docs, unlike HTML, have no frame tree until everything's done loading
   if (!rootFrame) {
-    return; // return null to premature XUL callers as a reminder to wait
+    return;  // return null to premature XUL callers as a reminder to wait
   }
 
   nsTArray<nsIFrame*> outFrames;
   // Emulate what GetFrameAtPoint does, since we want all the frames under our
   // point.
-  nsLayoutUtils::GetFramesForArea(rootFrame, nsRect(pt, nsSize(1, 1)), outFrames,
-    nsLayoutUtils::IGNORE_PAINT_SUPPRESSION | nsLayoutUtils::IGNORE_CROSS_DOC |
-    ((aFlags & nsIDocument::IGNORE_ROOT_SCROLL_FRAME) ? nsLayoutUtils::IGNORE_ROOT_SCROLL_FRAME : 0));
+  nsLayoutUtils::GetFramesForArea(
+      rootFrame, nsRect(pt, nsSize(1, 1)), outFrames,
+      nsLayoutUtils::IGNORE_PAINT_SUPPRESSION |
+          nsLayoutUtils::IGNORE_CROSS_DOC |
+          ((aFlags & nsIDocument::IGNORE_ROOT_SCROLL_FRAME)
+               ? nsLayoutUtils::IGNORE_ROOT_SCROLL_FRAME
+               : 0));
 
-  // Dunno when this would ever happen, as we should at least have a root frame under us?
+  // Dunno when this would ever happen, as we should at least have a root frame
+  // under us?
   if (outFrames.IsEmpty()) {
     return;
   }
@@ -266,7 +240,7 @@ DocumentOrShadowRoot::ElementsFromPointHelper(float aX, float aY,
       }
     }
 
-    //XXXsmaug There is plenty of unspec'ed behavior here
+    // XXXsmaug There is plenty of unspec'ed behavior here
     //         https://github.com/w3c/webcomponents/issues/735
     //         https://github.com/w3c/webcomponents/issues/736
     node = Retarget(node);
@@ -283,5 +257,5 @@ DocumentOrShadowRoot::ElementsFromPointHelper(float aX, float aY,
   }
 }
 
-}
-}
+}  // namespace dom
+}  // namespace mozilla

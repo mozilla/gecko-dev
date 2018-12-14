@@ -57,7 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "m_cpp_utils.h"
 
-
 namespace mozilla {
 
 typedef struct nr_ice_ctx_ nr_ice_ctx;
@@ -75,19 +74,9 @@ struct NrIceAddr {
 /* A summary of a candidate, for use in asking which candidate
    pair is active */
 struct NrIceCandidate {
-  enum Type {
-    ICE_HOST,
-    ICE_SERVER_REFLEXIVE,
-    ICE_PEER_REFLEXIVE,
-    ICE_RELAYED
-  };
+  enum Type { ICE_HOST, ICE_SERVER_REFLEXIVE, ICE_PEER_REFLEXIVE, ICE_RELAYED };
 
-  enum TcpType {
-    ICE_NONE,
-    ICE_ACTIVE,
-    ICE_PASSIVE,
-    ICE_SO
-  };
+  enum TcpType { ICE_NONE, ICE_ACTIVE, ICE_PASSIVE, ICE_SO };
 
   NrIceAddr cand_addr;
   NrIceAddr local_addr;
@@ -99,7 +88,6 @@ struct NrIceCandidate {
 };
 
 struct NrIceCandidatePair {
-
   enum State {
     STATE_FROZEN,
     STATE_WAITING,
@@ -137,43 +125,41 @@ struct NrIceCandidatePair {
 
 class NrIceMediaStream {
  public:
-  static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
-                                         const std::string& name,
+  static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx, const std::string &name,
                                          int components);
-  enum State { ICE_CONNECTING, ICE_OPEN, ICE_CLOSED};
+  enum State { ICE_CONNECTING, ICE_OPEN, ICE_CLOSED };
 
   State state() const { return state_; }
 
   // The name of the stream
-  const std::string& name() const { return name_; }
+  const std::string &name() const { return name_; }
 
   // Get all the candidates
   std::vector<std::string> GetCandidates() const;
 
-  nsresult GetLocalCandidates(std::vector<NrIceCandidate>* candidates) const;
-  nsresult GetRemoteCandidates(std::vector<NrIceCandidate>* candidates) const;
+  nsresult GetLocalCandidates(std::vector<NrIceCandidate> *candidates) const;
+  nsresult GetRemoteCandidates(std::vector<NrIceCandidate> *candidates) const;
 
   // Get all candidate pairs, whether in the check list or triggered check
   // queue, in priority order. |out_pairs| is cleared before being filled.
-  nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
+  nsresult GetCandidatePairs(std::vector<NrIceCandidatePair> *out_pairs) const;
 
-  nsresult GetDefaultCandidate(int component, NrIceCandidate* candidate) const;
+  nsresult GetDefaultCandidate(int component, NrIceCandidate *candidate) const;
 
   // Parse remote attributes
-  nsresult ParseAttributes(std::vector<std::string>& candidates);
+  nsresult ParseAttributes(std::vector<std::string> &candidates);
   bool HasParsedAttributes() const { return has_parsed_attrs_; }
 
   // Parse trickle ICE candidate
-  nsresult ParseTrickleCandidate(const std::string& candidate);
+  nsresult ParseTrickleCandidate(const std::string &candidate);
 
   // Disable a component
   nsresult DisableComponent(int component);
 
   // Get the candidate pair currently active. It's the
   // caller's responsibility to free these.
-  nsresult GetActivePair(int component,
-                         UniquePtr<NrIceCandidate>* local,
-                         UniquePtr<NrIceCandidate>* remote);
+  nsresult GetActivePair(int component, UniquePtr<NrIceCandidate> *local,
+                         UniquePtr<NrIceCandidate> *remote);
 
   // Get the current ICE consent send status plus the timeval of the last
   // consent update time.
@@ -205,20 +191,18 @@ class NrIceMediaStream {
 
   uint16_t GetLevel() const { return level_; }
 
-  sigslot::signal2<NrIceMediaStream *, const std::string& >
-  SignalCandidate;  // A new ICE candidate:
+  sigslot::signal2<NrIceMediaStream *, const std::string &>
+      SignalCandidate;  // A new ICE candidate:
 
-  sigslot::signal1<NrIceMediaStream *> SignalReady;  // Candidate pair ready.
+  sigslot::signal1<NrIceMediaStream *> SignalReady;   // Candidate pair ready.
   sigslot::signal1<NrIceMediaStream *> SignalFailed;  // Candidate pair failed.
   sigslot::signal4<NrIceMediaStream *, int, const unsigned char *, int>
-  SignalPacketReceived;  // Incoming packet
+      SignalPacketReceived;  // Incoming packet
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NrIceMediaStream)
 
  private:
-  NrIceMediaStream(NrIceCtx *ctx,
-                   const std::string& name,
-                   size_t components);
+  NrIceMediaStream(NrIceCtx *ctx, const std::string &name, size_t components);
 
   ~NrIceMediaStream();
 
@@ -234,6 +218,5 @@ class NrIceMediaStream {
   bool has_parsed_attrs_;
 };
 
-
-}  // close namespace
+}  // namespace mozilla
 #endif

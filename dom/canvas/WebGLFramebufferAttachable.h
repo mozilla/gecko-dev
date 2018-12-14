@@ -11,17 +11,16 @@
 namespace mozilla {
 class WebGLFBAttachPoint;
 
-class WebGLFramebufferAttachable
-{
-    nsTArray<const WebGLFBAttachPoint*> mAttachmentPoints;
+class WebGLFramebufferAttachable {
+  nsTArray<const WebGLFBAttachPoint*> mAttachmentPoints;
 
-public:
-    // Track FBO/Attachment combinations
-    void MarkAttachment(const WebGLFBAttachPoint& attachment);
-    void UnmarkAttachment(const WebGLFBAttachPoint& attachment);
-    void InvalidateStatusOfAttachedFBs(const char* funcName) const;
+ public:
+  // Track FBO/Attachment combinations
+  void MarkAttachment(const WebGLFBAttachPoint& attachment);
+  void UnmarkAttachment(const WebGLFBAttachPoint& attachment);
+  void InvalidateStatusOfAttachedFBs(const char* funcName) const;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // !WEBGLFRAMEBUFFERATTACHABLE_H_
+#endif  // !WEBGLFRAMEBUFFERATTACHABLE_H_

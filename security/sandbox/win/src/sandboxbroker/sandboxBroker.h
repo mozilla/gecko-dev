@@ -15,18 +15,17 @@
 #include "nsXULAppAPI.h"
 
 namespace sandbox {
-  class BrokerServices;
-  class TargetPolicy;
-}
+class BrokerServices;
+class TargetPolicy;
+}  // namespace sandbox
 
 namespace mozilla {
 
-class SandboxBroker
-{
-public:
+class SandboxBroker {
+ public:
   SandboxBroker();
 
-  static void Initialize(sandbox::BrokerServices* aBrokerServices);
+  static void Initialize(sandbox::BrokerServices *aBrokerServices);
 
   /**
    * Do initialization that depends on parts of the Gecko machinery having been
@@ -34,11 +33,9 @@ public:
    */
   static void GeckoDependentInitialize();
 
-  bool LaunchApp(const wchar_t *aPath,
-                 const wchar_t *aArguments,
-                 base::EnvironmentMap& aEnvironment,
-                 GeckoProcessType aProcessType,
-                 const bool aEnableLogging,
+  bool LaunchApp(const wchar_t *aPath, const wchar_t *aArguments,
+                 base::EnvironmentMap &aEnvironment,
+                 GeckoProcessType aProcessType, const bool aEnableLogging,
                  void **aProcessHandle);
   virtual ~SandboxBroker();
 
@@ -54,10 +51,7 @@ public:
 #ifdef MOZ_ENABLE_SKIA_PDF
   bool SetSecurityLevelForPDFiumProcess();
 #endif
-  enum SandboxLevel {
-    LockDown,
-    Restricted
-  };
+  enum SandboxLevel { LockDown, Restricted };
   bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel);
 
   // File system permissions
@@ -80,12 +74,12 @@ public:
   // Set up dummy interceptions via the broker, so we can log calls.
   void ApplyLoggingPolicy();
 
-private:
+ private:
   static sandbox::BrokerServices *sBrokerService;
   static bool sRunningFromNetworkDrive;
   sandbox::TargetPolicy *mPolicy;
 };
 
-} // mozilla
+}  // namespace mozilla
 
 #endif

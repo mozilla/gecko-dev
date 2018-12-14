@@ -4,24 +4,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsComposeTxtSrvFilter.h"
-#include "nsError.h"                    // for NS_OK
-#include "nsIContent.h"                 // for nsIContent
-#include "nsIDOMNode.h"                 // for nsIDOMNode
-#include "nsNameSpaceManager.h"        // for kNameSpaceID_None
-#include "nsLiteralString.h"            // for NS_LITERAL_STRING
-#include "nscore.h"                     // for NS_IMETHODIMP
-#include "mozilla/dom/Element.h"                 // for nsIContent
+#include "nsError.h"              // for NS_OK
+#include "nsIContent.h"           // for nsIContent
+#include "nsIDOMNode.h"           // for nsIDOMNode
+#include "nsNameSpaceManager.h"   // for kNameSpaceID_None
+#include "nsLiteralString.h"      // for NS_LITERAL_STRING
+#include "nscore.h"               // for NS_IMETHODIMP
+#include "mozilla/dom/Element.h"  // for nsIContent
 
-nsComposeTxtSrvFilter::nsComposeTxtSrvFilter() :
-  mIsForMail(false)
-{
-}
+nsComposeTxtSrvFilter::nsComposeTxtSrvFilter() : mIsForMail(false) {}
 
 NS_IMPL_ISUPPORTS(nsComposeTxtSrvFilter, nsITextServicesFilter)
 
 NS_IMETHODIMP
-nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool *_retval)
-{
+nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool* _retval) {
   *_retval = false;
 
   // Check to see if we can skip this node
@@ -31,37 +27,29 @@ nsComposeTxtSrvFilter::Skip(nsIDOMNode* aNode, bool *_retval)
   if (content) {
     if (content->IsHTMLElement(nsGkAtoms::blockquote)) {
       if (mIsForMail) {
-        *_retval = content->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                                     nsGkAtoms::type,
-                                                     nsGkAtoms::cite,
-                                                     eIgnoreCase);
+        *_retval = content->AsElement()->AttrValueIs(
+            kNameSpaceID_None, nsGkAtoms::type, nsGkAtoms::cite, eIgnoreCase);
       }
     } else if (content->IsHTMLElement(nsGkAtoms::span)) {
       if (mIsForMail) {
-        *_retval = content->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                                     nsGkAtoms::mozquote,
-                                                     nsGkAtoms::_true,
-                                                     eIgnoreCase);
+        *_retval = content->AsElement()->AttrValueIs(
+            kNameSpaceID_None, nsGkAtoms::mozquote, nsGkAtoms::_true,
+            eIgnoreCase);
         if (!*_retval) {
-          *_retval = content->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                                       nsGkAtoms::_class,
-                                                       nsGkAtoms::mozsignature,
-                                                       eCaseMatters);
+          *_retval = content->AsElement()->AttrValueIs(
+              kNameSpaceID_None, nsGkAtoms::_class, nsGkAtoms::mozsignature,
+              eCaseMatters);
         }
       }
-    } else if (content->IsAnyOfHTMLElements(nsGkAtoms::script,
-                                            nsGkAtoms::textarea,
-                                            nsGkAtoms::select,
-                                            nsGkAtoms::style,
-                                            nsGkAtoms::map)) {
+    } else if (content->IsAnyOfHTMLElements(
+                   nsGkAtoms::script, nsGkAtoms::textarea, nsGkAtoms::select,
+                   nsGkAtoms::style, nsGkAtoms::map)) {
       *_retval = true;
     } else if (content->IsHTMLElement(nsGkAtoms::table)) {
       if (mIsForMail) {
-        *_retval =
-          content->AsElement()->AttrValueIs(kNameSpaceID_None,
-                                            nsGkAtoms::_class,
-                                            NS_LITERAL_STRING("moz-email-headers-table"),
-                                            eCaseMatters);
+        *_retval = content->AsElement()->AttrValueIs(
+            kNameSpaceID_None, nsGkAtoms::_class,
+            NS_LITERAL_STRING("moz-email-headers-table"), eCaseMatters);
       }
     }
   }

@@ -62,28 +62,23 @@
 
 #define GL_CRIT 0
 #define GL_ERROR 1
-#define GL_INFO  2
+#define GL_INFO 2
 #define GL_DEBUG 3
 
-const char* kLogStrings[] = {
-  "Critical",
-  "Error",
-  "Info",
-  "Debug"
-};
+const char* kLogStrings[] = {"Critical", "Error", "Info", "Debug"};
 
 static int g_log_level = GL_CRIT;
 
-#define GMPLOG(l, x) do {                                  \
-        if (l <= g_log_level) {                            \
-        const char *log_string = "unknown";                \
-        if ((l >= 0) && (l <= 3)) {                        \
-        log_string = kLogStrings[l];                       \
-        }                                                  \
-        std::cerr << log_string << ": " << x << std::endl; \
-        }                                                  \
-    } while(0)
-
+#define GMPLOG(l, x)                                     \
+  do {                                                   \
+    if (l <= g_log_level) {                              \
+      const char* log_string = "unknown";                \
+      if ((l >= 0) && (l <= 3)) {                        \
+        log_string = kLogStrings[l];                     \
+      }                                                  \
+      std::cerr << log_string << ": " << x << std::endl; \
+    }                                                    \
+  } while (0)
 
 class FakeVideoEncoder;
 class FakeVideoDecoder;
@@ -102,16 +97,17 @@ struct EncodedFrame {
 
 #define ENCODED_FRAME_MAGIC 0x4652414d
 
-template <typename T> class SelfDestruct {
+template <typename T>
+class SelfDestruct {
  public:
-  explicit SelfDestruct (T* t) : t_ (t) {}
+  explicit SelfDestruct(T* t) : t_(t) {}
   ~SelfDestruct() {
     if (t_) {
       t_->Destroy();
     }
   }
 
-#if 0 // unused
+#if 0  // unused
   T* forget() {
     T* t = t_;
     t_ = nullptr;
@@ -126,43 +122,41 @@ template <typename T> class SelfDestruct {
 
 class FakeVideoEncoder : public GMPVideoEncoder {
  public:
-  explicit FakeVideoEncoder (GMPVideoHost* hostAPI) :
-    host_ (hostAPI),
-    callback_ (nullptr),
-    frame_size_(BIG_FRAME),
-    frames_encoded_(0) {}
+  explicit FakeVideoEncoder(GMPVideoHost* hostAPI)
+      : host_(hostAPI),
+        callback_(nullptr),
+        frame_size_(BIG_FRAME),
+        frames_encoded_(0) {}
 
-  void InitEncode (const GMPVideoCodec& codecSettings,
-                   const uint8_t* aCodecSpecific,
-                   uint32_t aCodecSpecificSize,
-                   GMPVideoEncoderCallback* callback,
-                   int32_t numberOfCores,
-                   uint32_t maxPayloadSize) override {
+  void InitEncode(const GMPVideoCodec& codecSettings,
+                  const uint8_t* aCodecSpecific, uint32_t aCodecSpecificSize,
+                  GMPVideoEncoderCallback* callback, int32_t numberOfCores,
+                  uint32_t maxPayloadSize) override {
     callback_ = callback;
-    frame_size_ = (maxPayloadSize > 0 && maxPayloadSize < BIG_FRAME) ?
-                  maxPayloadSize : BIG_FRAME;
+    frame_size_ = (maxPayloadSize > 0 && maxPayloadSize < BIG_FRAME)
+                      ? maxPayloadSize
+                      : BIG_FRAME;
     frame_size_ -= 24 + 40;
     // default header+extension size is 24, but let's leave extra room if
     // we enable more extensions.
     // XXX -- why isn't the size passed in based on the size minus extensions?
 
-    const char *env = getenv("GMP_LOGGING");
+    const char* env = getenv("GMP_LOGGING");
     if (env) {
       g_log_level = atoi(env);
     }
-    GMPLOG (GL_INFO, "Initialized encoder");
+    GMPLOG(GL_INFO, "Initialized encoder");
   }
 
-  void SendFrame(GMPVideoi420Frame* inputImage,
-                 GMPVideoFrameType frame_type,
-                 uint8_t nal_type)
-  {
+  void SendFrame(GMPVideoi420Frame* inputImage, GMPVideoFrameType frame_type,
+                 uint8_t nal_type) {
     // Encode this in a frame that looks a little bit like H.264.
     // Send SPS/PPS/IDR to avoid confusing people
     // Copy the data. This really should convert this to network byte order.
     EncodedFrame eframe;
     eframe.length_ = sizeof(eframe) - sizeof(uint32_t);
-    eframe.h264_compat_ = nal_type; // 7 = SPS, 8 = PPS, 5 = IFrame/IDR slice, 1=PFrame/slice
+    eframe.h264_compat_ =
+        nal_type;  // 7 = SPS, 8 = PPS, 5 = IFrame/IDR slice, 1=PFrame/slice
     eframe.magic_ = ENCODED_FRAME_MAGIC;
     eframe.width_ = inputImage->Width();
     eframe.height_ = inputImage->Height();
@@ -179,23 +173,23 @@ class FakeVideoEncoder : public GMPVideoEncoder {
     GMPVideoFrame* ftmp;
     GMPErr err = host_->CreateFrame(kGMPEncodedVideoFrame, &ftmp);
     if (err != GMPNoErr) {
-      GMPLOG (GL_ERROR, "Error creating encoded frame");
+      GMPLOG(GL_ERROR, "Error creating encoded frame");
       return;
     }
 
-    GMPVideoEncodedFrame* f = static_cast<GMPVideoEncodedFrame*> (ftmp);
+    GMPVideoEncodedFrame* f = static_cast<GMPVideoEncodedFrame*>(ftmp);
 
-    err = f->CreateEmptyFrame (sizeof(eframe) +
-                               (nal_type == 5 ? sizeof(uint32_t) + frame_size_ : 0));
+    err = f->CreateEmptyFrame(
+        sizeof(eframe) + (nal_type == 5 ? sizeof(uint32_t) + frame_size_ : 0));
     if (err != GMPNoErr) {
-      GMPLOG (GL_ERROR, "Error allocating frame data");
+      GMPLOG(GL_ERROR, "Error allocating frame data");
       f->Destroy();
       return;
     }
     memcpy(f->Buffer(), &eframe, sizeof(eframe));
     if (nal_type == 5) {
       // set the size for the fake iframe
-      *((uint32_t*) (f->Buffer() + sizeof(eframe))) = frame_size_;
+      *((uint32_t*)(f->Buffer() + sizeof(eframe))) = frame_size_;
     }
 
     f->SetEncodedWidth(eframe.width_);
@@ -205,17 +199,11 @@ class FakeVideoEncoder : public GMPVideoEncoder {
     f->SetCompleteFrame(true);
     f->SetBufferType(GMP_BufferLength32);
 
-    GMPLOG (GL_DEBUG, "Encoding complete. type= "
-            << f->FrameType()
-            << " NAL_type="
-            << (int) eframe.h264_compat_
-            << " length="
-            << f->Size()
-            << " timestamp="
-            << f->TimeStamp()
-            << " width/height="
-            << eframe.width_
-            << "x" << eframe.height_);
+    GMPLOG(GL_DEBUG,
+           "Encoding complete. type= "
+               << f->FrameType() << " NAL_type=" << (int)eframe.h264_compat_
+               << " length=" << f->Size() << " timestamp=" << f->TimeStamp()
+               << " width/height=" << eframe.width_ << "x" << eframe.height_);
 
     // Return the encoded frame.
     GMPCodecSpecificInfo info;
@@ -223,38 +211,35 @@ class FakeVideoEncoder : public GMPVideoEncoder {
     info.mCodecType = kGMPVideoCodecH264;
     info.mBufferType = GMP_BufferLength32;
     info.mCodecSpecific.mH264.mSimulcastIdx = 0;
-    GMPLOG (GL_DEBUG, "Calling callback");
-    callback_->Encoded (f, reinterpret_cast<uint8_t*> (&info), sizeof(info));
-    GMPLOG (GL_DEBUG, "Callback called");
+    GMPLOG(GL_DEBUG, "Calling callback");
+    callback_->Encoded(f, reinterpret_cast<uint8_t*>(&info), sizeof(info));
+    GMPLOG(GL_DEBUG, "Callback called");
   }
 
-  void Encode (GMPVideoi420Frame* inputImage,
-               const uint8_t* aCodecSpecificInfo,
-               uint32_t aCodecSpecificInfoLength,
-               const GMPVideoFrameType* aFrameTypes,
-               uint32_t aFrameTypesLength) override {
-    GMPLOG (GL_DEBUG,
-            __FUNCTION__
-            << " size="
-            << inputImage->Width() << "x" << inputImage->Height());
+  void Encode(GMPVideoi420Frame* inputImage, const uint8_t* aCodecSpecificInfo,
+              uint32_t aCodecSpecificInfoLength,
+              const GMPVideoFrameType* aFrameTypes,
+              uint32_t aFrameTypesLength) override {
+    GMPLOG(GL_DEBUG, __FUNCTION__ << " size=" << inputImage->Width() << "x"
+                                  << inputImage->Height());
 
-    assert (aFrameTypesLength != 0);
+    assert(aFrameTypesLength != 0);
     GMPVideoFrameType frame_type = aFrameTypes[0];
 
-    SelfDestruct<GMPVideoi420Frame> ifd (inputImage);
+    SelfDestruct<GMPVideoi420Frame> ifd(inputImage);
 
-    if (frame_type  == kGMPKeyFrame) {
-      if (!inputImage)
-        return;
+    if (frame_type == kGMPKeyFrame) {
+      if (!inputImage) return;
     }
     if (!inputImage) {
-      GMPLOG (GL_ERROR, "no input image");
+      GMPLOG(GL_ERROR, "no input image");
       return;
     }
 
-    if (frame_type  == kGMPKeyFrame ||
-        frames_encoded_++ % 10 == 0) { // periodically send iframes anyways
-      SendFrame(inputImage, kGMPKeyFrame, 7); // 7 = SPS, 8 = PPS, 5 = IFrame/IDR slice, 1=PFrame/slice
+    if (frame_type == kGMPKeyFrame ||
+        frames_encoded_++ % 10 == 0) {  // periodically send iframes anyways
+      SendFrame(inputImage, kGMPKeyFrame,
+                7);  // 7 = SPS, 8 = PPS, 5 = IFrame/IDR slice, 1=PFrame/slice
       SendFrame(inputImage, kGMPKeyFrame, 8);
       SendFrame(inputImage, kGMPKeyFrame, 5);
     } else {
@@ -262,24 +247,19 @@ class FakeVideoEncoder : public GMPVideoEncoder {
     }
   }
 
-  void SetChannelParameters (uint32_t aPacketLoss, uint32_t aRTT) override {
-  }
+  void SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) override {}
 
-  void SetRates (uint32_t aNewBitRate, uint32_t aFrameRate) override {
-  }
+  void SetRates(uint32_t aNewBitRate, uint32_t aFrameRate) override {}
 
-  void SetPeriodicKeyFrames (bool aEnable) override {
-  }
+  void SetPeriodicKeyFrames(bool aEnable) override {}
 
-  void EncodingComplete() override {
-    delete this;
-  }
+  void EncodingComplete() override { delete this; }
 
  private:
   uint8_t AveragePlane(uint8_t* ptr, size_t len) {
     uint64_t val = 0;
 
-    for (size_t i=0; i<len; ++i) {
+    for (size_t i = 0; i < len; ++i) {
       val += ptr[i];
     }
 
@@ -294,115 +274,103 @@ class FakeVideoEncoder : public GMPVideoEncoder {
 
 class FakeVideoDecoder : public GMPVideoDecoder {
  public:
-  explicit FakeVideoDecoder (GMPVideoHost* hostAPI) :
-    host_ (hostAPI),
-    callback_ (nullptr) {}
+  explicit FakeVideoDecoder(GMPVideoHost* hostAPI)
+      : host_(hostAPI), callback_(nullptr) {}
 
   ~FakeVideoDecoder() override = default;
 
-  void InitDecode (const GMPVideoCodec& codecSettings,
-                   const uint8_t* aCodecSpecific,
-                   uint32_t aCodecSpecificSize,
-                   GMPVideoDecoderCallback* callback,
-                   int32_t coreCount) override {
-    GMPLOG (GL_INFO, "InitDecode");
+  void InitDecode(const GMPVideoCodec& codecSettings,
+                  const uint8_t* aCodecSpecific, uint32_t aCodecSpecificSize,
+                  GMPVideoDecoderCallback* callback,
+                  int32_t coreCount) override {
+    GMPLOG(GL_INFO, "InitDecode");
 
-    const char *env = getenv("GMP_LOGGING");
+    const char* env = getenv("GMP_LOGGING");
     if (env) {
       g_log_level = atoi(env);
     }
     callback_ = callback;
   }
 
-  void Decode (GMPVideoEncodedFrame* inputFrame,
-               bool missingFrames,
-               const uint8_t* aCodecSpecificInfo,
-               uint32_t aCodecSpecificInfoLength,
-               int64_t renderTimeMs = -1) override {
-    GMPLOG (GL_DEBUG, __FUNCTION__
-            << "Decoding frame size=" << inputFrame->Size()
-            << " timestamp=" << inputFrame->TimeStamp());
+  void Decode(GMPVideoEncodedFrame* inputFrame, bool missingFrames,
+              const uint8_t* aCodecSpecificInfo,
+              uint32_t aCodecSpecificInfoLength,
+              int64_t renderTimeMs = -1) override {
+    GMPLOG(GL_DEBUG, __FUNCTION__
+                         << "Decoding frame size=" << inputFrame->Size()
+                         << " timestamp=" << inputFrame->TimeStamp());
 
     // Attach a self-destructor so that the input frame is destroyed on return.
-    SelfDestruct<GMPVideoEncodedFrame> ifd (inputFrame);
+    SelfDestruct<GMPVideoEncodedFrame> ifd(inputFrame);
 
-    EncodedFrame *eframe;
+    EncodedFrame* eframe;
     eframe = reinterpret_cast<EncodedFrame*>(inputFrame->Buffer());
-    GMPLOG(GL_DEBUG,"magic="  << eframe->magic_ << " h264_compat="  << (int) eframe->h264_compat_
-           << " width=" << eframe->width_ << " height=" << eframe->height_
-           << " timestamp=" << inputFrame->TimeStamp()
-           << " y/u/v=" << (int) eframe->y_ << ":" << (int) eframe->u_ << ":" << (int) eframe->v_);
+    GMPLOG(GL_DEBUG, "magic=" << eframe->magic_
+                              << " h264_compat=" << (int)eframe->h264_compat_
+                              << " width=" << eframe->width_
+                              << " height=" << eframe->height_
+                              << " timestamp=" << inputFrame->TimeStamp()
+                              << " y/u/v=" << (int)eframe->y_ << ":"
+                              << (int)eframe->u_ << ":" << (int)eframe->v_);
     if (inputFrame->Size() != (sizeof(*eframe))) {
-      GMPLOG (GL_ERROR, "Couldn't decode frame. Size=" << inputFrame->Size());
+      GMPLOG(GL_ERROR, "Couldn't decode frame. Size=" << inputFrame->Size());
       return;
     }
 
     if (eframe->magic_ != ENCODED_FRAME_MAGIC) {
-      GMPLOG (GL_ERROR, "Couldn't decode frame. Magic=" << eframe->magic_);
+      GMPLOG(GL_ERROR, "Couldn't decode frame. Magic=" << eframe->magic_);
       return;
     }
     if (eframe->h264_compat_ != 5 && eframe->h264_compat_ != 1) {
       // only return video for iframes or pframes
-      GMPLOG (GL_DEBUG, "Not a video frame: NAL type " << (int) eframe->h264_compat_);
+      GMPLOG(GL_DEBUG,
+             "Not a video frame: NAL type " << (int)eframe->h264_compat_);
       // Decode it anyways
     }
 
     int width = eframe->width_;
     int height = eframe->height_;
     int ystride = eframe->width_;
-    int uvstride = eframe->width_/2;
+    int uvstride = eframe->width_ / 2;
 
-    GMPLOG (GL_DEBUG, "Video frame ready for display "
-            << width
-            << "x"
-            << height
-            << " timestamp="
-            << inputFrame->TimeStamp());
+    GMPLOG(GL_DEBUG, "Video frame ready for display "
+                         << width << "x" << height
+                         << " timestamp=" << inputFrame->TimeStamp());
 
     GMPVideoFrame* ftmp = nullptr;
 
     // Translate the image.
-    GMPErr err = host_->CreateFrame (kGMPI420VideoFrame, &ftmp);
+    GMPErr err = host_->CreateFrame(kGMPI420VideoFrame, &ftmp);
     if (err != GMPNoErr) {
-      GMPLOG (GL_ERROR, "Couldn't allocate empty I420 frame");
+      GMPLOG(GL_ERROR, "Couldn't allocate empty I420 frame");
       return;
     }
 
-    GMPVideoi420Frame* frame = static_cast<GMPVideoi420Frame*> (ftmp);
-    err = frame->CreateEmptyFrame (
-        width, height,
-        ystride, uvstride, uvstride);
+    GMPVideoi420Frame* frame = static_cast<GMPVideoi420Frame*>(ftmp);
+    err = frame->CreateEmptyFrame(width, height, ystride, uvstride, uvstride);
     if (err != GMPNoErr) {
-      GMPLOG (GL_ERROR, "Couldn't make decoded frame");
+      GMPLOG(GL_ERROR, "Couldn't make decoded frame");
       return;
     }
 
-    memset(frame->Buffer(kGMPYPlane),
-           eframe->y_,
+    memset(frame->Buffer(kGMPYPlane), eframe->y_,
            frame->AllocatedSize(kGMPYPlane));
-    memset(frame->Buffer(kGMPUPlane),
-           eframe->u_,
+    memset(frame->Buffer(kGMPUPlane), eframe->u_,
            frame->AllocatedSize(kGMPUPlane));
-    memset(frame->Buffer(kGMPVPlane),
-           eframe->v_,
+    memset(frame->Buffer(kGMPVPlane), eframe->v_,
            frame->AllocatedSize(kGMPVPlane));
 
-    GMPLOG (GL_DEBUG, "Allocated size = "
-            << frame->AllocatedSize (kGMPYPlane));
-    frame->SetTimestamp (inputFrame->TimeStamp());
-    frame->SetDuration (inputFrame->Duration());
-    callback_->Decoded (frame);
+    GMPLOG(GL_DEBUG, "Allocated size = " << frame->AllocatedSize(kGMPYPlane));
+    frame->SetTimestamp(inputFrame->TimeStamp());
+    frame->SetDuration(inputFrame->Duration());
+    callback_->Decoded(frame);
   }
 
-  void Reset() override {
-  }
+  void Reset() override {}
 
-  void Drain() override {
-  }
+  void Drain() override {}
 
-  void DecodingComplete() override {
-    delete this;
-  }
+  void DecodingComplete() override { delete this; }
 
   GMPVideoHost* host_;
   GMPVideoDecoderCallback* callback_;
@@ -410,26 +378,21 @@ class FakeVideoDecoder : public GMPVideoDecoder {
 
 extern "C" {
 
-  PUBLIC_FUNC GMPErr
-  GMPInit (GMPPlatformAPI* aPlatformAPI) {
+PUBLIC_FUNC GMPErr GMPInit(GMPPlatformAPI* aPlatformAPI) { return GMPNoErr; }
+
+PUBLIC_FUNC GMPErr GMPGetAPI(const char* aApiName, void* aHostAPI,
+                             void** aPluginApi) {
+  if (!strcmp(aApiName, GMP_API_VIDEO_DECODER)) {
+    *aPluginApi = new FakeVideoDecoder(static_cast<GMPVideoHost*>(aHostAPI));
     return GMPNoErr;
   }
-
-  PUBLIC_FUNC GMPErr
-  GMPGetAPI (const char* aApiName, void* aHostAPI, void** aPluginApi) {
-    if (!strcmp (aApiName, GMP_API_VIDEO_DECODER)) {
-      *aPluginApi = new FakeVideoDecoder (static_cast<GMPVideoHost*> (aHostAPI));
-      return GMPNoErr;
-    }
-    if (!strcmp (aApiName, GMP_API_VIDEO_ENCODER)) {
-      *aPluginApi = new FakeVideoEncoder (static_cast<GMPVideoHost*> (aHostAPI));
-      return GMPNoErr;
-    }
-    return GMPGenericErr;
+  if (!strcmp(aApiName, GMP_API_VIDEO_ENCODER)) {
+    *aPluginApi = new FakeVideoEncoder(static_cast<GMPVideoHost*>(aHostAPI));
+    return GMPNoErr;
   }
+  return GMPGenericErr;
+}
 
-  PUBLIC_FUNC void
-  GMPShutdown (void) {
-  }
+PUBLIC_FUNC void GMPShutdown(void) {}
 
-} // extern "C"
+}  // extern "C"

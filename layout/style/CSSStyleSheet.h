@@ -39,23 +39,20 @@ struct ChildSheetListBuilder;
 
 namespace css {
 class GroupRule;
-} // namespace css
+}  // namespace css
 namespace dom {
 class CSSRuleList;
 class Element;
-} // namespace dom
+}  // namespace dom
 
-  // -------------------------------
+// -------------------------------
 // CSS Style Sheet Inner Data Container
 //
 
-struct CSSStyleSheetInner : public StyleSheetInfo
-{
-  CSSStyleSheetInner(CORSMode aCORSMode,
-                     ReferrerPolicy aReferrerPolicy,
+struct CSSStyleSheetInner : public StyleSheetInfo {
+  CSSStyleSheetInner(CORSMode aCORSMode, ReferrerPolicy aReferrerPolicy,
                      const dom::SRIMetadata& aIntegrity);
-  CSSStyleSheetInner(CSSStyleSheetInner& aCopy,
-                     CSSStyleSheet* aPrimarySheet);
+  CSSStyleSheetInner(CSSStyleSheetInner& aCopy, CSSStyleSheet* aPrimarySheet);
   ~CSSStyleSheetInner();
 
   StyleSheetInfo* CloneFor(StyleSheet* aPrimarySheet) override;
@@ -72,26 +69,26 @@ struct CSSStyleSheetInner : public StyleSheetInfo
   nsAutoPtr<nsXMLNameSpaceMap> mNameSpaceMap;
 };
 
-
 // -------------------------------
 // CSS Style Sheet
 //
 
 // CID for the CSSStyleSheet class
 // 7985c7ac-9ddc-444d-9899-0c86ec122f54
-#define NS_CSS_STYLE_SHEET_IMPL_CID     \
-{ 0x7985c7ac, 0x9ddc, 0x444d, \
-  { 0x98, 0x99, 0x0c, 0x86, 0xec, 0x12, 0x2f, 0x54 } }
+#define NS_CSS_STYLE_SHEET_IMPL_CID                  \
+  {                                                  \
+    0x7985c7ac, 0x9ddc, 0x444d, {                    \
+      0x98, 0x99, 0x0c, 0x86, 0xec, 0x12, 0x2f, 0x54 \
+    }                                                \
+  }
 
-
-class CSSStyleSheet final : public StyleSheet
-{
-public:
+class CSSStyleSheet final : public StyleSheet {
+ public:
   typedef net::ReferrerPolicy ReferrerPolicy;
-  CSSStyleSheet(css::SheetParsingMode aParsingMode,
-                CORSMode aCORSMode, ReferrerPolicy aReferrerPolicy);
-  CSSStyleSheet(css::SheetParsingMode aParsingMode,
-                CORSMode aCORSMode, ReferrerPolicy aReferrerPolicy,
+  CSSStyleSheet(css::SheetParsingMode aParsingMode, CORSMode aCORSMode,
+                ReferrerPolicy aReferrerPolicy);
+  CSSStyleSheet(css::SheetParsingMode aParsingMode, CORSMode aCORSMode,
+                ReferrerPolicy aReferrerPolicy,
                 const dom::SRIMetadata& aIntegrity);
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -111,14 +108,12 @@ public:
   int32_t StyleRuleCount() const;
   css::Rule* GetStyleRuleAt(int32_t aIndex) const;
 
-  nsXMLNameSpaceMap* GetNameSpaceMap() const {
-    return Inner()->mNameSpaceMap;
-  }
+  nsXMLNameSpaceMap* GetNameSpaceMap() const { return Inner()->mNameSpaceMap; }
 
   already_AddRefed<StyleSheet> Clone(StyleSheet* aCloneParent,
-    dom::CSSImportRule* aCloneOwnerRule,
-    nsIDocument* aCloneDocument,
-    nsINode* aCloneOwningNode) const final;
+                                     dom::CSSImportRule* aCloneOwnerRule,
+                                     nsIDocument* aCloneDocument,
+                                     nsINode* aCloneOwningNode) const final;
 
   nsresult AddRuleProcessor(nsCSSRuleProcessor* aProcessor);
   nsresult DropRuleProcessor(nsCSSRuleProcessor* aProcessor);
@@ -128,7 +123,7 @@ public:
                               nsresult aStatus) override;
 
   bool UseForPresentation(nsPresContext* aPresContext,
-                            nsMediaQueryResultCacheKey& aKey) const;
+                          nsMediaQueryResultCacheKey& aKey) const;
 
   nsresult ReparseSheet(const nsAString& aInput);
 
@@ -146,17 +141,15 @@ public:
 
   void DidDirty() override;
 
-private:
-  CSSStyleSheet(const CSSStyleSheet& aCopy,
-                CSSStyleSheet* aParentToUse,
+ private:
+  CSSStyleSheet(const CSSStyleSheet& aCopy, CSSStyleSheet* aParentToUse,
                 dom::CSSImportRule* aOwnerRuleToUse,
-                nsIDocument* aDocumentToUse,
-                nsINode* aOwningNodeToUse);
+                nsIDocument* aDocumentToUse, nsINode* aOwningNodeToUse);
 
   CSSStyleSheet(const CSSStyleSheet& aCopy) = delete;
   CSSStyleSheet& operator=(const CSSStyleSheet& aCopy) = delete;
 
-protected:
+ protected:
   virtual ~CSSStyleSheet();
 
   void LastRelease();
@@ -169,30 +162,28 @@ protected:
   // Drop our reference to mRuleCollection
   void DropRuleCollection();
 
-  CSSStyleSheetInner* Inner() const
-  {
+  CSSStyleSheetInner* Inner() const {
     return static_cast<CSSStyleSheetInner*>(mInner);
   }
 
   // Unlink our inner, if needed, for cycle collection
   virtual void UnlinkInner() override;
   // Traverse our inner, if needed, for cycle collection
-  virtual void TraverseInner(nsCycleCollectionTraversalCallback &) override;
+  virtual void TraverseInner(nsCycleCollectionTraversalCallback&) override;
 
-protected:
+ protected:
   // Internal methods which do not have security check and completeness check.
   dom::CSSRuleList* GetCssRulesInternal();
-  uint32_t InsertRuleInternal(const nsAString& aRule,
-                              uint32_t aIndex, ErrorResult& aRv);
+  uint32_t InsertRuleInternal(const nsAString& aRule, uint32_t aIndex,
+                              ErrorResult& aRv);
   void DeleteRuleInternal(uint32_t aIndex, ErrorResult& aRv);
   nsresult InsertRuleIntoGroupInternal(const nsAString& aRule,
-                                       css::GroupRule* aGroup,
-                                       uint32_t aIndex);
+                                       css::GroupRule* aGroup, uint32_t aIndex);
 
   void EnabledStateChangedInternal();
 
   RefPtr<CSSRuleListImpl> mRuleCollection;
-  bool                  mInRuleProcessorCache;
+  bool mInRuleProcessorCache;
   RefPtr<dom::Element> mScopeElement;
 
   AutoTArray<nsCSSRuleProcessor*, 8>* mRuleProcessors;
@@ -203,6 +194,6 @@ protected:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(CSSStyleSheet, NS_CSS_STYLE_SHEET_IMPL_CID)
 
-} // namespace mozilla
+}  // namespace mozilla
 
 #endif /* !defined(mozilla_CSSStyleSheet_h) */

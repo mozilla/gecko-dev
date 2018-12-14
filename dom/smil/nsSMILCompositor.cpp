@@ -12,56 +12,43 @@
 #include "nsSMILCSSProperty.h"
 
 // PLDHashEntryHdr methods
-bool
-nsSMILCompositor::KeyEquals(KeyTypePointer aKey) const
-{
+bool nsSMILCompositor::KeyEquals(KeyTypePointer aKey) const {
   return aKey && aKey->Equals(mKey);
 }
 
-/*static*/ PLDHashNumber
-nsSMILCompositor::HashKey(KeyTypePointer aKey)
-{
+/*static*/ PLDHashNumber nsSMILCompositor::HashKey(KeyTypePointer aKey) {
   // Combine the 3 values into one numeric value, which will be hashed.
   // NOTE: We right-shift one of the pointers by 2 to get some randomness in
   // its 2 lowest-order bits. (Those shifted-off bits will always be 0 since
   // our pointers will be word-aligned.)
   return (NS_PTR_TO_UINT32(aKey->mElement.get()) >> 2) +
-    NS_PTR_TO_UINT32(aKey->mAttributeName.get());
+         NS_PTR_TO_UINT32(aKey->mAttributeName.get());
 }
 
 // Cycle-collection support
-void
-nsSMILCompositor::Traverse(nsCycleCollectionTraversalCallback* aCallback)
-{
-  if (!mKey.mElement)
-    return;
+void nsSMILCompositor::Traverse(nsCycleCollectionTraversalCallback* aCallback) {
+  if (!mKey.mElement) return;
 
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*aCallback, "Compositor mKey.mElement");
   aCallback->NoteXPCOMChild(mKey.mElement);
 }
 
 // Other methods
-void
-nsSMILCompositor::AddAnimationFunction(nsSMILAnimationFunction* aFunc)
-{
+void nsSMILCompositor::AddAnimationFunction(nsSMILAnimationFunction* aFunc) {
   if (aFunc) {
     mAnimationFunctions.AppendElement(aFunc);
   }
 }
 
-void
-nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates)
-{
-  if (!mKey.mElement)
-    return;
+void nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates) {
+  if (!mKey.mElement) return;
 
   // If we might need to resolve base styles, grab a suitable style context
   // for initializing our nsISMILAttr with.
   RefPtr<nsStyleContext> baseStyleContext;
   if (MightNeedBaseStyle()) {
-    baseStyleContext =
-      nsComputedDOMStyle::GetUnanimatedStyleContextNoFlush(mKey.mElement,
-                                                           nullptr);
+    baseStyleContext = nsComputedDOMStyle::GetUnanimatedStyleContextNoFlush(
+        mKey.mElement, nullptr);
   }
 
   // FIRST: Get the nsISMILAttr (to grab base value from, and to eventually
@@ -117,11 +104,8 @@ nsSMILCompositor::ComposeAttribute(bool& aMightHavePendingStyleUpdates)
   }
 }
 
-void
-nsSMILCompositor::ClearAnimationEffects()
-{
-  if (!mKey.mElement || !mKey.mAttributeName)
-    return;
+void nsSMILCompositor::ClearAnimationEffects() {
+  if (!mKey.mElement || !mKey.mAttributeName) return;
 
   UniquePtr<nsISMILAttr> smilAttr = CreateSMILAttr(nullptr);
   if (!smilAttr) {
@@ -133,9 +117,8 @@ nsSMILCompositor::ClearAnimationEffects()
 
 // Protected Helper Functions
 // --------------------------
-UniquePtr<nsISMILAttr>
-nsSMILCompositor::CreateSMILAttr(nsStyleContext* aBaseStyleContext)
-{
+UniquePtr<nsISMILAttr> nsSMILCompositor::CreateSMILAttr(
+    nsStyleContext* aBaseStyleContext) {
   nsCSSPropertyID propID = GetCSSPropertyToAnimate();
 
   if (propID != eCSSProperty_UNKNOWN) {
@@ -147,19 +130,17 @@ nsSMILCompositor::CreateSMILAttr(nsStyleContext* aBaseStyleContext)
                                         mKey.mAttributeName);
 }
 
-nsCSSPropertyID
-nsSMILCompositor::GetCSSPropertyToAnimate() const
-{
+nsCSSPropertyID nsSMILCompositor::GetCSSPropertyToAnimate() const {
   if (mKey.mAttributeNamespaceID != kNameSpaceID_None) {
     return eCSSProperty_UNKNOWN;
   }
 
   nsCSSPropertyID propID =
-    nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
-                               CSSEnabledState::eForAllContent);
+      nsCSSProps::LookupProperty(nsDependentAtomString(mKey.mAttributeName),
+                                 CSSEnabledState::eForAllContent);
 
-  if (!nsSMILCSSProperty::IsPropertyAnimatable(propID,
-        mKey.mElement->OwnerDoc()->GetStyleBackendType())) {
+  if (!nsSMILCSSProperty::IsPropertyAnimatable(
+          propID, mKey.mElement->OwnerDoc()->GetStyleBackendType())) {
     return eCSSProperty_UNKNOWN;
   }
 
@@ -183,9 +164,7 @@ nsSMILCompositor::GetCSSPropertyToAnimate() const
   return propID;
 }
 
-bool
-nsSMILCompositor::MightNeedBaseStyle() const
-{
+bool nsSMILCompositor::MightNeedBaseStyle() const {
   if (GetCSSPropertyToAnimate() == eCSSProperty_UNKNOWN) {
     return false;
   }
@@ -201,9 +180,7 @@ nsSMILCompositor::MightNeedBaseStyle() const
   return false;
 }
 
-uint32_t
-nsSMILCompositor::GetFirstFuncToAffectSandwich()
-{
+uint32_t nsSMILCompositor::GetFirstFuncToAffectSandwich() {
   // For performance reasons, we throttle most animations on elements in
   // display:none subtrees. (We can't throttle animations that target the
   // "display" property itself, though -- if we did, display:none elements
@@ -218,16 +195,15 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
 
   uint32_t i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {
-    nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
+    nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i - 1];
     // In the following, the lack of short-circuit behavior of |= means that we
     // will ALWAYS run UpdateCachedTarget (even if mForceCompositing is true)
     // but only call HasChanged and WasSkippedInPrevSample if necessary.  This
     // is important since we need UpdateCachedTarget to run in order to detect
     // changes to the target in subsequent samples.
-    mForceCompositing |=
-      curAnimFunc->UpdateCachedTarget(mKey) ||
-      (curAnimFunc->HasChanged() && !canThrottle) ||
-      curAnimFunc->WasSkippedInPrevSample();
+    mForceCompositing |= curAnimFunc->UpdateCachedTarget(mKey) ||
+                         (curAnimFunc->HasChanged() && !canThrottle) ||
+                         curAnimFunc->WasSkippedInPrevSample();
 
     if (curAnimFunc->WillReplace()) {
       --i;
@@ -242,15 +218,13 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
   // something has changed mForceCompositing will be true.
   if (mForceCompositing) {
     for (uint32_t j = i; j > 0; --j) {
-      mAnimationFunctions[j-1]->SetWasSkipped();
+      mAnimationFunctions[j - 1]->SetWasSkipped();
     }
   }
   return i;
 }
 
-void
-nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue)
-{
+void nsSMILCompositor::UpdateCachedBaseValue(const nsSMILValue& aBaseValue) {
   if (mCachedBaseValue != aBaseValue) {
     // Base value has changed since last sample.
     mCachedBaseValue = aBaseValue;

@@ -18,14 +18,14 @@ class EventChainPreVisitor;
 namespace dom {
 
 class HTMLFieldSetElement final : public nsGenericHTMLFormElement,
-                                  public nsIConstraintValidation
-{
-public:
+                                  public nsIConstraintValidation {
+ public:
   using nsGenericHTMLFormElement::GetForm;
   using nsIConstraintValidation::GetValidationMessage;
   using nsIConstraintValidation::SetCustomValidity;
 
-  explicit HTMLFieldSetElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
+  explicit HTMLFieldSetElement(
+      already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLFieldSetElement, fieldset)
 
@@ -34,14 +34,15 @@ public:
 
   // nsIContent
   virtual nsresult GetEventTargetParent(
-                     EventChainPreVisitor& aVisitor) override;
+      EventChainPreVisitor& aVisitor) override;
   virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                 const nsAttrValue* aValue,
                                 const nsAttrValue* aOldValue,
                                 nsIPrincipal* aSubjectPrincipal,
                                 bool aNotify) override;
 
-  virtual nsresult InsertChildBefore(nsIContent* aChild, nsIContent* aBeforeThis,
+  virtual nsresult InsertChildBefore(nsIContent* aChild,
+                                     nsIContent* aBeforeThis,
                                      bool aNotify) override;
   virtual nsresult InsertChildAt_Deprecated(nsIContent* aChild, uint32_t aIndex,
                                             bool aNotify) override;
@@ -52,7 +53,7 @@ public:
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission* aFormSubmission) override;
   virtual bool IsDisabledForEvents(EventMessage aMessage) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
   const nsIContent* GetFirstLegend() const { return mFirstLegend; }
@@ -65,26 +66,18 @@ public:
                                            nsGenericHTMLFormElement)
 
   // WebIDL
-  bool Disabled() const
-  {
-    return GetBoolAttr(nsGkAtoms::disabled);
-  }
-  void SetDisabled(bool aValue, ErrorResult& aRv)
-  {
+  bool Disabled() const { return GetBoolAttr(nsGkAtoms::disabled); }
+  void SetDisabled(bool aValue, ErrorResult& aRv) {
     SetHTMLBoolAttr(nsGkAtoms::disabled, aValue, aRv);
   }
 
-  void GetName(nsAString& aValue)
-  {
-    GetHTMLAttr(nsGkAtoms::name, aValue);
-  }
+  void GetName(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::name, aValue); }
 
-  void SetName(const nsAString& aValue, ErrorResult& aRv)
-  {
+  void SetName(const nsAString& aValue, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::name, aValue, aRv);
   }
 
-  NS_IMETHOD GetType(nsAString & aType);
+  NS_IMETHOD GetType(nsAString& aType);
 
   nsIHTMLCollection* Elements();
 
@@ -100,11 +93,10 @@ public:
 
   virtual EventStates IntrinsicState() const override;
 
-
   /*
    * This method will update the fieldset's validity.  This method has to be
-   * called by fieldset elements whenever their validity state or status regarding
-   * constraint validation changes.
+   * called by fieldset elements whenever their validity state or status
+   * regarding constraint validation changes.
    *
    * @note If an element becomes barred from constraint validation, it has to
    * be considered as valid.
@@ -113,13 +105,13 @@ public:
    */
   void UpdateValidity(bool aElementValidityState);
 
-protected:
+ protected:
   virtual ~HTMLFieldSetElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
 
-private:
-
+ private:
   /**
    * Notify all elements (in mElements) that the first legend of the fieldset
    * has now changed.
@@ -147,7 +139,7 @@ private:
   int32_t mInvalidElementsCount;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* mozilla_dom_HTMLFieldSetElement_h */

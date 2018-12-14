@@ -42,8 +42,8 @@ enum class CSSPseudoElementType : uint8_t;
 enum class CSSPseudoClassType : uint8_t;
 namespace css {
 class DocumentRule;
-} // namespace css
-} // namespace mozilla
+}  // namespace css
+}  // namespace mozilla
 
 /**
  * The CSS style rule processor provides a mechanism for sibling style
@@ -56,8 +56,8 @@ class DocumentRule;
  * is told when the rule processor is going away (via DropRuleProcessor).
  */
 
-class nsCSSRuleProcessor: public nsIStyleRuleProcessor {
-public:
+class nsCSSRuleProcessor : public nsIStyleRuleProcessor {
+ public:
   typedef nsTArray<RefPtr<mozilla::CSSStyleSheet>> sheet_array_type;
 
   // aScopeElement must be non-null iff aSheetType is
@@ -69,8 +69,7 @@ public:
                      mozilla::dom::Element* aScopeElement,
                      nsCSSRuleProcessor* aPreviousCSSRuleProcessor,
                      bool aIsShared = false);
-  nsCSSRuleProcessor(sheet_array_type&& aSheets,
-                     mozilla::SheetType aSheetType,
+  nsCSSRuleProcessor(sheet_array_type&& aSheets, mozilla::SheetType aSheetType,
                      mozilla::dom::Element* aScopeElement,
                      nsCSSRuleProcessor* aPreviousCSSRuleProcessor,
                      bool aIsShared = false);
@@ -78,7 +77,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsCSSRuleProcessor)
 
-public:
+ public:
   nsresult ClearRuleCascades();
 
   /*
@@ -89,29 +88,27 @@ public:
    * to be null; in this case false will be returned.
    */
   static bool SelectorListMatches(mozilla::dom::Element* aElement,
-                                    TreeMatchContext& aTreeMatchContext,
-                                    nsCSSSelectorList* aSelectorList);
+                                  TreeMatchContext& aTreeMatchContext,
+                                  nsCSSSelectorList* aSelectorList);
 
   /*
    * Helper to get the content state for a content node.  This may be
    * slightly adjusted from IntrinsicState().
    */
   static mozilla::EventStates GetContentState(
-                                const mozilla::dom::Element* aElement,
-                                bool aUsingPrivateBrowsing);
+      const mozilla::dom::Element* aElement, bool aUsingPrivateBrowsing);
   static mozilla::EventStates GetContentState(
-                                const mozilla::dom::Element* aElement,
-                                const TreeMatchContext& aTreeMatchContext);
+      const mozilla::dom::Element* aElement,
+      const TreeMatchContext& aTreeMatchContext);
   static mozilla::EventStates GetContentState(
-                                const mozilla::dom::Element* aElement);
+      const mozilla::dom::Element* aElement);
 
   /*
    * Helper to get the content state for :visited handling for an element
    */
   static mozilla::EventStates GetContentStateForVisitedHandling(
-             const mozilla::dom::Element* aElement,
-             nsRuleWalker::VisitedHandlingType aVisitedHandling,
-             bool aIsRelevantLink);
+      const mozilla::dom::Element* aElement,
+      nsRuleWalker::VisitedHandlingType aVisitedHandling, bool aIsRelevantLink);
 
   /*
    * Helper to test whether a node is a link
@@ -143,15 +140,17 @@ public:
   virtual void RulesMatching(XULTreeRuleProcessorData* aData) override;
 #endif
 
-  virtual nsRestyleHint HasStateDependentStyle(StateRuleProcessorData* aData) override;
-  virtual nsRestyleHint HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData) override;
+  virtual nsRestyleHint HasStateDependentStyle(
+      StateRuleProcessorData* aData) override;
+  virtual nsRestyleHint HasStateDependentStyle(
+      PseudoElementStateRuleProcessorData* aData) override;
 
-  virtual bool HasDocumentStateDependentStyle(StateRuleProcessorData* aData) override;
+  virtual bool HasDocumentStateDependentStyle(
+      StateRuleProcessorData* aData) override;
 
-  virtual nsRestyleHint
-    HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
-                               mozilla::RestyleHintData& aRestyleHintDataResult)
-                                 override;
+  virtual nsRestyleHint HasAttributeDependentStyle(
+      AttributeRuleProcessorData* aData,
+      mozilla::RestyleHintData& aRestyleHintDataResult) override;
 
   virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) override;
 
@@ -161,10 +160,10 @@ public:
    */
   mozilla::UniquePtr<nsMediaQueryResultCacheKey> CloneMQCacheKey();
 
-  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
-    const MOZ_MUST_OVERRIDE override;
-  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
-    const MOZ_MUST_OVERRIDE override;
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+      MOZ_MUST_OVERRIDE override;
+  virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+      MOZ_MUST_OVERRIDE override;
 
   // Append all the currently-active font face rules to aArray.  Return
   // true for success and false for failure.
@@ -180,8 +179,9 @@ public:
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);
 
-  bool AppendFontFeatureValuesRules(nsPresContext* aPresContext,
-                              nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
+  bool AppendFontFeatureValuesRules(
+      nsPresContext* aPresContext,
+      nsTArray<nsCSSFontFeatureValuesRule*>& aArray);
 
   /**
    * Returns the scope element for the scoped style sheets this rule
@@ -209,28 +209,27 @@ public:
 
   struct StateSelector {
     StateSelector(mozilla::EventStates aStates, nsCSSSelector* aSelector)
-      : mStates(aStates),
-        mSelector(aSelector)
-    {}
+        : mStates(aStates), mSelector(aSelector) {}
 
     mozilla::EventStates mStates;
     nsCSSSelector* mSelector;
   };
 
-protected:
+ protected:
   virtual ~nsCSSRuleProcessor();
 
-private:
+ private:
   static bool CascadeSheet(mozilla::CSSStyleSheet* aSheet,
                            CascadeEnumData* aData);
 
   RuleCascadeData* GetRuleCascade(nsPresContext* aPresContext);
   void RefreshRuleCascade(nsPresContext* aPresContext);
 
-  nsRestyleHint HasStateDependentStyle(ElementDependentRuleProcessorData* aData,
-                                       mozilla::dom::Element* aStatefulElement,
-                                       mozilla::CSSPseudoElementType aPseudoType,
-                                       mozilla::EventStates aStateMask);
+  nsRestyleHint HasStateDependentStyle(
+      ElementDependentRuleProcessorData* aData,
+      mozilla::dom::Element* aStatefulElement,
+      mozilla::CSSPseudoElementType aPseudoType,
+      mozilla::EventStates aStateMask);
 
   void ClearSheets();
 
@@ -246,7 +245,7 @@ private:
   mozilla::UniquePtr<nsMediaQueryResultCacheKey> mPreviousCacheKey;
 
   // The last pres context for which GetRuleCascades was called.
-  nsPresContext *mLastPresContext;
+  nsPresContext* mLastPresContext;
 
   // The scope element for this rule processor's scoped style sheets.
   // Only used if mSheetType == nsStyleSet::eScopedDocSheet.

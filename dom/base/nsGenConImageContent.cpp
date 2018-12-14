@@ -27,20 +27,18 @@
 using namespace mozilla;
 
 class nsGenConImageContent final : public nsGenericHTMLElement,
-                                   public nsImageLoadingContent
-{
-public:
+                                   public nsImageLoadingContent {
+ public:
   explicit nsGenConImageContent(already_AddRefed<dom::NodeInfo>& aNodeInfo)
-    : nsGenericHTMLElement(aNodeInfo)
-  {
+      : nsGenericHTMLElement(aNodeInfo) {
     // nsImageLoadingContent starts out broken, so we start out
     // suppressed to match it.
     AddStatesSilently(NS_EVENT_STATE_SUPPRESSED);
-    MOZ_ASSERT(IsInNamespace(kNameSpaceID_XHTML), "Someone messed up our nodeinfo");
+    MOZ_ASSERT(IsInNamespace(kNameSpaceID_XHTML),
+               "Someone messed up our nodeinfo");
   }
 
-  nsresult Init(imgRequestProxy* aImageRequest)
-  {
+  nsresult Init(imgRequestProxy* aImageRequest) {
     // No need to notify, since we have no frame.
     return UseAsPrimaryRequest(aImageRequest, false, eImageLoadType_Normal);
   }
@@ -52,8 +50,8 @@ public:
   virtual void UnbindFromTree(bool aDeep, bool aNullParent) override;
   virtual EventStates IntrinsicState() const override;
 
-  virtual nsresult GetEventTargetParent(EventChainPreVisitor& aVisitor) override
-  {
+  virtual nsresult GetEventTargetParent(
+      EventChainPreVisitor& aVisitor) override {
     MOZ_ASSERT(IsInNativeAnonymousSubtree());
     if (aVisitor.mEvent->mMessage == eLoad ||
         aVisitor.mEvent->mMessage == eLoadError) {
@@ -63,41 +61,35 @@ public:
     return nsGenericHTMLElement::GetEventTargetParent(aVisitor);
   }
 
-protected:
+ protected:
   nsIContent* AsContent() override { return this; }
 
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
-  virtual nsresult Clone(dom::NodeInfo* aNodeInfo,
-                         nsINode** aResult,
+  virtual JSObject* WrapNode(JSContext* aCx,
+                             JS::Handle<JSObject*> aGivenProto) override;
+  virtual nsresult Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult,
                          bool aPreallocateChildren) const override;
 
-private:
+ private:
   virtual ~nsGenConImageContent();
 
-public:
+ public:
   NS_DECL_ISUPPORTS_INHERITED
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(nsGenConImageContent,
-                            nsGenericHTMLElement,
-                            nsIImageLoadingContent,
-                            imgINotificationObserver)
+NS_IMPL_ISUPPORTS_INHERITED(nsGenConImageContent, nsGenericHTMLElement,
+                            nsIImageLoadingContent, imgINotificationObserver)
 
 NS_IMPL_ELEMENT_CLONE(nsGenConImageContent)
 
 namespace mozilla {
 namespace dom {
 
-already_AddRefed<nsIContent>
-CreateGenConImageContent(nsIDocument* aDocument, imgRequestProxy* aImageRequest)
-{
+already_AddRefed<nsIContent> CreateGenConImageContent(
+    nsIDocument* aDocument, imgRequestProxy* aImageRequest) {
   NS_PRECONDITION(aImageRequest, "Must have request!");
-  RefPtr<NodeInfo> nodeInfo =
-    aDocument->NodeInfoManager()->
-      GetNodeInfo(nsGkAtoms::mozgeneratedcontentimage,
-                  nullptr,
-                  kNameSpaceID_XHTML,
-                  nsINode::ELEMENT_NODE);
+  RefPtr<NodeInfo> nodeInfo = aDocument->NodeInfoManager()->GetNodeInfo(
+      nsGkAtoms::mozgeneratedcontentimage, nullptr, kNameSpaceID_XHTML,
+      nsINode::ELEMENT_NODE);
   // Work around not being able to bind a non-const lvalue reference
   // to an rvalue of non-reference type by just creating an rvalue
   // reference.  And we can't change the constructor signature,
@@ -112,22 +104,18 @@ CreateGenConImageContent(nsIDocument* aDocument, imgRequestProxy* aImageRequest)
   return it.forget();
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-nsGenConImageContent::~nsGenConImageContent()
-{
-  DestroyImageLoadingContent();
-}
+nsGenConImageContent::~nsGenConImageContent() { DestroyImageLoadingContent(); }
 
-nsresult
-nsGenConImageContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                                 nsIContent* aBindingParent,
-                                 bool aCompileEventHandlers)
-{
+nsresult nsGenConImageContent::BindToTree(nsIDocument* aDocument,
+                                          nsIContent* aParent,
+                                          nsIContent* aBindingParent,
+                                          bool aCompileEventHandlers) {
   nsresult rv;
   rv = nsGenericHTMLElement::BindToTree(aDocument, aParent, aBindingParent,
-                                aCompileEventHandlers);
+                                        aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
@@ -135,20 +123,17 @@ nsGenConImageContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
-void
-nsGenConImageContent::UnbindFromTree(bool aDeep, bool aNullParent)
-{
+void nsGenConImageContent::UnbindFromTree(bool aDeep, bool aNullParent) {
   nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
-EventStates
-nsGenConImageContent::IntrinsicState() const
-{
+EventStates nsGenConImageContent::IntrinsicState() const {
   EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   EventStates imageState = nsImageLoadingContent::ImageState();
-  if (imageState.HasAtLeastOneOfStates(NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED)) {
+  if (imageState.HasAtLeastOneOfStates(NS_EVENT_STATE_BROKEN |
+                                       NS_EVENT_STATE_USERDISABLED)) {
     // We should never be in an error state; if the image fails to load, we
     // just go to the suppressed state.
     imageState |= NS_EVENT_STATE_SUPPRESSED;
@@ -158,9 +143,7 @@ nsGenConImageContent::IntrinsicState() const
   return state | imageState;
 }
 
-JSObject*
-nsGenConImageContent::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
-{
+JSObject* nsGenConImageContent::WrapNode(JSContext* aCx,
+                                         JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLElementBinding::Wrap(aCx, this, aGivenProto);
 }
-

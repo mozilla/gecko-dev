@@ -7,8 +7,8 @@
 #ifndef mozilla_layers_LayerTreeOwnerTracker_h
 #define mozilla_layers_LayerTreeOwnerTracker_h
 
-#include "base/process.h"  // for base::ProcessId
-#include "mozilla/Mutex.h" // for mozilla::Mutex
+#include "base/process.h"   // for base::ProcessId
+#include "mozilla/Mutex.h"  // for mozilla::Mutex
 
 #include <functional>
 #include <map>
@@ -16,7 +16,7 @@
 namespace mozilla {
 
 namespace dom {
-  class ContentParent;
+class ContentParent;
 }
 
 namespace layers {
@@ -33,9 +33,8 @@ namespace layers {
  * are synced from main process to the gpu process. The actual syncing happens
  * in GPUProcessManager, and so this class should not be used directly.
  */
-class LayerTreeOwnerTracker final
-{
-public:
+class LayerTreeOwnerTracker final {
+ public:
   static void Initialize();
   static void Shutdown();
   static LayerTreeOwnerTracker* Get();
@@ -47,8 +46,8 @@ public:
   void Map(uint64_t aLayersId, base::ProcessId aProcessId);
 
   /**
-  * Remove an existing mapping.
-  */
+   * Remove an existing mapping.
+   */
   void Unmap(uint64_t aLayersId, base::ProcessId aProcessId);
 
   /**
@@ -56,16 +55,18 @@ public:
    */
   bool IsMapped(uint64_t aLayersId, base::ProcessId aProcessId);
 
-  void Iterate(const std::function<void(uint64_t aLayersId, base::ProcessId aProcessId)>& aCallback);
+  void Iterate(
+      const std::function<void(uint64_t aLayersId, base::ProcessId aProcessId)>&
+          aCallback);
 
-private:
+ private:
   LayerTreeOwnerTracker();
 
   mozilla::Mutex mLayerIdsLock;
   std::map<uint64_t, base::ProcessId> mLayerIds;
 };
 
-} // namespace layers
-} // namespace mozilla
+}  // namespace layers
+}  // namespace mozilla
 
-#endif // mozilla_layers_LayerTreeOwnerTracker_h
+#endif  // mozilla_layers_LayerTreeOwnerTracker_h

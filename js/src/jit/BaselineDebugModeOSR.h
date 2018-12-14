@@ -39,46 +39,67 @@ namespace jit {
 //     // First use of stub after VM call.
 //
 template <typename T>
-class DebugModeOSRVolatileStub
-{
-    ICStubCompiler::Engine engine_;
-    T stub_;
-    BaselineFrame* frame_;
-    uint32_t pcOffset_;
+class DebugModeOSRVolatileStub {
+  ICStubCompiler::Engine engine_;
+  T stub_;
+  BaselineFrame* frame_;
+  uint32_t pcOffset_;
 
-  public:
-    DebugModeOSRVolatileStub(ICStubCompiler::Engine engine, BaselineFrame* frame,
-                             ICFallbackStub* stub)
+ public:
+  DebugModeOSRVolatileStub(ICStubCompiler::Engine engine, BaselineFrame* frame,
+                           ICFallbackStub* stub)
       : engine_(engine),
         stub_(static_cast<T>(stub)),
         frame_(frame),
-        pcOffset_(stub->icEntry()->pcOffset())
-    { }
+        pcOffset_(stub->icEntry()->pcOffset()) {}
 
-    DebugModeOSRVolatileStub(BaselineFrame* frame, ICFallbackStub* stub)
+  DebugModeOSRVolatileStub(BaselineFrame* frame, ICFallbackStub* stub)
       : engine_(ICStubCompiler::Engine::Baseline),
         stub_(static_cast<T>(stub)),
         frame_(frame),
-        pcOffset_(stub->icEntry()->pcOffset())
-    { }
+        pcOffset_(stub->icEntry()->pcOffset()) {}
 
-    bool invalid() const {
-        if (engine_ == ICStubCompiler::Engine::IonSharedIC)
-            return stub_->invalid();
-        MOZ_ASSERT(!frame_->isHandlingException());
-        ICEntry& entry = frame_->script()->baselineScript()->icEntryFromPCOffset(pcOffset_);
-        return stub_ != entry.fallbackStub();
-    }
+  bool invalid() const {
+    if (engine_ == ICStubCompiler::Engine::IonSharedIC) return stub_->invalid();
+    MOZ_ASSERT(!frame_->isHandlingException());
+    ICEntry& entry =
+        frame_->script()->baselineScript()->icEntryFromPCOffset(pcOffset_);
+    return stub_ != entry.fallbackStub();
+  }
 
-    operator const T&() const { MOZ_ASSERT(!invalid()); return stub_; }
-    T operator->() const { MOZ_ASSERT(!invalid()); return stub_; }
-    T* address() { MOZ_ASSERT(!invalid()); return &stub_; }
-    const T* address() const { MOZ_ASSERT(!invalid()); return &stub_; }
-    T& get() { MOZ_ASSERT(!invalid()); return stub_; }
-    const T& get() const { MOZ_ASSERT(!invalid()); return stub_; }
+  operator const T&() const {
+    MOZ_ASSERT(!invalid());
+    return stub_;
+  }
+  T operator->() const {
+    MOZ_ASSERT(!invalid());
+    return stub_;
+  }
+  T* address() {
+    MOZ_ASSERT(!invalid());
+    return &stub_;
+  }
+  const T* address() const {
+    MOZ_ASSERT(!invalid());
+    return &stub_;
+  }
+  T& get() {
+    MOZ_ASSERT(!invalid());
+    return stub_;
+  }
+  const T& get() const {
+    MOZ_ASSERT(!invalid());
+    return stub_;
+  }
 
-    bool operator!=(const T& other) const { MOZ_ASSERT(!invalid()); return stub_ != other; }
-    bool operator==(const T& other) const { MOZ_ASSERT(!invalid()); return stub_ == other; }
+  bool operator!=(const T& other) const {
+    MOZ_ASSERT(!invalid());
+    return stub_ != other;
+  }
+  bool operator==(const T& other) const {
+    MOZ_ASSERT(!invalid());
+    return stub_ == other;
+  }
 };
 
 //
@@ -86,63 +107,59 @@ class DebugModeOSRVolatileStub
 // recompilation of an on-stack baseline script.
 //
 
-class DebugModeOSRVolatileJitFrameIter : public JitFrameIter
-{
-    DebugModeOSRVolatileJitFrameIter** stack;
-    DebugModeOSRVolatileJitFrameIter* prev;
+class DebugModeOSRVolatileJitFrameIter : public JitFrameIter {
+  DebugModeOSRVolatileJitFrameIter** stack;
+  DebugModeOSRVolatileJitFrameIter* prev;
 
-  public:
-    explicit DebugModeOSRVolatileJitFrameIter(JSContext* cx)
-      : JitFrameIter(cx->activation()->asJit(), /* mustUnwindActivation */ true)
-    {
-        stack = &cx->liveVolatileJitFrameIter_.ref();
-        prev = *stack;
-        *stack = this;
-    }
+ public:
+  explicit DebugModeOSRVolatileJitFrameIter(JSContext* cx)
+      : JitFrameIter(cx->activation()->asJit(),
+                     /* mustUnwindActivation */ true) {
+    stack = &cx->liveVolatileJitFrameIter_.ref();
+    prev = *stack;
+    *stack = this;
+  }
 
-    ~DebugModeOSRVolatileJitFrameIter() {
-        MOZ_ASSERT(*stack == this);
-        *stack = prev;
-    }
+  ~DebugModeOSRVolatileJitFrameIter() {
+    MOZ_ASSERT(*stack == this);
+    *stack = prev;
+  }
 
-    static void forwardLiveIterators(const CooperatingContext& target,
-                                     uint8_t* oldAddr, uint8_t* newAddr);
+  static void forwardLiveIterators(const CooperatingContext& target,
+                                   uint8_t* oldAddr, uint8_t* newAddr);
 };
 
 //
 // Auxiliary info to help the DebugModeOSRHandler fix up state.
 //
-struct BaselineDebugModeOSRInfo
-{
-    uint8_t* resumeAddr;
-    jsbytecode* pc;
-    PCMappingSlotInfo slotInfo;
-    ICEntry::Kind frameKind;
+struct BaselineDebugModeOSRInfo {
+  uint8_t* resumeAddr;
+  jsbytecode* pc;
+  PCMappingSlotInfo slotInfo;
+  ICEntry::Kind frameKind;
 
-    // Filled in by SyncBaselineDebugModeOSRInfo.
-    uintptr_t stackAdjust;
-    Value valueR0;
-    Value valueR1;
+  // Filled in by SyncBaselineDebugModeOSRInfo.
+  uintptr_t stackAdjust;
+  Value valueR0;
+  Value valueR1;
 
-    BaselineDebugModeOSRInfo(jsbytecode* pc, ICEntry::Kind kind)
+  BaselineDebugModeOSRInfo(jsbytecode* pc, ICEntry::Kind kind)
       : resumeAddr(nullptr),
         pc(pc),
         slotInfo(0),
         frameKind(kind),
         stackAdjust(0),
         valueR0(UndefinedValue()),
-        valueR1(UndefinedValue())
-    { }
+        valueR1(UndefinedValue()) {}
 
-    void popValueInto(PCMappingSlotInfo::SlotLocation loc, Value* vp);
+  void popValueInto(PCMappingSlotInfo::SlotLocation loc, Value* vp);
 };
 
-MOZ_MUST_USE bool
-RecompileOnStackBaselineScriptsForDebugMode(JSContext* cx,
-                                            const Debugger::ExecutionObservableSet& obs,
-                                            Debugger::IsObserving observing);
+MOZ_MUST_USE bool RecompileOnStackBaselineScriptsForDebugMode(
+    JSContext* cx, const Debugger::ExecutionObservableSet& obs,
+    Debugger::IsObserving observing);
 
-} // namespace jit
-} // namespace js
+}  // namespace jit
+}  // namespace js
 
-#endif // jit_BaselineDebugModeOSR_h
+#endif  // jit_BaselineDebugModeOSR_h

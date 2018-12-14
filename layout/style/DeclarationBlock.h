@@ -27,23 +27,19 @@ class ServoDeclarationBlock;
 namespace css {
 class Declaration;
 class Rule;
-} // namespace css
+}  // namespace css
 
-class DeclarationBlock
-{
-protected:
+class DeclarationBlock {
+ protected:
   explicit DeclarationBlock(StyleBackendType aType)
-    : mImmutable(false)
-    , mType(aType)
-    , mIsDirty(false)
-  {
+      : mImmutable(false), mType(aType), mIsDirty(false) {
     mContainer.mRaw = 0;
   }
 
   DeclarationBlock(const DeclarationBlock& aCopy)
-    : DeclarationBlock(aCopy.mType) {}
+      : DeclarationBlock(aCopy.mType) {}
 
-public:
+ public:
   MOZ_DECL_STYLO_METHODS(css::Declaration, ServoDeclarationBlock)
 
   inline MozExternalRefCountType AddRef();
@@ -54,9 +50,7 @@ public:
   /**
    * Return whether |this| may be modified.
    */
-  bool IsMutable() const {
-    return !mImmutable;
-  }
+  bool IsMutable() const { return !mImmutable; }
 
   /**
    * Crash if |this| cannot be modified.
@@ -137,7 +131,7 @@ public:
   // Returns whether the property was removed.
   inline bool RemovePropertyByID(nsCSSPropertyID aProperty);
 
-private:
+ private:
   union {
     // We only ever have one of these since we have an
     // nsHTMLCSSStyleSheet only for style attributes, and style
@@ -174,6 +168,6 @@ private:
   Atomic<bool, MemoryOrdering::Relaxed> mIsDirty;
 };
 
-} // namespace mozilla
+}  // namespace mozilla
 
-#endif // mozilla_DeclarationBlock_h
+#endif  // mozilla_DeclarationBlock_h

@@ -9,35 +9,32 @@
 
 namespace mozilla {
 
-void
-WebGLFramebufferAttachable::MarkAttachment(const WebGLFBAttachPoint& attachment)
-{
-    if (mAttachmentPoints.Contains(&attachment))
-        return; // Already attached. Ignore.
+void WebGLFramebufferAttachable::MarkAttachment(
+    const WebGLFBAttachPoint& attachment) {
+  if (mAttachmentPoints.Contains(&attachment))
+    return;  // Already attached. Ignore.
 
-    mAttachmentPoints.AppendElement(&attachment);
+  mAttachmentPoints.AppendElement(&attachment);
 }
 
-void
-WebGLFramebufferAttachable::UnmarkAttachment(const WebGLFBAttachPoint& attachment)
-{
-    const size_t i = mAttachmentPoints.IndexOf(&attachment);
-    if (i == mAttachmentPoints.NoIndex) {
-        MOZ_ASSERT(false, "Is not attached to FB");
-        return;
-    }
+void WebGLFramebufferAttachable::UnmarkAttachment(
+    const WebGLFBAttachPoint& attachment) {
+  const size_t i = mAttachmentPoints.IndexOf(&attachment);
+  if (i == mAttachmentPoints.NoIndex) {
+    MOZ_ASSERT(false, "Is not attached to FB");
+    return;
+  }
 
-    mAttachmentPoints.RemoveElementAt(i);
+  mAttachmentPoints.RemoveElementAt(i);
 }
 
-void
-WebGLFramebufferAttachable::InvalidateStatusOfAttachedFBs(const char* funcName) const
-{
-    const size_t count = mAttachmentPoints.Length();
-    for (size_t i = 0; i < count; ++i) {
-        MOZ_ASSERT(mAttachmentPoints[i]->mFB);
-        mAttachmentPoints[i]->mFB->InvalidateFramebufferStatus(funcName);
-    }
+void WebGLFramebufferAttachable::InvalidateStatusOfAttachedFBs(
+    const char* funcName) const {
+  const size_t count = mAttachmentPoints.Length();
+  for (size_t i = 0; i < count; ++i) {
+    MOZ_ASSERT(mAttachmentPoints[i]->mFB);
+    mAttachmentPoints[i]->mFB->InvalidateFramebufferStatus(funcName);
+  }
 }
 
-} // namespace mozilla
+}  // namespace mozilla

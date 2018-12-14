@@ -15,15 +15,11 @@
 namespace mozilla {
 namespace dom {
 
-NotifyPaintEvent::NotifyPaintEvent(EventTarget* aOwner,
-                                   nsPresContext* aPresContext,
-                                   WidgetEvent* aEvent,
-                                   EventMessage aEventMessage,
-                                   nsTArray<nsRect>* aInvalidateRequests,
-                                   uint64_t aTransactionId,
-                                   DOMHighResTimeStamp aTimeStamp)
-  : Event(aOwner, aPresContext, aEvent)
-{
+NotifyPaintEvent::NotifyPaintEvent(
+    EventTarget* aOwner, nsPresContext* aPresContext, WidgetEvent* aEvent,
+    EventMessage aEventMessage, nsTArray<nsRect>* aInvalidateRequests,
+    uint64_t aTransactionId, DOMHighResTimeStamp aTimeStamp)
+    : Event(aOwner, aPresContext, aEvent) {
   if (mEvent) {
     mEvent->mMessage = aEventMessage;
   }
@@ -42,9 +38,7 @@ NS_INTERFACE_MAP_END_INHERITING(Event)
 NS_IMPL_ADDREF_INHERITED(NotifyPaintEvent, Event)
 NS_IMPL_RELEASE_INHERITED(NotifyPaintEvent, Event)
 
-nsRegion
-NotifyPaintEvent::GetRegion(SystemCallerGuarantee)
-{
+nsRegion NotifyPaintEvent::GetRegion(SystemCallerGuarantee) {
   nsRegion r;
   for (uint32_t i = 0; i < mInvalidateRequests.Length(); ++i) {
     r.Or(r, mInvalidateRequests[i]);
@@ -53,9 +47,8 @@ NotifyPaintEvent::GetRegion(SystemCallerGuarantee)
   return r;
 }
 
-already_AddRefed<DOMRect>
-NotifyPaintEvent::BoundingClientRect(SystemCallerGuarantee aGuarantee)
-{
+already_AddRefed<DOMRect> NotifyPaintEvent::BoundingClientRect(
+    SystemCallerGuarantee aGuarantee) {
   RefPtr<DOMRect> rect = new DOMRect(ToSupports(this));
 
   if (mPresContext) {
@@ -65,9 +58,8 @@ NotifyPaintEvent::BoundingClientRect(SystemCallerGuarantee aGuarantee)
   return rect.forget();
 }
 
-already_AddRefed<DOMRectList>
-NotifyPaintEvent::ClientRects(SystemCallerGuarantee aGuarantee)
-{
+already_AddRefed<DOMRectList> NotifyPaintEvent::ClientRects(
+    SystemCallerGuarantee aGuarantee) {
   nsISupports* parent = ToSupports(this);
   RefPtr<DOMRectList> rectList = new DOMRectList(parent);
 
@@ -81,9 +73,8 @@ NotifyPaintEvent::ClientRects(SystemCallerGuarantee aGuarantee)
   return rectList.forget();
 }
 
-already_AddRefed<PaintRequestList>
-NotifyPaintEvent::PaintRequests(SystemCallerGuarantee)
-{
+already_AddRefed<PaintRequestList> NotifyPaintEvent::PaintRequests(
+    SystemCallerGuarantee) {
   Event* parent = this;
   RefPtr<PaintRequestList> requests = new PaintRequestList(parent);
 
@@ -97,9 +88,7 @@ NotifyPaintEvent::PaintRequests(SystemCallerGuarantee)
 }
 
 NS_IMETHODIMP_(void)
-NotifyPaintEvent::Serialize(IPC::Message* aMsg,
-                            bool aSerializeInterfaceType)
-{
+NotifyPaintEvent::Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) {
   if (aSerializeInterfaceType) {
     IPC::WriteParam(aMsg, NS_LITERAL_STRING("notifypaintevent"));
   }
@@ -114,8 +103,7 @@ NotifyPaintEvent::Serialize(IPC::Message* aMsg,
 }
 
 NS_IMETHODIMP_(bool)
-NotifyPaintEvent::Deserialize(const IPC::Message* aMsg, PickleIterator* aIter)
-{
+NotifyPaintEvent::Deserialize(const IPC::Message* aMsg, PickleIterator* aIter) {
   NS_ENSURE_TRUE(Event::Deserialize(aMsg, aIter), false);
 
   uint32_t length = 0;
@@ -130,35 +118,26 @@ NotifyPaintEvent::Deserialize(const IPC::Message* aMsg, PickleIterator* aIter)
   return true;
 }
 
-uint64_t
-NotifyPaintEvent::TransactionId(SystemCallerGuarantee)
-{
+uint64_t NotifyPaintEvent::TransactionId(SystemCallerGuarantee) {
   return mTransactionId;
 }
 
-DOMHighResTimeStamp
-NotifyPaintEvent::PaintTimeStamp(SystemCallerGuarantee)
-{
+DOMHighResTimeStamp NotifyPaintEvent::PaintTimeStamp(SystemCallerGuarantee) {
   return mTimeStamp;
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-already_AddRefed<NotifyPaintEvent>
-NS_NewDOMNotifyPaintEvent(EventTarget* aOwner,
-                          nsPresContext* aPresContext,
-                          WidgetEvent* aEvent,
-                          EventMessage aEventMessage,
-                          nsTArray<nsRect>* aInvalidateRequests,
-                          uint64_t aTransactionId,
-                          DOMHighResTimeStamp aTimeStamp)
-{
+already_AddRefed<NotifyPaintEvent> NS_NewDOMNotifyPaintEvent(
+    EventTarget* aOwner, nsPresContext* aPresContext, WidgetEvent* aEvent,
+    EventMessage aEventMessage, nsTArray<nsRect>* aInvalidateRequests,
+    uint64_t aTransactionId, DOMHighResTimeStamp aTimeStamp) {
   RefPtr<NotifyPaintEvent> it =
-    new NotifyPaintEvent(aOwner, aPresContext, aEvent, aEventMessage,
-                         aInvalidateRequests, aTransactionId, aTimeStamp);
+      new NotifyPaintEvent(aOwner, aPresContext, aEvent, aEventMessage,
+                           aInvalidateRequests, aTransactionId, aTimeStamp);
   return it.forget();
 }

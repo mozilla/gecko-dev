@@ -9,45 +9,37 @@
 #include "nsDebug.h"
 #include <math.h>
 
-void
-nsSMILFloatType::Init(nsSMILValue& aValue) const
-{
+void nsSMILFloatType::Init(nsSMILValue& aValue) const {
   NS_PRECONDITION(aValue.IsNull(), "Unexpected value type");
   aValue.mU.mDouble = 0.0;
   aValue.mType = this;
 }
 
-void
-nsSMILFloatType::Destroy(nsSMILValue& aValue) const
-{
+void nsSMILFloatType::Destroy(nsSMILValue& aValue) const {
   NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value");
   aValue.mU.mDouble = 0.0;
-  aValue.mType      = nsSMILNullType::Singleton();
+  aValue.mType = nsSMILNullType::Singleton();
 }
 
-nsresult
-nsSMILFloatType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
-{
+nsresult nsSMILFloatType::Assign(nsSMILValue& aDest,
+                                 const nsSMILValue& aSrc) const {
   NS_PRECONDITION(aDest.mType == aSrc.mType, "Incompatible SMIL types");
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL value");
   aDest.mU.mDouble = aSrc.mU.mDouble;
   return NS_OK;
 }
 
-bool
-nsSMILFloatType::IsEqual(const nsSMILValue& aLeft,
-                         const nsSMILValue& aRight) const
-{
+bool nsSMILFloatType::IsEqual(const nsSMILValue& aLeft,
+                              const nsSMILValue& aRight) const {
   NS_PRECONDITION(aLeft.mType == aRight.mType, "Incompatible SMIL types");
   NS_PRECONDITION(aLeft.mType == this, "Unexpected type for SMIL value");
 
   return aLeft.mU.mDouble == aRight.mU.mDouble;
 }
 
-nsresult
-nsSMILFloatType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                     uint32_t aCount) const
-{
+nsresult nsSMILFloatType::Add(nsSMILValue& aDest,
+                              const nsSMILValue& aValueToAdd,
+                              uint32_t aCount) const {
   NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
                   "Trying to add invalid types");
   NS_PRECONDITION(aValueToAdd.mType == this, "Unexpected source type");
@@ -55,36 +47,33 @@ nsSMILFloatType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
   return NS_OK;
 }
 
-nsresult
-nsSMILFloatType::ComputeDistance(const nsSMILValue& aFrom,
-                                 const nsSMILValue& aTo,
-                                 double& aDistance) const
-{
-  NS_PRECONDITION(aFrom.mType == aTo.mType,"Trying to compare different types");
+nsresult nsSMILFloatType::ComputeDistance(const nsSMILValue& aFrom,
+                                          const nsSMILValue& aTo,
+                                          double& aDistance) const {
+  NS_PRECONDITION(aFrom.mType == aTo.mType,
+                  "Trying to compare different types");
   NS_PRECONDITION(aFrom.mType == this, "Unexpected source type");
 
-  const double &from = aFrom.mU.mDouble;
-  const double &to   = aTo.mU.mDouble;
+  const double& from = aFrom.mU.mDouble;
+  const double& to = aTo.mU.mDouble;
 
   aDistance = fabs(to - from);
 
   return NS_OK;
 }
 
-nsresult
-nsSMILFloatType::Interpolate(const nsSMILValue& aStartVal,
-                             const nsSMILValue& aEndVal,
-                             double aUnitDistance,
-                             nsSMILValue& aResult) const
-{
+nsresult nsSMILFloatType::Interpolate(const nsSMILValue& aStartVal,
+                                      const nsSMILValue& aEndVal,
+                                      double aUnitDistance,
+                                      nsSMILValue& aResult) const {
   NS_PRECONDITION(aStartVal.mType == aEndVal.mType,
-      "Trying to interpolate different types");
+                  "Trying to interpolate different types");
   NS_PRECONDITION(aStartVal.mType == this,
-      "Unexpected types for interpolation");
-  NS_PRECONDITION(aResult.mType   == this, "Unexpected result type");
+                  "Unexpected types for interpolation");
+  NS_PRECONDITION(aResult.mType == this, "Unexpected result type");
 
-  const double &startVal = aStartVal.mU.mDouble;
-  const double &endVal   = aEndVal.mU.mDouble;
+  const double& startVal = aStartVal.mU.mDouble;
+  const double& endVal = aEndVal.mU.mDouble;
 
   aResult.mU.mDouble = (startVal + (endVal - startVal) * aUnitDistance);
 

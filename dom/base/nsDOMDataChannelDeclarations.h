@@ -14,17 +14,16 @@
 #include "nsIDOMDataChannel.h"
 
 namespace mozilla {
-   class DataChannel;
+class DataChannel;
 }
 
 class nsPIDOMWindowInner;
 
-nsresult
-NS_NewDOMDataChannel(already_AddRefed<mozilla::DataChannel>&& dataChannel,
-                     nsPIDOMWindowInner* aWindow,
-                     nsIDOMDataChannel** domDataChannel);
+nsresult NS_NewDOMDataChannel(
+    already_AddRefed<mozilla::DataChannel>&& dataChannel,
+    nsPIDOMWindowInner* aWindow, nsIDOMDataChannel** domDataChannel);
 
 // Tell DataChannel it's ok to deliver open and message events
 void NS_DataChannelAppReady(nsIDOMDataChannel* domDataChannel);
 
-#endif // nsDOMDataChannelDeclarations_h
+#endif  // nsDOMDataChannelDeclarations_h

@@ -12,11 +12,9 @@
 namespace mozilla {
 namespace widget {
 
-class CompositorWidgetParent final
- : public PCompositorWidgetParent,
-   public WinCompositorWidget
-{
-public:
+class CompositorWidgetParent final : public PCompositorWidgetParent,
+                                     public WinCompositorWidget {
+ public:
   explicit CompositorWidgetParent(const CompositorWidgetInitData& aInitData,
                                   const layers::CompositorOptions& aOptions);
   ~CompositorWidgetParent() override;
@@ -31,11 +29,11 @@ public:
   void ObserveVsync(VsyncObserver* aObserver) override;
   RefPtr<VsyncObserver> GetVsyncObserver() const override;
 
-private:
+ private:
   RefPtr<VsyncObserver> mVsyncObserver;
 };
 
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
-#endif // _widget_windows_WinCompositorWidget_h__
+#endif  // _widget_windows_WinCompositorWidget_h__

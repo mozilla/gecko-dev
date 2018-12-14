@@ -14,7 +14,8 @@
 #include "mozilla/Move.h"
 #include "mozilla/TypeTraits.h"
 
-namespace mozilla { namespace ct {
+namespace mozilla {
+namespace ct {
 
 using namespace mozilla::pkix;
 
@@ -27,9 +28,8 @@ static const size_t kLeafIndexLength = 8;
 static const size_t kInclusionPathLengthBytes = 2;
 static const size_t kNodeHashPrefixLengthBytes = 1;
 
-Result
-DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
-{
+Result DecodeInclusionProof(pkix::Reader& reader,
+                            InclusionProofDataV2& output) {
   InclusionProofDataV2 result;
 
   Input logId;
@@ -87,7 +87,7 @@ DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
     }
   }
 
-  if (!reader.AtEnd()){
+  if (!reader.AtEnd()) {
     return pkix::Result::ERROR_BAD_DER;
   }
 
@@ -101,4 +101,5 @@ DecodeInclusionProof(pkix::Reader& reader, InclusionProofDataV2& output)
   output = Move(result);
   return Success;
 }
-} } //namespace mozilla::ct
+}  // namespace ct
+}  // namespace mozilla

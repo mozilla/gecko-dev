@@ -7,18 +7,18 @@
 #ifndef nsFont_h___
 #define nsFont_h___
 
-#include <stdint.h>                     // for uint8_t, uint16_t
-#include <sys/types.h>                  // for int16_t
+#include <stdint.h>     // for uint8_t, uint16_t
+#include <sys/types.h>  // for int16_t
 #include "gfxFontFamilyList.h"
-#include "gfxFontConstants.h"           // for NS_FONT_KERNING_AUTO, etc
+#include "gfxFontConstants.h"  // for NS_FONT_KERNING_AUTO, etc
 #include "gfxFontFeatures.h"
 #include "gfxFontVariations.h"
-#include "mozilla/RefPtr.h"             // for RefPtr
-#include "nsColor.h"                    // for nsColor and NS_RGBA
-#include "nsCoord.h"                    // for nscoord
-#include "nsStringFwd.h"                // for nsAString
-#include "nsString.h"               // for nsString
-#include "nsTArray.h"                   // for nsTArray
+#include "mozilla/RefPtr.h"  // for RefPtr
+#include "nsColor.h"         // for nsColor and NS_RGBA
+#include "nsCoord.h"         // for nscoord
+#include "nsStringFwd.h"     // for nsAString
+#include "nsString.h"        // for nsString
+#include "nsTArray.h"        // for nsTArray
 
 struct gfxFontStyle;
 
@@ -26,25 +26,27 @@ struct gfxFontStyle;
 // system across family, weight, style, size, etc. But not here!
 
 // Enumerator callback function. Return false to stop
-typedef bool (*nsFontFamilyEnumFunc)(const nsString& aFamily, bool aGeneric, void *aData);
+typedef bool (*nsFontFamilyEnumFunc)(const nsString& aFamily, bool aGeneric,
+                                     void* aData);
 
 // IDs for generic fonts
 // NOTE: 0, 1 are reserved for the special IDs of the default variable
 // and fixed fonts in the presentation context, see nsPresContext.h
-const uint8_t kGenericFont_NONE         = 0x00;
+const uint8_t kGenericFont_NONE = 0x00;
 // Special
-const uint8_t kGenericFont_moz_variable = 0x00; // for the default variable width font
-const uint8_t kGenericFont_moz_fixed    = 0x01; // our special "use the user's fixed font"
+const uint8_t kGenericFont_moz_variable =
+    0x00;  // for the default variable width font
+const uint8_t kGenericFont_moz_fixed =
+    0x01;  // our special "use the user's fixed font"
 // CSS
-const uint8_t kGenericFont_serif        = 0x02;
-const uint8_t kGenericFont_sans_serif   = 0x04;
-const uint8_t kGenericFont_monospace    = 0x08;
-const uint8_t kGenericFont_cursive      = 0x10;
-const uint8_t kGenericFont_fantasy      = 0x20;
+const uint8_t kGenericFont_serif = 0x02;
+const uint8_t kGenericFont_sans_serif = 0x04;
+const uint8_t kGenericFont_monospace = 0x08;
+const uint8_t kGenericFont_cursive = 0x10;
+const uint8_t kGenericFont_fantasy = 0x20;
 
 // Font structure.
 struct nsFont {
-
   // list of font families, either named or generic
   mozilla::FontFamilyList fontlist;
 
@@ -76,7 +78,7 @@ struct nsFont {
 
   // The estimated background color behind the text. Enables a special
   // rendering mode when NS_GET_A(.) > 0. Only used for text in the chrome.
-  nscolor fontSmoothingBackgroundColor = NS_RGBA(0,0,0,0);
+  nscolor fontSmoothingBackgroundColor = NS_RGBA(0, 0, 0, 0);
 
   // The weight of the font; see gfxFontConstants.h.
   uint16_t weight = NS_FONT_WEIGHT_NORMAL;
@@ -135,36 +137,27 @@ struct nsFont {
 
   ~nsFont();
 
-  bool operator==(const nsFont& aOther) const {
-    return Equals(aOther);
-  }
+  bool operator==(const nsFont& aOther) const { return Equals(aOther); }
 
-  bool operator!=(const nsFont& aOther) const {
-    return !Equals(aOther);
-  }
+  bool operator!=(const nsFont& aOther) const { return !Equals(aOther); }
 
   bool Equals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
 
-  enum class MaxDifference : uint8_t {
-    eNone,
-    eVisual,
-    eLayoutAffecting
-  };
+  enum class MaxDifference : uint8_t { eNone, eVisual, eLayoutAffecting };
 
   MaxDifference CalcDifference(const nsFont& aOther) const;
 
   void CopyAlternates(const nsFont& aOther);
 
   // Add featureSettings into style
-  void AddFontFeaturesToStyle(gfxFontStyle *aStyle,
-                              bool aVertical) const;
+  void AddFontFeaturesToStyle(gfxFontStyle* aStyle, bool aVertical) const;
 
-  void AddFontVariationsToStyle(gfxFontStyle *aStyle) const;
+  void AddFontVariationsToStyle(gfxFontStyle* aStyle) const;
 };
 
-#define NS_FONT_VARIANT_NORMAL            0
-#define NS_FONT_VARIANT_SMALL_CAPS        1
+#define NS_FONT_VARIANT_NORMAL 0
+#define NS_FONT_VARIANT_SMALL_CAPS 1
 
 #endif /* nsFont_h___ */

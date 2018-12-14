@@ -14,20 +14,18 @@ NS_DEFINE_CID(kCollationCID, NS_COLLATION_CID);
 
 NS_IMPL_ISUPPORTS(nsCollationFactory, nsICollationFactory)
 
-nsresult nsCollationFactory::CreateCollation(nsICollation** instancePtr)
-{
+nsresult nsCollationFactory::CreateCollation(nsICollation** instancePtr) {
   nsAutoCString appLocale;
   mozilla::intl::LocaleService::GetInstance()->GetAppLocaleAsLangTag(appLocale);
 
   return CreateCollationForLocale(appLocale, instancePtr);
 }
 
-nsresult
-nsCollationFactory::CreateCollationForLocale(const nsACString& locale, nsICollation** instancePtr)
-{
+nsresult nsCollationFactory::CreateCollationForLocale(
+    const nsACString& locale, nsICollation** instancePtr) {
   // Create a collation interface instance.
   //
-  nsICollation *inst;
+  nsICollation* inst;
   nsresult res;
 
   res = CallCreateInstance(kCollationCID, &inst);

@@ -12,31 +12,22 @@
 
 namespace mozilla {
 class DisplayListChecker;
-} // namespace mozilla
+}  // namespace mozilla
 
 struct RetainedDisplayListBuilder {
   RetainedDisplayListBuilder(nsIFrame* aReferenceFrame,
-                             nsDisplayListBuilderMode aMode,
-                             bool aBuildCaret)
-    : mBuilder(aReferenceFrame, aMode, aBuildCaret, true)
-  {}
-  ~RetainedDisplayListBuilder()
-  {
-    mList.DeleteAll(&mBuilder);
-  }
+                             nsDisplayListBuilderMode aMode, bool aBuildCaret)
+      : mBuilder(aReferenceFrame, aMode, aBuildCaret, true) {}
+  ~RetainedDisplayListBuilder() { mList.DeleteAll(&mBuilder); }
 
   nsDisplayListBuilder* Builder() { return &mBuilder; }
 
   nsDisplayList* List() { return &mList; }
 
-  enum class PartialUpdateResult {
-    Failed,
-    NoChange,
-    Updated
-  };
+  enum class PartialUpdateResult { Failed, NoChange, Updated };
 
-  PartialUpdateResult AttemptPartialUpdate(nscolor aBackstop,
-                                           mozilla::DisplayListChecker* aChecker);
+  PartialUpdateResult AttemptPartialUpdate(
+      nscolor aBackstop, mozilla::DisplayListChecker* aChecker);
 
   /**
    * Iterates through the display list builder reference frame document and
@@ -48,13 +39,12 @@ struct RetainedDisplayListBuilder {
 
   NS_DECLARE_FRAME_PROPERTY_DELETABLE(Cached, RetainedDisplayListBuilder)
 
-private:
+ private:
   bool PreProcessDisplayList(nsDisplayList* aList, AnimatedGeometryRoot* aAGR);
 
-  bool MergeDisplayLists(nsDisplayList* aNewList,
-                         nsDisplayList* aOldList,
-                         nsDisplayList* aOutList,
-                         mozilla::Maybe<const mozilla::ActiveScrolledRoot*>& aOutContainerASR);
+  bool MergeDisplayLists(
+      nsDisplayList* aNewList, nsDisplayList* aOldList, nsDisplayList* aOutList,
+      mozilla::Maybe<const mozilla::ActiveScrolledRoot*>& aOutContainerASR);
 
   bool ComputeRebuildRegion(nsTArray<nsIFrame*>& aModifiedFrames,
                             nsRect* aOutDirty,
@@ -66,7 +56,6 @@ private:
   nsDisplayListBuilder mBuilder;
   nsDisplayList mList;
   WeakFrame mPreviousCaret;
-
 };
 
-#endif // RETAINEDDISPLAYLISTBUILDER_H_
+#endif  // RETAINEDDISPLAYLISTBUILDER_H_

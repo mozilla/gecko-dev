@@ -15,9 +15,8 @@ namespace mozilla {
 namespace dom {
 
 /* static */
-already_AddRefed<EventTarget>
-EventTarget::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
-{
+already_AddRefed<EventTarget> EventTarget::Constructor(
+    const GlobalObject& aGlobal, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   if (!global) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -27,30 +26,24 @@ EventTarget::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
   return target.forget();
 }
 
-void
-EventTarget::RemoveEventListener(const nsAString& aType,
-                                 EventListener* aListener,
-                                 const EventListenerOptionsOrBoolean& aOptions,
-                                 ErrorResult& aRv)
-{
+void EventTarget::RemoveEventListener(
+    const nsAString& aType, EventListener* aListener,
+    const EventListenerOptionsOrBoolean& aOptions, ErrorResult& aRv) {
   EventListenerManager* elm = GetExistingListenerManager();
   if (elm) {
     elm->RemoveEventListener(aType, aListener, aOptions);
   }
 }
 
-EventHandlerNonNull*
-EventTarget::GetEventHandler(nsAtom* aType, const nsAString& aTypeString)
-{
+EventHandlerNonNull* EventTarget::GetEventHandler(
+    nsAtom* aType, const nsAString& aTypeString) {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm ? elm->GetEventHandler(aType, aTypeString) : nullptr;
 }
 
-void
-EventTarget::SetEventHandler(const nsAString& aType,
-                             EventHandlerNonNull* aHandler,
-                             ErrorResult& aRv)
-{
+void EventTarget::SetEventHandler(const nsAString& aType,
+                                  EventHandlerNonNull* aHandler,
+                                  ErrorResult& aRv) {
   if (!StringBeginsWith(aType, NS_LITERAL_STRING("on"))) {
     aRv.Throw(NS_ERROR_INVALID_ARG);
     return;
@@ -60,48 +53,38 @@ EventTarget::SetEventHandler(const nsAString& aType,
     SetEventHandler(type, EmptyString(), aHandler);
     return;
   }
-  SetEventHandler(nullptr,
-                  Substring(aType, 2), // Remove "on"
+  SetEventHandler(nullptr, Substring(aType, 2),  // Remove "on"
                   aHandler);
 }
 
-void
-EventTarget::SetEventHandler(nsAtom* aType, const nsAString& aTypeString,
-                             EventHandlerNonNull* aHandler)
-{
+void EventTarget::SetEventHandler(nsAtom* aType, const nsAString& aTypeString,
+                                  EventHandlerNonNull* aHandler) {
   GetOrCreateListenerManager()->SetEventHandler(aType, aTypeString, aHandler);
 }
 
-bool
-EventTarget::HasNonSystemGroupListenersForUntrustedKeyEvents() const
-{
+bool EventTarget::HasNonSystemGroupListenersForUntrustedKeyEvents() const {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm && elm->HasNonSystemGroupListenersForUntrustedKeyEvents();
 }
 
-bool
-EventTarget::HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents() const
-{
+bool EventTarget::HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents()
+    const {
   EventListenerManager* elm = GetExistingListenerManager();
-  return elm && elm->HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents();
+  return elm &&
+         elm->HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents();
 }
 
-bool
-EventTarget::IsApzAware() const
-{
+bool EventTarget::IsApzAware() const {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm && elm->HasApzAwareListeners();
 }
 
-bool
-EventTarget::DispatchEvent(Event& aEvent,
-                           CallerType aCallerType,
-                           ErrorResult& aRv)
-{
+bool EventTarget::DispatchEvent(Event& aEvent, CallerType aCallerType,
+                                ErrorResult& aRv) {
   bool result = false;
   aRv = DispatchEvent(&aEvent, &result);
   return !aEvent.DefaultPrevented(aCallerType);
 }
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla

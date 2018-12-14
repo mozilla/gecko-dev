@@ -8,7 +8,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BorrowedAttrInfo.h"
-#include "nsCaseTreatment.h" // for enum, cannot be forward-declared
+#include "nsCaseTreatment.h"  // for enum, cannot be forward-declared
 #include "nsINode.h"
 #include "nsStringFwd.h"
 
@@ -28,30 +28,33 @@ struct URLExtraData;
 namespace dom {
 class ShadowRoot;
 class HTMLSlotElement;
-} // namespace dom
+}  // namespace dom
 namespace widget {
 struct IMEState;
-} // namespace widget
-} // namespace mozilla
+}  // namespace widget
+}  // namespace mozilla
 
 enum nsLinkState {
-  eLinkState_Unvisited  = 1,
-  eLinkState_Visited    = 2,
-  eLinkState_NotLink    = 3
+  eLinkState_Unvisited = 1,
+  eLinkState_Visited = 2,
+  eLinkState_NotLink = 3
 };
 
 // IID for the nsIContent interface
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
-#define NS_ICONTENT_IID \
-{ 0x8e1bab9d, 0x8815, 0x4d2c, \
-  { 0xa2, 0x4d, 0x7a, 0xba, 0x52, 0x39, 0xdc, 0x22 } }
+#define NS_ICONTENT_IID                              \
+  {                                                  \
+    0x8e1bab9d, 0x8815, 0x4d2c, {                    \
+      0xa2, 0x4d, 0x7a, 0xba, 0x52, 0x39, 0xdc, 0x22 \
+    }                                                \
+  }
 
 /**
  * A node of content in a document's content model. This interface
  * is supported by all content objects.
  */
 class nsIContent : public nsINode {
-public:
+ public:
   typedef mozilla::widget::IMEState IMEState;
 
 #ifdef MOZILLA_INTERNAL_API
@@ -59,12 +62,11 @@ public:
   // nsIContent is that it exists with an IID
 
   explicit nsIContent(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : nsINode(aNodeInfo)
-  {
+      : nsINode(aNodeInfo) {
     MOZ_ASSERT(mNodeInfo);
     SetNodeIsContent();
   }
-#endif // MOZILLA_INTERNAL_API
+#endif  // MOZILLA_INTERNAL_API
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
 
@@ -114,8 +116,7 @@ public:
    *        recursively calling UnbindFromTree when a subtree is detached.
    * @note This method is safe to call on nodes that are not bound to a tree.
    */
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true) = 0;
+  virtual void UnbindFromTree(bool aDeep = true, bool aNullParent = true) = 0;
 
   enum {
     /**
@@ -174,17 +175,15 @@ public:
    * @see nsIAnonymousContentCreator
    * @return whether this content is anonymous
    */
-  bool IsRootOfNativeAnonymousSubtree() const
-  {
+  bool IsRootOfNativeAnonymousSubtree() const {
     NS_ASSERTION(!HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT) ||
-                 (HasFlag(NODE_IS_ANONYMOUS_ROOT) &&
-                  HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE)),
+                     (HasFlag(NODE_IS_ANONYMOUS_ROOT) &&
+                      HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE)),
                  "Some flags seem to be missing!");
     return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT);
   }
 
-  bool IsRootOfChromeAccessOnlySubtree() const
-  {
+  bool IsRootOfChromeAccessOnlySubtree() const {
     return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT |
                    NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS);
   }
@@ -193,8 +192,7 @@ public:
    * Makes this content anonymous
    * @see nsIAnonymousContentCreator
    */
-  void SetIsNativeAnonymousRoot()
-  {
+  void SetIsNativeAnonymousRoot() {
     SetFlags(NODE_IS_ANONYMOUS_ROOT | NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
              NODE_IS_NATIVE_ANONYMOUS_ROOT | NODE_IS_NATIVE_ANONYMOUS);
   }
@@ -209,25 +207,25 @@ public:
    * Returns true if and only if this node has a parent, but is not in
    * its parent's child list.
    */
-  bool IsRootOfAnonymousSubtree() const
-  {
+  bool IsRootOfAnonymousSubtree() const {
     NS_ASSERTION(!IsRootOfNativeAnonymousSubtree() ||
-                 (GetParent() && GetBindingParent() == GetParent()),
+                     (GetParent() && GetBindingParent() == GetParent()),
                  "root of native anonymous subtree must have parent equal "
                  "to binding parent");
-    NS_ASSERTION(!GetParent() ||
-                 ((GetBindingParent() == GetParent()) ==
-                  HasFlag(NODE_IS_ANONYMOUS_ROOT)) ||
-                 // Unfortunately default content for XBL insertion points is
-                 // anonymous content that is bound with the parent of the
-                 // insertion point as the parent but the bound element for the
-                 // binding as the binding parent.  So we have to complicate
-                 // the assert a bit here.
-                 (GetBindingParent() &&
-                  (GetBindingParent() == GetParent()->GetBindingParent()) ==
-                  HasFlag(NODE_IS_ANONYMOUS_ROOT)),
-                 "For nodes with parent, flag and GetBindingParent() check "
-                 "should match");
+    NS_ASSERTION(
+        !GetParent() ||
+            ((GetBindingParent() == GetParent()) ==
+             HasFlag(NODE_IS_ANONYMOUS_ROOT)) ||
+            // Unfortunately default content for XBL insertion points is
+            // anonymous content that is bound with the parent of the
+            // insertion point as the parent but the bound element for the
+            // binding as the binding parent.  So we have to complicate
+            // the assert a bit here.
+            (GetBindingParent() &&
+             (GetBindingParent() == GetParent()->GetBindingParent()) ==
+                 HasFlag(NODE_IS_ANONYMOUS_ROOT)),
+        "For nodes with parent, flag and GetBindingParent() check "
+        "should match");
     return HasFlag(NODE_IS_ANONYMOUS_ROOT);
   }
 
@@ -236,14 +234,17 @@ public:
    * from the top of this node's parent chain back to this node or
    * if the node is in native anonymous subtree without a parent.
    */
-  bool IsInAnonymousSubtree() const
-  {
-    NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent() ||
-                 (!IsInUncomposedDoc() &&
-                  static_cast<nsIContent*>(SubtreeRoot())->IsInNativeAnonymousSubtree()),
-                 "Must have binding parent when in native anonymous subtree which is in document.\n"
-                 "Native anonymous subtree which is not in document must have native anonymous root.");
-    return IsInNativeAnonymousSubtree() || (!IsInShadowTree() && GetBindingParent() != nullptr);
+  bool IsInAnonymousSubtree() const {
+    NS_ASSERTION(
+        !IsInNativeAnonymousSubtree() || GetBindingParent() ||
+            (!IsInUncomposedDoc() && static_cast<nsIContent*>(SubtreeRoot())
+                                         ->IsInNativeAnonymousSubtree()),
+        "Must have binding parent when in native anonymous subtree which is in "
+        "document.\n"
+        "Native anonymous subtree which is not in document must have native "
+        "anonymous root.");
+    return IsInNativeAnonymousSubtree() ||
+           (!IsInShadowTree() && GetBindingParent() != nullptr);
   }
 
   /*
@@ -260,7 +261,6 @@ public:
    */
   inline bool IsInHTMLDocument() const;
 
-
   /**
    * Returns true if in a chrome document
    */
@@ -270,88 +270,66 @@ public:
    * Get the namespace that this element's tag is defined in
    * @return the namespace
    */
-  inline int32_t GetNameSpaceID() const
-  {
-    return mNodeInfo->NamespaceID();
-  }
+  inline int32_t GetNameSpaceID() const { return mNodeInfo->NamespaceID(); }
 
-  inline bool IsHTMLElement() const
-  {
+  inline bool IsHTMLElement() const {
     return IsInNamespace(kNameSpaceID_XHTML);
   }
 
-  inline bool IsHTMLElement(nsAtom* aTag) const
-  {
+  inline bool IsHTMLElement(nsAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XHTML);
   }
 
-  template<typename First, typename... Args>
-  inline bool IsAnyOfHTMLElements(First aFirst, Args... aArgs) const
-  {
+  template <typename First, typename... Args>
+  inline bool IsAnyOfHTMLElements(First aFirst, Args... aArgs) const {
     return IsHTMLElement() && IsNodeInternal(aFirst, aArgs...);
   }
 
-  inline bool IsSVGElement() const
-  {
-    return IsInNamespace(kNameSpaceID_SVG);
-  }
+  inline bool IsSVGElement() const { return IsInNamespace(kNameSpaceID_SVG); }
 
-  inline bool IsSVGElement(nsAtom* aTag) const
-  {
+  inline bool IsSVGElement(nsAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_SVG);
   }
 
-  template<typename First, typename... Args>
-  inline bool IsAnyOfSVGElements(First aFirst, Args... aArgs) const
-  {
+  template <typename First, typename... Args>
+  inline bool IsAnyOfSVGElements(First aFirst, Args... aArgs) const {
     return IsSVGElement() && IsNodeInternal(aFirst, aArgs...);
   }
 
-  inline bool IsXULElement() const
-  {
-    return IsInNamespace(kNameSpaceID_XUL);
-  }
+  inline bool IsXULElement() const { return IsInNamespace(kNameSpaceID_XUL); }
 
-  inline bool IsXULElement(nsAtom* aTag) const
-  {
+  inline bool IsXULElement(nsAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XUL);
   }
 
-  template<typename First, typename... Args>
-  inline bool IsAnyOfXULElements(First aFirst, Args... aArgs) const
-  {
+  template <typename First, typename... Args>
+  inline bool IsAnyOfXULElements(First aFirst, Args... aArgs) const {
     return IsXULElement() && IsNodeInternal(aFirst, aArgs...);
   }
 
-  inline bool IsMathMLElement() const
-  {
+  inline bool IsMathMLElement() const {
     return IsInNamespace(kNameSpaceID_MathML);
   }
 
-  inline bool IsMathMLElement(nsAtom* aTag) const
-  {
+  inline bool IsMathMLElement(nsAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_MathML);
   }
 
-  template<typename First, typename... Args>
-  inline bool IsAnyOfMathMLElements(First aFirst, Args... aArgs) const
-  {
+  template <typename First, typename... Args>
+  inline bool IsAnyOfMathMLElements(First aFirst, Args... aArgs) const {
     return IsMathMLElement() && IsNodeInternal(aFirst, aArgs...);
   }
-  inline bool IsActiveChildrenElement() const
-  {
+  inline bool IsActiveChildrenElement() const {
     return mNodeInfo->Equals(nsGkAtoms::children, kNameSpaceID_XBL) &&
            GetBindingParent();
   }
 
-  bool IsGeneratedContentContainerForBefore() const
-  {
+  bool IsGeneratedContentContainerForBefore() const {
     return IsRootOfNativeAnonymousSubtree() &&
            mNodeInfo->NameAtom() == nsGkAtoms::mozgeneratedcontentbefore;
   }
 
-  bool IsGeneratedContentContainerForAfter() const
-  {
+  bool IsGeneratedContentContainerForAfter() const {
     return IsRootOfNativeAnonymousSubtree() &&
            mNodeInfo->NameAtom() == nsGkAtoms::mozgeneratedcontentafter;
   }
@@ -361,7 +339,7 @@ public:
    * NOTE: For elements this is *not* the concatenation of all text children,
    * it is simply null;
    */
-  virtual const nsTextFragment *GetText() = 0;
+  virtual const nsTextFragment* GetText() = 0;
 
   /**
    * Get the length of the text content.
@@ -378,10 +356,7 @@ public:
    */
   bool IsEventAttributeName(nsAtom* aName);
 
-  virtual bool IsEventAttributeNameInternal(nsAtom* aName)
-  {
-    return false;
-  }
+  virtual bool IsEventAttributeNameInternal(nsAtom* aName) { return false; }
 
   /**
    * Set the text to the given value. If aNotify is true then
@@ -404,8 +379,7 @@ public:
    * the document is notified of the content change.
    * NOTE: For elements this always asserts and returns NS_ERROR_FAILURE
    */
-  nsresult SetText(const nsAString& aStr, bool aNotify)
-  {
+  nsresult SetText(const nsAString& aStr, bool aNotify) {
     return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
 
@@ -476,8 +450,7 @@ public:
    * @return true if the focus was changed.
    */
   virtual bool PerformAccesskey(bool aKeyCausesActivation,
-                                bool aIsTrustedEvent)
-  {
+                                bool aIsTrustedEvent) {
     return false;
   }
 
@@ -508,8 +481,7 @@ public:
    *
    * @return the binding parent
    */
-  virtual nsIContent* GetBindingParent() const
-  {
+  virtual nsIContent* GetBindingParent() const {
     const nsExtendedContentSlots* slots = GetExistingExtendedContentSlots();
     return slots ? slots->mBindingParent : nullptr;
   }
@@ -519,8 +491,7 @@ public:
    *
    * @return the current binding.
    */
-  nsXBLBinding* GetXBLBinding() const
-  {
+  nsXBLBinding* GetXBLBinding() const {
     if (!HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
       return nullptr;
     }
@@ -544,8 +515,7 @@ public:
    *
    * @return The ShadowRoot that is the root of the node tree.
    */
-  mozilla::dom::ShadowRoot* GetContainingShadow() const
-  {
+  mozilla::dom::ShadowRoot* GetContainingShadow() const {
     const nsExtendedContentSlots* slots = GetExistingExtendedContentSlots();
     return slots ? slots->mContainingShadow.get() : nullptr;
   }
@@ -563,8 +533,7 @@ public:
    *
    * @return The assigned slot element or null.
    */
-  mozilla::dom::HTMLSlotElement* GetAssignedSlot() const
-  {
+  mozilla::dom::HTMLSlotElement* GetAssignedSlot() const {
     const nsExtendedContentSlots* slots = GetExistingExtendedContentSlots();
     return slots ? slots->mAssignedSlot.get() : nullptr;
   }
@@ -585,8 +554,7 @@ public:
    */
   mozilla::dom::HTMLSlotElement* GetAssignedSlotByMode() const;
 
-  nsIContent* GetXBLInsertionParent() const
-  {
+  nsIContent* GetXBLInsertionParent() const {
     nsIContent* ip = GetXBLInsertionPoint();
     return ip ? ip->GetParent() : nullptr;
   }
@@ -597,8 +565,7 @@ public:
    *
    * @return the insertion parent element.
    */
-  nsIContent* GetXBLInsertionPoint() const
-  {
+  nsIContent* GetXBLInsertionPoint() const {
     const nsExtendedContentSlots* slots = GetExistingExtendedContentSlots();
     return slots ? slots->mXBLInsertionPoint.get() : nullptr;
   }
@@ -632,16 +599,13 @@ public:
   virtual bool IsLink(nsIURI** aURI) const = 0;
 
   /**
-    * Get a pointer to the full href URI (fully resolved and canonicalized,
-    * since it's an nsIURI object) for link elements.
-    *
-    * @return A pointer to the URI or null if the element is not a link or it
-    *         has no HREF attribute.
-    */
-  virtual already_AddRefed<nsIURI> GetHrefURI() const
-  {
-    return nullptr;
-  }
+   * Get a pointer to the full href URI (fully resolved and canonicalized,
+   * since it's an nsIURI object) for link elements.
+   *
+   * @return A pointer to the URI or null if the element is not a link or it
+   *         has no HREF attribute.
+   */
+  virtual already_AddRefed<nsIURI> GetHrefURI() const { return nullptr; }
 
   /**
    * This method is called when the parser finishes creating the element.  This
@@ -670,9 +634,7 @@ public:
    * element and then call setAttribute() directly, at which point
    * DoneCreatingElement() has already been called and is out of the picture).
    */
-  virtual void DoneCreatingElement()
-  {
-  }
+  virtual void DoneCreatingElement() {}
 
   /**
    * This method is called when the parser begins creating the element's
@@ -680,13 +642,11 @@ public:
    *
    * This is only called for XTF elements currently.
    */
-  virtual void BeginAddingChildren()
-  {
-  }
+  virtual void BeginAddingChildren() {}
 
   /**
-   * This method is called when the parser finishes creating the element's children,
-   * if any are present.
+   * This method is called when the parser finishes creating the element's
+   * children, if any are present.
    *
    * NOTE: this is currently only called for textarea, select, and object
    * elements in the HTML content sink. If you want to call it on your element,
@@ -703,9 +663,7 @@ public:
    *        ContentInserted/ContentAppended notification for this content node
    *        yet.
    */
-  virtual void DoneAddingChildren(bool aHaveNotified)
-  {
-  }
+  virtual void DoneAddingChildren(bool aHaveNotified) {}
 
   /**
    * For HTML textarea, select, and object elements, returns true if all
@@ -718,10 +676,7 @@ public:
    *
    * @returns true otherwise.
    */
-  virtual bool IsDoneAddingChildren()
-  {
-    return true;
-  }
+  virtual bool IsDoneAddingChildren() { return true; }
 
   /**
    * Get the ID of this content node (the atom corresponding to the
@@ -746,9 +701,7 @@ public:
    * Destroy this node and its children. Ideally this shouldn't be needed
    * but for now we need to do it to break cycles.
    */
-  virtual void DestroyContent()
-  {
-  }
+  virtual void DestroyContent() {}
 
   /**
    * Saves the form state of this node and its children.
@@ -766,8 +719,7 @@ public:
    * In the case of absolutely positioned elements and floated elements, this
    * frame is the out of flow frame, not the placeholder.
    */
-  nsIFrame* GetPrimaryFrame() const
-  {
+  nsIFrame* GetPrimaryFrame() const {
     return (IsInUncomposedDoc() || IsInShadowTree()) ? mPrimaryFrame : nullptr;
   }
 
@@ -815,13 +767,13 @@ public:
   // Returns true if this element is native-anonymous scrollbar content.
   bool IsNativeScrollbarContent() const {
     return IsNativeAnonymous() &&
-           IsAnyOfXULElements(nsGkAtoms::scrollbar,
-                              nsGkAtoms::resizer,
+           IsAnyOfXULElements(nsGkAtoms::scrollbar, nsGkAtoms::resizer,
                               nsGkAtoms::scrollcorner);
   }
 
   // Overloaded from nsINode
-  virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const override;
+  virtual already_AddRefed<nsIURI> GetBaseURI(
+      bool aTryUseXHRDocBaseURI = false) const override;
 
   // Returns base URI for style attribute.
   nsIURI* GetBaseURIForStyleAttr() const;
@@ -829,23 +781,22 @@ public:
   // Returns the URL data for style attribute.
   // If aSubjectPrincipal is passed, it should be the scripted principal
   // responsible for generating the URL data.
-  already_AddRefed<mozilla::URLExtraData>
-  GetURLDataForStyleAttr(nsIPrincipal* aSubjectPrincipal = nullptr) const;
+  already_AddRefed<mozilla::URLExtraData> GetURLDataForStyleAttr(
+      nsIPrincipal* aSubjectPrincipal = nullptr) const;
 
   virtual nsresult GetEventTargetParent(
-                     mozilla::EventChainPreVisitor& aVisitor) override;
+      mozilla::EventChainPreVisitor& aVisitor) override;
 
   virtual bool IsPurple() = 0;
   virtual void RemovePurple() = 0;
 
   virtual bool OwnedOnlyByTheDOMTree() { return false; }
 
-  virtual already_AddRefed<nsITextControlElement> GetAsTextControlElement()
-  {
+  virtual already_AddRefed<nsITextControlElement> GetAsTextControlElement() {
     return nullptr;
   }
 
-protected:
+ protected:
   /**
    * Lazily allocated extended slots to avoid
    * that may only be instantiated when a content object is accessed
@@ -854,9 +805,8 @@ protected:
    * in a side structure that's only allocated when the content is
    * accessed through the DOM.
    */
-  class nsExtendedContentSlots
-  {
-  public:
+  class nsExtendedContentSlots {
+   public:
     nsExtendedContentSlots();
     virtual ~nsExtendedContentSlots();
 
@@ -885,19 +835,16 @@ protected:
     RefPtr<mozilla::dom::HTMLSlotElement> mAssignedSlot;
   };
 
-  class nsContentSlots : public nsINode::nsSlots
-  {
-  public:
-    void Traverse(nsCycleCollectionTraversalCallback& aCb) override
-    {
+  class nsContentSlots : public nsINode::nsSlots {
+   public:
+    void Traverse(nsCycleCollectionTraversalCallback& aCb) override {
       nsINode::nsSlots::Traverse(aCb);
       if (mExtendedSlots) {
         mExtendedSlots->Traverse(aCb);
       }
     }
 
-    void Unlink() override
-    {
+    void Unlink() override {
       nsINode::nsSlots::Unlink();
       if (mExtendedSlots) {
         mExtendedSlots->Unlink();
@@ -908,45 +855,35 @@ protected:
   };
 
   // Override from nsINode
-  nsContentSlots* CreateSlots() override
-  {
-    return new nsContentSlots();
-  }
+  nsContentSlots* CreateSlots() override { return new nsContentSlots(); }
 
-  nsContentSlots* ContentSlots()
-  {
+  nsContentSlots* ContentSlots() {
     return static_cast<nsContentSlots*>(Slots());
   }
 
-  const nsContentSlots* GetExistingContentSlots() const
-  {
+  const nsContentSlots* GetExistingContentSlots() const {
     return static_cast<nsContentSlots*>(GetExistingSlots());
   }
 
-  nsContentSlots* GetExistingContentSlots()
-  {
+  nsContentSlots* GetExistingContentSlots() {
     return static_cast<nsContentSlots*>(GetExistingSlots());
   }
 
-  virtual nsExtendedContentSlots* CreateExtendedSlots()
-  {
+  virtual nsExtendedContentSlots* CreateExtendedSlots() {
     return new nsExtendedContentSlots();
   }
 
-  const nsExtendedContentSlots* GetExistingExtendedContentSlots() const
-  {
+  const nsExtendedContentSlots* GetExistingExtendedContentSlots() const {
     const nsContentSlots* slots = GetExistingContentSlots();
     return slots ? slots->mExtendedSlots.get() : nullptr;
   }
 
-  nsExtendedContentSlots* GetExistingExtendedContentSlots()
-  {
+  nsExtendedContentSlots* GetExistingExtendedContentSlots() {
     nsContentSlots* slots = GetExistingContentSlots();
     return slots ? slots->mExtendedSlots.get() : nullptr;
   }
 
-  nsExtendedContentSlots* ExtendedContentSlots()
-  {
+  nsExtendedContentSlots* ExtendedContentSlots() {
     nsContentSlots* slots = ContentSlots();
     if (!slots->mExtendedSlots) {
       slots->mExtendedSlots.reset(CreateExtendedSlots());
@@ -960,7 +897,7 @@ protected:
    */
   nsAtom* DoGetID() const;
 
-public:
+ public:
 #ifdef DEBUG
   /**
    * List the content (and anything it contains) out to the given
@@ -986,10 +923,11 @@ public:
   }
 
   enum ETabFocusType {
-    eTabFocus_textControlsMask = (1<<0),  // textboxes and lists always tabbable
-    eTabFocus_formElementsMask = (1<<1),  // non-text form elements
-    eTabFocus_linksMask = (1<<2),         // links
-    eTabFocus_any = 1 + (1<<1) + (1<<2)   // everything that can be focused
+    eTabFocus_textControlsMask =
+        (1 << 0),  // textboxes and lists always tabbable
+    eTabFocus_formElementsMask = (1 << 1),   // non-text form elements
+    eTabFocus_linksMask = (1 << 2),          // links
+    eTabFocus_any = 1 + (1 << 1) + (1 << 2)  // everything that can be focused
   };
 
   // Tab focus model bit field:
@@ -1002,37 +940,32 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContent, NS_ICONTENT_IID)
 
-inline nsIContent* nsINode::AsContent()
-{
+inline nsIContent* nsINode::AsContent() {
   MOZ_ASSERT(IsContent());
   return static_cast<nsIContent*>(this);
 }
 
-#define NS_IMPL_FROMCONTENT_HELPER(_class, _check)                             \
-  static _class* FromContent(nsIContent* aContent)                             \
-  {                                                                            \
-    return aContent->_check ? static_cast<_class*>(aContent) : nullptr;        \
-  }                                                                            \
-  static const _class* FromContent(const nsIContent* aContent)                 \
-  {                                                                            \
-    return aContent->_check ? static_cast<const _class*>(aContent) : nullptr;  \
-  }                                                                            \
-  static _class* FromContentOrNull(nsIContent* aContent)                       \
-  {                                                                            \
-    return aContent ? FromContent(aContent) : nullptr;                         \
-  }                                                                            \
-  static const _class* FromContentOrNull(const nsIContent* aContent)           \
-  {                                                                            \
-    return aContent ? FromContent(aContent) : nullptr;                         \
+#define NS_IMPL_FROMCONTENT_HELPER(_class, _check)                            \
+  static _class* FromContent(nsIContent* aContent) {                          \
+    return aContent->_check ? static_cast<_class*>(aContent) : nullptr;       \
+  }                                                                           \
+  static const _class* FromContent(const nsIContent* aContent) {              \
+    return aContent->_check ? static_cast<const _class*>(aContent) : nullptr; \
+  }                                                                           \
+  static _class* FromContentOrNull(nsIContent* aContent) {                    \
+    return aContent ? FromContent(aContent) : nullptr;                        \
+  }                                                                           \
+  static const _class* FromContentOrNull(const nsIContent* aContent) {        \
+    return aContent ? FromContent(aContent) : nullptr;                        \
   }
 
-#define NS_IMPL_FROMCONTENT(_class, _nsid)                                     \
+#define NS_IMPL_FROMCONTENT(_class, _nsid) \
   NS_IMPL_FROMCONTENT_HELPER(_class, IsInNamespace(_nsid))
 
-#define NS_IMPL_FROMCONTENT_WITH_TAG(_class, _nsid, _tag)                      \
+#define NS_IMPL_FROMCONTENT_WITH_TAG(_class, _nsid, _tag) \
   NS_IMPL_FROMCONTENT_HELPER(_class, NodeInfo()->Equals(nsGkAtoms::_tag, _nsid))
 
-#define NS_IMPL_FROMCONTENT_HTML_WITH_TAG(_class, _tag)                        \
+#define NS_IMPL_FROMCONTENT_HTML_WITH_TAG(_class, _tag) \
   NS_IMPL_FROMCONTENT_WITH_TAG(_class, kNameSpaceID_XHTML, _tag)
 
 #endif /* nsIContent_h___ */

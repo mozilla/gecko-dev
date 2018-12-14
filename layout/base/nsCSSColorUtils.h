@@ -15,13 +15,12 @@
 // "Techniques For Accessibility Evalution And Repair Tools".
 // See http://www.w3.org/TR/AERT#color-contrast
 #define NS_SUFFICIENT_LUMINOSITY_DIFFERENCE 125000
-#define NS_LUMINOSITY_DIFFERENCE(a, b) \
-          int32_t(mozilla::Abs( \
-            NS_GetLuminosity(a | 0xff000000) - NS_GetLuminosity(b | 0xff000000)))
+#define NS_LUMINOSITY_DIFFERENCE(a, b)                    \
+  int32_t(mozilla::Abs(NS_GetLuminosity(a | 0xff000000) - \
+                       NS_GetLuminosity(b | 0xff000000)))
 
 // To determine colors based on the background brightness and border color
-void NS_GetSpecial3DColors(nscolor aResult[2],
-                           nscolor aBackgroundColor,
+void NS_GetSpecial3DColors(nscolor aResult[2], nscolor aBackgroundColor,
                            nscolor aBorderColor);
 
 // Determins brightness for a specific color

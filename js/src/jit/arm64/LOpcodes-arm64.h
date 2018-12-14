@@ -9,12 +9,12 @@
 
 #include "jit/shared/LOpcodes-shared.h"
 
-#define LIR_CPU_OPCODE_LIST(_)  \
-    _(SoftDivI)                 \
-    _(SoftModI)                 \
-    _(ModMaskI)                 \
-    _(UDiv)                     \
-    _(UMod)                     \
-    _(SoftUDivOrMod)
+#define LIR_CPU_OPCODE_LIST(_) \
+  _(SoftDivI)                  \
+  _(SoftModI)                  \
+  _(ModMaskI)                  \
+  _(UDiv)                      \
+  _(UMod)                      \
+  _(SoftUDivOrMod)
 
 #endif /* jit_arm64_LOpcodes_arm64_h */

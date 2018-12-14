@@ -10,12 +10,15 @@
 #include "nsCharsetSource.h"
 
 /* 0c628af0-5638-4703-8f99-ed6134c9de18 */
-#define NS_IWEB_SHELL_SERVICES_IID \
-{ 0x0c628af0, 0x5638, 0x4703, {0x8f, 0x99, 0xed, 0x61, 0x34, 0xc9, 0xde, 0x18} }
+#define NS_IWEB_SHELL_SERVICES_IID                   \
+  {                                                  \
+    0x0c628af0, 0x5638, 0x4703, {                    \
+      0x8f, 0x99, 0xed, 0x61, 0x34, 0xc9, 0xde, 0x18 \
+    }                                                \
+  }
 
-class nsIWebShellServices : public nsISupports
-{
-public:
+class nsIWebShellServices : public nsISupports {
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWEB_SHELL_SERVICES_IID)
 
   NS_IMETHOD ReloadDocument(const char* aCharset = nullptr,
@@ -26,8 +29,8 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWebShellServices, NS_IWEB_SHELL_SERVICES_IID)
 
 /* Use this macro when declaring classes that implement this interface. */
-#define NS_DECL_NSIWEBSHELLSERVICES \
-  NS_IMETHOD ReloadDocument(const char* aCharset = nullptr, \
+#define NS_DECL_NSIWEBSHELLSERVICES                                            \
+  NS_IMETHOD ReloadDocument(const char* aCharset = nullptr,                    \
                             int32_t aSource = kCharsetUninitialized) override; \
   NS_IMETHOD StopDocumentLoad(void) override;
 

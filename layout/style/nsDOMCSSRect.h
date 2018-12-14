@@ -15,14 +15,10 @@
 
 class nsROCSSPrimitiveValue;
 
-class nsDOMCSSRect final : public nsISupports,
-                           public nsWrapperCache
-{
-public:
-  nsDOMCSSRect(nsROCSSPrimitiveValue* aTop,
-               nsROCSSPrimitiveValue* aRight,
-               nsROCSSPrimitiveValue* aBottom,
-               nsROCSSPrimitiveValue* aLeft);
+class nsDOMCSSRect final : public nsISupports, public nsWrapperCache {
+ public:
+  nsDOMCSSRect(nsROCSSPrimitiveValue* aTop, nsROCSSPrimitiveValue* aRight,
+               nsROCSSPrimitiveValue* aBottom, nsROCSSPrimitiveValue* aLeft);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsDOMCSSRect)
@@ -36,10 +32,10 @@ public:
 
   JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto) final;
 
-protected:
+ protected:
   virtual ~nsDOMCSSRect(void);
 
-private:
+ private:
   RefPtr<nsROCSSPrimitiveValue> mTop;
   RefPtr<nsROCSSPrimitiveValue> mRight;
   RefPtr<nsROCSSPrimitiveValue> mBottom;

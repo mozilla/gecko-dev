@@ -41,37 +41,37 @@
 #include "nsISimpleEnumerator.h"
 #include "mozilla/Attributes.h"
 
-class mozHunspellDirProvider final :
-  public nsIDirectoryServiceProvider2
-{
-public:
+class mozHunspellDirProvider final : public nsIDirectoryServiceProvider2 {
+ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER
   NS_DECL_NSIDIRECTORYSERVICEPROVIDER2
 
-  static char const *const kContractID;
+  static char const* const kContractID;
 
-private:
+ private:
   ~mozHunspellDirProvider() {}
 
-  class AppendingEnumerator final : public nsISimpleEnumerator
-  {
-  public:
+  class AppendingEnumerator final : public nsISimpleEnumerator {
+   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSISIMPLEENUMERATOR
 
     explicit AppendingEnumerator(nsISimpleEnumerator* aBase);
 
-  private:
+   private:
     ~AppendingEnumerator() {}
 
     nsCOMPtr<nsISimpleEnumerator> mBase;
-    nsCOMPtr<nsIFile>             mNext;
+    nsCOMPtr<nsIFile> mNext;
   };
 };
 
-#define HUNSPELLDIRPROVIDER_CID \
-{ 0x64d6174c, 0x1496, 0x4ffd, \
-  { 0x87, 0xf2, 0xda, 0x26, 0x70, 0xf8, 0x89, 0x34 } }
+#define HUNSPELLDIRPROVIDER_CID                      \
+  {                                                  \
+    0x64d6174c, 0x1496, 0x4ffd, {                    \
+      0x87, 0xf2, 0xda, 0x26, 0x70, 0xf8, 0x89, 0x34 \
+    }                                                \
+  }
 
-#endif // mozHunspellDirProvider
+#endif  // mozHunspellDirProvider

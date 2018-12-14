@@ -28,71 +28,57 @@
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
 
-namespace mozilla { namespace pkix {
-  extern Result TLSFeaturesSatisfiedInternal(const Input* requiredTLSFeatures,
-                                             const Input* stapledOCSPResponse);
-} } // namespace mozilla::pkix
+namespace mozilla {
+namespace pkix {
+extern Result TLSFeaturesSatisfiedInternal(const Input* requiredTLSFeatures,
+                                           const Input* stapledOCSPResponse);
+}
+}  // namespace mozilla
 
-struct TLSFeaturesTestParams
-{
+struct TLSFeaturesTestParams {
   ByteString requiredTLSFeatures;
   Result expectedResultWithResponse;
   Result expectedResultWithoutResponse;
 };
 
-::std::ostream& operator<<(::std::ostream& os, const TLSFeaturesTestParams&)
-{
+::std::ostream& operator<<(::std::ostream& os, const TLSFeaturesTestParams&) {
   return os << "TODO (bug 1318770)";
 }
 
 #define BS(s) ByteString(s, MOZILLA_PKIX_ARRAY_LENGTH(s))
-static const uint8_t statusRequest[] = {
-  0x30, 0x03, 0x02, 0x01, 0x05
-};
+static const uint8_t statusRequest[] = {0x30, 0x03, 0x02, 0x01, 0x05};
 
-static const uint8_t unknown[] = {
-  0x30, 0x03, 0x02, 0x01, 0x06
-};
+static const uint8_t unknown[] = {0x30, 0x03, 0x02, 0x01, 0x06};
 
-static const uint8_t statusRequestAndUnknown[] = {
-  0x30, 0x06, 0x02, 0x01, 0x05, 0x02, 0x01, 0x06
-};
+static const uint8_t statusRequestAndUnknown[] = {0x30, 0x06, 0x02, 0x01,
+                                                  0x05, 0x02, 0x01, 0x06};
 
-static const uint8_t duplicateStatusRequest[] = {
-  0x30, 0x06, 0x02, 0x01, 0x05, 0x02, 0x01, 0x05
-};
+static const uint8_t duplicateStatusRequest[] = {0x30, 0x06, 0x02, 0x01,
+                                                 0x05, 0x02, 0x01, 0x05};
 
-static const uint8_t twoByteUnknown[] = {
-  0x30, 0x04, 0x02, 0x02, 0x05, 0x05
-};
+static const uint8_t twoByteUnknown[] = {0x30, 0x04, 0x02, 0x02, 0x05, 0x05};
 
-static const uint8_t zeroByteInteger[] = {
-  0x30, 0x02, 0x02, 0x00
-};
+static const uint8_t zeroByteInteger[] = {0x30, 0x02, 0x02, 0x00};
 
-static const TLSFeaturesTestParams
-  TLSFEATURESSATISFIED_TEST_PARAMS[] =
-{
-  // some tests with checks enforced
-  { ByteString(), Result::ERROR_BAD_DER, Result::ERROR_BAD_DER },
-  { BS(statusRequest), Success, Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
-  { BS(unknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
-    Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
-  { BS(statusRequestAndUnknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
-    Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
-  { BS(duplicateStatusRequest), Success,
-    Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
-  { BS(twoByteUnknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
-    Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
-  { BS(zeroByteInteger), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
-    Result::ERROR_REQUIRED_TLS_FEATURE_MISSING },
+static const TLSFeaturesTestParams TLSFEATURESSATISFIED_TEST_PARAMS[] = {
+    // some tests with checks enforced
+    {ByteString(), Result::ERROR_BAD_DER, Result::ERROR_BAD_DER},
+    {BS(statusRequest), Success, Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
+    {BS(unknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
+     Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
+    {BS(statusRequestAndUnknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
+     Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
+    {BS(duplicateStatusRequest), Success,
+     Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
+    {BS(twoByteUnknown), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
+     Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
+    {BS(zeroByteInteger), Result::ERROR_REQUIRED_TLS_FEATURE_MISSING,
+     Result::ERROR_REQUIRED_TLS_FEATURE_MISSING},
 };
 
 class pkixcheck_TLSFeaturesSatisfiedInternal
-  : public ::testing::Test
-  , public ::testing::WithParamInterface<TLSFeaturesTestParams>
-{
-};
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<TLSFeaturesTestParams> {};
 
 TEST_P(pkixcheck_TLSFeaturesSatisfiedInternal, TLSFeaturesSatisfiedInternal) {
   const TLSFeaturesTestParams& params(GetParam());
@@ -113,7 +99,6 @@ TEST_P(pkixcheck_TLSFeaturesSatisfiedInternal, TLSFeaturesSatisfiedInternal) {
             TLSFeaturesSatisfiedInternal(&featuresInput, &responseInput));
 }
 
-INSTANTIATE_TEST_CASE_P(
-  pkixcheck_TLSFeaturesSatisfiedInternal,
-  pkixcheck_TLSFeaturesSatisfiedInternal,
-  testing::ValuesIn(TLSFEATURESSATISFIED_TEST_PARAMS));
+INSTANTIATE_TEST_CASE_P(pkixcheck_TLSFeaturesSatisfiedInternal,
+                        pkixcheck_TLSFeaturesSatisfiedInternal,
+                        testing::ValuesIn(TLSFEATURESSATISFIED_TEST_PARAMS));

@@ -24,9 +24,7 @@
 namespace mozilla {
 namespace mscom {
 
-SpinEvent::SpinEvent()
-  : mDone(false)
-{
+SpinEvent::SpinEvent() : mDone(false) {
   static const bool sIsMulticore = []() {
     SYSTEM_INFO sysInfo;
     ::GetSystemInfo(&sysInfo);
@@ -39,9 +37,7 @@ SpinEvent::SpinEvent()
   }
 }
 
-bool
-SpinEvent::Wait(HANDLE aTargetThread)
-{
+bool SpinEvent::Wait(HANDLE aTargetThread) {
   MOZ_ASSERT(aTargetThread);
   if (!aTargetThread) {
     return false;
@@ -63,9 +59,7 @@ SpinEvent::Wait(HANDLE aTargetThread)
   return true;
 }
 
-void
-SpinEvent::Signal()
-{
+void SpinEvent::Signal() {
   if (mDoneEvent) {
     ::SetEvent(mDoneEvent);
   } else {
@@ -73,5 +67,5 @@ SpinEvent::Signal()
   }
 }
 
-} // namespace mscom
-} // namespace mozilla
+}  // namespace mscom
+}  // namespace mozilla

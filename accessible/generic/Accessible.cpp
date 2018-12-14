@@ -90,7 +90,6 @@
 using namespace mozilla;
 using namespace mozilla::a11y;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible: nsISupports and cycle collection
 
@@ -99,66 +98,67 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Accessible)
   tmp->Shutdown();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Accessible)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent, mDoc)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mContent, mDoc)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Accessible)
   if (aIID.Equals(NS_GET_IID(Accessible)))
     foundInterface = this;
   else
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, Accessible)
+    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, Accessible)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Accessible)
 NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_DESTROY(Accessible, LastRelease())
 
-Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc) :
-  mContent(aContent), mDoc(aDoc),
-  mParent(nullptr), mIndexInParent(-1),
-  mRoleMapEntryIndex(aria::NO_ROLE_MAP_ENTRY_INDEX),
-  mStateFlags(0), mContextFlags(0), mType(0), mGenericTypes(0),
-  mReorderEventTarget(false), mShowEventTarget(false), mHideEventTarget(false)
-{
+Accessible::Accessible(nsIContent* aContent, DocAccessible* aDoc)
+    : mContent(aContent),
+      mDoc(aDoc),
+      mParent(nullptr),
+      mIndexInParent(-1),
+      mRoleMapEntryIndex(aria::NO_ROLE_MAP_ENTRY_INDEX),
+      mStateFlags(0),
+      mContextFlags(0),
+      mType(0),
+      mGenericTypes(0),
+      mReorderEventTarget(false),
+      mShowEventTarget(false),
+      mHideEventTarget(false) {
   mBits.groupInfo = nullptr;
   mInt.mIndexOfEmbeddedChild = -1;
 }
 
-Accessible::~Accessible()
-{
+Accessible::~Accessible() {
   NS_ASSERTION(!mDoc, "LastRelease was never called!?!");
 }
 
-ENameValueFlag
-Accessible::Name(nsString& aName)
-{
+ENameValueFlag Accessible::Name(nsString& aName) {
   aName.Truncate();
 
-  if (!HasOwnContent())
-    return eNameOK;
+  if (!HasOwnContent()) return eNameOK;
 
   ARIAName(aName);
-  if (!aName.IsEmpty())
-    return eNameOK;
+  if (!aName.IsEmpty()) return eNameOK;
 
   nsCOMPtr<nsIXBLAccessible> xblAccessible(do_QueryInterface(mContent));
   if (xblAccessible) {
     xblAccessible->GetAccessibleName(aName);
-    if (!aName.IsEmpty())
-      return eNameOK;
+    if (!aName.IsEmpty()) return eNameOK;
   }
 
   ENameValueFlag nameFlag = NativeName(aName);
-  if (!aName.IsEmpty())
-    return nameFlag;
+  if (!aName.IsEmpty()) return nameFlag;
 
   // In the end get the name from tooltip.
   if (mContent->IsHTMLElement()) {
-    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title, aName)) {
+    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title,
+                                       aName)) {
       aName.CompressWhitespace();
       return eNameFromTooltip;
     }
   } else if (mContent->IsXULElement()) {
-    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext, aName)) {
+    if (mContent->AsElement()->GetAttr(kNameSpaceID_None,
+                                       nsGkAtoms::tooltiptext, aName)) {
       aName.CompressWhitespace();
       return eNameFromTooltip;
     }
@@ -174,27 +174,22 @@ Accessible::Name(nsString& aName)
     }
   }
 
-  if (nameFlag != eNoNameOnPurpose)
-    aName.SetIsVoid(true);
+  if (nameFlag != eNoNameOnPurpose) aName.SetIsVoid(true);
 
   return nameFlag;
 }
 
-void
-Accessible::Description(nsString& aDescription)
-{
+void Accessible::Description(nsString& aDescription) {
   // There are 4 conditions that make an accessible have no accDescription:
   // 1. it's a text node; or
   // 2. It has no DHTML describedby property
   // 3. it doesn't have an accName; or
   // 4. its title attribute already equals to its accName nsAutoString name;
 
-  if (!HasOwnContent() || mContent->IsNodeOfType(nsINode::eTEXT))
-    return;
+  if (!HasOwnContent() || mContent->IsNodeOfType(nsINode::eTEXT)) return;
 
-  nsTextEquivUtils::
-    GetTextEquivFromIDRefs(this, nsGkAtoms::aria_describedby,
-                           aDescription);
+  nsTextEquivUtils::GetTextEquivFromIDRefs(this, nsGkAtoms::aria_describedby,
+                                           aDescription);
 
   if (aDescription.IsEmpty()) {
     NativeDescription(aDescription);
@@ -202,9 +197,11 @@ Accessible::Description(nsString& aDescription)
     if (aDescription.IsEmpty()) {
       // Keep the Name() method logic.
       if (mContent->IsHTMLElement()) {
-        mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title, aDescription);
+        mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title,
+                                       aDescription);
       } else if (mContent->IsXULElement()) {
-        mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext, aDescription);
+        mContent->AsElement()->GetAttr(kNameSpaceID_None,
+                                       nsGkAtoms::tooltiptext, aDescription);
       } else if (mContent->IsSVGElement()) {
         for (nsIContent* childElm = mContent->GetFirstChild(); childElm;
              childElm = childElm->GetNextSibling()) {
@@ -223,16 +220,12 @@ Accessible::Description(nsString& aDescription)
     nsAutoString name;
     Name(name);
     // Don't expose a description if it is the same as the name.
-    if (aDescription.Equals(name))
-      aDescription.Truncate();
+    if (aDescription.Equals(name)) aDescription.Truncate();
   }
 }
 
-KeyBinding
-Accessible::AccessKey() const
-{
-  if (!HasOwnContent())
-    return KeyBinding();
+KeyBinding Accessible::AccessKey() const {
+  if (!HasOwnContent()) return KeyBinding();
 
   uint32_t key = nsCoreUtils::GetAccessKeyFor(mContent);
   if (!key && mContent->IsElement()) {
@@ -251,37 +244,33 @@ Accessible::AccessKey() const
       label = iter.Next();
     }
 
-    if (label)
-      key = nsCoreUtils::GetAccessKeyFor(label->GetContent());
+    if (label) key = nsCoreUtils::GetAccessKeyFor(label->GetContent());
   }
 
-  if (!key)
-    return KeyBinding();
+  if (!key) return KeyBinding();
 
   // Get modifier mask. Use ui.key.generalAccessKey (unless it is -1).
   switch (Preferences::GetInt("ui.key.generalAccessKey", -1)) {
-  case -1:
-    break;
-  case dom::KeyboardEventBinding::DOM_VK_SHIFT:
-    return KeyBinding(key, KeyBinding::kShift);
-  case dom::KeyboardEventBinding::DOM_VK_CONTROL:
-    return KeyBinding(key, KeyBinding::kControl);
-  case dom::KeyboardEventBinding::DOM_VK_ALT:
-    return KeyBinding(key, KeyBinding::kAlt);
-  case dom::KeyboardEventBinding::DOM_VK_META:
-    return KeyBinding(key, KeyBinding::kMeta);
-  default:
-    return KeyBinding();
+    case -1:
+      break;
+    case dom::KeyboardEventBinding::DOM_VK_SHIFT:
+      return KeyBinding(key, KeyBinding::kShift);
+    case dom::KeyboardEventBinding::DOM_VK_CONTROL:
+      return KeyBinding(key, KeyBinding::kControl);
+    case dom::KeyboardEventBinding::DOM_VK_ALT:
+      return KeyBinding(key, KeyBinding::kAlt);
+    case dom::KeyboardEventBinding::DOM_VK_META:
+      return KeyBinding(key, KeyBinding::kMeta);
+    default:
+      return KeyBinding();
   }
 
   // Determine the access modifier used in this context.
   nsIDocument* document = mContent->GetUncomposedDoc();
-  if (!document)
-    return KeyBinding();
+  if (!document) return KeyBinding();
 
   nsCOMPtr<nsIDocShellTreeItem> treeItem(document->GetDocShell());
-  if (!treeItem)
-    return KeyBinding();
+  if (!treeItem) return KeyBinding();
 
   nsresult rv = NS_ERROR_FAILURE;
   int32_t modifierMask = 0;
@@ -297,49 +286,35 @@ Accessible::AccessKey() const
   return NS_SUCCEEDED(rv) ? KeyBinding(key, modifierMask) : KeyBinding();
 }
 
-KeyBinding
-Accessible::KeyboardShortcut() const
-{
-  return KeyBinding();
-}
+KeyBinding Accessible::KeyboardShortcut() const { return KeyBinding(); }
 
-void
-Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut)
-{
+void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
   nsCOMPtr<nsIStringBundleService> stringBundleService =
-    services::GetStringBundleService();
-  if (!stringBundleService)
-    return;
+      services::GetStringBundleService();
+  if (!stringBundleService) return;
 
   nsCOMPtr<nsIStringBundle> stringBundle;
   stringBundleService->CreateBundle(
-    "chrome://global-platform/locale/accessible.properties",
-    getter_AddRefs(stringBundle));
-  if (!stringBundle)
-    return;
+      "chrome://global-platform/locale/accessible.properties",
+      getter_AddRefs(stringBundle));
+  if (!stringBundle) return;
 
   nsAutoString xsValue;
-  nsresult rv =
-    stringBundle->GetStringFromName(NS_ConvertUTF16toUTF8(aKey).get(), xsValue);
-  if (NS_SUCCEEDED(rv))
-    aStringOut.Assign(xsValue);
+  nsresult rv = stringBundle->GetStringFromName(
+      NS_ConvertUTF16toUTF8(aKey).get(), xsValue);
+  if (NS_SUCCEEDED(rv)) aStringOut.Assign(xsValue);
 }
 
-uint64_t
-Accessible::VisibilityState()
-{
+uint64_t Accessible::VisibilityState() {
   nsIFrame* frame = GetFrame();
-  if (!frame)
-    return states::INVISIBLE;
+  if (!frame) return states::INVISIBLE;
 
   // Walk the parent frame chain to see if there's invisible parent or the frame
   // is in background tab.
-  if (!frame->StyleVisibility()->IsVisible())
-    return states::INVISIBLE;
+  if (!frame->StyleVisibility()->IsVisible()) return states::INVISIBLE;
 
   // Offscreen state if the document's visibility state is not visible.
-  if (Document()->IsHidden())
-    return states::OFFSCREEN;
+  if (Document()->IsHidden()) return states::OFFSCREEN;
 
   nsIFrame* curFrame = frame;
   do {
@@ -347,8 +322,7 @@ Accessible::VisibilityState()
     if (view && view->GetVisibility() == nsViewVisibility_kHide)
       return states::INVISIBLE;
 
-    if (nsLayoutUtils::IsPopup(curFrame))
-      return 0;
+    if (nsLayoutUtils::IsPopup(curFrame)) return 0;
 
     // Offscreen state for background tab content and invisible for not selected
     // deck panel.
@@ -368,12 +342,11 @@ Accessible::VisibilityState()
     if (scrollableFrame) {
       nsRect scrollPortRect = scrollableFrame->GetScrollPortRect();
       nsRect frameRect = nsLayoutUtils::TransformFrameRectToAncestor(
-        frame, frame->GetRectRelativeToSelf(), parentFrame);
+          frame, frame->GetRectRelativeToSelf(), parentFrame);
       if (!scrollPortRect.Contains(frameRect)) {
         const nscoord kMinPixels = nsPresContext::CSSPixelsToAppUnits(12);
         scrollPortRect.Deflate(kMinPixels, kMinPixels);
-        if (!scrollPortRect.Intersects(frameRect))
-          return states::OFFSCREEN;
+        if (!scrollPortRect.Intersects(frameRect)) return states::OFFSCREEN;
       }
     }
 
@@ -391,11 +364,10 @@ Accessible::VisibilityState()
   // marked invisible.
   // XXX Can we just remove this check? Why do we need to mark empty
   // text invisible?
-  if (frame->IsTextFrame() &&
-      !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+  if (frame->IsTextFrame() && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
       frame->GetRect().IsEmpty()) {
-    nsIFrame::RenderedText text = frame->GetRenderedText(0,
-        UINT32_MAX, nsIFrame::TextOffsetType::OFFSETS_IN_CONTENT_TEXT,
+    nsIFrame::RenderedText text = frame->GetRenderedText(
+        0, UINT32_MAX, nsIFrame::TextOffsetType::OFFSETS_IN_CONTENT_TEXT,
         nsIFrame::TrailingWhitespace::DONT_TRIM_TRAILING_WHITESPACE);
     if (text.mString.IsEmpty()) {
       return states::INVISIBLE;
@@ -405,35 +377,29 @@ Accessible::VisibilityState()
   return 0;
 }
 
-uint64_t
-Accessible::NativeState()
-{
+uint64_t Accessible::NativeState() {
   uint64_t state = 0;
 
-  if (!IsInDocument())
-    state |= states::STALE;
+  if (!IsInDocument()) state |= states::STALE;
 
   if (HasOwnContent() && mContent->IsElement()) {
     EventStates elementState = mContent->AsElement()->State();
 
-    if (elementState.HasState(NS_EVENT_STATE_INVALID))
-      state |= states::INVALID;
+    if (elementState.HasState(NS_EVENT_STATE_INVALID)) state |= states::INVALID;
 
     if (elementState.HasState(NS_EVENT_STATE_REQUIRED))
       state |= states::REQUIRED;
 
     state |= NativeInteractiveState();
-    if (FocusMgr()->IsFocused(this))
-      state |= states::FOCUSED;
+    if (FocusMgr()->IsFocused(this)) state |= states::FOCUSED;
   }
 
   // Gather states::INVISIBLE and states::OFFSCREEN flags for this object.
   state |= VisibilityState();
 
-  nsIFrame *frame = GetFrame();
+  nsIFrame* frame = GetFrame();
   if (frame) {
-    if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-      state |= states::FLOATING;
+    if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) state |= states::FLOATING;
 
     // XXX we should look at layout for non XUL box frames, but need to decide
     // how that interacts with ARIA.
@@ -463,59 +429,42 @@ Accessible::NativeState()
   return state;
 }
 
-uint64_t
-Accessible::NativeInteractiveState() const
-{
-  if (!mContent->IsElement())
-    return 0;
+uint64_t Accessible::NativeInteractiveState() const {
+  if (!mContent->IsElement()) return 0;
 
-  if (NativelyUnavailable())
-    return states::UNAVAILABLE;
+  if (NativelyUnavailable()) return states::UNAVAILABLE;
 
   nsIFrame* frame = GetFrame();
-  if (frame && frame->IsFocusable())
-    return states::FOCUSABLE;
+  if (frame && frame->IsFocusable()) return states::FOCUSABLE;
 
   return 0;
 }
 
-uint64_t
-Accessible::NativeLinkState() const
-{
-  return 0;
-}
+uint64_t Accessible::NativeLinkState() const { return 0; }
 
-bool
-Accessible::NativelyUnavailable() const
-{
+bool Accessible::NativelyUnavailable() const {
   if (mContent->IsHTMLElement())
     return mContent->AsElement()->State().HasState(NS_EVENT_STATE_DISABLED);
 
-  return mContent->IsElement() &&
-    mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                                       nsGkAtoms::_true, eCaseMatters);
+  return mContent->IsElement() && mContent->AsElement()->AttrValueIs(
+                                      kNameSpaceID_None, nsGkAtoms::disabled,
+                                      nsGkAtoms::_true, eCaseMatters);
 }
 
-Accessible*
-Accessible::FocusedChild()
-{
+Accessible* Accessible::FocusedChild() {
   Accessible* focus = FocusMgr()->FocusedAccessible();
-  if (focus && (focus == this || focus->Parent() == this))
-    return focus;
+  if (focus && (focus == this || focus->Parent() == this)) return focus;
 
   return nullptr;
 }
 
-Accessible*
-Accessible::ChildAtPoint(int32_t aX, int32_t aY,
-                         EWhichChildAtPoint aWhichChild)
-{
+Accessible* Accessible::ChildAtPoint(int32_t aX, int32_t aY,
+                                     EWhichChildAtPoint aWhichChild) {
   // If we can't find the point in a child, we will return the fallback answer:
   // we return |this| if the point is within it, otherwise nullptr.
   Accessible* fallbackAnswer = nullptr;
   nsIntRect rect = Bounds();
-  if (rect.Contains(aX, aY))
-    fallbackAnswer = this;
+  if (rect.Contains(aX, aY)) fallbackAnswer = this;
 
   if (nsAccUtils::MustPrune(this))  // Do not dig any further
     return fallbackAnswer;
@@ -542,24 +491,23 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
 
   WidgetMouseEvent dummyEvent(true, eMouseMove, rootWidget,
                               WidgetMouseEvent::eSynthesized);
-  dummyEvent.mRefPoint = LayoutDeviceIntPoint(aX - rootRect.X(), aY - rootRect.Y());
+  dummyEvent.mRefPoint =
+      LayoutDeviceIntPoint(aX - rootRect.X(), aY - rootRect.Y());
 
-  nsIFrame* popupFrame = nsLayoutUtils::
-    GetPopupFrameForEventCoordinates(accDocument->PresContext()->GetRootPresContext(),
-                                     &dummyEvent);
+  nsIFrame* popupFrame = nsLayoutUtils::GetPopupFrameForEventCoordinates(
+      accDocument->PresContext()->GetRootPresContext(), &dummyEvent);
   if (popupFrame) {
     // If 'this' accessible is not inside the popup then ignore the popup when
     // searching an accessible at point.
     DocAccessible* popupDoc =
-      GetAccService()->GetDocAccessible(popupFrame->GetContent()->OwnerDoc());
+        GetAccService()->GetDocAccessible(popupFrame->GetContent()->OwnerDoc());
     Accessible* popupAcc =
-      popupDoc->GetAccessibleOrContainer(popupFrame->GetContent());
+        popupDoc->GetAccessibleOrContainer(popupFrame->GetContent());
     Accessible* popupChild = this;
     while (popupChild && !popupChild->IsDoc() && popupChild != popupAcc)
       popupChild = popupChild->Parent();
 
-    if (popupChild == popupAcc)
-      startFrame = popupFrame;
+    if (popupChild == popupAcc) startFrame = popupFrame;
   }
 
   nsPresContext* presContext = startFrame->PresContext();
@@ -574,17 +522,15 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
 
   // Get accessible for the node with the point or the first accessible in
   // the DOM parent chain.
-  DocAccessible* contentDocAcc = GetAccService()->
-    GetDocAccessible(content->OwnerDoc());
+  DocAccessible* contentDocAcc =
+      GetAccService()->GetDocAccessible(content->OwnerDoc());
 
   // contentDocAcc in some circumstances can be nullptr. See bug 729861
   NS_ASSERTION(contentDocAcc, "could not get the document accessible");
-  if (!contentDocAcc)
-    return fallbackAnswer;
+  if (!contentDocAcc) return fallbackAnswer;
 
   Accessible* accessible = contentDocAcc->GetAccessibleOrContainer(content);
-  if (!accessible)
-    return fallbackAnswer;
+  if (!accessible) return fallbackAnswer;
 
   // Hurray! We have an accessible for the frame that layout gave us.
   // Since DOM node of obtained accessible may be out of flow then we should
@@ -600,8 +546,7 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
 
     // If we landed on a legitimate child of |this|, and we want the direct
     // child, return it here.
-    if (parent == this && aWhichChild == eDirectChild)
-        return child;
+    if (parent == this && aWhichChild == eDirectChild) return child;
 
     child = parent;
   }
@@ -618,7 +563,6 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
     nsIntRect childRect = child->Bounds();
     if (childRect.Contains(aX, aY) &&
         (child->State() & states::INVISIBLE) == 0) {
-
       if (aWhichChild == eDeepestChild)
         return child->ChildAtPoint(aX, aY, eDeepestChild);
 
@@ -629,12 +573,11 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
   return accessible;
 }
 
-nsRect
-Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const
-{
+nsRect Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const {
   nsIFrame* frame = GetFrame();
   if (frame && mContent) {
-    bool* hasHitRegionRect = static_cast<bool*>(mContent->GetProperty(nsGkAtoms::hitregion));
+    bool* hasHitRegionRect =
+        static_cast<bool*>(mContent->GetProperty(nsGkAtoms::hitregion));
 
     if (hasHitRegionRect && mContent->IsElement()) {
       // This is for canvas fallback content
@@ -642,40 +585,37 @@ Accessible::RelativeBounds(nsIFrame** aBoundingFrame) const
       nsIFrame* canvasFrame = frame->GetParent();
       if (canvasFrame) {
         canvasFrame = nsLayoutUtils::GetClosestFrameOfType(
-          canvasFrame, LayoutFrameType::HTMLCanvas);
+            canvasFrame, LayoutFrameType::HTMLCanvas);
       }
 
       // make the canvas the bounding frame
       if (canvasFrame) {
         *aBoundingFrame = canvasFrame;
-        dom::HTMLCanvasElement *canvas =
-          dom::HTMLCanvasElement::FromContent(canvasFrame->GetContent());
+        dom::HTMLCanvasElement* canvas =
+            dom::HTMLCanvasElement::FromContent(canvasFrame->GetContent());
 
         // get the bounding rect of the hit region
         nsRect bounds;
         if (canvas && canvas->CountContexts() &&
-          canvas->GetContextAtIndex(0)->GetHitRegionRect(mContent->AsElement(), bounds)) {
+            canvas->GetContextAtIndex(0)->GetHitRegionRect(
+                mContent->AsElement(), bounds)) {
           return bounds;
         }
       }
     }
 
     *aBoundingFrame = nsLayoutUtils::GetContainingBlockForClientRect(frame);
-    return nsLayoutUtils::
-      GetAllInFlowRectsUnion(frame, *aBoundingFrame,
-                             nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
+    return nsLayoutUtils::GetAllInFlowRectsUnion(
+        frame, *aBoundingFrame, nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
   }
 
   return nsRect();
 }
 
-nsIntRect
-Accessible::Bounds() const
-{
+nsIntRect Accessible::Bounds() const {
   nsIFrame* boundingFrame = nullptr;
   nsRect unionRectTwips = RelativeBounds(&boundingFrame);
-  if (!boundingFrame)
-    return nsIntRect();
+  if (!boundingFrame) return nsIntRect();
 
   nsIntRect screenRect;
   nsPresContext* presContext = mDoc->PresContext();
@@ -686,18 +626,16 @@ Accessible::Bounds() const
 
   // We have the union of the rectangle, now we need to put it in absolute
   // screen coords.
-  nsIntRect orgRectPixels = boundingFrame->GetScreenRectInAppUnits().
-    ToNearestPixels(presContext->AppUnitsPerDevPixel());
+  nsIntRect orgRectPixels =
+      boundingFrame->GetScreenRectInAppUnits().ToNearestPixels(
+          presContext->AppUnitsPerDevPixel());
   screenRect.MoveBy(orgRectPixels.X(), orgRectPixels.Y());
 
   return screenRect;
 }
 
-void
-Accessible::SetSelected(bool aSelect)
-{
-  if (!HasOwnContent())
-    return;
+void Accessible::SetSelected(bool aSelect) {
+  if (!HasOwnContent()) return;
 
   Accessible* select = nsAccUtils::GetSelectableContainer(this, State());
   if (select) {
@@ -715,28 +653,21 @@ Accessible::SetSelected(bool aSelect)
       return;
     }
 
-    if (aSelect)
-      TakeFocus();
+    if (aSelect) TakeFocus();
   }
 }
 
-void
-Accessible::TakeSelection()
-{
+void Accessible::TakeSelection() {
   Accessible* select = nsAccUtils::GetSelectableContainer(this, State());
   if (select) {
-    if (select->State() & states::MULTISELECTABLE)
-      select->UnselectAll();
+    if (select->State() & states::MULTISELECTABLE) select->UnselectAll();
     SetSelected(true);
   }
 }
 
-void
-Accessible::TakeFocus()
-{
+void Accessible::TakeFocus() {
   nsIFrame* frame = GetFrame();
-  if (!frame)
-    return;
+  if (!frame) return;
 
   nsIContent* focusContent = mContent;
 
@@ -756,14 +687,11 @@ Accessible::TakeFocus()
 
   nsCOMPtr<nsIDOMElement> element(do_QueryInterface(focusContent));
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm)
-    fm->SetFocus(element, 0);
+  if (fm) fm->SetFocus(element, 0);
 }
 
-void
-Accessible::XULElmName(DocAccessible* aDocument,
-                       nsIContent* aElm, nsString& aName)
-{
+void Accessible::XULElmName(DocAccessible* aDocument, nsIContent* aElm,
+                            nsString& aName) {
   /**
    * 3 main cases for XUL Controls to be labeled
    *   1 - control contains label="foo"
@@ -782,7 +710,8 @@ Accessible::XULElmName(DocAccessible* aDocument,
   if (labeledEl) {
     labeledEl->GetLabel(aName);
   } else {
-    nsCOMPtr<nsIDOMXULSelectControlItemElement> itemEl = do_QueryInterface(aElm);
+    nsCOMPtr<nsIDOMXULSelectControlItemElement> itemEl =
+        do_QueryInterface(aElm);
     if (itemEl) {
       itemEl->GetLabel(aName);
     } else {
@@ -795,38 +724,42 @@ Accessible::XULElmName(DocAccessible* aDocument,
     }
   }
 
-  // CASES #2 and #3 ------ label as a child or <label control="id" ... > </label>
+  // CASES #2 and #3 ------ label as a child or <label control="id" ... >
+  // </label>
   if (aName.IsEmpty()) {
     Accessible* labelAcc = nullptr;
     XULLabelIterator iter(aDocument, aElm);
     while ((labelAcc = iter.Next())) {
       nsCOMPtr<nsIDOMXULLabelElement> xulLabel =
-        do_QueryInterface(labelAcc->GetContent());
+          do_QueryInterface(labelAcc->GetContent());
       // Check if label's value attribute is used
-      if (xulLabel && NS_SUCCEEDED(xulLabel->GetValue(aName)) && aName.IsEmpty()) {
+      if (xulLabel && NS_SUCCEEDED(xulLabel->GetValue(aName)) &&
+          aName.IsEmpty()) {
         // If no value attribute, a non-empty label must contain
         // children that define its text -- possibly using HTML
-        nsTextEquivUtils::
-          AppendTextEquivFromContent(labelAcc, labelAcc->GetContent(), &aName);
+        nsTextEquivUtils::AppendTextEquivFromContent(
+            labelAcc, labelAcc->GetContent(), &aName);
       }
     }
   }
 
   aName.CompressWhitespace();
-  if (!aName.IsEmpty())
-    return;
+  if (!aName.IsEmpty()) return;
 
-  // Can get text from title of <toolbaritem> if we're a child of a <toolbaritem>
-  nsIContent *bindingParent = aElm->GetBindingParent();
+  // Can get text from title of <toolbaritem> if we're a child of a
+  // <toolbaritem>
+  nsIContent* bindingParent = aElm->GetBindingParent();
   nsIContent* parent =
-    bindingParent? bindingParent->GetParent() : aElm->GetParent();
+      bindingParent ? bindingParent->GetParent() : aElm->GetParent();
   nsAutoString ancestorTitle;
   while (parent) {
     if (parent->IsXULElement(nsGkAtoms::toolbaritem) &&
-        parent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title, ancestorTitle)) {
+        parent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::title,
+                                     ancestorTitle)) {
       // Before returning this, check if the element itself has a tooltip:
       if (aElm->IsElement() &&
-          aElm->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext, aName)) {
+          aElm->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext,
+                                     aName)) {
         aName.CompressWhitespace();
         return;
       }
@@ -839,9 +772,7 @@ Accessible::XULElmName(DocAccessible* aDocument,
   }
 }
 
-nsresult
-Accessible::HandleAccEvent(AccEvent* aEvent)
-{
+nsresult Accessible::HandleAccEvent(AccEvent* aEvent) {
   NS_ENSURE_ARG_POINTER(aEvent);
 
 #ifdef MOZ_GECKO_PROFILER
@@ -859,10 +790,11 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
     DocAccessibleChild* ipcDoc = mDoc->IPCDoc();
     MOZ_ASSERT(ipcDoc);
     if (ipcDoc) {
-      uint64_t id = aEvent->GetAccessible()->IsDoc() ? 0 :
-        reinterpret_cast<uintptr_t>(aEvent->GetAccessible());
+      uint64_t id = aEvent->GetAccessible()->IsDoc()
+                        ? 0
+                        : reinterpret_cast<uintptr_t>(aEvent->GetAccessible());
 
-      switch(aEvent->GetEventType()) {
+      switch (aEvent->GetEventType()) {
         case nsIAccessibleEvent::EVENT_SHOW:
           ipcDoc->ShowEvent(downcast_accEvent(aEvent));
           break;
@@ -872,8 +804,8 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
           break;
 
         case nsIAccessibleEvent::EVENT_REORDER:
-          // reorder events on the application acc aren't necessary to tell the parent
-          // about new top level documents.
+          // reorder events on the application acc aren't necessary to tell the
+          // parent about new top level documents.
           if (!aEvent->GetAccessible()->IsApplication())
             ipcDoc->SendEvent(id, aEvent->GetEventType());
           break;
@@ -891,19 +823,20 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
         case nsIAccessibleEvent::EVENT_TEXT_INSERTED:
         case nsIAccessibleEvent::EVENT_TEXT_REMOVED: {
           AccTextChangeEvent* event = downcast_accEvent(aEvent);
-          ipcDoc->SendTextChangeEvent(id, event->ModifiedText(),
-                                      event->GetStartOffset(),
-                                      event->GetLength(),
-                                      event->IsTextInserted(),
-                                      event->IsFromUserInput());
+          ipcDoc->SendTextChangeEvent(
+              id, event->ModifiedText(), event->GetStartOffset(),
+              event->GetLength(), event->IsTextInserted(),
+              event->IsFromUserInput());
           break;
         }
         case nsIAccessibleEvent::EVENT_SELECTION:
         case nsIAccessibleEvent::EVENT_SELECTION_ADD:
         case nsIAccessibleEvent::EVENT_SELECTION_REMOVE: {
           AccSelChangeEvent* selEvent = downcast_accEvent(aEvent);
-          uint64_t widgetID = selEvent->Widget()->IsDoc() ? 0 :
-            reinterpret_cast<uintptr_t>(selEvent->Widget());
+          uint64_t widgetID =
+              selEvent->Widget()->IsDoc()
+                  ? 0
+                  : reinterpret_cast<uintptr_t>(selEvent->Widget());
           ipcDoc->SendSelectionEvent(id, widgetID, aEvent->GetEventType());
           break;
         }
@@ -926,12 +859,9 @@ Accessible::HandleAccEvent(AccEvent* aEvent)
   return NS_OK;
 }
 
-already_AddRefed<nsIPersistentProperties>
-Accessible::Attributes()
-{
+already_AddRefed<nsIPersistentProperties> Accessible::Attributes() {
   nsCOMPtr<nsIPersistentProperties> attributes = NativeAttributes();
-  if (!HasOwnContent() || !mContent->IsElement())
-    return attributes.forget();
+  if (!HasOwnContent() || !mContent->IsElement()) return attributes.forget();
 
   // 'xml-roles' attribute for landmark.
   nsAtom* landmark = LandmarkRole();
@@ -941,7 +871,8 @@ Accessible::Attributes()
   } else {
     // 'xml-roles' attribute coming from ARIA.
     nsAutoString xmlRoles;
-    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::role, xmlRoles))
+    if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::role,
+                                       xmlRoles))
       nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles, xmlRoles);
   }
 
@@ -949,7 +880,7 @@ Accessible::Attributes()
   nsAutoString unused;
   aria::AttrIterator attribIter(mContent);
   nsAutoString name, value;
-  while(attribIter.Next(name, value))
+  while (attribIter.Next(name, value))
     attributes->SetStringProperty(NS_ConvertUTF16toUTF8(name), value, unused);
 
   if (IsARIAHidden()) {
@@ -977,11 +908,9 @@ Accessible::Attributes()
   return attributes.forget();
 }
 
-already_AddRefed<nsIPersistentProperties>
-Accessible::NativeAttributes()
-{
+already_AddRefed<nsIPersistentProperties> Accessible::NativeAttributes() {
   nsCOMPtr<nsIPersistentProperties> attributes =
-    do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
+      do_CreateInstance(NS_PERSISTENTPROPERTIES_CONTRACTID);
 
   nsAutoString unused;
 
@@ -1011,13 +940,12 @@ Accessible::NativeAttributes()
 
   // Group attributes (level/setsize/posinset)
   GroupPos groupPos = GroupPosition();
-  nsAccUtils::SetAccGroupAttrs(attributes, groupPos.level,
-                               groupPos.setSize, groupPos.posInSet);
+  nsAccUtils::SetAccGroupAttrs(attributes, groupPos.level, groupPos.setSize,
+                               groupPos.posInSet);
 
   // If the accessible doesn't have own content (such as list item bullet or
   // xul tree item) then don't calculate content based attributes.
-  if (!HasOwnContent())
-    return attributes.forget();
+  if (!HasOwnContent()) return attributes.forget();
 
   nsEventShell::GetEventAttributes(GetNode(), attributes);
 
@@ -1030,31 +958,26 @@ Accessible::NativeAttributes()
   nsIContent* startContent = mContent;
   while (startContent) {
     nsIDocument* doc = startContent->GetComposedDoc();
-    if (!doc)
-      break;
+    if (!doc) break;
 
     nsAccUtils::SetLiveContainerAttributes(attributes, startContent,
                                            doc->GetRootElement());
 
     // Allow ARIA live region markup from outer documents to override
     nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem = doc->GetDocShell();
-    if (!docShellTreeItem)
-      break;
+    if (!docShellTreeItem) break;
 
     nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
     docShellTreeItem->GetSameTypeParent(getter_AddRefs(sameTypeParent));
-    if (!sameTypeParent || sameTypeParent == docShellTreeItem)
-      break;
+    if (!sameTypeParent || sameTypeParent == docShellTreeItem) break;
 
     nsIDocument* parentDoc = doc->GetParentDocument();
-    if (!parentDoc)
-      break;
+    if (!parentDoc) break;
 
     startContent = parentDoc->FindContentForSubDocument(doc);
   }
 
-  if (!mContent->IsElement())
-    return attributes.forget();
+  if (!mContent->IsElement()) return attributes.forget();
 
   nsAutoString id;
   if (nsCoreUtils::GetID(mContent, id))
@@ -1062,7 +985,8 @@ Accessible::NativeAttributes()
 
   // Expose class because it may have useful microformat information.
   nsAutoString _class;
-  if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::_class, _class))
+  if (mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                     _class))
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::_class, _class);
 
   // Expose tag.
@@ -1080,8 +1004,7 @@ Accessible::NativeAttributes()
 
   // Don't calculate CSS-based object attributes when no frame (i.e.
   // the accessible is unattached from the tree).
-  if (!mContent->GetPrimaryFrame())
-    return attributes.forget();
+  if (!mContent->GetPrimaryFrame()) return attributes.forget();
 
   // CSS style based object attributes.
   nsAutoString value;
@@ -1118,28 +1041,25 @@ Accessible::NativeAttributes()
   return attributes.forget();
 }
 
-GroupPos
-Accessible::GroupPosition()
-{
+GroupPos Accessible::GroupPosition() {
   GroupPos groupPos;
-  if (!HasOwnContent())
-    return groupPos;
+  if (!HasOwnContent()) return groupPos;
 
   // Get group position from ARIA attributes.
   nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_level, &groupPos.level);
-  nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_setsize, &groupPos.setSize);
-  nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_posinset, &groupPos.posInSet);
+  nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_setsize,
+                           &groupPos.setSize);
+  nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_posinset,
+                           &groupPos.posInSet);
 
   // If ARIA is missed and the accessible is visible then calculate group
   // position from hierarchy.
-  if (State() & states::INVISIBLE)
-    return groupPos;
+  if (State() & states::INVISIBLE) return groupPos;
 
   // Calculate group level if ARIA is missed.
   if (groupPos.level == 0) {
     int32_t level = GetLevelInternal();
-    if (level != 0)
-      groupPos.level = level;
+    if (level != 0) groupPos.level = level;
   }
 
   // Calculate position in group and group size if ARIA is missed.
@@ -1147,22 +1067,17 @@ Accessible::GroupPosition()
     int32_t posInSet = 0, setSize = 0;
     GetPositionAndSizeInternal(&posInSet, &setSize);
     if (posInSet != 0 && setSize != 0) {
-      if (groupPos.posInSet == 0)
-        groupPos.posInSet = posInSet;
+      if (groupPos.posInSet == 0) groupPos.posInSet = posInSet;
 
-      if (groupPos.setSize == 0)
-        groupPos.setSize = setSize;
+      if (groupPos.setSize == 0) groupPos.setSize = setSize;
     }
   }
 
   return groupPos;
 }
 
-uint64_t
-Accessible::State()
-{
-  if (IsDefunct())
-    return states::DEFUNCT;
+uint64_t Accessible::State() {
+  if (IsDefunct()) return states::DEFUNCT;
 
   uint64_t state = NativeState();
   // Apply ARIA states to be sure accessible states will be overridden.
@@ -1220,8 +1135,7 @@ Accessible::State()
     // descendant is the current one that would get focus if the user navigates
     // to the container widget.
     Accessible* widget = ContainerWidget();
-    if (widget && widget->CurrentItem() == this)
-      state |= states::ACTIVE;
+    if (widget && widget->CurrentItem() == this) state |= states::ACTIVE;
   }
 
   if ((state & states::COLLAPSED) || (state & states::EXPANDED))
@@ -1229,23 +1143,18 @@ Accessible::State()
 
   // For some reasons DOM node may have not a frame. We tract such accessibles
   // as invisible.
-  nsIFrame *frame = GetFrame();
-  if (!frame)
-    return state;
+  nsIFrame* frame = GetFrame();
+  if (!frame) return state;
 
-  if (frame->StyleEffects()->mOpacity == 1.0f &&
-      !(state & states::INVISIBLE)) {
+  if (frame->StyleEffects()->mOpacity == 1.0f && !(state & states::INVISIBLE)) {
     state |= states::OPAQUE1;
   }
 
   return state;
 }
 
-void
-Accessible::ApplyARIAState(uint64_t* aState) const
-{
-  if (!mContent->IsElement())
-    return;
+void Accessible::ApplyARIAState(uint64_t* aState) const {
+  if (!mContent->IsElement()) return;
 
   dom::Element* element = mContent->AsElement();
 
@@ -1254,12 +1163,10 @@ Accessible::ApplyARIAState(uint64_t* aState) const
 
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
   if (roleMapEntry) {
-
     // We only force the readonly bit off if we have a real mapping for the aria
     // role. This preserves the ability for screen readers to use readonly
     // (primarily on the document) as the hint for creating a virtual buffer.
-    if (roleMapEntry->role != roles::NOTHING)
-      *aState &= ~states::READONLY;
+    if (roleMapEntry->role != roles::NOTHING) *aState &= ~states::READONLY;
 
     if (mContent->HasID()) {
       // If has a role & ID and aria-activedescendant on the container, assume
@@ -1289,13 +1196,13 @@ Accessible::ApplyARIAState(uint64_t* aState) const
     }
   }
 
-  // special case: A native button element whose role got transformed by ARIA to a toggle button
-  // Also applies to togglable button menus, like in the Dev Tools Web Console.
+  // special case: A native button element whose role got transformed by ARIA to
+  // a toggle button Also applies to togglable button menus, like in the Dev
+  // Tools Web Console.
   if (IsButton() || IsMenuButton())
     aria::MapToState(aria::eARIAPressed, element, aState);
 
-  if (!roleMapEntry)
-    return;
+  if (!roleMapEntry) return;
 
   *aState |= roleMapEntry->state;
 
@@ -1323,12 +1230,9 @@ Accessible::ApplyARIAState(uint64_t* aState) const
   }
 }
 
-void
-Accessible::Value(nsString& aValue)
-{
+void Accessible::Value(nsString& aValue) {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-  if (!roleMapEntry)
-    return;
+  if (!roleMapEntry) return;
 
   if (roleMapEntry->valueRule != eNoValue) {
     // aria-valuenow is a number, and aria-valuetext is the optional text
@@ -1340,8 +1244,8 @@ Accessible::Value(nsString& aValue)
 
     if (!mContent->AsElement()->GetAttr(kNameSpaceID_None,
                                         nsGkAtoms::aria_valuetext, aValue)) {
-      mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_valuenow,
-                                     aValue);
+      mContent->AsElement()->GetAttr(kNameSpaceID_None,
+                                     nsGkAtoms::aria_valuenow, aValue);
     }
     return;
   }
@@ -1366,68 +1270,49 @@ Accessible::Value(nsString& aValue)
       }
     }
 
-    if (option)
-      nsTextEquivUtils::GetTextEquivFromSubtree(option, aValue);
+    if (option) nsTextEquivUtils::GetTextEquivFromSubtree(option, aValue);
   }
 }
 
-double
-Accessible::MaxValue() const
-{
+double Accessible::MaxValue() const {
   return AttrNumericValue(nsGkAtoms::aria_valuemax);
 }
 
-double
-Accessible::MinValue() const
-{
+double Accessible::MinValue() const {
   return AttrNumericValue(nsGkAtoms::aria_valuemin);
 }
 
-double
-Accessible::Step() const
-{
-  return UnspecifiedNaN<double>(); // no mimimum increment (step) in ARIA.
+double Accessible::Step() const {
+  return UnspecifiedNaN<double>();  // no mimimum increment (step) in ARIA.
 }
 
-double
-Accessible::CurValue() const
-{
+double Accessible::CurValue() const {
   return AttrNumericValue(nsGkAtoms::aria_valuenow);
 }
 
-bool
-Accessible::SetCurValue(double aValue)
-{
+bool Accessible::SetCurValue(double aValue) {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-  if (!roleMapEntry || roleMapEntry->valueRule == eNoValue)
-    return false;
+  if (!roleMapEntry || roleMapEntry->valueRule == eNoValue) return false;
 
   const uint32_t kValueCannotChange = states::READONLY | states::UNAVAILABLE;
-  if (State() & kValueCannotChange)
-    return false;
+  if (State() & kValueCannotChange) return false;
 
   double checkValue = MinValue();
-  if (!IsNaN(checkValue) && aValue < checkValue)
-    return false;
+  if (!IsNaN(checkValue) && aValue < checkValue) return false;
 
   checkValue = MaxValue();
-  if (!IsNaN(checkValue) && aValue > checkValue)
-    return false;
+  if (!IsNaN(checkValue) && aValue > checkValue) return false;
 
   nsAutoString strValue;
   strValue.AppendFloat(aValue);
 
-  if (!mContent->IsElement())
-    return true;
+  if (!mContent->IsElement()) return true;
 
-  return NS_SUCCEEDED(
-    mContent->AsElement()->SetAttr(kNameSpaceID_None, nsGkAtoms::aria_valuenow,
-                                   strValue, true));
+  return NS_SUCCEEDED(mContent->AsElement()->SetAttr(
+      kNameSpaceID_None, nsGkAtoms::aria_valuenow, strValue, true));
 }
 
-role
-Accessible::ARIATransformRole(role aRole)
-{
+role Accessible::ARIATransformRole(role aRole) {
   // Beginning with ARIA 1.1, user agents are expected to use the native host
   // language role of the element when the region role is used without a name.
   // https://rawgit.com/w3c/aria/master/core-aam/core-aam.html#role-map-region
@@ -1456,8 +1341,7 @@ Accessible::ARIATransformRole(role aRole)
     if (mContent->IsElement() &&
         mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
                                            nsGkAtoms::aria_haspopup,
-                                           nsGkAtoms::_true,
-                                           eCaseMatters)) {
+                                           nsGkAtoms::_true, eCaseMatters)) {
       // For button with aria-haspopup="true".
       return roles::BUTTONMENU;
     }
@@ -1472,8 +1356,7 @@ Accessible::ARIATransformRole(role aRole)
       Relation rel = RelationByType(RelationType::NODE_CHILD_OF);
       Accessible* targetAcc = nullptr;
       while ((targetAcc = rel.Next()))
-        if (targetAcc->IsCombobox())
-          return roles::COMBOBOX_LIST;
+        if (targetAcc->IsCombobox()) return roles::COMBOBOX_LIST;
     }
 
   } else if (aRole == roles::OPTION) {
@@ -1483,7 +1366,8 @@ Accessible::ARIATransformRole(role aRole)
   } else if (aRole == roles::MENUITEM) {
     // Menuitem has a submenu.
     if (mContent->IsElement() &&
-        mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_haspopup,
+        mContent->AsElement()->AttrValueIs(kNameSpaceID_None,
+                                           nsGkAtoms::aria_haspopup,
                                            nsGkAtoms::_true, eCaseMatters)) {
       return roles::PARENT_MENUITEM;
     }
@@ -1492,98 +1376,84 @@ Accessible::ARIATransformRole(role aRole)
   return aRole;
 }
 
-nsAtom*
-Accessible::LandmarkRole() const
-{
+nsAtom* Accessible::LandmarkRole() const {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-  return roleMapEntry && roleMapEntry->IsOfType(eLandmark) ?
-    *(roleMapEntry->roleAtom) : nullptr;
+  return roleMapEntry && roleMapEntry->IsOfType(eLandmark)
+             ? *(roleMapEntry->roleAtom)
+             : nullptr;
 }
 
-role
-Accessible::NativeRole()
-{
-  return roles::NOTHING;
-}
+role Accessible::NativeRole() { return roles::NOTHING; }
 
-uint8_t
-Accessible::ActionCount()
-{
+uint8_t Accessible::ActionCount() {
   return GetActionRule() == eNoAction ? 0 : 1;
 }
 
-void
-Accessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
-{
+void Accessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
   aName.Truncate();
 
-  if (aIndex != 0)
-    return;
+  if (aIndex != 0) return;
 
   uint32_t actionRule = GetActionRule();
 
- switch (actionRule) {
-   case eActivateAction:
-     aName.AssignLiteral("activate");
-     return;
+  switch (actionRule) {
+    case eActivateAction:
+      aName.AssignLiteral("activate");
+      return;
 
-   case eClickAction:
-     aName.AssignLiteral("click");
-     return;
+    case eClickAction:
+      aName.AssignLiteral("click");
+      return;
 
-   case ePressAction:
-     aName.AssignLiteral("press");
-     return;
+    case ePressAction:
+      aName.AssignLiteral("press");
+      return;
 
-   case eCheckUncheckAction:
-   {
-     uint64_t state = State();
-     if (state & states::CHECKED)
-       aName.AssignLiteral("uncheck");
-     else if (state & states::MIXED)
-       aName.AssignLiteral("cycle");
-     else
-       aName.AssignLiteral("check");
-     return;
-   }
+    case eCheckUncheckAction: {
+      uint64_t state = State();
+      if (state & states::CHECKED)
+        aName.AssignLiteral("uncheck");
+      else if (state & states::MIXED)
+        aName.AssignLiteral("cycle");
+      else
+        aName.AssignLiteral("check");
+      return;
+    }
 
-   case eJumpAction:
-     aName.AssignLiteral("jump");
-     return;
+    case eJumpAction:
+      aName.AssignLiteral("jump");
+      return;
 
-   case eOpenCloseAction:
-     if (State() & states::COLLAPSED)
-       aName.AssignLiteral("open");
-     else
-       aName.AssignLiteral("close");
-     return;
+    case eOpenCloseAction:
+      if (State() & states::COLLAPSED)
+        aName.AssignLiteral("open");
+      else
+        aName.AssignLiteral("close");
+      return;
 
-   case eSelectAction:
-     aName.AssignLiteral("select");
-     return;
+    case eSelectAction:
+      aName.AssignLiteral("select");
+      return;
 
-   case eSwitchAction:
-     aName.AssignLiteral("switch");
-     return;
+    case eSwitchAction:
+      aName.AssignLiteral("switch");
+      return;
 
-   case eSortAction:
-     aName.AssignLiteral("sort");
-     return;
+    case eSortAction:
+      aName.AssignLiteral("sort");
+      return;
 
-   case eExpandAction:
-     if (State() & states::COLLAPSED)
-       aName.AssignLiteral("expand");
-     else
-       aName.AssignLiteral("collapse");
-     return;
+    case eExpandAction:
+      if (State() & states::COLLAPSED)
+        aName.AssignLiteral("expand");
+      else
+        aName.AssignLiteral("collapse");
+      return;
   }
 }
 
-bool
-Accessible::DoAction(uint8_t aIndex)
-{
-  if (aIndex != 0)
-    return false;
+bool Accessible::DoAction(uint8_t aIndex) {
+  if (aIndex != 0) return false;
 
   if (GetActionRule() != eNoAction) {
     DoCommand();
@@ -1593,10 +1463,8 @@ Accessible::DoAction(uint8_t aIndex)
   return false;
 }
 
-nsIContent*
-Accessible::GetAtomicRegion() const
-{
-  nsIContent *loopContent = mContent;
+nsIContent* Accessible::GetAtomicRegion() const {
+  nsIContent* loopContent = mContent;
   nsAutoString atomic;
   while (loopContent &&
          (!loopContent->IsElement() ||
@@ -1607,11 +1475,8 @@ Accessible::GetAtomicRegion() const
   return atomic.EqualsLiteral("true") ? loopContent : nullptr;
 }
 
-Relation
-Accessible::RelationByType(RelationType aType)
-{
-  if (!HasOwnContent())
-    return Relation();
+Relation Accessible::RelationByType(RelationType aType) {
+  if (!HasOwnContent()) return Relation();
 
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
 
@@ -1619,8 +1484,8 @@ Accessible::RelationByType(RelationType aType)
   // defined on.
   switch (aType) {
     case RelationType::LABELLED_BY: {
-      Relation rel(new IDRefsIterator(mDoc, mContent,
-                                      nsGkAtoms::aria_labelledby));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_labelledby));
       if (mContent->IsHTMLElement()) {
         rel.AppendIter(new HTMLLabelIterator(Document(), this));
       } else if (mContent->IsXULElement()) {
@@ -1640,8 +1505,8 @@ Accessible::RelationByType(RelationType aType)
     }
 
     case RelationType::DESCRIBED_BY: {
-      Relation rel(new IDRefsIterator(mDoc, mContent,
-                                      nsGkAtoms::aria_describedby));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_describedby));
       if (mContent->IsXULElement())
         rel.AppendIter(new XULDescriptionIterator(Document(), mContent));
 
@@ -1656,8 +1521,7 @@ Accessible::RelationByType(RelationType aType)
       // which only affects accessibility, by allowing the description to be
       // tied to a control.
       if (mContent->IsXULElement(nsGkAtoms::description))
-        rel.AppendIter(new IDRefsIterator(mDoc, mContent,
-                                          nsGkAtoms::control));
+        rel.AppendIter(new IDRefsIterator(mDoc, mContent, nsGkAtoms::control));
 
       return rel;
     }
@@ -1667,8 +1531,8 @@ Accessible::RelationByType(RelationType aType)
       // This is an ARIA tree or treegrid that doesn't use owns, so we need to
       // get the parent the hard way.
       if (roleMapEntry && (roleMapEntry->role == roles::OUTLINEITEM ||
-                            roleMapEntry->role == roles::LISTITEM ||
-                            roleMapEntry->role == roles::ROW)) {
+                           roleMapEntry->role == roles::LISTITEM ||
+                           roleMapEntry->role == roles::ROW)) {
         rel.AppendTarget(GetGroupInfo()->ConceptualParent());
       }
 
@@ -1678,11 +1542,11 @@ Accessible::RelationByType(RelationType aType)
       // ROLE_WINDOW accessible which will prevent us from going up further
       // (because it is system generated and has no idea about the hierarchy
       // above it).
-      nsIFrame *frame = GetFrame();
+      nsIFrame* frame = GetFrame();
       if (frame) {
-        nsView *view = frame->GetView();
+        nsView* view = frame->GetView();
         if (view) {
-          nsIScrollableFrame *scrollFrame = do_QueryFrame(frame);
+          nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
           if (scrollFrame || view->GetWidget() || !frame->GetParent())
             rel.AppendTarget(Parent());
         }
@@ -1694,13 +1558,12 @@ Accessible::RelationByType(RelationType aType)
     case RelationType::NODE_PARENT_OF: {
       // ARIA tree or treegrid can do the hierarchy by @aria-level, ARIA trees
       // also can be organized by groups.
-      if (roleMapEntry &&
-          (roleMapEntry->role == roles::OUTLINEITEM ||
-           roleMapEntry->role == roles::LISTITEM ||
-           roleMapEntry->role == roles::ROW ||
-           roleMapEntry->role == roles::OUTLINE ||
-           roleMapEntry->role == roles::LIST ||
-           roleMapEntry->role == roles::TREE_TABLE)) {
+      if (roleMapEntry && (roleMapEntry->role == roles::OUTLINEITEM ||
+                           roleMapEntry->role == roles::LISTITEM ||
+                           roleMapEntry->role == roles::ROW ||
+                           roleMapEntry->role == roles::OUTLINE ||
+                           roleMapEntry->role == roles::LIST ||
+                           roleMapEntry->role == roles::TREE_TABLE)) {
         return Relation(new ItemIterator(this));
       }
 
@@ -1712,22 +1575,22 @@ Accessible::RelationByType(RelationType aType)
                                              nsGkAtoms::aria_controls));
 
     case RelationType::CONTROLLER_FOR: {
-      Relation rel(new IDRefsIterator(mDoc, mContent,
-                                      nsGkAtoms::aria_controls));
+      Relation rel(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_controls));
       rel.AppendIter(new HTMLOutputIterator(Document(), mContent));
       return rel;
     }
 
     case RelationType::FLOWS_TO:
-      return Relation(new IDRefsIterator(mDoc, mContent,
-                                         nsGkAtoms::aria_flowto));
+      return Relation(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_flowto));
 
     case RelationType::FLOWS_FROM:
-      return Relation(new RelatedAccIterator(Document(), mContent,
-                                             nsGkAtoms::aria_flowto));
+      return Relation(
+          new RelatedAccIterator(Document(), mContent, nsGkAtoms::aria_flowto));
 
     case RelationType::MEMBER_OF:
-          return Relation(mDoc, GetAtomicRegion());
+      return Relation(mDoc, GetAtomicRegion());
 
     case RelationType::SUBWINDOW_OF:
     case RelationType::EMBEDS:
@@ -1744,7 +1607,7 @@ Accessible::RelationByType(RelationType aType)
           nsCOMPtr<nsIForm> form(do_QueryInterface(control->GetFormElement()));
           if (form) {
             nsCOMPtr<nsIContent> formContent =
-              do_QueryInterface(form->GetDefaultSubmitElement());
+                do_QueryInterface(form->GetDefaultSubmitElement());
             return Relation(mDoc, formContent);
           }
         }
@@ -1754,21 +1617,21 @@ Accessible::RelationByType(RelationType aType)
         nsCOMPtr<nsIDOMXULButtonElement> buttonEl;
         if (xulDoc) {
           nsCOMPtr<nsINodeList> possibleDefaultButtons =
-            xulDoc->GetElementsByAttribute(NS_LITERAL_STRING("default"),
-                                           NS_LITERAL_STRING("true"));
+              xulDoc->GetElementsByAttribute(NS_LITERAL_STRING("default"),
+                                             NS_LITERAL_STRING("true"));
           if (possibleDefaultButtons) {
             uint32_t length = possibleDefaultButtons->Length();
             // Check for button in list of default="true" elements
-            for (uint32_t count = 0; count < length && !buttonEl; count ++) {
+            for (uint32_t count = 0; count < length && !buttonEl; count++) {
               buttonEl = do_QueryInterface(possibleDefaultButtons->Item(count));
             }
           }
-          if (!buttonEl) { // Check for anonymous accept button in <dialog>
+          if (!buttonEl) {  // Check for anonymous accept button in <dialog>
             dom::Element* rootElm = mContent->OwnerDoc()->GetRootElement();
             if (rootElm) {
-              nsIContent* possibleButtonEl = rootElm->OwnerDoc()->
-                GetAnonymousElementByAttribute(rootElm, nsGkAtoms::_default,
-                                               NS_LITERAL_STRING("true"));
+              nsIContent* possibleButtonEl =
+                  rootElm->OwnerDoc()->GetAnonymousElementByAttribute(
+                      rootElm, nsGkAtoms::_default, NS_LITERAL_STRING("true"));
               buttonEl = do_QueryInterface(possibleButtonEl);
             }
           }
@@ -1783,8 +1646,7 @@ Accessible::RelationByType(RelationType aType)
       return Relation(mDoc);
 
     case RelationType::CONTAINING_TAB_PANE: {
-      nsCOMPtr<nsIDocShell> docShell =
-        nsCoreUtils::GetDocShellFor(GetNode());
+      nsCOMPtr<nsIDocShell> docShell = nsCoreUtils::GetDocShellFor(GetNode());
       if (docShell) {
         // Walk up the parent chain without crossing the boundary at which item
         // types change, preventing us from walking up out of tab content.
@@ -1806,56 +1668,49 @@ Accessible::RelationByType(RelationType aType)
       return Relation(ApplicationAcc());
 
     case RelationType::DETAILS:
-      return Relation(new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_details));
+      return Relation(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_details));
 
     case RelationType::DETAILS_FOR:
-      return Relation(new RelatedAccIterator(mDoc, mContent, nsGkAtoms::aria_details));
+      return Relation(
+          new RelatedAccIterator(mDoc, mContent, nsGkAtoms::aria_details));
 
     case RelationType::ERRORMSG:
-      return Relation(new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_errormessage));
+      return Relation(
+          new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_errormessage));
 
     case RelationType::ERRORMSG_FOR:
-      return Relation(new RelatedAccIterator(mDoc, mContent, nsGkAtoms::aria_errormessage));
+      return Relation(
+          new RelatedAccIterator(mDoc, mContent, nsGkAtoms::aria_errormessage));
 
     default:
       return Relation();
   }
 }
 
-void
-Accessible::GetNativeInterface(void** aNativeAccessible)
-{
-}
+void Accessible::GetNativeInterface(void** aNativeAccessible) {}
 
-void
-Accessible::DoCommand(nsIContent *aContent, uint32_t aActionIndex)
-{
-  class Runnable final : public mozilla::Runnable
-  {
-  public:
+void Accessible::DoCommand(nsIContent* aContent, uint32_t aActionIndex) {
+  class Runnable final : public mozilla::Runnable {
+   public:
     Runnable(Accessible* aAcc, nsIContent* aContent, uint32_t aIdx)
-      : mozilla::Runnable("Runnable")
-      , mAcc(aAcc)
-      , mContent(aContent)
-      , mIdx(aIdx)
-    {
-    }
+        : mozilla::Runnable("Runnable"),
+          mAcc(aAcc),
+          mContent(aContent),
+          mIdx(aIdx) {}
 
-    NS_IMETHOD Run() override
-    {
-      if (mAcc)
-        mAcc->DispatchClickEvent(mContent, mIdx);
+    NS_IMETHOD Run() override {
+      if (mAcc) mAcc->DispatchClickEvent(mContent, mIdx);
 
       return NS_OK;
     }
 
-    void Revoke()
-    {
+    void Revoke() {
       mAcc = nullptr;
       mContent = nullptr;
     }
 
-  private:
+   private:
     RefPtr<Accessible> mAcc;
     nsCOMPtr<nsIContent> mContent;
     uint32_t mIdx;
@@ -1866,29 +1721,24 @@ Accessible::DoCommand(nsIContent *aContent, uint32_t aActionIndex)
   NS_DispatchToMainThread(runnable);
 }
 
-void
-Accessible::DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex)
-{
-  if (IsDefunct())
-    return;
+void Accessible::DispatchClickEvent(nsIContent* aContent,
+                                    uint32_t aActionIndex) {
+  if (IsDefunct()) return;
 
   nsCOMPtr<nsIPresShell> presShell = mDoc->PresShell();
 
   // Scroll into view.
-  presShell->ScrollContentIntoView(aContent,
-                                   nsIPresShell::ScrollAxis(),
+  presShell->ScrollContentIntoView(aContent, nsIPresShell::ScrollAxis(),
                                    nsIPresShell::ScrollAxis(),
                                    nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
 
   AutoWeakFrame frame = aContent->GetPrimaryFrame();
-  if (!frame)
-    return;
+  if (!frame) return;
 
   // Compute x and y coordinates.
   nsPoint point;
   nsCOMPtr<nsIWidget> widget = frame->GetNearestWidget(point);
-  if (!widget)
-    return;
+  if (!widget) return;
 
   nsSize size = frame->GetSize();
 
@@ -1897,43 +1747,37 @@ Accessible::DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex)
   int32_t y = presContext->AppUnitsToDevPixels(point.y + size.height / 2);
 
   // Simulate a touch interaction by dispatching touch events with mouse events.
-  nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, aContent, frame,
-                                  presShell, widget);
-  nsCoreUtils::DispatchMouseEvent(eMouseDown, x, y, aContent, frame,
-                                  presShell, widget);
-  nsCoreUtils::DispatchTouchEvent(eTouchEnd, x, y, aContent, frame,
-                                  presShell, widget);
-  nsCoreUtils::DispatchMouseEvent(eMouseUp, x, y, aContent, frame,
-                                  presShell, widget);
+  nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, aContent, frame, presShell,
+                                  widget);
+  nsCoreUtils::DispatchMouseEvent(eMouseDown, x, y, aContent, frame, presShell,
+                                  widget);
+  nsCoreUtils::DispatchTouchEvent(eTouchEnd, x, y, aContent, frame, presShell,
+                                  widget);
+  nsCoreUtils::DispatchMouseEvent(eMouseUp, x, y, aContent, frame, presShell,
+                                  widget);
 }
 
-void
-Accessible::ScrollToPoint(uint32_t aCoordinateType, int32_t aX, int32_t aY)
-{
+void Accessible::ScrollToPoint(uint32_t aCoordinateType, int32_t aX,
+                               int32_t aY) {
   nsIFrame* frame = GetFrame();
-  if (!frame)
-    return;
+  if (!frame) return;
 
   nsIntPoint coords =
-    nsAccUtils::ConvertToScreenCoords(aX, aY, aCoordinateType, this);
+      nsAccUtils::ConvertToScreenCoords(aX, aY, aCoordinateType, this);
 
   nsIFrame* parentFrame = frame;
   while ((parentFrame = parentFrame->GetParent()))
     nsCoreUtils::ScrollFrameToPoint(parentFrame, frame, coords);
 }
 
-void
-Accessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
-                         uint32_t aLength)
-{
+void Accessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
+                              uint32_t aLength) {
   // Return text representation of non-text accessible within hypertext
   // accessible. Text accessible overrides this method to return enclosed text.
-  if (aStartOffset != 0 || aLength == 0)
-    return;
+  if (aStartOffset != 0 || aLength == 0) return;
 
-  nsIFrame *frame = GetFrame();
-  if (!frame)
-    return;
+  nsIFrame* frame = GetFrame();
+  if (!frame) return;
 
   NS_ASSERTION(mParent,
                "Called on accessible unbound from tree. Result can be wrong.");
@@ -1950,9 +1794,7 @@ Accessible::AppendTextTo(nsAString& aText, uint32_t aStartOffset,
   }
 }
 
-void
-Accessible::Shutdown()
-{
+void Accessible::Shutdown() {
   // Mark the accessible as defunct, invalidate the child count and pointers to
   // other accessibles, also make sure none of its children point to this parent
   mStateFlags |= eIsDefunct;
@@ -1965,8 +1807,7 @@ Accessible::Shutdown()
 
   mEmbeddedObjCollector = nullptr;
 
-  if (mParent)
-    mParent->RemoveChild(this);
+  if (mParent) mParent->RemoveChild(this);
 
   mContent = nullptr;
   mDoc = nullptr;
@@ -1975,18 +1816,15 @@ Accessible::Shutdown()
 }
 
 // Accessible protected
-void
-Accessible::ARIAName(nsString& aName)
-{
+void Accessible::ARIAName(nsString& aName) {
   // aria-labelledby now takes precedence over aria-label
-  nsresult rv = nsTextEquivUtils::
-    GetTextEquivFromIDRefs(this, nsGkAtoms::aria_labelledby, aName);
+  nsresult rv = nsTextEquivUtils::GetTextEquivFromIDRefs(
+      this, nsGkAtoms::aria_labelledby, aName);
   if (NS_SUCCEEDED(rv)) {
     aName.CompressWhitespace();
   }
 
-  if (aName.IsEmpty() &&
-      mContent->IsElement() &&
+  if (aName.IsEmpty() && mContent->IsElement() &&
       mContent->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_label,
                                      aName)) {
     aName.CompressWhitespace();
@@ -1994,9 +1832,7 @@ Accessible::ARIAName(nsString& aName)
 }
 
 // Accessible protected
-ENameValueFlag
-Accessible::NativeName(nsString& aName)
-{
+ENameValueFlag Accessible::NativeName(nsString& aName) {
   if (mContent->IsHTMLElement()) {
     Accessible* label = nullptr;
     HTMLLabelIterator iter(Document(), this);
@@ -2006,8 +1842,7 @@ Accessible::NativeName(nsString& aName)
       aName.CompressWhitespace();
     }
 
-    if (!aName.IsEmpty())
-      return eNameOK;
+    if (!aName.IsEmpty()) return eNameOK;
 
     nsTextEquivUtils::GetNameFromSubtree(this, aName);
     return aName.IsEmpty() ? eNameOK : eNameFromSubtree;
@@ -2015,8 +1850,7 @@ Accessible::NativeName(nsString& aName)
 
   if (mContent->IsXULElement()) {
     XULElmName(mDoc, mContent, aName);
-    if (!aName.IsEmpty())
-      return eNameOK;
+    if (!aName.IsEmpty()) return eNameOK;
 
     nsTextEquivUtils::GetNameFromSubtree(this, aName);
     return aName.IsEmpty() ? eNameOK : eNameFromSubtree;
@@ -2038,9 +1872,7 @@ Accessible::NativeName(nsString& aName)
 }
 
 // Accessible protected
-void
-Accessible::NativeDescription(nsString& aDescription)
-{
+void Accessible::NativeDescription(nsString& aDescription) {
   bool isXUL = mContent->IsXULElement();
   if (isXUL) {
     // Try XUL <description control="[id]">description text</description>
@@ -2054,18 +1886,14 @@ Accessible::NativeDescription(nsString& aDescription)
 }
 
 // Accessible protected
-void
-Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent)
-{
+void Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent) {
   MOZ_ASSERT(aParent, "This method isn't used to set null parent");
   MOZ_ASSERT(!mParent, "The child was expected to be moved");
 
 #ifdef A11Y_LOG
   if (mParent) {
-    logging::TreeInfo("BindToParent: stealing accessible", 0,
-                      "old parent", mParent,
-                      "new parent", aParent,
-                      "child", this, nullptr);
+    logging::TreeInfo("BindToParent: stealing accessible", 0, "old parent",
+                      mParent, "new parent", aParent, "child", this, nullptr);
   }
 #endif
 
@@ -2082,19 +1910,16 @@ Accessible::BindToParent(Accessible* aParent, uint32_t aIndexInParent)
     SetARIAHidden(true);
 
   mContextFlags |=
-    static_cast<uint32_t>((mParent->IsAlert() ||
-                           mParent->IsInsideAlert())) & eInsideAlert;
+      static_cast<uint32_t>((mParent->IsAlert() || mParent->IsInsideAlert())) &
+      eInsideAlert;
 }
 
 // Accessible protected
-void
-Accessible::UnbindFromParent()
-{
+void Accessible::UnbindFromParent() {
   mParent = nullptr;
   mIndexInParent = -1;
   mInt.mIndexOfEmbeddedChild = -1;
-  if (IsProxy())
-    MOZ_CRASH("this should never be called on proxy wrappers");
+  if (IsProxy()) MOZ_CRASH("this should never be called on proxy wrappers");
 
   delete mBits.groupInfo;
   mBits.groupInfo = nullptr;
@@ -2104,9 +1929,7 @@ Accessible::UnbindFromParent()
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible public methods
 
-RootAccessible*
-Accessible::RootAccessible() const
-{
+RootAccessible* Accessible::RootAccessible() const {
   nsCOMPtr<nsIDocShell> docShell = nsCoreUtils::GetDocShellFor(GetNode());
   NS_ASSERTION(docShell, "No docshell for mContent");
   if (!docShell) {
@@ -2124,46 +1947,32 @@ Accessible::RootAccessible() const
   return docAcc ? docAcc->AsRoot() : nullptr;
 }
 
-nsIFrame*
-Accessible::GetFrame() const
-{
+nsIFrame* Accessible::GetFrame() const {
   return mContent ? mContent->GetPrimaryFrame() : nullptr;
 }
 
-nsINode*
-Accessible::GetNode() const
-{
-  return mContent;
-}
+nsINode* Accessible::GetNode() const { return mContent; }
 
-void
-Accessible::Language(nsAString& aLanguage)
-{
+void Accessible::Language(nsAString& aLanguage) {
   aLanguage.Truncate();
 
-  if (!mDoc)
-    return;
+  if (!mDoc) return;
 
   nsCoreUtils::GetLanguageFor(mContent, nullptr, aLanguage);
-  if (aLanguage.IsEmpty()) { // Nothing found, so use document's language
+  if (aLanguage.IsEmpty()) {  // Nothing found, so use document's language
     mDoc->DocumentNode()->GetHeaderData(nsGkAtoms::headerContentLanguage,
                                         aLanguage);
   }
 }
 
-bool
-Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
-{
-  if (!aChild)
-    return false;
+bool Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild) {
+  if (!aChild) return false;
 
   if (aIndex == mChildren.Length()) {
-    if (!mChildren.AppendElement(aChild))
-      return false;
+    if (!mChildren.AppendElement(aChild)) return false;
 
   } else {
-    if (!mChildren.InsertElementAt(aIndex, aChild))
-      return false;
+    if (!mChildren.InsertElementAt(aIndex, aChild)) return false;
 
     MOZ_ASSERT(mStateFlags & eKidsMutating, "Illicit children change");
 
@@ -2180,15 +1989,14 @@ Accessible::InsertChildAt(uint32_t aIndex, Accessible* aChild)
   return true;
 }
 
-bool
-Accessible::RemoveChild(Accessible* aChild)
-{
+bool Accessible::RemoveChild(Accessible* aChild) {
   MOZ_DIAGNOSTIC_ASSERT(aChild, "No child was given");
   MOZ_DIAGNOSTIC_ASSERT(aChild->mParent, "No parent");
   MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this, "Wrong parent");
-  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1,
+                        "Unbound child was given");
   MOZ_DIAGNOSTIC_ASSERT((mStateFlags & eKidsMutating) || aChild->IsDefunct() ||
-                        aChild->IsDoc() || IsApplication(),
+                            aChild->IsDoc() || IsApplication(),
                         "Illicit children change");
 
   int32_t index = static_cast<uint32_t>(aChild->mIndexInParent);
@@ -2211,16 +2019,20 @@ Accessible::RemoveChild(Accessible* aChild)
   return true;
 }
 
-void
-Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild)
-{
+void Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild) {
   MOZ_DIAGNOSTIC_ASSERT(aChild, "No child was given");
-  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this, "A child from different subtree was given");
-  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1, "Unbound child was given");
-  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent->GetChildAt(aChild->mIndexInParent) == aChild, "Wrong index in parent");
-  MOZ_DIAGNOSTIC_ASSERT(static_cast<uint32_t>(aChild->mIndexInParent) != aNewIndex,
-             "No move, same index");
-  MOZ_DIAGNOSTIC_ASSERT(aNewIndex <= mChildren.Length(), "Wrong new index was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mParent == this,
+                        "A child from different subtree was given");
+  MOZ_DIAGNOSTIC_ASSERT(aChild->mIndexInParent != -1,
+                        "Unbound child was given");
+  MOZ_DIAGNOSTIC_ASSERT(
+      aChild->mParent->GetChildAt(aChild->mIndexInParent) == aChild,
+      "Wrong index in parent");
+  MOZ_DIAGNOSTIC_ASSERT(
+      static_cast<uint32_t>(aChild->mIndexInParent) != aNewIndex,
+      "No move, same index");
+  MOZ_DIAGNOSTIC_ASSERT(aNewIndex <= mChildren.Length(),
+                        "Wrong new index was given");
 
   RefPtr<AccHideEvent> hideEvent = new AccHideEvent(aChild, false);
   if (mDoc->Controller()->QueueMutationEvent(hideEvent)) {
@@ -2239,13 +2051,11 @@ Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild)
       // The child is moved to the end.
       mChildren.AppendElement(aChild);
       endIdx = mChildren.Length() - 1;
-    }
-    else {
+    } else {
       mChildren.InsertElementAt(aNewIndex - 1, aChild);
       endIdx = aNewIndex;
     }
-  }
-  else {
+  } else {
     // The child is moved prior its current position.
     mChildren.InsertElementAt(aNewIndex, aChild);
   }
@@ -2262,12 +2072,9 @@ Accessible::MoveChild(uint32_t aNewIndex, Accessible* aChild)
   aChild->SetShowEventTarget(true);
 }
 
-Accessible*
-Accessible::GetChildAt(uint32_t aIndex) const
-{
+Accessible* Accessible::GetChildAt(uint32_t aIndex) const {
   Accessible* child = mChildren.SafeElementAt(aIndex, nullptr);
-  if (!child)
-    return nullptr;
+  if (!child) return nullptr;
 
 #ifdef DEBUG
   Accessible* realParent = child->mParent;
@@ -2278,21 +2085,11 @@ Accessible::GetChildAt(uint32_t aIndex) const
   return child;
 }
 
-uint32_t
-Accessible::ChildCount() const
-{
-  return mChildren.Length();
-}
+uint32_t Accessible::ChildCount() const { return mChildren.Length(); }
 
-int32_t
-Accessible::IndexInParent() const
-{
-  return mIndexInParent;
-}
+int32_t Accessible::IndexInParent() const { return mIndexInParent; }
 
-uint32_t
-Accessible::EmbeddedChildCount()
-{
+uint32_t Accessible::EmbeddedChildCount() {
   if (mStateFlags & eHasTextKids) {
     if (!mEmbeddedObjCollector)
       mEmbeddedObjCollector.reset(new EmbeddedObjCollector(this));
@@ -2302,27 +2099,25 @@ Accessible::EmbeddedChildCount()
   return ChildCount();
 }
 
-Accessible*
-Accessible::GetEmbeddedChildAt(uint32_t aIndex)
-{
+Accessible* Accessible::GetEmbeddedChildAt(uint32_t aIndex) {
   if (mStateFlags & eHasTextKids) {
     if (!mEmbeddedObjCollector)
       mEmbeddedObjCollector.reset(new EmbeddedObjCollector(this));
-    return mEmbeddedObjCollector.get() ?
-      mEmbeddedObjCollector->GetAccessibleAt(aIndex) : nullptr;
+    return mEmbeddedObjCollector.get()
+               ? mEmbeddedObjCollector->GetAccessibleAt(aIndex)
+               : nullptr;
   }
 
   return GetChildAt(aIndex);
 }
 
-int32_t
-Accessible::GetIndexOfEmbeddedChild(Accessible* aChild)
-{
+int32_t Accessible::GetIndexOfEmbeddedChild(Accessible* aChild) {
   if (mStateFlags & eHasTextKids) {
     if (!mEmbeddedObjCollector)
       mEmbeddedObjCollector.reset(new EmbeddedObjCollector(this));
-    return mEmbeddedObjCollector.get() ?
-      mEmbeddedObjCollector->GetIndexAt(aChild) : -1;
+    return mEmbeddedObjCollector.get()
+               ? mEmbeddedObjCollector->GetIndexAt(aChild)
+               : -1;
   }
 
   return GetIndexOf(aChild);
@@ -2331,57 +2126,43 @@ Accessible::GetIndexOfEmbeddedChild(Accessible* aChild)
 ////////////////////////////////////////////////////////////////////////////////
 // HyperLinkAccessible methods
 
-bool
-Accessible::IsLink()
-{
+bool Accessible::IsLink() {
   // Every embedded accessible within hypertext accessible implements
   // hyperlink interface.
   return mParent && mParent->IsHyperText() && !IsText();
 }
 
-uint32_t
-Accessible::StartOffset()
-{
+uint32_t Accessible::StartOffset() {
   NS_PRECONDITION(IsLink(), "StartOffset is called not on hyper link!");
 
   HyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nullptr;
   return hyperText ? hyperText->GetChildOffset(this) : 0;
 }
 
-uint32_t
-Accessible::EndOffset()
-{
+uint32_t Accessible::EndOffset() {
   NS_PRECONDITION(IsLink(), "EndOffset is called on not hyper link!");
 
   HyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nullptr;
   return hyperText ? (hyperText->GetChildOffset(this) + 1) : 0;
 }
 
-uint32_t
-Accessible::AnchorCount()
-{
+uint32_t Accessible::AnchorCount() {
   NS_PRECONDITION(IsLink(), "AnchorCount is called on not hyper link!");
   return 1;
 }
 
-Accessible*
-Accessible::AnchorAt(uint32_t aAnchorIndex)
-{
+Accessible* Accessible::AnchorAt(uint32_t aAnchorIndex) {
   NS_PRECONDITION(IsLink(), "GetAnchor is called on not hyper link!");
   return aAnchorIndex == 0 ? this : nullptr;
 }
 
-already_AddRefed<nsIURI>
-Accessible::AnchorURIAt(uint32_t aAnchorIndex)
-{
+already_AddRefed<nsIURI> Accessible::AnchorURIAt(uint32_t aAnchorIndex) {
   NS_PRECONDITION(IsLink(), "AnchorURIAt is called on not hyper link!");
   return nullptr;
 }
 
-void
-Accessible::ToTextPoint(HyperTextAccessible** aContainer, int32_t* aOffset,
-                        bool aIsBefore) const
-{
+void Accessible::ToTextPoint(HyperTextAccessible** aContainer, int32_t* aOffset,
+                             bool aIsBefore) const {
   if (IsHyperText()) {
     *aContainer = const_cast<Accessible*>(this)->AsHyperText();
     *aOffset = aIsBefore ? 0 : (*aContainer)->CharacterCount();
@@ -2397,109 +2178,84 @@ Accessible::ToTextPoint(HyperTextAccessible** aContainer, int32_t* aOffset,
 
   if (parent) {
     *aContainer = const_cast<Accessible*>(parent)->AsHyperText();
-    *aOffset = (*aContainer)->GetChildOffset(
-      child->IndexInParent() + static_cast<int32_t>(!aIsBefore));
+    *aOffset = (*aContainer)
+                   ->GetChildOffset(child->IndexInParent() +
+                                    static_cast<int32_t>(!aIsBefore));
   }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // SelectAccessible
 
-void
-Accessible::SelectedItems(nsTArray<Accessible*>* aItems)
-{
+void Accessible::SelectedItems(nsTArray<Accessible*>* aItems) {
   AccIterator iter(this, filters::GetSelected);
   Accessible* selected = nullptr;
-  while ((selected = iter.Next()))
-    aItems->AppendElement(selected);
+  while ((selected = iter.Next())) aItems->AppendElement(selected);
 }
 
-uint32_t
-Accessible::SelectedItemCount()
-{
+uint32_t Accessible::SelectedItemCount() {
   uint32_t count = 0;
   AccIterator iter(this, filters::GetSelected);
   Accessible* selected = nullptr;
-  while ((selected = iter.Next()))
-    ++count;
+  while ((selected = iter.Next())) ++count;
 
   return count;
 }
 
-Accessible*
-Accessible::GetSelectedItem(uint32_t aIndex)
-{
+Accessible* Accessible::GetSelectedItem(uint32_t aIndex) {
   AccIterator iter(this, filters::GetSelected);
   Accessible* selected = nullptr;
 
   uint32_t index = 0;
-  while ((selected = iter.Next()) && index < aIndex)
-    index++;
+  while ((selected = iter.Next()) && index < aIndex) index++;
 
   return selected;
 }
 
-bool
-Accessible::IsItemSelected(uint32_t aIndex)
-{
+bool Accessible::IsItemSelected(uint32_t aIndex) {
   uint32_t index = 0;
   AccIterator iter(this, filters::GetSelectable);
   Accessible* selected = nullptr;
-  while ((selected = iter.Next()) && index < aIndex)
-    index++;
+  while ((selected = iter.Next()) && index < aIndex) index++;
 
-  return selected &&
-    selected->State() & states::SELECTED;
+  return selected && selected->State() & states::SELECTED;
 }
 
-bool
-Accessible::AddItemToSelection(uint32_t aIndex)
-{
+bool Accessible::AddItemToSelection(uint32_t aIndex) {
   uint32_t index = 0;
   AccIterator iter(this, filters::GetSelectable);
   Accessible* selected = nullptr;
-  while ((selected = iter.Next()) && index < aIndex)
-    index++;
+  while ((selected = iter.Next()) && index < aIndex) index++;
 
-  if (selected)
-    selected->SetSelected(true);
+  if (selected) selected->SetSelected(true);
 
   return static_cast<bool>(selected);
 }
 
-bool
-Accessible::RemoveItemFromSelection(uint32_t aIndex)
-{
+bool Accessible::RemoveItemFromSelection(uint32_t aIndex) {
   uint32_t index = 0;
   AccIterator iter(this, filters::GetSelectable);
   Accessible* selected = nullptr;
-  while ((selected = iter.Next()) && index < aIndex)
-    index++;
+  while ((selected = iter.Next()) && index < aIndex) index++;
 
-  if (selected)
-    selected->SetSelected(false);
+  if (selected) selected->SetSelected(false);
 
   return static_cast<bool>(selected);
 }
 
-bool
-Accessible::SelectAll()
-{
+bool Accessible::SelectAll() {
   bool success = false;
   Accessible* selectable = nullptr;
 
   AccIterator iter(this, filters::GetSelectable);
-  while((selectable = iter.Next())) {
+  while ((selectable = iter.Next())) {
     success = true;
     selectable->SetSelected(true);
   }
   return success;
 }
 
-bool
-Accessible::UnselectAll()
-{
+bool Accessible::UnselectAll() {
   bool success = false;
   Accessible* selected = nullptr;
 
@@ -2514,17 +2270,10 @@ Accessible::UnselectAll()
 ////////////////////////////////////////////////////////////////////////////////
 // Widgets
 
-bool
-Accessible::IsWidget() const
-{
-  return false;
-}
+bool Accessible::IsWidget() const { return false; }
 
-bool
-Accessible::IsActiveWidget() const
-{
-  if (FocusMgr()->HasDOMFocus(mContent))
-    return true;
+bool Accessible::IsActiveWidget() const {
+  if (FocusMgr()->HasDOMFocus(mContent)) return true;
 
   // If text entry of combobox widget has a focus then the combobox widget is
   // active.
@@ -2541,75 +2290,59 @@ Accessible::IsActiveWidget() const
   return false;
 }
 
-bool
-Accessible::AreItemsOperable() const
-{
-  return HasOwnContent() &&
-    mContent->IsElement() &&
-    mContent->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant);
+bool Accessible::AreItemsOperable() const {
+  return HasOwnContent() && mContent->IsElement() &&
+         mContent->AsElement()->HasAttr(kNameSpaceID_None,
+                                        nsGkAtoms::aria_activedescendant);
 }
 
-Accessible*
-Accessible::CurrentItem()
-{
+Accessible* Accessible::CurrentItem() {
   // Check for aria-activedescendant, which changes which element has focus.
   // For activedescendant, the ARIA spec does not require that the user agent
   // checks whether pointed node is actually a DOM descendant of the element
   // with the aria-activedescendant attribute.
   nsAutoString id;
-  if (HasOwnContent() &&
-      mContent->IsElement() &&
+  if (HasOwnContent() && mContent->IsElement() &&
       mContent->AsElement()->GetAttr(kNameSpaceID_None,
                                      nsGkAtoms::aria_activedescendant, id)) {
     nsIDocument* DOMDoc = mContent->OwnerDoc();
     dom::Element* activeDescendantElm = DOMDoc->GetElementById(id);
     if (activeDescendantElm) {
       DocAccessible* document = Document();
-      if (document)
-        return document->GetAccessible(activeDescendantElm);
+      if (document) return document->GetAccessible(activeDescendantElm);
     }
   }
   return nullptr;
 }
 
-void
-Accessible::SetCurrentItem(Accessible* aItem)
-{
+void Accessible::SetCurrentItem(Accessible* aItem) {
   nsAtom* id = aItem->GetContent()->GetID();
   if (id) {
     nsAutoString idStr;
     id->ToString(idStr);
-    mContent->AsElement()->SetAttr(kNameSpaceID_None,
-                                   nsGkAtoms::aria_activedescendant,
-                                   idStr,
-                                   true);
+    mContent->AsElement()->SetAttr(
+        kNameSpaceID_None, nsGkAtoms::aria_activedescendant, idStr, true);
   }
 }
 
-Accessible*
-Accessible::ContainerWidget() const
-{
+Accessible* Accessible::ContainerWidget() const {
   if (HasARIARole() && mContent->HasID()) {
     for (Accessible* parent = Parent(); parent; parent = parent->Parent()) {
       nsIContent* parentContent = parent->GetContent();
-      if (parentContent &&
-          parentContent->IsElement() &&
-          parentContent->AsElement()->HasAttr(kNameSpaceID_None,
-                                              nsGkAtoms::aria_activedescendant)) {
+      if (parentContent && parentContent->IsElement() &&
+          parentContent->AsElement()->HasAttr(
+              kNameSpaceID_None, nsGkAtoms::aria_activedescendant)) {
         return parent;
       }
 
       // Don't cross DOM document boundaries.
-      if (parent->IsDoc())
-        break;
+      if (parent->IsDoc()) break;
     }
   }
   return nullptr;
 }
 
-void
-Accessible::SetARIAHidden(bool aIsDefined)
-{
+void Accessible::SetARIAHidden(bool aIsDefined) {
   if (aIsDefined)
     mContextFlags |= eARIAHidden;
   else
@@ -2624,9 +2357,7 @@ Accessible::SetARIAHidden(bool aIsDefined)
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible protected methods
 
-void
-Accessible::LastRelease()
-{
+void Accessible::LastRelease() {
   // First cleanup if needed...
   if (mDoc) {
     Shutdown();
@@ -2637,32 +2368,27 @@ Accessible::LastRelease()
   delete this;
 }
 
-Accessible*
-Accessible::GetSiblingAtOffset(int32_t aOffset, nsresult* aError) const
-{
+Accessible* Accessible::GetSiblingAtOffset(int32_t aOffset,
+                                           nsresult* aError) const {
   if (!mParent || mIndexInParent == -1) {
-    if (aError)
-      *aError = NS_ERROR_UNEXPECTED;
+    if (aError) *aError = NS_ERROR_UNEXPECTED;
 
     return nullptr;
   }
 
   if (aError &&
       mIndexInParent + aOffset >= static_cast<int32_t>(mParent->ChildCount())) {
-    *aError = NS_OK; // fail peacefully
+    *aError = NS_OK;  // fail peacefully
     return nullptr;
   }
 
   Accessible* child = mParent->GetChildAt(mIndexInParent + aOffset);
-  if (aError && !child)
-    *aError = NS_ERROR_UNEXPECTED;
+  if (aError && !child) *aError = NS_ERROR_UNEXPECTED;
 
   return child;
 }
 
-double
-Accessible::AttrNumericValue(nsAtom* aAttr) const
-{
+double Accessible::AttrNumericValue(nsAtom* aAttr) const {
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
   if (!roleMapEntry || roleMapEntry->valueRule == eNoValue)
     return UnspecifiedNaN<double>();
@@ -2677,9 +2403,7 @@ Accessible::AttrNumericValue(nsAtom* aAttr) const
   return NS_FAILED(error) ? UnspecifiedNaN<double>() : value;
 }
 
-uint32_t
-Accessible::GetActionRule() const
-{
+uint32_t Accessible::GetActionRule() const {
   if (!HasOwnContent() || (InteractiveState() & states::UNAVAILABLE))
     return eNoAction;
 
@@ -2691,30 +2415,24 @@ Accessible::GetActionRule() const
   // Has registered 'click' event handler.
   bool isOnclick = nsCoreUtils::HasClickListener(mContent);
 
-  if (isOnclick)
-    return eClickAction;
+  if (isOnclick) return eClickAction;
 
   // Get an action based on ARIA role.
   const nsRoleMapEntry* roleMapEntry = ARIARoleMap();
-  if (roleMapEntry &&
-      roleMapEntry->actionRule != eNoAction)
+  if (roleMapEntry && roleMapEntry->actionRule != eNoAction)
     return roleMapEntry->actionRule;
 
   // Get an action based on ARIA attribute.
-  if (nsAccUtils::HasDefinedARIAToken(mContent,
-                                      nsGkAtoms::aria_expanded))
+  if (nsAccUtils::HasDefinedARIAToken(mContent, nsGkAtoms::aria_expanded))
     return eExpandAction;
 
   return eNoAction;
 }
 
-AccGroupInfo*
-Accessible::GetGroupInfo()
-{
-  if (IsProxy())
-    MOZ_CRASH("This should never be called on proxy wrappers");
+AccGroupInfo* Accessible::GetGroupInfo() {
+  if (IsProxy()) MOZ_CRASH("This should never be called on proxy wrappers");
 
-  if (mBits.groupInfo){
+  if (mBits.groupInfo) {
     if (HasDirtyGroupInfo()) {
       mBits.groupInfo->Update();
       mStateFlags &= ~eGroupInfoDirty;
@@ -2727,9 +2445,8 @@ Accessible::GetGroupInfo()
   return mBits.groupInfo;
 }
 
-void
-Accessible::GetPositionAndSizeInternal(int32_t *aPosInSet, int32_t *aSetSize)
-{
+void Accessible::GetPositionAndSizeInternal(int32_t* aPosInSet,
+                                            int32_t* aSetSize) {
   AccGroupInfo* groupInfo = GetGroupInfo();
   if (groupInfo) {
     *aPosInSet = groupInfo->PosInSet();
@@ -2737,13 +2454,10 @@ Accessible::GetPositionAndSizeInternal(int32_t *aPosInSet, int32_t *aSetSize)
   }
 }
 
-int32_t
-Accessible::GetLevelInternal()
-{
+int32_t Accessible::GetLevelInternal() {
   int32_t level = nsAccUtils::GetDefaultLevel(this);
 
-  if (!IsBoundToParent())
-    return level;
+  if (!IsBoundToParent()) return level;
 
   roles::Role role = Role();
   if (role == roles::OUTLINEITEM) {
@@ -2756,11 +2470,8 @@ Accessible::GetLevelInternal()
     while ((parent = parent->Parent())) {
       roles::Role parentRole = parent->Role();
 
-      if (parentRole == roles::OUTLINE)
-        break;
-      if (parentRole == roles::GROUPING)
-        ++ level;
-
+      if (parentRole == roles::OUTLINE) break;
+      if (parentRole == roles::GROUPING) ++level;
     }
 
   } else if (role == roles::LISTITEM) {
@@ -2777,7 +2488,7 @@ Accessible::GetLevelInternal()
       roles::Role parentRole = parent->Role();
 
       if (parentRole == roles::LISTITEM)
-        ++ level;
+        ++level;
       else if (parentRole != roles::LIST && parentRole != roles::GROUPING)
         break;
     }
@@ -2798,33 +2509,30 @@ Accessible::GetLevelInternal()
         }
       }
     } else {
-      ++ level; // level is 1-index based
+      ++level;  // level is 1-index based
     }
   }
 
   return level;
 }
 
-void
-Accessible::StaticAsserts() const
-{
+void Accessible::StaticAsserts() const {
   static_assert(eLastStateFlag <= (1 << kStateFlagsBits) - 1,
                 "Accessible::mStateFlags was oversized by eLastStateFlag!");
   static_assert(eLastAccType <= (1 << kTypeBits) - 1,
                 "Accessible::mType was oversized by eLastAccType!");
   static_assert(eLastContextFlag <= (1 << kContextFlagsBits) - 1,
                 "Accessible::mContextFlags was oversized by eLastContextFlag!");
-  static_assert(eLastAccGenericType <= (1 << kGenericTypesBits) - 1,
-                "Accessible::mGenericType was oversized by eLastAccGenericType!");
+  static_assert(
+      eLastAccGenericType <= (1 << kGenericTypesBits) - 1,
+      "Accessible::mGenericType was oversized by eLastAccGenericType!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // KeyBinding class
 
 // static
-uint32_t
-KeyBinding::AccelModifier()
-{
+uint32_t KeyBinding::AccelModifier() {
   switch (WidgetInputEvent::AccelModifier()) {
     case MODIFIER_ALT:
       return kAlt;
@@ -2840,19 +2548,16 @@ KeyBinding::AccelModifier()
   }
 }
 
-void
-KeyBinding::ToPlatformFormat(nsAString& aValue) const
-{
+void KeyBinding::ToPlatformFormat(nsAString& aValue) const {
   nsCOMPtr<nsIStringBundle> keyStringBundle;
   nsCOMPtr<nsIStringBundleService> stringBundleService =
       mozilla::services::GetStringBundleService();
   if (stringBundleService)
     stringBundleService->CreateBundle(
-      "chrome://global-platform/locale/platformKeys.properties",
-      getter_AddRefs(keyStringBundle));
+        "chrome://global-platform/locale/platformKeys.properties",
+        getter_AddRefs(keyStringBundle));
 
-  if (!keyStringBundle)
-    return;
+  if (!keyStringBundle) return;
 
   nsAutoString separator;
   keyStringBundle->GetStringFromName("MODIFIER_SEPARATOR", separator);
@@ -2889,21 +2594,15 @@ KeyBinding::ToPlatformFormat(nsAString& aValue) const
   aValue.Append(mKey);
 }
 
-void
-KeyBinding::ToAtkFormat(nsAString& aValue) const
-{
+void KeyBinding::ToAtkFormat(nsAString& aValue) const {
   nsAutoString modifierName;
-  if (mModifierMask & kControl)
-    aValue.AppendLiteral("<Control>");
+  if (mModifierMask & kControl) aValue.AppendLiteral("<Control>");
 
-  if (mModifierMask & kAlt)
-    aValue.AppendLiteral("<Alt>");
+  if (mModifierMask & kAlt) aValue.AppendLiteral("<Alt>");
 
-  if (mModifierMask & kShift)
-    aValue.AppendLiteral("<Shift>");
+  if (mModifierMask & kShift) aValue.AppendLiteral("<Shift>");
 
-  if (mModifierMask & kMeta)
-      aValue.AppendLiteral("<Meta>");
+  if (mModifierMask & kMeta) aValue.AppendLiteral("<Meta>");
 
   aValue.Append(mKey);
 }

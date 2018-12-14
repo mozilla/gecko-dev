@@ -13,14 +13,16 @@ namespace mozilla {
 namespace dom {
 
 class AudioStreamTrack : public MediaStreamTrack {
-public:
-  AudioStreamTrack(DOMMediaStream* aStream, TrackID aTrackID,
-                   TrackID aInputTrackID,
-                   MediaStreamTrackSource* aSource,
-                   const MediaTrackConstraints& aConstraints = MediaTrackConstraints())
-    : MediaStreamTrack(aStream, aTrackID, aInputTrackID, aSource, aConstraints) {}
+ public:
+  AudioStreamTrack(
+      DOMMediaStream* aStream, TrackID aTrackID, TrackID aInputTrackID,
+      MediaStreamTrackSource* aSource,
+      const MediaTrackConstraints& aConstraints = MediaTrackConstraints())
+      : MediaStreamTrack(aStream, aTrackID, aInputTrackID, aSource,
+                         aConstraints) {}
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   AudioStreamTrack* AsAudioStreamTrack() override { return this; }
 
@@ -31,19 +33,15 @@ public:
 
   void GetLabel(nsAString& aLabel, CallerType aCallerType) override;
 
-protected:
-  already_AddRefed<MediaStreamTrack> CloneInternal(DOMMediaStream* aOwningStream,
-                                                   TrackID aTrackID) override
-  {
-    return do_AddRef(new AudioStreamTrack(aOwningStream,
-                                          aTrackID,
-                                          mInputTrackID,
-                                          mSource,
-                                          mConstraints));
+ protected:
+  already_AddRefed<MediaStreamTrack> CloneInternal(
+      DOMMediaStream* aOwningStream, TrackID aTrackID) override {
+    return do_AddRef(new AudioStreamTrack(
+        aOwningStream, aTrackID, mInputTrackID, mSource, mConstraints));
   }
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
 #endif /* AUDIOSTREAMTRACK_H_ */

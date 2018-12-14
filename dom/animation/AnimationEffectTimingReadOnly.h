@@ -19,24 +19,25 @@
 namespace mozilla {
 namespace dom {
 
-class AnimationEffectTimingReadOnly : public nsWrapperCache
-{
-public:
+class AnimationEffectTimingReadOnly : public nsWrapperCache {
+ public:
   AnimationEffectTimingReadOnly() = default;
   AnimationEffectTimingReadOnly(nsIDocument* aDocument,
                                 const TimingParams& aTiming)
-    : mDocument(aDocument)
-    , mTiming(aTiming) { }
+      : mDocument(aDocument), mTiming(aTiming) {}
 
-  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(AnimationEffectTimingReadOnly)
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(AnimationEffectTimingReadOnly)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(
+      AnimationEffectTimingReadOnly)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(
+      AnimationEffectTimingReadOnly)
 
-protected:
+ protected:
   virtual ~AnimationEffectTimingReadOnly() = default;
 
-public:
+ public:
   nsISupports* GetParentObject() const { return mDocument; }
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(JSContext* aCx,
+                       JS::Handle<JSObject*> aGivenProto) override;
 
   double Delay() const { return mTiming.Delay().ToMilliseconds(); }
   double EndDelay() const { return mTiming.EndDelay().ToMilliseconds(); }
@@ -50,14 +51,14 @@ public:
   const TimingParams& AsTimingParams() const { return mTiming; }
   void SetTimingParams(const TimingParams& aTiming) { mTiming = aTiming; }
 
-  virtual void Unlink() { }
+  virtual void Unlink() {}
 
-protected:
+ protected:
   RefPtr<nsIDocument> mDocument;
   TimingParams mTiming;
 };
 
-} // namespace dom
-} // namespace mozilla
+}  // namespace dom
+}  // namespace mozilla
 
-#endif // mozilla_dom_AnimationEffectTimingReadOnly_h
+#endif  // mozilla_dom_AnimationEffectTimingReadOnly_h

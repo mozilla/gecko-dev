@@ -15,12 +15,10 @@
 
 namespace js {
 
-extern JSObject*
-InitBooleanClass(JSContext* cx, js::HandleObject obj);
+extern JSObject* InitBooleanClass(JSContext* cx, js::HandleObject obj);
 
-extern JSString*
-BooleanToString(JSContext* cx, bool b);
+extern JSString* BooleanToString(JSContext* cx, bool b);
 
-} // namespace js
+}  // namespace js
 
 #endif /* jsbool_h */

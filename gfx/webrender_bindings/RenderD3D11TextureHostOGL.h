@@ -17,9 +17,8 @@ namespace mozilla {
 
 namespace wr {
 
-class RenderDXGITextureHostOGL final : public RenderTextureHostOGL
-{
-public:
+class RenderDXGITextureHostOGL final : public RenderTextureHostOGL {
+ public:
   explicit RenderDXGITextureHostOGL(WindowsHandle aHandle,
                                     gfx::SurfaceFormat aFormat,
                                     gfx::IntSize aSize);
@@ -30,7 +29,7 @@ public:
   virtual gfx::IntSize GetSize(uint8_t aChannelIndex) const;
   virtual GLuint GetGLHandle(uint8_t aChannelIndex) const;
 
-private:
+ private:
   virtual ~RenderDXGITextureHostOGL();
 
   bool EnsureLockable();
@@ -56,9 +55,8 @@ private:
   bool mLocked;
 };
 
-class RenderDXGIYCbCrTextureHostOGL final : public RenderTextureHostOGL
-{
-public:
+class RenderDXGIYCbCrTextureHostOGL final : public RenderTextureHostOGL {
+ public:
   explicit RenderDXGIYCbCrTextureHostOGL(WindowsHandle (&aHandles)[3],
                                          gfx::IntSize aSize,
                                          gfx::IntSize aSizeCbCr);
@@ -69,7 +67,7 @@ public:
   virtual gfx::IntSize GetSize(uint8_t aChannelIndex) const;
   virtual GLuint GetGLHandle(uint8_t aChannelIndex) const;
 
-private:
+ private:
   virtual ~RenderDXGIYCbCrTextureHostOGL();
 
   bool EnsureLockable();
@@ -94,7 +92,7 @@ private:
   bool mLocked;
 };
 
-} // namespace wr
-} // namespace mozilla
+}  // namespace wr
+}  // namespace mozilla
 
-#endif // MOZILLA_GFX_RENDERD3D11TEXTUREHOSTOGL_H
+#endif  // MOZILLA_GFX_RENDERD3D11TEXTUREHOSTOGL_H

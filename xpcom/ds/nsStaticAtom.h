@@ -74,53 +74,45 @@ class nsStaticAtom;
 
 // The declaration of the pointer to the static atom, which must be within a
 // class.
-#define NS_STATIC_ATOM_DECL(name_) \
-  static nsStaticAtom* name_;
+#define NS_STATIC_ATOM_DECL(name_) static nsStaticAtom* name_;
 
 // Like NS_STATIC_ATOM_DECL, but for sub-classes of nsStaticAtom.
-#define NS_STATIC_ATOM_SUBCLASS_DECL(type_, name_) \
-  static type_* name_;
+#define NS_STATIC_ATOM_SUBCLASS_DECL(type_, name_) static type_* name_;
 
 // The definition of the pointer to the static atom. Initially null, it is
 // set by RegisterStaticAtoms() to point to a heap-allocated nsStaticAtom.
-#define NS_STATIC_ATOM_DEFN(class_, name_) \
-  nsStaticAtom* class_::name_;
+#define NS_STATIC_ATOM_DEFN(class_, name_) nsStaticAtom* class_::name_;
 
 // Like NS_STATIC_ATOM_DEFN, but for sub-classes of nsStaticAtom.
-#define NS_STATIC_ATOM_SUBCLASS_DEFN(type_, class_, name_) \
-  type_* class_::name_;
+#define NS_STATIC_ATOM_SUBCLASS_DEFN(type_, class_, name_) type_* class_::name_;
 
 // The buffer of 16-bit chars that constitute the static atom.
 //
 // Note that |value_| is an 8-bit string, and so |sizeof(value_)| is equal
 // to the number of chars (including the terminating '\0'). The |u""| prefix
 // converts |value_| to a 16-bit string, which is what is assigned.
-#define NS_STATIC_ATOM_BUFFER(name_, value_) \
+#define NS_STATIC_ATOM_BUFFER(name_, value_)                         \
   static const char16_t name_##_buffer[sizeof(value_)] = u"" value_; \
   static_assert(sizeof(value_[0]) == 1, "non-8-bit static atom literal");
 
 // The StaticAtomSetup. Used only during start-up.
-#define NS_STATIC_ATOM_SETUP(class_, name_) \
-  { name_##_buffer, &class_::name_ },
+#define NS_STATIC_ATOM_SETUP(class_, name_) {name_##_buffer, &class_::name_},
 
 // Like NS_STATIC_ATOM_SUBCLASS, but for sub-classes of nsStaticAtom.
 #define NS_STATIC_ATOM_SUBCLASS_SETUP(class_, name_) \
-  { name_##_buffer, reinterpret_cast<nsStaticAtom**>(&class_::name_) },
+  {name_##_buffer, reinterpret_cast<nsStaticAtom**>(&class_::name_)},
 
 // Holds data used to initialize large number of atoms during startup. Use
 // NS_STATIC_ATOM_SETUP to initialize these structs. They should never be
 // accessed directly other than from nsAtomTable.cpp.
-struct nsStaticAtomSetup
-{
+struct nsStaticAtomSetup {
   const char16_t* const mString;
   nsStaticAtom** const mAtomp;
 };
 
 // Register an array of static atoms with the atom table.
-template<uint32_t N>
-void
-NS_RegisterStaticAtoms(const nsStaticAtomSetup (&aSetup)[N])
-{
+template <uint32_t N>
+void NS_RegisterStaticAtoms(const nsStaticAtomSetup (&aSetup)[N]) {
   extern void RegisterStaticAtoms(const nsStaticAtomSetup* aSetup,
                                   uint32_t aCount);
   RegisterStaticAtoms(aSetup, N);

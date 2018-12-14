@@ -13,21 +13,22 @@
 
 #define NS_SPELLCHECKER_CONTRACTID "@mozilla.org/spellchecker;1"
 
-#define NS_ISPELLCHECKER_IID                    \
-{ /* 27bff957-b486-40ae-9f5d-af0cdd211868 */    \
-0x27bff957, 0xb486, 0x40ae, \
-  { 0x9f, 0x5d, 0xaf, 0x0c, 0xdd, 0x21, 0x18, 0x68 } }
+#define NS_ISPELLCHECKER_IID                         \
+  { /* 27bff957-b486-40ae-9f5d-af0cdd211868 */       \
+    0x27bff957, 0xb486, 0x40ae, {                    \
+      0x9f, 0x5d, 0xaf, 0x0c, 0xdd, 0x21, 0x18, 0x68 \
+    }                                                \
+  }
 
 namespace mozilla {
 class TextServicesDocument;
-} // namespace mozilla
+}  // namespace mozilla
 
 /**
  * A generic interface for a spelling checker.
  */
-class nsISpellChecker  : public nsISupports{
-public:
-
+class nsISpellChecker : public nsISupports {
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISPELLCHECKER_IID)
 
   /**
@@ -36,7 +37,7 @@ public:
    * @param aFromStartOfDoc If true, start check from beginning of document,
    * if false, start check from current cursor position.
    */
-  NS_IMETHOD SetDocument(mozilla::TextServicesDocument* aDoc,
+  NS_IMETHOD SetDocument(mozilla::TextServicesDocument *aDoc,
                          bool aFromStartofDoc) = 0;
 
   /**
@@ -45,7 +46,8 @@ public:
    * @param aSuggestions is an array of nsStrings, that represent the
    * suggested replacements for the misspelled word.
    */
-  NS_IMETHOD NextMisspelledWord(nsAString &aWord, nsTArray<nsString> *aSuggestions) = 0;
+  NS_IMETHOD NextMisspelledWord(nsAString &aWord,
+                                nsTArray<nsString> *aSuggestions) = 0;
 
   /**
    * Checks if a word is misspelled. No document is required to use this method.
@@ -55,7 +57,8 @@ public:
    * suggested replacements for the misspelled word. The array will be empty
    * if there aren't any suggestions.
    */
-  NS_IMETHOD CheckWord(const nsAString &aWord, bool *aIsMisspelled, nsTArray<nsString> *aSuggestions) = 0;
+  NS_IMETHOD CheckWord(const nsAString &aWord, bool *aIsMisspelled,
+                       nsTArray<nsString> *aSuggestions) = 0;
 
   /**
    * Replaces the old word with the specified new word.
@@ -65,7 +68,8 @@ public:
    * word, in the document, with new word when it is true. If
    * false, it will replace the 1st occurrence only!
    */
-  NS_IMETHOD Replace(const nsAString &aOldWord, const nsAString &aNewWord, bool aAllOccurrences) = 0;
+  NS_IMETHOD Replace(const nsAString &aOldWord, const nsAString &aNewWord,
+                     bool aAllOccurrences) = 0;
 
   /**
    * Ignores all occurrences of the specified word in the document.
@@ -124,10 +128,9 @@ public:
    * @param aList  a preferred dictionary list
    */
   NS_IMETHOD_(RefPtr<mozilla::GenericPromise>)
-    SetCurrentDictionaryFromList(const nsTArray<nsString>& aList) = 0;
+  SetCurrentDictionaryFromList(const nsTArray<nsString> &aList) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsISpellChecker, NS_ISPELLCHECKER_IID)
 
-#endif // nsISpellChecker_h__
-
+#endif  // nsISpellChecker_h__

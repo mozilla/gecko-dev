@@ -24,12 +24,10 @@
 
 using namespace mozilla;
 
-
 NS_IMPL_ISUPPORTS(nsButtonBoxFrame::nsButtonBoxListener, nsIDOMEventListener)
 
-nsresult
-nsButtonBoxFrame::nsButtonBoxListener::HandleEvent(nsIDOMEvent* aEvent)
-{
+nsresult nsButtonBoxFrame::nsButtonBoxListener::HandleEvent(
+    nsIDOMEvent* aEvent) {
   if (!mButtonBoxFrame) {
     return NS_OK;
   }
@@ -51,38 +49,34 @@ nsButtonBoxFrame::nsButtonBoxListener::HandleEvent(nsIDOMEvent* aEvent)
 //
 // Creates a new Button frame and returns it
 //
-nsIFrame*
-NS_NewButtonBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
+nsIFrame* NS_NewButtonBoxFrame(nsIPresShell* aPresShell,
+                               nsStyleContext* aContext) {
   return new (aPresShell) nsButtonBoxFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsButtonBoxFrame)
 
-nsButtonBoxFrame::nsButtonBoxFrame(nsStyleContext* aContext, ClassID aID) :
-  nsBoxFrame(aContext, aID, false),
-  mButtonBoxListener(nullptr),
-  mIsHandlingKeyEvent(false)
-{
+nsButtonBoxFrame::nsButtonBoxFrame(nsStyleContext* aContext, ClassID aID)
+    : nsBoxFrame(aContext, aID, false),
+      mButtonBoxListener(nullptr),
+      mIsHandlingKeyEvent(false) {
   UpdateMouseThrough();
 }
 
-void
-nsButtonBoxFrame::Init(nsIContent*       aContent,
-                       nsContainerFrame* aParent,
-                       nsIFrame*         aPrevInFlow)
-{
+void nsButtonBoxFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
+                            nsIFrame* aPrevInFlow) {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
   mButtonBoxListener = new nsButtonBoxListener(this);
 
-  mContent->AddSystemEventListener(NS_LITERAL_STRING("blur"), mButtonBoxListener, false);
+  mContent->AddSystemEventListener(NS_LITERAL_STRING("blur"),
+                                   mButtonBoxListener, false);
 }
 
-void
-nsButtonBoxFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
-{
-  mContent->RemoveSystemEventListener(NS_LITERAL_STRING("blur"), mButtonBoxListener, false);
+void nsButtonBoxFrame::DestroyFrom(nsIFrame* aDestructRoot,
+                                   PostDestroyData& aPostDestroyData) {
+  mContent->RemoveSystemEventListener(NS_LITERAL_STRING("blur"),
+                                      mButtonBoxListener, false);
 
   mButtonBoxListener->mButtonBoxFrame = nullptr;
   mButtonBoxListener = nullptr;
@@ -90,21 +84,16 @@ nsButtonBoxFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDes
   nsBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
-void
-nsButtonBoxFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                              const nsDisplayListSet& aLists)
-{
+void nsButtonBoxFrame::BuildDisplayListForChildren(
+    nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists) {
   // override, since we don't want children to get events
-  if (aBuilder->IsForEventDelivery())
-    return;
+  if (aBuilder->IsForEventDelivery()) return;
   nsBoxFrame::BuildDisplayListForChildren(aBuilder, aLists);
 }
 
-nsresult
-nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
-                              WidgetGUIEvent* aEvent,
-                              nsEventStatus* aEventStatus)
-{
+nsresult nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
+                                       WidgetGUIEvent* aEvent,
+                                       nsEventStatus* aEventStatus) {
   NS_ENSURE_ARG_POINTER(aEventStatus);
   if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
     return NS_OK;
@@ -181,14 +170,11 @@ nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
   return nsBoxFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
 }
 
-void
-nsButtonBoxFrame::Blurred()
-{
+void nsButtonBoxFrame::Blurred() {
   NS_ASSERTION(mContent->IsElement(), "How do we have a non-element?");
   EventStates buttonState = mContent->AsElement()->State();
   if (mIsHandlingKeyEvent &&
-      buttonState.HasAllStates(NS_EVENT_STATE_ACTIVE |
-                               NS_EVENT_STATE_HOVER)) {
+      buttonState.HasAllStates(NS_EVENT_STATE_ACTIVE | NS_EVENT_STATE_HOVER)) {
     // return to normal state
     EventStateManager* esm = PresContext()->EventStateManager();
     esm->SetContentState(nullptr, NS_EVENT_STATE_ACTIVE);
@@ -197,9 +183,7 @@ nsButtonBoxFrame::Blurred()
   mIsHandlingKeyEvent = false;
 }
 
-void
-nsButtonBoxFrame::DoMouseClick(WidgetGUIEvent* aEvent, bool aTrustEvent)
-{
+void nsButtonBoxFrame::DoMouseClick(WidgetGUIEvent* aEvent, bool aTrustEvent) {
   // Don't execute if we're disabled.
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
                                          nsGkAtoms::_true, eCaseMatters))
@@ -212,7 +196,7 @@ nsButtonBoxFrame::DoMouseClick(WidgetGUIEvent* aEvent, bool aTrustEvent)
   bool isMeta = false;
   uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 
-  if(aEvent) {
+  if (aEvent) {
     WidgetInputEvent* inputEvent = aEvent->AsInputEvent();
     isShift = inputEvent->IsShift();
     isControl = inputEvent->IsControl();
@@ -225,13 +209,12 @@ nsButtonBoxFrame::DoMouseClick(WidgetGUIEvent* aEvent, bool aTrustEvent)
     }
   }
 
-  // Have the content handle the event, propagating it according to normal DOM rules.
+  // Have the content handle the event, propagating it according to normal DOM
+  // rules.
   nsCOMPtr<nsIPresShell> shell = PresContext()->GetPresShell();
   if (shell) {
-    nsContentUtils::DispatchXULCommand(mContent,
-                                       aEvent ?
-                                         aEvent->IsTrusted() : aTrustEvent,
-                                       nullptr, shell,
-                                       isControl, isAlt, isShift, isMeta, inputSource);
+    nsContentUtils::DispatchXULCommand(
+        mContent, aEvent ? aEvent->IsTrusted() : aTrustEvent, nullptr, shell,
+        isControl, isAlt, isShift, isMeta, inputSource);
   }
 }

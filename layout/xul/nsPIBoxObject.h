@@ -10,16 +10,17 @@
 #include "nsIBoxObject.h"
 
 // {2b8bb262-1b0f-4572-ba87-5d4ae4954445}
-#define NS_PIBOXOBJECT_IID \
-{ 0x2b8bb262, 0x1b0f, 0x4572, \
-  { 0xba, 0x87, 0x5d, 0x4a, 0xe4, 0x95, 0x44, 0x45 } }
-
+#define NS_PIBOXOBJECT_IID                           \
+  {                                                  \
+    0x2b8bb262, 0x1b0f, 0x4572, {                    \
+      0xba, 0x87, 0x5d, 0x4a, 0xe4, 0x95, 0x44, 0x45 \
+    }                                                \
+  }
 
 class nsIContent;
 
-class nsPIBoxObject : public nsIBoxObject
-{
-public:
+class nsPIBoxObject : public nsIBoxObject {
+ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIBOXOBJECT_IID)
 
   virtual nsresult Init(nsIContent* aContent) = 0;
@@ -35,4 +36,3 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIBoxObject, NS_PIBOXOBJECT_IID)
 
 #endif
-
