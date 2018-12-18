@@ -302,6 +302,7 @@ const char* mozilla::dom::ContentPrefs::gEarlyPrefs[] = {
     "privacy.resistFingerprinting.target_video_res",
     "privacy.resistFingerprinting.video_dropped_ratio",
     "privacy.resistFingerprinting.video_frames_per_sec",
+    "privacy.spoof_english",
     "privacy.trackingprotection.lower_network_priority",
     "privacy.window.maxInnerHeight",
     "privacy.window.maxInnerWidth",
