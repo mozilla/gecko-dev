@@ -57,7 +57,8 @@ packaging_description_schema = schema.extend({
     Optional('shipping-product'): task_description_schema['shipping-product'],
     Optional('shipping-phase'): task_description_schema['shipping-phase'],
 
-    Required('package-formats'): optionally_keyed_by('build-platform', 'project', [basestring]),
+    Required('package-formats'): optionally_keyed_by(
+        'build-platform', 'release-type', [basestring]),
 
     # All l10n jobs use mozharness
     Required('mozharness'): {
@@ -159,8 +160,10 @@ def handle_keyed_by(config, jobs):
         for field in fields:
             resolve_keyed_by(
                 item=job, field=field,
-                project=config.params['project'],
                 item_name="?",
+                **{
+                    'release-type': config.params['release_type'],
+                }
             )
         yield job
 
