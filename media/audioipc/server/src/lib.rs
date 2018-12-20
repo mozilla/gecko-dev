@@ -304,10 +304,15 @@ impl CubebServer {
             .data_callback(move |input, output| {
                 trace!("Stream data callback: {} {}", input.len(), output.len());
 
-                // len is of input and output is frame len. Turn these into the real lengths.
+                // FFI wrapper converted buffers to [u8] slices but len is frames *not* bytes.
+                // Convert slices to correct length now we have {input,output}_frame_size available.
                 let real_input = unsafe {
                     let nbytes = input.len() * input_frame_size as usize;
                     slice::from_raw_parts(input.as_ptr(), nbytes)
+                };
+                let real_output = unsafe {
+                    let nbytes = output.len() * output_frame_size as usize;
+                    slice::from_raw_parts_mut(output.as_mut_ptr(), nbytes)
                 };
 
                 input_shm.write(real_input).unwrap();
@@ -323,10 +328,7 @@ impl CubebServer {
                     Ok(CallbackResp::Data(frames)) => {
                         if frames >= 0 {
                             let nbytes = frames as usize * output_frame_size as usize;
-                            let real_output = unsafe {
-                                trace!("Resize output to {}", nbytes);
-                                slice::from_raw_parts_mut(output.as_mut_ptr(), nbytes)
-                            };
+                            trace!("Reslice output to {}", nbytes);
                             output_shm.read(&mut real_output[..nbytes]).unwrap();
                         }
                         frames
