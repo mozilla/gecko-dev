@@ -3600,6 +3600,8 @@ mozilla::ipc::IPCResult BackgroundCursorChild::RecvResponse(
   RefPtr<IDBCursor> cursor;
   mStrongCursor.swap(cursor);
 
+  RefPtr<IDBTransaction> transaction = mTransaction;
+
   switch (aResponse.type()) {
     case CursorResponse::Tnsresult:
       HandleResponse(aResponse.get_nsresult());
@@ -3629,7 +3631,7 @@ mozilla::ipc::IPCResult BackgroundCursorChild::RecvResponse(
       MOZ_CRASH("Should never get here!");
   }
 
-  mTransaction->OnRequestFinished(/* aActorDestroyedNormally */ true);
+  transaction->OnRequestFinished(/* aActorDestroyedNormally */ true);
 
   return IPC_OK();
 }
