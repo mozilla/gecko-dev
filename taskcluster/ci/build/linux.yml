@@ -557,6 +557,7 @@ linux64-asan-reporter/opt:
     treeherder:
         platform: linux64/asan
         symbol: BoR
+    run-on-projects: ['mozilla-central']
     worker-type: aws-provisioner-v1/gecko-{level}-b-linux
     worker:
         env:
