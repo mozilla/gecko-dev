@@ -95,6 +95,7 @@ jobs:
           type: decision-task
           treeherder-symbol: Searchfox
           target-tasks-method: searchfox_index
+          optimize-target-tasks: false
       run-on-projects:
           - mozilla-central
       when:
