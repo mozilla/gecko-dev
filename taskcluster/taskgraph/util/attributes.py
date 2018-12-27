@@ -117,3 +117,12 @@ def copy_attributes_from_dependent_job(dep_job):
     })
 
     return attributes
+
+
+def release_level(project):
+    """
+    Whether this is a staging release or not.
+
+    :return basestring: One of "production" or "staging".
+    """
+    return 'production' if project in RELEASE_PROJECTS else 'staging'
