@@ -96,7 +96,6 @@ def make_task_description(config, jobs):
         treeherder = None
         if 'partner' not in config.kind and 'eme-free' not in config.kind:
             treeherder = job.get('treeherder', {})
-            treeherder.setdefault('symbol', _generate_treeherder_symbol(is_nightly, config.kind))
 
             dep_th_platform = dep_job.task.get('extra', {}).get(
                 'treeherder', {}).get('machine', {}).get('platform', '')
@@ -107,6 +106,9 @@ def make_task_description(config, jobs):
             ))
 
             treeherder.setdefault('tier', 1 if '-ccov' not in build_platform else 2)
+            treeherder.setdefault('symbol', _generate_treeherder_symbol(
+                dep_job.task.get('extra', {}).get('treeherder', {}).get('symbol')
+            ))
             treeherder.setdefault('kind', 'build')
 
         label = job['label']
@@ -164,8 +166,6 @@ def _generate_treeherder_platform(dep_th_platform, build_platform, build_type):
     return '{}/{}'.format(dep_th_platform, actual_build_type)
 
 
-def _generate_treeherder_symbol(is_nightly, kind):
-    if is_nightly:
-        return 'Ns'
-    else:
-        return 'Bs'
+def _generate_treeherder_symbol(build_symbol):
+    symbol = build_symbol + 's'
+    return symbol
