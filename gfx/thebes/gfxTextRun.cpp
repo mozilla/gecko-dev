@@ -1696,11 +1696,7 @@ void gfxFontGroup::BuildFontList() {
   // lookup fonts in the fontlist
   for (const FontFamilyName& name : mFamilyList.GetFontlist()->mNames) {
     if (name.IsNamed()) {
-      if (!name.mName.IsEmpty()) {
-        AddPlatformFont(name.mName, fonts);
-      } else {
-        MOZ_ASSERT_UNREACHABLE("empty FontFamilyName!");
-      }
+      AddPlatformFont(name.mName, fonts);
     } else {
       pfl->AddGenericFonts(name.mType, mStyle.language, fonts);
       if (mTextPerf) {
@@ -1748,10 +1744,7 @@ void gfxFontGroup::AddPlatformFont(const nsAString& aName,
 }
 
 void gfxFontGroup::AddFamilyToFontList(gfxFontFamily* aFamily) {
-  if (!aFamily) {
-      MOZ_ASSERT_UNREACHABLE("don't try to add a null font family!");
-      return;
-  }
+  NS_ASSERTION(aFamily, "trying to add a null font family to fontlist");
   AutoTArray<gfxFontEntry*, 4> fontEntryList;
   bool needsBold;
   aFamily->FindAllFontsForStyle(mStyle, fontEntryList, needsBold);
