@@ -1696,10 +1696,10 @@ void gfxFontGroup::BuildFontList() {
   // lookup fonts in the fontlist
   for (const FontFamilyName& name : mFamilyList.GetFontlist()->mNames) {
     if (name.IsNamed()) {
-      if (name.mName) {
-          AddPlatformFont(name.mName, fonts);
+      if (!name.mName.IsEmpty()) {
+        AddPlatformFont(name.mName, fonts);
       } else {
-          MOZ_ASSERT_UNREACHABLE("broken FontFamilyName, no atom!");
+        MOZ_ASSERT_UNREACHABLE("empty FontFamilyName!");
       }
     } else {
       pfl->AddGenericFonts(name.mType, mStyle.language, fonts);
