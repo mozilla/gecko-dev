@@ -3234,7 +3234,7 @@ mozilla::ipc::IPCResult TabParent::RecvLookUpDictionary(
 }
 
 mozilla::ipc::IPCResult TabParent::RecvShowCanvasPermissionPrompt(
-    const nsCString& aFirstPartyURI) {
+    const nsCString& aFirstPartyURI, const bool& aHideDoorHanger) {
   nsCOMPtr<nsIBrowser> browser = do_QueryInterface(mFrameElement);
   if (!browser) {
     // If the tab is being closed, the browser may not be available.
@@ -3245,9 +3245,11 @@ mozilla::ipc::IPCResult TabParent::RecvShowCanvasPermissionPrompt(
   if (!os) {
     return IPC_FAIL_NO_REASON(this);
   }
-  nsresult rv =
-      os->NotifyObservers(browser, "canvas-permissions-prompt",
-                          NS_ConvertUTF8toUTF16(aFirstPartyURI).get());
+  nsresult rv = os->NotifyObservers(
+      browser,
+      aHideDoorHanger ? "canvas-permissions-prompt-hide-doorhanger"
+                      : "canvas-permissions-prompt",
+      NS_ConvertUTF8toUTF16(aFirstPartyURI).get());
   if (NS_FAILED(rv)) {
     return IPC_FAIL_NO_REASON(this);
   }

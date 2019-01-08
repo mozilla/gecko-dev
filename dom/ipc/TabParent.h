@@ -580,7 +580,7 @@ class TabParent final : public PBrowserParent,
   virtual mozilla::ipc::IPCResult RecvGetTabCount(uint32_t* aValue) override;
 
   virtual mozilla::ipc::IPCResult RecvShowCanvasPermissionPrompt(
-      const nsCString& aFirstPartyURI) override;
+      const nsCString& aFirstPartyURI, const bool& aHideDoorHanger) override;
 
   ContentCacheInParent mContentCache;
 
