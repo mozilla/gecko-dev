@@ -174,6 +174,14 @@ def check_nsmodules(target, binary):
     if target is HOST or not is_libxul(binary):
         raise Skip()
     symbols = []
+
+    test_msvc = (buildconfig.substs.get('_MSC_VER') and \
+        buildconfig.substs.get('DEVELOPER_OPTIONS'))
+    test_clang_win = (buildconfig.substs.get('CC_TYPE') == 'clang' and \
+        buildconfig.substs.get('OS_ARCH') == 'WINNT')
+    test_gcc_win = (buildconfig.substs.get('CC_TYPE') == 'gcc' and \
+        buildconfig.substs.get('OS_ARCH') == 'WINNT')
+
     if buildconfig.substs.get('_MSC_VER'):
         for line in get_output('dumpbin.exe', '-exports', binary):
             data = line.split(None, 3)
@@ -191,8 +199,7 @@ def check_nsmodules(target, binary):
         # MinGW-Clang, when building pdbs, doesn't include the symbol table into
         # the final module. To get the NSModule info, we can look at the exported
         # symbols. (#1475562)
-        if buildconfig.substs['OS_ARCH'] == 'WINNT' and \
-           buildconfig.substs['HOST_OS_ARCH'] != 'WINNT':
+        if test_clang_win:
             readobj_output = get_output(target['readobj'], '-coff-exports', binary)
             # Transform the output of readobj into nm-like output
             output = []
@@ -213,6 +220,8 @@ def check_nsmodules(target, binary):
             # NSModules symbols end with _NSModule or _NSModuleE when
             # C++-mangled.
             if len(data) == 4 and data[0].endswith(('_NSModule', '_NSModuleE')):
+                if test_gcc_win and any(x in data[0] for x in [".refptr", "_GLOBAL"]):
+                    continue
                 sym, _, addr, size = data
                 symbols.append((int(addr, 16), int(size, 16), sym))
     if not symbols:
@@ -227,11 +236,7 @@ def check_nsmodules(target, binary):
     # MSVC linker, when doing incremental linking, adds padding when
     # merging sections. Allow there to be more space between the NSModule
     # symbols, as long as they are in the right order.
-    test_msvc = (buildconfig.substs.get('_MSC_VER') and \
-        buildconfig.substs.get('DEVELOPER_OPTIONS'))
-    test_clang = (buildconfig.substs.get('CC_TYPE') == 'clang' and \
-        buildconfig.substs.get('OS_ARCH') == 'WINNT')
-    if test_msvc or test_clang:
+    if test_msvc or test_clang_win:
         sym_cmp = lambda guessed, actual: guessed <= actual
     else:
         sym_cmp = lambda guessed, actual: guessed == actual
