@@ -207,6 +207,9 @@ def check_nsmodules(target, binary):
 
         for line in output:
             data = line.split()
+            # Some symbols may not have a size listed at all.
+            if len(data) == 3:
+                data.append('0')
             # NSModules symbols end with _NSModule or _NSModuleE when
             # C++-mangled.
             if len(data) == 4 and data[0].endswith(('_NSModule', '_NSModuleE')):
