@@ -418,6 +418,7 @@ toolkit/components/urlformatter/nsURLFormatter.js
 toolkit/modules/AppConstants.jsm
 toolkit/mozapps/downloads/nsHelperAppDlg.js
 toolkit/mozapps/update/tests/data/xpcshellConstantsPP.js
+tools/tryselect/selectors/chooser/templates/chooser.html
 
 # Third party
 toolkit/modules/third_party/**
