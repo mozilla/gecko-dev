@@ -18,7 +18,17 @@ RUN dpkg --add-architecture $ARCH
 # Ideally, we wouldn't need gcc-multilib and the extra linux-libc-dev,
 # but the latter is required to make the former installable, and the former
 # because of bug 1409276.
+# On Debian 7, pkg-config was not multiarch-aware, so we rely on the $ARCH
+# pkg-config being valid on the host. On more recent versions of Debian, we can
+# use pkg-config, which is multiarch-aware, but we also need dpkg-dev because
+# of https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=916772.
 RUN apt-get update && \
+    if grep -q ^7\\. /etc/debian_version; then \
+      BACKPORT=/wheezy-backports; \
+      PKG_CONFIG=pkg-config:$ARCH; \
+    else \
+      PKG_CONFIG="pkg-config dpkg-dev"; \
+    fi && \
     apt-get install \
       autoconf2.13 \
       automake \
@@ -42,11 +52,11 @@ RUN apt-get update && \
       wget \
       x11-utils \
       xvfb \
-      yasm/wheezy-backports \
+      yasm$BACKPORT \
       zip \
-      linux-libc-dev/wheezy-backports \
-      linux-libc-dev:$ARCH/wheezy-backports \
-      pkg-config:$ARCH \
+      linux-libc-dev$BACKPORT \
+      linux-libc-dev:$ARCH$BACKPORT \
+      $PKG_CONFIG \
       libdbus-glib-1-dev:$ARCH \
       libfontconfig1-dev:$ARCH \
       libfreetype6-dev:$ARCH \
