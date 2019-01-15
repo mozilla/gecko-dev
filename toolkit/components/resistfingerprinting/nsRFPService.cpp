@@ -651,7 +651,8 @@ uint32_t nsRFPService::GetSpoofedPresentedFrames(double aTime, uint32_t aWidth,
 }
 
 /* static */
-nsresult nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
+nsresult nsRFPService::GetSpoofedUserAgent(nsACString& userAgent,
+                                           bool isForHTTPHeader) {
   // This function generates the spoofed value of User Agent.
   // We spoof the values of the platform and Firefox version, which could be
   // used as fingerprinting sources to identify individuals.
@@ -679,7 +680,7 @@ nsresult nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
   // function.
   if (!strcmp(NS_STRINGIFY(MOZ_UPDATE_CHANNEL), "esr")) {
     MOZ_ASSERT(((firefoxVersion % 7) == 4),
-               "Please udpate ESR version formula in nsRFPService.cpp");
+               "Please update ESR version formula in nsRFPService.cpp");
   }
 
   // Starting from Firefox 10, Firefox ESR was released once every seven
@@ -687,8 +688,9 @@ nsresult nsRFPService::GetSpoofedUserAgent(nsACString& userAgent) {
   // Except we used 60 as an ESR instead of 59.
   // We infer the last and closest ESR version based on this rule.
   uint32_t spoofedVersion = firefoxVersion - ((firefoxVersion - 4) % 7);
+  const char* spoofedOS = isForHTTPHeader ? SPOOFED_HTTP_UA_OS : SPOOFED_UA_OS;
   userAgent.Assign(nsPrintfCString(
-      "Mozilla/5.0 (%s; rv:%d.0) Gecko/%s Firefox/%d.0", SPOOFED_UA_OS,
+      "Mozilla/5.0 (%s; rv:%d.0) Gecko/%s Firefox/%d.0", spoofedOS,
       spoofedVersion, LEGACY_BUILD_ID, spoofedVersion));
 
   return rv;

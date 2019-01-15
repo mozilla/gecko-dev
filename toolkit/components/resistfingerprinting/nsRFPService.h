@@ -48,6 +48,14 @@
 #define SPOOFED_APPNAME "Netscape"
 #define LEGACY_BUILD_ID "20100101"
 
+// For the HTTP User-Agent header, we use a simpler set of spoofed values
+// that do not reveal the specific desktop platform.
+#if defined(MOZ_WIDGET_ANDROID)
+#define SPOOFED_HTTP_UA_OS "Android 6.0; Mobile"
+#else
+#define SPOOFED_HTTP_UA_OS "Windows NT 6.1"
+#endif
+
 // Forward declare LRUCache, defined in nsRFPService.cpp
 class LRUCache;
 
@@ -173,7 +181,8 @@ class nsRFPService final : public nsIObserver {
                                             uint32_t aHeight);
 
   // This method generates the spoofed value of User Agent.
-  static nsresult GetSpoofedUserAgent(nsACString& userAgent);
+  static nsresult GetSpoofedUserAgent(nsACString& userAgent,
+                                      bool isForHTTPHeader);
 
   /**
    * This method for getting spoofed modifier states for the given keyboard

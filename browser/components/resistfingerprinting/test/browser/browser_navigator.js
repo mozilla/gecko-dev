@@ -11,7 +11,8 @@ ChromeUtils.defineModuleGetter(this, "AppConstants",
 const TEST_PATH = "http://example.net/browser/browser/" +
                   "components/resistfingerprinting/test/browser/";
 
-var spoofedUserAgent;
+var spoofedUserAgentNavigator;
+var spoofedUserAgentHeader;
 
 const SPOOFED_APPNAME = "Netscape";
 
@@ -36,12 +37,19 @@ const SPOOFED_OSCPU = {
   android: "Linux armv7l",
   other: "Linux x86_64",
 };
-const SPOOFED_UA_OS = {
+const SPOOFED_UA_NAVIGATOR_OS = {
   linux: "X11; Linux x86_64",
   win: "Windows NT 6.1; Win64; x64",
   macosx: "Macintosh; Intel Mac OS X 10.13",
   android: "Android 6.0; Mobile",
   other: "X11; Linux x86_64",
+};
+const SPOOFED_UA_HTTPHEADER_OS = {
+  linux: "Windows NT 6.1",
+  win: "Windows NT 6.1",
+  macosx: "Windows NT 6.1",
+  android: "Android 6.0; Mobile",
+  other: "Windows NT 6.1",
 };
 const SPOOFED_BUILDID        = "20100101";
 const SPOOFED_HW_CONCURRENCY = 2;
@@ -51,6 +59,20 @@ const CONST_PRODUCT     = "Gecko";
 const CONST_PRODUCTSUB  = "20100101";
 const CONST_VENDOR      = "";
 const CONST_VENDORSUB   = "";
+
+async function testUserAgentHeader() {
+  const BASE = "http://mochi.test:8888/browser/browser/components/resistfingerprinting/test/browser/";
+  const TEST_TARGET_URL = `${BASE}browser_navigator_header.sjs?`;
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_TARGET_URL);
+
+  let result = await ContentTask.spawn(tab.linkedBrowser, null, function() {
+    return content.document.body.textContent;
+  });
+
+  is(result, spoofedUserAgentHeader, "User Agent HTTP Header is correctly spoofed.");
+
+  BrowserTestUtils.removeTab(tab);
+}
 
 async function testNavigator() {
   // Open a tab to collect result.
@@ -66,7 +88,7 @@ async function testNavigator() {
   is(result.appName, SPOOFED_APPNAME, "Navigator.appName is correctly spoofed.");
   is(result.appVersion, SPOOFED_APPVERSION[AppConstants.platform], "Navigator.appVersion is correctly spoofed.");
   is(result.platform, SPOOFED_PLATFORM[AppConstants.platform], "Navigator.platform is correctly spoofed.");
-  is(result.userAgent, spoofedUserAgent, "Navigator.userAgent is correctly spoofed.");
+  is(result.userAgent, spoofedUserAgentNavigator, "Navigator.userAgent is correctly spoofed.");
   is(result.mimeTypesLength, 0, "Navigator.mimeTypes has a length of 0.");
   is(result.pluginsLength, 0, "Navigator.plugins has a length of 0.");
   is(result.oscpu, SPOOFED_OSCPU[AppConstants.platform], "Navigator.oscpu is correctly spoofed.");
@@ -104,7 +126,7 @@ async function testWorkerNavigator() {
   is(result.appName, SPOOFED_APPNAME, "Navigator.appName is correctly spoofed.");
   is(result.appVersion, SPOOFED_APPVERSION[AppConstants.platform], "Navigator.appVersion is correctly spoofed.");
   is(result.platform, SPOOFED_PLATFORM[AppConstants.platform], "Navigator.platform is correctly spoofed.");
-  is(result.userAgent, spoofedUserAgent, "Navigator.userAgent is correctly spoofed.");
+  is(result.userAgent, spoofedUserAgentNavigator, "Navigator.userAgent is correctly spoofed.");
   is(result.hardwareConcurrency, SPOOFED_HW_CONCURRENCY, "Navigator.hardwareConcurrency is correctly spoofed.");
 
   is(result.appCodeName, CONST_APPCODENAME, "Navigator.appCodeName reports correct constant value.");
@@ -120,11 +142,16 @@ add_task(async function setup() {
 
   let appVersion = parseInt(Services.appinfo.version);
   let spoofedVersion = appVersion - ((appVersion - 4) % 7);
-  spoofedUserAgent = `Mozilla/5.0 (${SPOOFED_UA_OS[AppConstants.platform]}; rv:${spoofedVersion}.0) Gecko/20100101 Firefox/${spoofedVersion}.0`;
+  spoofedUserAgentNavigator = `Mozilla/5.0 (${SPOOFED_UA_NAVIGATOR_OS[AppConstants.platform]}; rv:${spoofedVersion}.0) Gecko/20100101 Firefox/${spoofedVersion}.0`;
+  spoofedUserAgentHeader = `Mozilla/5.0 (${SPOOFED_UA_HTTPHEADER_OS[AppConstants.platform]}; rv:${spoofedVersion}.0) Gecko/20100101 Firefox/${spoofedVersion}.0`;
 });
 
 add_task(async function runNavigatorTest() {
   await testNavigator();
+});
+
+add_task(async function runHTTPHeaderTest() {
+  await testUserAgentHeader();
 });
 
 add_task(async function runWorkerNavigatorTest() {
@@ -147,4 +174,6 @@ add_task(async function runOverrideTest() {
   await testNavigator();
 
   await testWorkerNavigator();
+
+  await testUserAgentHeader();
 });
