@@ -6437,6 +6437,34 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info) {
     UpdateNonClientMargins(sizeMode, false);
   }
 
+  // Force fullscreen. This works around a bug in Windows 10 1809 where
+  // using fullscreen when a window is "snapped" causes a spurious resize
+  // smaller than the full screen, see bug 1482920.
+  if (mSizeMode == nsSizeMode_Fullscreen && !(info->flags & SWP_NOMOVE) &&
+      !(info->flags & SWP_NOSIZE)) {
+    nsCOMPtr<nsIScreenManager> screenmgr =
+        do_GetService(sScreenManagerContractID);
+    if (screenmgr) {
+      LayoutDeviceIntRect bounds(info->x, info->y, info->cx, info->cy);
+      DesktopIntRect deskBounds =
+          RoundedToInt(bounds / GetDesktopToDeviceScale());
+      nsCOMPtr<nsIScreen> screen;
+      screenmgr->ScreenForRect(deskBounds.X(), deskBounds.Y(),
+                               deskBounds.Width(), deskBounds.Height(),
+                               getter_AddRefs(screen));
+
+      if (screen) {
+        int32_t x, y, width, height;
+        screen->GetRect(&x, &y, &width, &height);
+
+        info->x = x;
+        info->y = y;
+        info->cx = width;
+        info->cy = height;
+      }
+    }
+  }
+
   // enforce local z-order rules
   if (!(info->flags & SWP_NOZORDER)) {
     HWND hwndAfter = info->hwndInsertAfter;
