@@ -142,6 +142,9 @@ endif # MKSHLIB
 endif # FORCE_SHARED_LIB
 
 ifeq ($(OS_ARCH),WINNT)
+
+LINK_PDBFILE ?= $(basename $(@F)).pdb
+
 ifndef GNU_CC
 
 #
@@ -163,7 +166,6 @@ endif
 COMPILE_CFLAGS += $(COMPILE_PDB_FLAG)
 COMPILE_CXXFLAGS += $(COMPILE_PDB_FLAG)
 
-LINK_PDBFILE ?= $(basename $(@F)).pdb
 ifdef MOZ_DEBUG
 CODFILE=$(basename $(@F)).cod
 endif
@@ -177,6 +179,12 @@ endif # WINNT
 ifeq (arm-Darwin,$(CPU_ARCH)-$(OS_TARGET))
 ifdef PROGRAM
 MOZ_PROGRAM_LDFLAGS += -Wl,-rpath -Wl,@executable_path/Frameworks
+endif
+endif
+
+ifeq ($(OS_ARCH),WINNT)
+ifeq ($(CC_TYPE),clang)
+MOZ_PROGRAM_LDFLAGS += -Wl,-pdb,$(dir $@)/$(LINK_PDBFILE)
 endif
 endif
 
@@ -816,14 +824,13 @@ DUMP_SYMS_TARGETS :=
 endif
 endif
 
-ifdef MOZ_CRASHREPORTER
-$(foreach file,$(DUMP_SYMS_TARGETS),$(eval $(call syms_template,$(file),$(file)_syms.track)))
-else ifneq (,$(and $(LLVM_SYMBOLIZER),$(filter WINNT,$(OS_ARCH)),$(MOZ_AUTOMATION)))
-$(foreach file,$(DUMP_SYMS_TARGETS),$(eval $(call syms_template,$(file),$(addsuffix .pdb,$(basename $(file))))))
+ifdef MOZ_COPY_PDBS
 PDB_FILES = $(addsuffix .pdb,$(basename $(DUMP_SYMS_TARGETS)))
 PDB_DEST ?= $(FINAL_TARGET)
-PDB_TARGET = target
+PDB_TARGET = syms
 INSTALL_TARGETS += PDB
+else ifdef MOZ_CRASHREPORTER
+$(foreach file,$(DUMP_SYMS_TARGETS),$(eval $(call syms_template,$(file),$(notdir $(file))_syms.track)))
 endif
 
 cargo_host_flag := --target=$(RUST_HOST_TARGET)
