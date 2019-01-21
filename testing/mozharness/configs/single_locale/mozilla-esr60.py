@@ -1,7 +1,6 @@
 import os
 
 config = {
-    "nightly_build": True,
     "branch": "mozilla-esr60",
     "update_channel": "esr",
 
