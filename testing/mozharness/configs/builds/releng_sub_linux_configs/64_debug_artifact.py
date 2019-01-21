@@ -10,7 +10,6 @@ config = {
     'enable_count_ctors': True,
     # debug specific
     'debug_build': True,
-    # decides whether we want to use moz_sign_cmd in env
     # allows triggering of test jobs when --artifact try syntax is detected
     #########################################################################
 
