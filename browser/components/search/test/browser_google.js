@@ -59,37 +59,47 @@ function test() {
   let code = "";
   switch (countryCode) {
     case "US":
-      code = "firefox-b-1-d";
+      code = "firefox-b-1";
       break;
     case "DE":
-      code = "firefox-b-d";
+      code = "firefox-b";
       break;
     case "RU":
-      code = "firefox-b-d";
+      // Covered by test but doesn't use a code
       break;
   }
 
   let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8";
   // Keyword uses a slightly different code
+  let keywordBase = base;
   if (code) {
     let suffix = `&client=${code}`;
     base += suffix;
+    keywordBase += `${suffix}-ab`;
     expectedEngine.searchForm += suffix;
     let urlParams = expectedEngine.wrappedJSObject._urls[1].params;
     urlParams.push({
       name: "client",
+      value: `${code}-ab`,
+      purpose: "keyword",
+    });
+    urlParams.push({
+      name: "client",
       value: code,
+      purpose: "searchbar",
     });
   }
 
   let url;
 
   // Test search URLs (including purposes).
-  let purposes = ["", "contextmenu", "searchbar", "homepage", "newtab", "keyword"];
+  let purposes = ["", "contextmenu", "searchbar", "homepage", "newtab"];
   for (let purpose of purposes) {
     url = engine.getSubmission("foo", null, purpose).uri.spec;
     is(url, base, `Check ${purpose} search URL for 'foo'`);
   }
+  url = engine.getSubmission("foo", null, "keyword").uri.spec;
+  is(url, keywordBase, "Check keyword search URL for 'foo'");
 
   // Check search suggestion URL.
   url = engine.getSubmission("foo", "application/x-suggestions+json").uri.spec;

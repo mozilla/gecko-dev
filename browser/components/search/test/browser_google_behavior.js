@@ -25,13 +25,13 @@ let countryCode = Services.prefs.getCharPref("browser.search.countryCode");
 let code = "";
 switch (countryCode) {
   case "US":
-    code = "firefox-b-1-d";
+    code = "firefox-b-1";
     break;
   case "DE":
-    code = "firefox-b-d";
+    code = "firefox-b";
     break;
   case "RU":
-    code = "firefox-b-d";
+    // Covered by test but doesn't use a code
     break;
 }
 
@@ -41,7 +41,7 @@ if (code) {
   codes.context = suffix;
   codes.newTab = suffix;
   codes.submission = suffix;
-  codes.keyword = suffix;
+  codes.keyword = `${suffix}-ab`;
 }
 
 function promiseContentSearchReady(browser) {
