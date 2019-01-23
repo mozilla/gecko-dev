@@ -325,6 +325,21 @@
       "type": "boolean"
     },
 
+    "DNSOverHTTPS": {
+      "type": "object",
+      "properties": {
+        "Enabled": {
+          "type": "boolean"
+        },
+        "ProviderURL": {
+          "type": "URLorEmpty"
+        },
+        "Locked": {
+          "type": "boolean"
+        }
+      }
+    },
+
     "DontCheckDefaultBrowser": {
       "description": "Don't check for the default browser on startup.",
       "first_available": "60.0",

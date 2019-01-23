@@ -452,6 +452,26 @@ var Policies = {
     }
   },
 
+  "DNSOverHTTPS": {
+    onBeforeAddons(manager, param) {
+      if ("Enabled" in param) {
+        let mode = param.Enabled ? 2 : 5;
+        if (param.Locked) {
+          setAndLockPref("network.trr.mode", mode);
+        } else {
+          setDefaultPref("network.trr.mode", mode);
+        }
+      }
+      if (param.ProviderURL) {
+        if (param.Locked) {
+          setAndLockPref("network.trr.uri", param.ProviderURL.href);
+        } else {
+          setDefaultPref("network.trr.uri", param.ProviderURL.href);
+        }
+      }
+    },
+  },
+
   "DontCheckDefaultBrowser": {
     onBeforeUIStartup(manager, param) {
       setAndLockPref("browser.shell.checkDefaultBrowser", false);
