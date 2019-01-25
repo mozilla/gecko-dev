@@ -768,6 +768,16 @@
       }
     },
 
+    "SSLVersionMax": {
+      "type": "string",
+      "enum": ["tls1", "tls1.1", "tls1.2", "tls1.3"]
+    },
+
+    "SSLVersionMin": {
+      "type": "string",
+      "enum": ["tls1", "tls1.1", "tls1.2", "tls1.3"]
+    },
+
     "WebsiteFilter": {
       "description": "Blocks websites from being visited. The parameters take an array of Match Patterns, as documented in https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Match_patterns. Only http/https accesses are supported at the moment. The arrays are limited to 1000 entries each.",
       "first_available": "60.0",
