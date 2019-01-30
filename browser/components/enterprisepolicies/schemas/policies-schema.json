@@ -109,6 +109,10 @@
       }
     },
 
+    "CaptivePortal": {
+      "type": "boolean"
+    },
+
     "Certificates": {
       "description": "Whether or not to use built in certs. This policy is Windows only at this time.",
       "first_available": "60.0",
