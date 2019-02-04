@@ -178,6 +178,17 @@ const POLICIES_TESTS = [
       "security.tls.version.max": 4,
     },
   },
+
+  // POLICY: NetworkPrediction
+  {
+    policies: {
+      "NetworkPrediction": false,
+    },
+    lockedPrefs: {
+      "network.dns.disablePrefetch": true,
+      "network.dns.disablePrefetchFromHTTPS": true,
+    },
+  },
 ];
 
 add_task(async function test_policy_remember_passwords() {
