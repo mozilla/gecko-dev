@@ -6447,7 +6447,7 @@ nsresult PresShell::HandleEvent(nsIFrame* aFrame, WidgetGUIEvent* aEvent,
     return NS_OK;
   }
 
-  nsIContent* capturingContent =
+  nsCOMPtr<nsIContent> capturingContent =
       ((aEvent->mClass == ePointerEventClass ||
         aEvent->mClass == eWheelEventClass || aEvent->HasMouseEventMessage())
            ? GetCapturingContent()
