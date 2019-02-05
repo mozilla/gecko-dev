@@ -181,8 +181,8 @@ DEBIAN_DISTROS = (
     'LinuxMint',
     'Elementary OS',
     'Elementary',
-    '"elementary OS"',
-    '"elementary"'
+    'elementary OS',
+    'elementary'
 )
 
 ADD_GIT_TOOLS_PATH = '''
