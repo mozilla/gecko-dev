@@ -380,6 +380,10 @@
       }
     },
 
+    "ExtensionUpdate": {
+      "type": "boolean"
+    },
+
     "FlashPlugin": {
       "description": "Allow or deny flash plugin usage.",
       "first_available": "60.0",
