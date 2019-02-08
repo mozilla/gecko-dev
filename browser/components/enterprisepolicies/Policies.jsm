@@ -666,6 +666,7 @@ var Policies = {
         setAndLockPref("xpinstall.enabled", param.Default);
         if (!param.Default) {
           blockAboutPage(manager, "about:debugging");
+          manager.disallowFeature("xpinstall");
         }
       }
     }
